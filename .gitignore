@@ -1,0 +1,155 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environment (CRITICAL - NEVER commit)
+.venv/
+venv/
+ENV/
+env/
+.virtualenv/
+
+# PyCharm
+.idea/
+
+# VSCode
+.vscode/
+*.code-workspace
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# pyenv
+.python-version
+
+# pipenv
+Pipfile.lock
+
+# poetry
+poetry.lock
+
+# Environments
+.env
+.env.local
+.env.*.local
+
+# Claude Code Plugins (installed locally via Marketplace)
+superpowers_cache/
+claude_plugins/
+.claude/plugins/cache/
+
+# Node.js (for Claude Code plugins)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+
+# OS Files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs and databases
+*.log
+*.sql
+*.sqlite
+*.db
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# Data directories (stored on E:\ external drive)
+# These should NEVER be committed to Git
+downloads/
+logs/
+outputs/
+data/
+raw_data/
+processed_data/
+cache/
+temp/
+
+# Sensitive configuration
+secrets.json
+credentials.json
+*.key
+*.pem
+*.p12
+
+# Build artifacts
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Compressed files (usually data)
+*.zip
+*.tar.gz
+*.rar
+*.7z
+
+# Large files that should be on E:\ not Git
+*.pdf
+*.docx
+*.xlsx
+*.pptx
+*.mp4
+*.avi
+*.mov
+
+# Exception: Allow small sample files in docs/
+!docs/samples/*.pdf
+!docs/samples/*.docx
+
+# Windows
+$RECYCLE.BIN/
+
+# Test coverage
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# Backup files
+*.bak
+*.backup
