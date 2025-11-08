@@ -11,6 +11,13 @@ __pycache__/
 # Logs
 *.log
 
+# Cache (SQLite + arquivos temporários)
+cache/
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+
 # Test
 .pytest_cache/
 .coverage

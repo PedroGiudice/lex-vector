@@ -44,9 +44,9 @@ class TextParser:
 
     # Patterns ordenados por confidence (maior para menor)
     PATTERNS = [
-        # Pattern 1: OAB NUMERO/UF (formato padrão) - confidence 0.95
+        # Pattern 1: OAB NUMERO/UF (formato completo com número formatado) - confidence 0.95
         {
-            'regex': r'OAB[\s\-/]*(\d{1,6})[\s\-/]+(\\d{3}\.\\d{3}|\\d{6})[\s\-/]+([A-Z]{2})',
+            'regex': r'OAB[\s\-/]*(\d{1,3}\.\d{3}|\d{4,6})[\s\-/]+([A-Z]{2})',
             'confidence': 0.95,
             'nome': 'padrao_completo'
         },
@@ -56,35 +56,35 @@ class TextParser:
             'confidence': 0.90,
             'nome': 'oab_uf_numero'
         },
-        # Pattern 3: OAB NUMERO/UF (com ponto no número) - confidence 0.88
+        # Pattern 3: OAB NUMERO/UF (padrão básico) - confidence 0.88
         {
-            'regex': r'OAB[\s\-/]*(\d{1,3}\.\d{3})[\s\-/]+([A-Z]{2})',
+            'regex': r'OAB[\s\-/]*(\d{4,6})[\s\-/]+([A-Z]{2})',
             'confidence': 0.88,
-            'nome': 'numero_formatado'
+            'nome': 'padrao_basico'
         },
-        # Pattern 4: OAB NUMERO SP (sem barra) - confidence 0.85
+        # Pattern 4: Dentro de parênteses (OAB 129021/SP) - confidence 0.85
         {
-            'regex': r'OAB[\s\-/]*(\d{1,6})[\s\-/]+([A-Z]{2})',
+            'regex': r'\(OAB[\s\-/]*(\d{4,6})[\s\-/]+([A-Z]{2})\)',
             'confidence': 0.85,
-            'nome': 'sem_barra'
-        },
-        # Pattern 5: Dentro de parênteses (OAB 129021/SP) - confidence 0.82
-        {
-            'regex': r'\(OAB[\s\-/]*(\d{1,6})[\s\-/]+([A-Z]{2})\)',
-            'confidence': 0.82,
             'nome': 'em_parenteses'
         },
-        # Pattern 6: Após nome "Dr./Dra." - confidence 0.80
+        # Pattern 5: Após nome "Dr./Dra." - confidence 0.82
         {
-            'regex': r'(?:Dr\.?|Dra\.?)[\s\w]+OAB[\s\-/]*(\d{1,6})[\s\-/]+([A-Z]{2})',
-            'confidence': 0.80,
+            'regex': r'(?:Dr\.?|Dra\.?)[\s\w]+OAB[\s\-/]*(\d{4,6})[\s\-/]+([A-Z]{2})',
+            'confidence': 0.82,
             'nome': 'apos_dr'
         },
-        # Pattern 7: Genérico (advogado OAB...) - confidence 0.75
+        # Pattern 6: Após "advogado"/"advogada" - confidence 0.78
         {
-            'regex': r'(?:advogado|advogada)[\s\w]*OAB[\s\-/]*(\d{1,6})[\s\-/]+([A-Z]{2})',
-            'confidence': 0.75,
+            'regex': r'(?:advogado|advogada)[\s\w]*OAB[\s\-/]*(\d{4,6})[\s\-/]+([A-Z]{2})',
+            'confidence': 0.78,
             'nome': 'apos_advogado'
+        },
+        # Pattern 7: Genérico com "OAB" seguido de número e UF - confidence 0.75
+        {
+            'regex': r'OAB[^\d]*(\d{4,6})[^\w]*([A-Z]{2})',
+            'confidence': 0.75,
+            'nome': 'generico'
         }
     ]
 
