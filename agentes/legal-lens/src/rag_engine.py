@@ -7,8 +7,6 @@ from typing import Dict, List, Optional, Tuple
 import chromadb
 from chromadb.config import Settings
 from sentence_transformers import SentenceTransformer
-import numpy as np
-from dataclasses import asdict
 from .pdf_processor import DocumentChunk
 
 logger = logging.getLogger(__name__)

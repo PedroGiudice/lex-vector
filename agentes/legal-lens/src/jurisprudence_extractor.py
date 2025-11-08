@@ -4,7 +4,7 @@ Jurisprudence Extractor - Extração de jurisprudência por tema
 import logging
 import re
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass, asdict
 import json
 from collections import defaultdict
