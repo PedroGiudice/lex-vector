@@ -1,0 +1,157 @@
+{
+  "project": {
+    "name": "legal-rag-system",
+    "version": "1.0.0",
+    "description": "Sistema RAG para jurisprudência brasileira"
+  },
+
+  "paths": {
+    "data_root": "${CLAUDE_DATA_ROOT:-E:/claude-code-data}",
+    "corpus_dir": "${DATA_ROOT}/agentes/legal-rag/corpus",
+    "vector_store_dir": "${DATA_ROOT}/agentes/legal-rag/chroma_db",
+    "cache_dir": "${DATA_ROOT}/agentes/legal-rag/cache",
+    "logs_dir": "${DATA_ROOT}/agentes/legal-rag/logs"
+  },
+
+  "vector_store": {
+    "backend": "chromadb",
+    "collection_name": "jurisprudencia_br",
+    "embedding_model": "BAAI/bge-m3",
+    "distance_metric": "cosine",
+    "persist": true
+  },
+
+  "embeddings": {
+    "model_name": "bge-m3",
+    "model_path": "BAAI/bge-m3",
+    "max_seq_length": 8192,
+    "embedding_dim": 1024,
+    "normalize": true,
+    "device": "auto",
+    "batch_size": 32,
+    "show_progress": true
+  },
+
+  "chunking": {
+    "chunk_size": 512,
+    "chunk_overlap": 77,
+    "separators": [
+      "\n\n\n",
+      "\n\n",
+      "\nArt. ",
+      "\nInciso ",
+      "\nParágrafo único",
+      ". ",
+      " "
+    ],
+    "length_function": "tiktoken"
+  },
+
+  "retrieval": {
+    "strategy": "hybrid",
+    "dense_weight": 0.7,
+    "sparse_weight": 0.3,
+    "top_k": 100,
+    "top_n": 10,
+    "rerank": true,
+    "reranker_model": "BAAI/bge-reranker-v2-m3",
+    "rrf_k": 60
+  },
+
+  "llm": {
+    "provider": "anthropic",
+    "model": "claude-sonnet-4-20250514",
+    "max_tokens": 4000,
+    "temperature": 0.2,
+    "top_p": 1.0,
+    "stream": false,
+    "max_context_tokens": 100000
+  },
+
+  "indexing": {
+    "batch_size": 32,
+    "checkpoint_interval": 1000,
+    "n_workers": 4,
+    "deduplication": true,
+    "hash_algorithm": "sha256"
+  },
+
+  "normalization": {
+    "remove_stopwords": false,
+    "remove_numbers": false,
+    "remove_ordinals": true,
+    "remove_whitespace": true,
+    "remove_punctuation": false,
+    "remove_diacritics": false,
+    "lowercase": true,
+    "preserve_legal_terms": true
+  },
+
+  "analysis": {
+    "ner_model": "pt_core_news_lg",
+    "classifier_model": "neuralmind/bert-base-portuguese-cased",
+    "extract_entities": true,
+    "extract_theses": true,
+    "extract_precedents": true,
+    "extract_legal_foundation": true,
+    "calculate_quality_metrics": true
+  },
+
+  "cache": {
+    "enabled": true,
+    "ttl_seconds": 3600,
+    "max_size_mb": 1024,
+    "backend": "memory"
+  },
+
+  "logging": {
+    "level": "INFO",
+    "format": "{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {name}:{function}:{line} - {message}",
+    "rotation": "500 MB",
+    "retention": "30 days",
+    "colorize": true
+  },
+
+  "performance": {
+    "target_retrieval_latency_ms": 3000,
+    "target_generation_latency_ms": 5000,
+    "min_recall_at_10": 0.80,
+    "min_precision_at_10": 0.70,
+    "min_mrr": 0.70,
+    "min_faithfulness": 0.85,
+    "min_answer_relevancy": 0.80
+  },
+
+  "tribunais_validos": [
+    "STF", "STJ", "TST", "TSE", "STM",
+    "TRF1", "TRF2", "TRF3", "TRF4", "TRF5", "TRF6",
+    "TJSP", "TJRJ", "TJMG", "TJRS", "TJPR", "TJSC", "TJBA", "TJPE", "TJCE",
+    "TJGO", "TJDF", "TJAM", "TJES", "TJPA", "TJPB", "TJRN", "TJAL", "TJMT",
+    "TJMS", "TJSE", "TJAC", "TJAP", "TJMA", "TJPI", "TJRO", "TJRR", "TJTO"
+  ],
+
+  "areas_direito": [
+    "Civil",
+    "Penal",
+    "Trabalhista",
+    "Tributário",
+    "Administrativo",
+    "Constitucional",
+    "Processual Civil",
+    "Processual Penal",
+    "Empresarial",
+    "Consumidor",
+    "Ambiental",
+    "Eleitoral",
+    "Previdenciário",
+    "Familia e Sucessões",
+    "Internacional",
+    "Digital"
+  ],
+
+  "prompt_templates": {
+    "consulta_simples": "templates/consulta_simples.txt",
+    "analise_comparativa": "templates/analise_comparativa.txt",
+    "sintese_tematica": "templates/sintese_tematica.txt"
+  }
+}
