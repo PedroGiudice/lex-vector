@@ -1,0 +1,52 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual environment
+.venv/
+venv/
+ENV/
+env/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Pytest
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Model cache
+.cache/
+*.pkl
+*.h5
+*.pth
+
+# Data files (NUNCA commitar dados!)
+*.pdf
+*.json
+*.csv
+*.xlsx
+downloads/
+outputs/
+cache/
+processed/
+vector_db/
+logs/

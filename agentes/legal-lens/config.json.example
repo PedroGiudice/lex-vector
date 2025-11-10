@@ -1,0 +1,67 @@
+{
+  "api": {
+    "base_url": "https://comunicaapi.pje.jus.br",
+    "timeout": 30,
+    "max_retries": 3
+  },
+  "paths": {
+    "data_root": "E:\\claude-code-data\\agentes\\legal-lens",
+    "input_cadernos": "E:\\claude-code-data\\agentes\\oab-watcher\\downloads\\cadernos",
+    "input_busca": "E:\\claude-code-data\\agentes\\oab-watcher\\downloads\\busca_oab",
+    "processed": "processed",
+    "vector_db": "vector_db",
+    "logs": "logs",
+    "outputs": "outputs",
+    "cache": "cache"
+  },
+  "rag": {
+    "embedding_model": "sentence-transformers/paraphrase-multilingual-mpnet-base-v2",
+    "chunk_size": 1000,
+    "chunk_overlap": 200,
+    "vector_db_type": "chromadb",
+    "collection_name": "jurisprudencia_djen",
+    "top_k_results": 5,
+    "similarity_threshold": 0.7
+  },
+  "extraction": {
+    "temas_interesse": [
+      "direito civil",
+      "direito penal",
+      "direito trabalhista",
+      "direito tributário",
+      "direito administrativo",
+      "direito constitucional",
+      "direito processual civil",
+      "direito processual penal",
+      "responsabilidade civil",
+      "contratos",
+      "família e sucessões",
+      "consumidor",
+      "propriedade intelectual"
+    ],
+    "min_confidence": 0.6,
+    "extract_fields": [
+      "numero_processo",
+      "tribunal",
+      "vara",
+      "data_publicacao",
+      "tipo_decisao",
+      "tema",
+      "ementa",
+      "dispositivo",
+      "partes"
+    ]
+  },
+  "processing": {
+    "batch_size": 10,
+    "max_concurrent": 3,
+    "cache_enabled": true,
+    "reprocess_existing": false
+  },
+  "llm": {
+    "provider": "local",
+    "model": "sentence-transformers",
+    "temperature": 0.3,
+    "max_tokens": 2000
+  }
+}
