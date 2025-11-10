@@ -1,4 +1,4 @@
-# OAB Watcher v2.0 - Script de Execução com suporte a uv
+# DJEN Tracker v1.0 - Script de Execução
 # Ativa ambiente virtual e executa o agente
 
 # Strict mode
@@ -6,14 +6,14 @@ $ErrorActionPreference = "Stop"
 
 Write-Host ""
 Write-Host "================================================================" -ForegroundColor Cyan
-Write-Host "          OAB WATCHER v2.0 - Monitor DJEN Inteligente" -ForegroundColor Cyan
+Write-Host "          DJEN TRACKER v1.0 - Download Contínuo" -ForegroundColor Cyan
 Write-Host "================================================================" -ForegroundColor Cyan
 Write-Host ""
 
 # Verificar se está no diretório correto
 if (-not (Test-Path "pyproject.toml")) {
-    Write-Host "Erro: Execute este script do diretório agentes/oab-watcher" -ForegroundColor Red
-    Write-Host "Comando: cd agentes\oab-watcher; .\run_agent.ps1" -ForegroundColor Yellow
+    Write-Host "Erro: Execute este script do diretório agentes/djen-tracker" -ForegroundColor Red
+    Write-Host "Comando: cd agentes\djen-tracker; .\run_agent.ps1" -ForegroundColor Yellow
     exit 1
 }
 
@@ -24,7 +24,7 @@ if ($UV_AVAILABLE) {
     Write-Host "[uv] Detectado! Usando uv para gerenciamento de dependências" -ForegroundColor Green
     Write-Host ""
 
-    # Criar venv com uv (muito mais rápido)
+    # Criar venv com uv
     if (-not (Test-Path ".venv")) {
         Write-Host "[uv] Criando ambiente virtual..." -ForegroundColor Yellow
         uv venv
@@ -42,7 +42,7 @@ if ($UV_AVAILABLE) {
     }
     Write-Host "[uv] Ambiente ativo: $pythonPath" -ForegroundColor Green
 
-    # Instalar dependências com uv (10-100x mais rápido que pip)
+    # Instalar dependências com uv
     Write-Host "[uv] Instalando/atualizando dependências..." -ForegroundColor Yellow
     uv pip install -e ".[dev]"
 
@@ -82,24 +82,24 @@ if ($UV_AVAILABLE) {
 }
 
 # Verificar se E:\claude-code-data existe (Windows específico)
-$dataPath = "E:\claude-code-data\agentes\oab-watcher"
+$dataPath = "E:\claude-code-data\agentes\djen-tracker"
 if (-not (Test-Path $dataPath)) {
     Write-Host ""
     Write-Host "Aviso: Diretório de dados não encontrado: $dataPath" -ForegroundColor Yellow
     Write-Host "Criando estrutura de dados..." -ForegroundColor Yellow
 
-    New-Item -ItemType Directory -Force -Path "$dataPath\downloads\cadernos" | Out-Null
-    New-Item -ItemType Directory -Force -Path "$dataPath\downloads\busca_oab" | Out-Null
+    New-Item -ItemType Directory -Force -Path "$dataPath\cadernos\STF" | Out-Null
+    New-Item -ItemType Directory -Force -Path "$dataPath\cadernos\STJ" | Out-Null
+    New-Item -ItemType Directory -Force -Path "$dataPath\cadernos\TJSP" | Out-Null
     New-Item -ItemType Directory -Force -Path "$dataPath\cache" | Out-Null
     New-Item -ItemType Directory -Force -Path "$dataPath\logs" | Out-Null
-    New-Item -ItemType Directory -Force -Path "$dataPath\outputs\relatorios" | Out-Null
 
     Write-Host "Estrutura de dados criada!" -ForegroundColor Green
 }
 
 Write-Host ""
 Write-Host "================================================================" -ForegroundColor Green
-Write-Host "  Ambiente pronto! Iniciando OAB Watcher v2.0..." -ForegroundColor Green
+Write-Host "  Ambiente pronto! Iniciando DJEN Tracker v1.0..." -ForegroundColor Green
 Write-Host "================================================================" -ForegroundColor Green
 Write-Host ""
 

@@ -11,12 +11,13 @@ __pycache__/
 # Logs
 *.log
 
-# Cache (SQLite + arquivos temporários)
+# Cache e checkpoint
 cache/
 *.db
 *.db-journal
 *.db-shm
 *.db-wal
+checkpoint.json
 
 # Test
 .pytest_cache/

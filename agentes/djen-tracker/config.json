@@ -1,0 +1,46 @@
+{
+  "tribunais": {
+    "prioritarios": [
+      "STF",
+      "STJ",
+      "TJSP"
+    ],
+    "instancias": {
+      "STF": "Supremo",
+      "STJ": "Superior",
+      "TJSP": "Segunda"
+    }
+  },
+  "download": {
+    "intervalo_minutos": 30,
+    "max_concurrent": 3,
+    "chunk_size_mb": 10,
+    "retry_attempts": 3,
+    "timeout_seconds": 60
+  },
+  "rate_limiting": {
+    "requests_per_minute": 20,
+    "delay_between_requests_seconds": 3,
+    "backoff_on_429": true,
+    "max_backoff_seconds": 300
+  },
+  "scraping": {
+    "portal_url": "https://comunica.pje.jus.br",
+    "use_selenium": false,
+    "headless": true,
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+  },
+  "paths": {
+    "data_root": "E:\\claude-code-data\\agentes\\djen-tracker",
+    "cadernos": "cadernos",
+    "logs": "logs",
+    "cache": "cache",
+    "checkpoint": "checkpoint.json"
+  },
+  "integracao_oab_watcher": {
+    "enabled": true,
+    "usar_cache": true,
+    "usar_text_parser": true,
+    "threshold_relevancia": 0.3
+  }
+}

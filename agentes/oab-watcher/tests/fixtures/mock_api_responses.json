@@ -1,0 +1,298 @@
+{
+  "comunicacao_sem_filtro_oab": {
+    "status": "success",
+    "message": "Busca realizada com sucesso",
+    "count": 10000,
+    "items": [
+      {
+        "id": 1001,
+        "data_disponibilizacao": "2025-11-07T10:30:00",
+        "siglaTribunal": "TJSP",
+        "tipoComunicacao": "Intimação",
+        "nomeOrgao": "1ª Vara Cível Central",
+        "texto": "Intimam-se os advogados Dr. João Silva (OAB 129021/SP) e Dra. Maria Santos (OAB 234567/RJ) para manifestação no prazo de 15 dias úteis, sob pena de preclusão.",
+        "numero_processo": "1234567-89.2025.8.26.0100",
+        "numeroprocessocommascara": "1234567-89.2025.8.26.0100",
+        "meio": "1",
+        "link": "https://comunica.pje.jus.br/comunicacao/1001",
+        "tipoDocumento": "Despacho",
+        "nomeClasse": "Procedimento Comum Cível",
+        "codigoClasse": "319",
+        "numeroComunicacao": 1001,
+        "ativo": true,
+        "hash": "abc123def456",
+        "datadisponibilizacao": "2025-11-07T10:30:00",
+        "meiocompleto": "Meio Eletrônico",
+        "destinatarios": [
+          {
+            "nome": "João Silva",
+            "polo": "autor",
+            "comunicacao_id": 1001
+          }
+        ],
+        "destinatarioadvogados": [
+          {
+            "id": 5001,
+            "comunicacao_id": 1001,
+            "advogado_id": 9001,
+            "created_at": "2025-11-07T10:30:00",
+            "updated_at": "2025-11-07T10:30:00",
+            "advogado": {
+              "id": 9001,
+              "nome": "João Silva",
+              "numero_oab": "129021",
+              "uf_oab": "SP"
+            }
+          }
+        ]
+      },
+      {
+        "id": 1002,
+        "data_disponibilizacao": "2025-11-07T11:00:00",
+        "siglaTribunal": "TJSP",
+        "tipoComunicacao": "Citação",
+        "nomeOrgao": "2ª Vara Cível Central",
+        "texto": "Fica citado o réu, por intermédio de seu advogado Dr. Pedro Costa OAB/SP 129021, para contestar a ação no prazo de 15 dias.",
+        "numero_processo": "9876543-21.2025.8.26.0100",
+        "numeroprocessocommascara": "9876543-21.2025.8.26.0100",
+        "meio": "1",
+        "link": "https://comunica.pje.jus.br/comunicacao/1002",
+        "tipoDocumento": "Mandado",
+        "nomeClasse": "Procedimento Comum Cível",
+        "codigoClasse": "319",
+        "numeroComunicacao": 1002,
+        "ativo": true,
+        "hash": "def789ghi012",
+        "datadisponibilizacao": "2025-11-07T11:00:00",
+        "meiocompleto": "Meio Eletrônico",
+        "destinatarios": [
+          {
+            "nome": "Pedro Costa",
+            "polo": "réu",
+            "comunicacao_id": 1002
+          }
+        ],
+        "destinatarioadvogados": [
+          {
+            "id": 5002,
+            "comunicacao_id": 1002,
+            "advogado_id": 9001,
+            "created_at": "2025-11-07T11:00:00",
+            "updated_at": "2025-11-07T11:00:00",
+            "advogado": {
+              "id": 9001,
+              "nome": "João Silva",
+              "numero_oab": "129021",
+              "uf_oab": "SP"
+            }
+          }
+        ]
+      },
+      {
+        "id": 1003,
+        "data_disponibilizacao": "2025-11-07T12:00:00",
+        "siglaTribunal": "TJRJ",
+        "tipoComunicacao": "Sentença",
+        "nomeOrgao": "3ª Vara Empresarial",
+        "texto": "Sentença proferida. Julgo procedente o pedido para condenar o réu ao pagamento de R$ 50.000,00. Custas pelo réu. Honorários advocatícios fixados em 10% do valor da condenação.",
+        "numero_processo": "5555555-55.2025.8.19.0001",
+        "numeroprocessocommascara": "5555555-55.2025.8.19.0001",
+        "meio": "1",
+        "link": "https://comunica.pje.jus.br/comunicacao/1003",
+        "tipoDocumento": "Sentença",
+        "nomeClasse": "Procedimento Comum Cível",
+        "codigoClasse": "319",
+        "numeroComunicacao": 1003,
+        "ativo": true,
+        "hash": "ghi345jkl678",
+        "datadisponibilizacao": "2025-11-07T12:00:00",
+        "meiocompleto": "Meio Eletrônico",
+        "destinatarios": [
+          {
+            "nome": "Carlos Oliveira",
+            "polo": "autor",
+            "comunicacao_id": 1003
+          },
+          {
+            "nome": "Ana Souza",
+            "polo": "réu",
+            "comunicacao_id": 1003
+          }
+        ],
+        "destinatarioadvogados": []
+      },
+      {
+        "id": 1004,
+        "data_disponibilizacao": "2025-11-07T13:30:00",
+        "siglaTribunal": "TJSP",
+        "tipoComunicacao": "Intimação",
+        "nomeOrgao": "5ª Vara da Família",
+        "texto": "Intimação ao advogado OAB 129.021/SP para ciência da decisão que determinou realização de audiência de conciliação.",
+        "numero_processo": "7777777-77.2025.8.26.0100",
+        "numeroprocessocommascara": "7777777-77.2025.8.26.0100",
+        "meio": "1",
+        "link": "https://comunica.pje.jus.br/comunicacao/1004",
+        "tipoDocumento": "Despacho",
+        "nomeClasse": "Divórcio Litigioso",
+        "codigoClasse": "275",
+        "numeroComunicacao": 1004,
+        "ativo": true,
+        "hash": "jkl901mno234",
+        "datadisponibilizacao": "2025-11-07T13:30:00",
+        "meiocompleto": "Meio Eletrônico",
+        "destinatarios": [
+          {
+            "nome": "Laura Mendes",
+            "polo": "autor",
+            "comunicacao_id": 1004
+          }
+        ],
+        "destinatarioadvogados": [
+          {
+            "id": 5004,
+            "comunicacao_id": 1004,
+            "advogado_id": 9001,
+            "created_at": "2025-11-07T13:30:00",
+            "updated_at": "2025-11-07T13:30:00",
+            "advogado": {
+              "id": 9001,
+              "nome": "João Silva",
+              "numero_oab": "129021",
+              "uf_oab": "SP"
+            }
+          }
+        ]
+      },
+      {
+        "id": 1005,
+        "data_disponibilizacao": "2025-11-07T14:00:00",
+        "siglaTribunal": "TJSP",
+        "tipoComunicacao": "Despacho",
+        "nomeOrgao": "10ª Vara Cível",
+        "texto": "Publicação de despacho de mero expediente determinando juntada de documentos aos autos.",
+        "numero_processo": "8888888-88.2025.8.26.0100",
+        "numeroprocessocommascara": "8888888-88.2025.8.26.0100",
+        "meio": "1",
+        "link": "https://comunica.pje.jus.br/comunicacao/1005",
+        "tipoDocumento": "Despacho",
+        "nomeClasse": "Procedimento Comum Cível",
+        "codigoClasse": "319",
+        "numeroComunicacao": 1005,
+        "ativo": true,
+        "hash": "mno567pqr890",
+        "datadisponibilizacao": "2025-11-07T14:00:00",
+        "meiocompleto": "Meio Eletrônico",
+        "destinatarios": [],
+        "destinatarioadvogados": []
+      }
+    ]
+  },
+  "comunicacao_com_filtro_oab_quebrado": {
+    "status": "success",
+    "message": "Busca realizada com sucesso",
+    "count": 10000,
+    "items": [
+      {
+        "id": 2001,
+        "data_disponibilizacao": "2025-11-07T09:00:00",
+        "siglaTribunal": "TJRJ",
+        "tipoComunicacao": "Intimação",
+        "nomeOrgao": "7ª Vara Cível",
+        "texto": "Publicação de despacho determinando juntada de documentos.",
+        "numero_processo": "1111111-11.2025.8.19.0001",
+        "numeroprocessocommascara": "1111111-11.2025.8.19.0001",
+        "meio": "1",
+        "link": "https://comunica.pje.jus.br/comunicacao/2001",
+        "tipoDocumento": "Despacho",
+        "nomeClasse": "Procedimento Comum Cível",
+        "codigoClasse": "319",
+        "numeroComunicacao": 2001,
+        "ativo": true,
+        "hash": "pqr123stu456",
+        "datadisponibilizacao": "2025-11-07T09:00:00",
+        "meiocompleto": "Meio Eletrônico",
+        "destinatarios": [],
+        "destinatarioadvogados": [
+          {
+            "id": 6001,
+            "comunicacao_id": 2001,
+            "advogado_id": 9999,
+            "created_at": "2025-11-07T09:00:00",
+            "updated_at": "2025-11-07T09:00:00",
+            "advogado": {
+              "id": 9999,
+              "nome": "Fulano da Silva",
+              "numero_oab": "999999",
+              "uf_oab": "RJ"
+            }
+          }
+        ]
+      },
+      {
+        "id": 2002,
+        "data_disponibilizacao": "2025-11-07T09:30:00",
+        "siglaTribunal": "TJMG",
+        "tipoComunicacao": "Sentença",
+        "nomeOrgao": "4ª Vara Criminal",
+        "texto": "Sentença absolutória. Absolvo o réu por falta de provas.",
+        "numero_processo": "2222222-22.2025.8.13.0024",
+        "numeroprocessocommascara": "2222222-22.2025.8.13.0024",
+        "meio": "1",
+        "link": "https://comunica.pje.jus.br/comunicacao/2002",
+        "tipoDocumento": "Sentença",
+        "nomeClasse": "Ação Penal",
+        "codigoClasse": "283",
+        "numeroComunicacao": 2002,
+        "ativo": true,
+        "hash": "stu789vwx012",
+        "datadisponibilizacao": "2025-11-07T09:30:00",
+        "meiocompleto": "Meio Eletrônico",
+        "destinatarios": [],
+        "destinatarioadvogados": [
+          {
+            "id": 6002,
+            "comunicacao_id": 2002,
+            "advogado_id": 8888,
+            "created_at": "2025-11-07T09:30:00",
+            "updated_at": "2025-11-07T09:30:00",
+            "advogado": {
+              "id": 8888,
+              "nome": "Ciclano Pereira",
+              "numero_oab": "888888",
+              "uf_oab": "MG"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "cadernos_tjsp_2025-11-07": {
+    "status": "success",
+    "items": [
+      {
+        "tribunal": "Tribunal de Justiça de São Paulo",
+        "sigla_tribunal": "TJSP",
+        "meio": "1",
+        "status": "DISPONIVEL",
+        "versao": "1",
+        "data": "2025-11-07",
+        "total_comunicacoes": 2547,
+        "numero_paginas": 324,
+        "hash": "a1b2c3d4e5f6g7h8",
+        "url": "https://comunicaapi.pje.jus.br/cadernos/TJSP_2025-11-07_1.pdf"
+      },
+      {
+        "tribunal": "Tribunal de Justiça de São Paulo",
+        "sigla_tribunal": "TJSP",
+        "meio": "2",
+        "status": "DISPONIVEL",
+        "versao": "1",
+        "data": "2025-11-07",
+        "total_comunicacoes": 1823,
+        "numero_paginas": 218,
+        "hash": "i9j0k1l2m3n4o5p6",
+        "url": "https://comunicaapi.pje.jus.br/cadernos/TJSP_2025-11-07_2.pdf"
+      }
+    ]
+  }
+}
