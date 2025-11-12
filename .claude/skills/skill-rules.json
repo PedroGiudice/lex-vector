@@ -1,0 +1,808 @@
+{
+  "description": "Auto-activation rules for 34 installed skills - Legal automation context",
+  "version": "1.0.0",
+  "context": {
+    "project": "Claude-Code-Projetos",
+    "domain": "Legal automation (Brazilian law - OAB, DJEN, RAG)",
+    "stack": "Python 3.14, Windows corporate, 3-layer architecture",
+    "rules": ["RULE_006: venv mandatory", "LESSON_004: no hardcoded paths"]
+  },
+
+  "skills": {
+
+    "feature-planning": {
+      "type": "planning",
+      "enforcement": "suggest",
+      "priority": "critical",
+      "description": "Breaks features into detailed implementable tasks with clarifying questions",
+      "promptTriggers": {
+        "keywords": [
+          "plan feature",
+          "break down",
+          "implementation plan",
+          "how to implement",
+          "task breakdown",
+          "development plan",
+          "feature design",
+          "plan development"
+        ],
+        "intentPatterns": [
+          "(plan|design|break down).*?(feature|functionality|implementation)",
+          "how (do|can|should).*(implement|build|create|develop)",
+          "(need|want).*?(plan|roadmap|strategy).*?(implement|build)"
+        ]
+      },
+      "relatedSkills": ["executing-plans", "writing-plans", "ship-learn-next"]
+    },
+
+    "code-auditor": {
+      "type": "quality",
+      "enforcement": "suggest",
+      "priority": "critical",
+      "description": "Comprehensive code audit: architecture, security, performance, testing",
+      "promptTriggers": {
+        "keywords": [
+          "audit code",
+          "code quality",
+          "review code",
+          "analyze code",
+          "code review",
+          "security audit",
+          "performance analysis",
+          "code analysis"
+        ],
+        "intentPatterns": [
+          "(audit|review|analyze|check|assess).*?code",
+          "code.*?(quality|security|performance|issues|problems)",
+          "(find|identify).*?(bugs|issues|vulnerabilities)"
+        ]
+      },
+      "filePathTriggers": {
+        "patterns": ["**/*.py", "**/*.js", "**/*.ts"]
+      },
+      "relatedSkills": ["systematic-debugging", "test-fixing", "root-cause-tracing"]
+    },
+
+    "architecture-diagram-creator": {
+      "type": "documentation",
+      "enforcement": "suggest",
+      "priority": "high",
+      "description": "Creates system architecture diagrams with component maps and data flows",
+      "promptTriggers": {
+        "keywords": [
+          "architecture diagram",
+          "system architecture",
+          "component diagram",
+          "data flow",
+          "architecture",
+          "visualize system",
+          "system design",
+          "component map"
+        ],
+        "intentPatterns": [
+          "(create|generate|make|draw).*?(architecture|diagram|map)",
+          "(show|visualize|illustrate).*?(system|architecture|components)",
+          "architecture.*?(diagram|visual|visualization)"
+        ]
+      },
+      "relatedSkills": ["flowchart-creator", "technical-doc-creator", "codebase-documenter"]
+    },
+
+    "systematic-debugging": {
+      "type": "debugging",
+      "enforcement": "suggest",
+      "priority": "critical",
+      "description": "Systematic debugging methodology - 5 Whys, hypothesis-driven",
+      "promptTriggers": {
+        "keywords": [
+          "debug",
+          "bug",
+          "error",
+          "not working",
+          "failing",
+          "broken",
+          "issue",
+          "troubleshoot",
+          "investigate"
+        ],
+        "intentPatterns": [
+          "(debug|fix|solve|resolve).*?(bug|error|issue|problem)",
+          "(why|what).*?(not working|failing|broken)",
+          "(investigate|troubleshoot|diagnose).*?(issue|problem|error)"
+        ]
+      },
+      "relatedSkills": ["root-cause-tracing", "test-fixing", "code-auditor"]
+    },
+
+    "test-driven-development": {
+      "type": "development",
+      "enforcement": "suggest",
+      "priority": "high",
+      "description": "TDD workflow - write tests first, implement, refactor",
+      "promptTriggers": {
+        "keywords": [
+          "TDD",
+          "test driven",
+          "write tests",
+          "test first",
+          "test coverage",
+          "unit test",
+          "integration test"
+        ],
+        "intentPatterns": [
+          "test.*(driven|first|coverage)",
+          "(write|create|add).*?tests",
+          "TDD.*?(approach|methodology|workflow)"
+        ]
+      },
+      "relatedSkills": ["test-fixing", "code-auditor", "verification-before-completion"]
+    },
+
+    "test-fixing": {
+      "type": "testing",
+      "enforcement": "suggest",
+      "priority": "high",
+      "description": "Identifies and fixes failing tests with smart error grouping",
+      "promptTriggers": {
+        "keywords": [
+          "fix tests",
+          "failing tests",
+          "test errors",
+          "tests not passing",
+          "test failures",
+          "broken tests"
+        ],
+        "intentPatterns": [
+          "(fix|repair|resolve).*?tests",
+          "tests.*?(failing|broken|not passing|error)",
+          "(failing|broken).*?tests"
+        ]
+      },
+      "filePathTriggers": {
+        "patterns": ["**/test_*.py", "**/*_test.py", "**/tests/**/*.py"]
+      },
+      "relatedSkills": ["test-driven-development", "systematic-debugging"]
+    },
+
+    "codebase-documenter": {
+      "type": "documentation",
+      "enforcement": "suggest",
+      "priority": "high",
+      "description": "Generates architecture docs, component guides, onboarding materials",
+      "promptTriggers": {
+        "keywords": [
+          "document code",
+          "create documentation",
+          "generate docs",
+          "codebase documentation",
+          "architecture docs",
+          "component guide",
+          "onboarding"
+        ],
+        "intentPatterns": [
+          "(document|generate|create).*?(code|codebase|architecture)",
+          "documentation.*?(codebase|architecture|components)",
+          "(need|want).*?documentation"
+        ]
+      },
+      "relatedSkills": ["technical-doc-creator", "architecture-diagram-creator"]
+    },
+
+    "technical-doc-creator": {
+      "type": "documentation",
+      "enforcement": "suggest",
+      "priority": "high",
+      "description": "Creates comprehensive technical documentation with code examples and API workflows",
+      "promptTriggers": {
+        "keywords": [
+          "technical documentation",
+          "API documentation",
+          "create docs",
+          "write documentation",
+          "technical guide",
+          "API reference"
+        ],
+        "intentPatterns": [
+          "(create|write|generate).*?(technical|API).*?doc",
+          "documentation.*?(API|technical|guide)",
+          "document.*?(API|endpoint|function)"
+        ]
+      },
+      "relatedSkills": ["codebase-documenter", "docx"]
+    },
+
+    "dashboard-creator": {
+      "type": "visualization",
+      "enforcement": "suggest",
+      "priority": "high",
+      "description": "Creates KPI dashboards with charts (bar, pie, line) and progress indicators",
+      "promptTriggers": {
+        "keywords": [
+          "dashboard",
+          "create dashboard",
+          "KPI",
+          "metrics dashboard",
+          "visualization",
+          "charts",
+          "data visualization"
+        ],
+        "intentPatterns": [
+          "(create|generate|build).*?dashboard",
+          "dashboard.*?(KPI|metrics|visualization)",
+          "(visualize|show).*?(metrics|KPI|data)"
+        ]
+      },
+      "relatedSkills": ["flowchart-creator", "timeline-creator"]
+    },
+
+    "flowchart-creator": {
+      "type": "visualization",
+      "enforcement": "suggest",
+      "priority": "medium",
+      "description": "Creates process flows, decision trees, swimlanes for workflow documentation",
+      "promptTriggers": {
+        "keywords": [
+          "flowchart",
+          "process flow",
+          "workflow diagram",
+          "decision tree",
+          "swimlane",
+          "process diagram"
+        ],
+        "intentPatterns": [
+          "(create|generate|draw).*?(flowchart|flow|workflow)",
+          "flowchart.*?(process|workflow|decision)",
+          "(map|visualize).*?(process|workflow)"
+        ]
+      },
+      "relatedSkills": ["architecture-diagram-creator", "dashboard-creator"]
+    },
+
+    "timeline-creator": {
+      "type": "visualization",
+      "enforcement": "suggest",
+      "priority": "medium",
+      "description": "Creates Gantt charts, milestones, project roadmaps",
+      "promptTriggers": {
+        "keywords": [
+          "timeline",
+          "gantt chart",
+          "roadmap",
+          "milestones",
+          "project timeline",
+          "schedule"
+        ],
+        "intentPatterns": [
+          "(create|generate).*?(timeline|gantt|roadmap)",
+          "timeline.*?(project|milestones)",
+          "(plan|visualize).*?timeline"
+        ]
+      },
+      "relatedSkills": ["dashboard-creator", "feature-planning"]
+    },
+
+    "git-pushing": {
+      "type": "git",
+      "enforcement": "suggest",
+      "priority": "high",
+      "description": "Auto-stages, commits with conventional messages, validates and pushes",
+      "promptTriggers": {
+        "keywords": [
+          "commit",
+          "git commit",
+          "push",
+          "git push",
+          "conventional commit",
+          "commit message"
+        ],
+        "intentPatterns": [
+          "(commit|push).*?changes",
+          "git.*?(commit|push)",
+          "(create|make).*?commit"
+        ]
+      },
+      "relatedSkills": ["review-implementing"]
+    },
+
+    "review-implementing": {
+      "type": "development",
+      "enforcement": "suggest",
+      "priority": "high",
+      "description": "Processes code review feedback systematically with todo tracking",
+      "promptTriggers": {
+        "keywords": [
+          "implement review",
+          "code review",
+          "PR feedback",
+          "review comments",
+          "address feedback",
+          "implement feedback"
+        ],
+        "intentPatterns": [
+          "(implement|address|apply).*?(review|feedback|comments)",
+          "review.*?(feedback|comments|suggestions)",
+          "PR.*?feedback"
+        ]
+      },
+      "relatedSkills": ["git-pushing", "code-auditor"]
+    },
+
+    "project-bootstrapper": {
+      "type": "setup",
+      "enforcement": "suggest",
+      "priority": "high",
+      "description": "Sets up new projects with best practices, virtual environments, Git workflows",
+      "promptTriggers": {
+        "keywords": [
+          "bootstrap project",
+          "new project",
+          "setup project",
+          "initialize project",
+          "create project",
+          "project setup"
+        ],
+        "intentPatterns": [
+          "(create|setup|initialize|bootstrap).*?project",
+          "new.*?project.*?setup",
+          "(start|begin).*?new.*?project"
+        ]
+      },
+      "relatedSkills": ["feature-planning", "git-pushing"]
+    },
+
+    "code-refactor": {
+      "type": "refactoring",
+      "enforcement": "suggest",
+      "priority": "medium",
+      "description": "Rename variables/functions, replace deprecated patterns across files",
+      "promptTriggers": {
+        "keywords": [
+          "refactor",
+          "rename",
+          "restructure",
+          "reorganize code",
+          "improve code",
+          "clean code"
+        ],
+        "intentPatterns": [
+          "(refactor|rename|restructure|reorganize).*?code",
+          "(improve|clean|optimize).*?code.*?structure",
+          "code.*?(refactor|cleanup|improvement)"
+        ]
+      },
+      "relatedSkills": ["code-auditor", "test-fixing"]
+    },
+
+    "ship-learn-next": {
+      "type": "learning",
+      "enforcement": "suggest",
+      "priority": "medium",
+      "description": "Converts learning content into actionable 5-rep implementation plans",
+      "promptTriggers": {
+        "keywords": [
+          "learn",
+          "learning plan",
+          "study plan",
+          "implementation reps",
+          "practice plan",
+          "learning path"
+        ],
+        "intentPatterns": [
+          "(create|make|plan).*?learning.*?(plan|path|reps)",
+          "learning.*?(plan|strategy|reps)",
+          "(practice|learn).*?iteratively"
+        ]
+      },
+      "relatedSkills": ["feature-planning", "writing-plans"]
+    },
+
+    "writing-plans": {
+      "type": "planning",
+      "enforcement": "suggest",
+      "priority": "medium",
+      "description": "Creates structured writing plans and outlines",
+      "promptTriggers": {
+        "keywords": [
+          "writing plan",
+          "outline",
+          "document structure",
+          "writing outline",
+          "content plan"
+        ],
+        "intentPatterns": [
+          "(create|make|plan).*?(writing|document).*?(plan|outline)",
+          "outline.*?(document|writing|content)",
+          "plan.*?(write|document)"
+        ]
+      },
+      "relatedSkills": ["technical-doc-creator", "codebase-documenter"]
+    },
+
+    "executing-plans": {
+      "type": "execution",
+      "enforcement": "suggest",
+      "priority": "high",
+      "description": "Systematic plan execution with progress tracking",
+      "promptTriggers": {
+        "keywords": [
+          "execute plan",
+          "implement plan",
+          "follow plan",
+          "execute tasks",
+          "work through plan"
+        ],
+        "intentPatterns": [
+          "(execute|implement|follow).*?plan",
+          "execute.*?(tasks|steps|plan)",
+          "work through.*?plan"
+        ]
+      },
+      "relatedSkills": ["feature-planning", "verification-before-completion"]
+    },
+
+    "root-cause-tracing": {
+      "type": "debugging",
+      "enforcement": "suggest",
+      "priority": "high",
+      "description": "5 Whys methodology for root cause analysis",
+      "promptTriggers": {
+        "keywords": [
+          "root cause",
+          "5 whys",
+          "cause analysis",
+          "why is this happening",
+          "root cause analysis",
+          "underlying cause"
+        ],
+        "intentPatterns": [
+          "root.*?cause",
+          "5.*?whys",
+          "(why|what).*?causing.*?(problem|issue|bug)",
+          "(underlying|fundamental).*?cause"
+        ]
+      },
+      "relatedSkills": ["systematic-debugging", "code-auditor"]
+    },
+
+    "verification-before-completion": {
+      "type": "quality",
+      "enforcement": "suggest",
+      "priority": "high",
+      "description": "Comprehensive verification checklist before marking tasks complete",
+      "promptTriggers": {
+        "keywords": [
+          "verify",
+          "verification",
+          "checklist",
+          "validate",
+          "confirm complete",
+          "ready to deploy"
+        ],
+        "intentPatterns": [
+          "(verify|validate|check).*?(complete|ready|done)",
+          "verification.*?(checklist|complete)",
+          "(before|pre).*?(deploy|complete|finish)"
+        ]
+      },
+      "relatedSkills": ["test-fixing", "code-auditor"]
+    },
+
+    "conversation-analyzer": {
+      "type": "meta",
+      "enforcement": "suggest",
+      "priority": "low",
+      "description": "Analyzes Claude conversation patterns for workflow optimization",
+      "promptTriggers": {
+        "keywords": [
+          "analyze conversation",
+          "conversation patterns",
+          "workflow optimization",
+          "conversation analysis"
+        ],
+        "intentPatterns": [
+          "analyze.*?conversation",
+          "conversation.*?(patterns|analysis|optimization)"
+        ]
+      },
+      "relatedSkills": []
+    },
+
+    "article-extractor": {
+      "type": "content",
+      "enforcement": "suggest",
+      "priority": "medium",
+      "description": "Extracts clean article content using Readability/trafilatura",
+      "promptTriggers": {
+        "keywords": [
+          "extract article",
+          "web scraping",
+          "extract content",
+          "scrape article",
+          "get article text"
+        ],
+        "intentPatterns": [
+          "(extract|scrape|get).*?(article|content|text)",
+          "extract.*?from.*?(web|website|url)",
+          "(download|fetch).*?article"
+        ]
+      },
+      "relatedSkills": ["youtube-transcript", "deep-parser"]
+    },
+
+    "youtube-transcript": {
+      "type": "content",
+      "enforcement": "suggest",
+      "priority": "medium",
+      "description": "Downloads and cleans YouTube transcripts using yt-dlp",
+      "promptTriggers": {
+        "keywords": [
+          "youtube transcript",
+          "video transcript",
+          "extract transcript",
+          "youtube subtitles",
+          "video subtitles"
+        ],
+        "intentPatterns": [
+          "(extract|get|download).*?(youtube|video).*?transcript",
+          "transcript.*?(youtube|video)",
+          "(youtube|video).*?subtitles"
+        ]
+      },
+      "relatedSkills": ["article-extractor"]
+    },
+
+    "docx": {
+      "type": "document",
+      "enforcement": "suggest",
+      "priority": "high",
+      "description": "Create, edit, analyze Word documents with tracked changes and comments",
+      "promptTriggers": {
+        "keywords": [
+          "word document",
+          "docx",
+          "create document",
+          "edit document",
+          "word file"
+        ],
+        "intentPatterns": [
+          "(create|edit|modify).*?(word|docx|document)",
+          "document.*?(word|docx)",
+          "(generate|make).*?word"
+        ]
+      },
+      "filePathTriggers": {
+        "patterns": ["**/*.docx"]
+      },
+      "relatedSkills": ["pdf", "technical-doc-creator"]
+    },
+
+    "pdf": {
+      "type": "document",
+      "enforcement": "suggest",
+      "priority": "high",
+      "description": "Extract text, tables, metadata from PDFs. Merge and annotate PDFs",
+      "promptTriggers": {
+        "keywords": [
+          "pdf",
+          "extract pdf",
+          "read pdf",
+          "pdf text",
+          "pdf tables",
+          "merge pdf"
+        ],
+        "intentPatterns": [
+          "(extract|read|parse).*?pdf",
+          "pdf.*?(extract|text|content|tables)",
+          "(merge|split|annotate).*?pdf"
+        ]
+      },
+      "filePathTriggers": {
+        "patterns": ["**/*.pdf"]
+      },
+      "relatedSkills": ["docx", "ocr-pro"]
+    },
+
+    "pptx": {
+      "type": "document",
+      "enforcement": "suggest",
+      "priority": "medium",
+      "description": "Read, generate, and adjust PowerPoint slides, layouts, templates",
+      "promptTriggers": {
+        "keywords": [
+          "powerpoint",
+          "pptx",
+          "presentation",
+          "slides",
+          "create presentation"
+        ],
+        "intentPatterns": [
+          "(create|generate|make).*?(powerpoint|pptx|presentation|slides)",
+          "presentation.*?(create|generate)",
+          "(modify|edit).*?slides"
+        ]
+      },
+      "filePathTriggers": {
+        "patterns": ["**/*.pptx"]
+      },
+      "relatedSkills": ["dashboard-creator", "flowchart-creator"]
+    },
+
+    "xlsx": {
+      "type": "document",
+      "enforcement": "suggest",
+      "priority": "medium",
+      "description": "Spreadsheet manipulation: formulas, charts, data transformations",
+      "promptTriggers": {
+        "keywords": [
+          "excel",
+          "xlsx",
+          "spreadsheet",
+          "workbook",
+          "create spreadsheet"
+        ],
+        "intentPatterns": [
+          "(create|generate|make).*?(excel|xlsx|spreadsheet)",
+          "spreadsheet.*?(create|modify|formula)",
+          "(excel|xlsx).*?(formula|chart|data)"
+        ]
+      },
+      "filePathTriggers": {
+        "patterns": ["**/*.xlsx", "**/*.csv"]
+      },
+      "relatedSkills": ["dashboard-creator"]
+    },
+
+    "code-execution": {
+      "type": "development",
+      "enforcement": "suggest",
+      "priority": "medium",
+      "description": "Run code snippets securely and return outputs",
+      "promptTriggers": {
+        "keywords": [
+          "run code",
+          "execute code",
+          "test code",
+          "run snippet",
+          "execute script"
+        ],
+        "intentPatterns": [
+          "(run|execute|test).*?code",
+          "execute.*?(snippet|script)",
+          "(try|test).*?(running|executing)"
+        ]
+      },
+      "relatedSkills": ["test-driven-development", "systematic-debugging"]
+    },
+
+    "code-transfer": {
+      "type": "migration",
+      "enforcement": "suggest",
+      "priority": "low",
+      "description": "Transfer code between languages or frameworks",
+      "promptTriggers": {
+        "keywords": [
+          "convert code",
+          "translate code",
+          "port code",
+          "migrate code",
+          "code transfer"
+        ],
+        "intentPatterns": [
+          "(convert|translate|port|migrate).*?code",
+          "code.*?(conversion|translation|migration)",
+          "(from|to).*?(python|javascript|typescript)"
+        ]
+      },
+      "relatedSkills": ["code-refactor"]
+    },
+
+    "deep-parser": {
+      "type": "parsing",
+      "enforcement": "suggest",
+      "priority": "medium",
+      "description": "Deep parsing of complex documents and data structures",
+      "promptTriggers": {
+        "keywords": [
+          "parse",
+          "deep parse",
+          "extract data",
+          "parse document",
+          "parse structure"
+        ],
+        "intentPatterns": [
+          "(parse|extract).*?(document|data|structure)",
+          "deep.*?pars",
+          "(extract|get).*?structured.*?data"
+        ]
+      },
+      "relatedSkills": ["article-extractor", "pdf", "ocr-pro"]
+    },
+
+    "file-operations": {
+      "type": "filesystem",
+      "enforcement": "suggest",
+      "priority": "medium",
+      "description": "Advanced file operations: move, copy, organize, batch operations",
+      "promptTriggers": {
+        "keywords": [
+          "file operations",
+          "move files",
+          "copy files",
+          "organize files",
+          "batch operations"
+        ],
+        "intentPatterns": [
+          "(move|copy|organize|rename).*?files",
+          "file.*?(operations|management|organization)",
+          "batch.*?(file|operations)"
+        ]
+      },
+      "relatedSkills": ["code-refactor"]
+    },
+
+    "ocr-pro": {
+      "type": "ocr",
+      "enforcement": "suggest",
+      "priority": "medium",
+      "description": "Professional OCR for extracting text from images and scanned PDFs",
+      "promptTriggers": {
+        "keywords": [
+          "OCR",
+          "extract text from image",
+          "text recognition",
+          "scanned document",
+          "image to text"
+        ],
+        "intentPatterns": [
+          "OCR",
+          "(extract|get).*?text.*?(image|scan|pdf)",
+          "text.*?recognition",
+          "(image|scan).*?to.*?text"
+        ]
+      },
+      "relatedSkills": ["pdf", "deep-parser", "sign-recognition"]
+    },
+
+    "sign-recognition": {
+      "type": "ocr",
+      "enforcement": "suggest",
+      "priority": "low",
+      "description": "Signature recognition and verification in documents",
+      "promptTriggers": {
+        "keywords": [
+          "signature",
+          "sign recognition",
+          "detect signature",
+          "signature verification"
+        ],
+        "intentPatterns": [
+          "(detect|recognize|verify).*?signature",
+          "signature.*?(recognition|detection|verification)"
+        ]
+      },
+      "relatedSkills": ["ocr-pro", "pdf"]
+    },
+
+    "skill-creator": {
+      "type": "meta",
+      "enforcement": "suggest",
+      "priority": "medium",
+      "description": "Template and helper to build new Claude skills",
+      "promptTriggers": {
+        "keywords": [
+          "create skill",
+          "new skill",
+          "skill template",
+          "build skill",
+          "skill development"
+        ],
+        "intentPatterns": [
+          "(create|build|develop|make).*?skill",
+          "new.*?skill",
+          "skill.*?(template|development|creation)"
+        ]
+      },
+      "relatedSkills": []
+    }
+  }
+}
