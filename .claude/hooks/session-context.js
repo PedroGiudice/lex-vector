@@ -61,13 +61,15 @@ function removeExtension(filename) {
 // ============================================================================
 
 function main() {
-  // GUARD: Validar CLAUDE_PROJECT_DIR
-  const projectDir = process.env.CLAUDE_PROJECT_DIR;
+  // STRATEGY: Usar CLAUDE_PROJECT_DIR se disponível, senão process.cwd()
+  // Isso NÃO é hardcoded - é dinâmico baseado no diretório de execução
+  const projectDir = process.env.CLAUDE_PROJECT_DIR || process.cwd();
 
-  if (!projectDir) {
+  // Validar que estamos em um diretório de projeto válido
+  if (!fs.existsSync(path.join(projectDir, '.claude'))) {
     outputJSON({
       continue: true,
-      systemMessage: '⚠️ CLAUDE_PROJECT_DIR não definido (hook session-context.js)'
+      systemMessage: '⚠️ Diretório .claude não encontrado - não parece ser um projeto Claude Code'
     });
     process.exit(0);
   }

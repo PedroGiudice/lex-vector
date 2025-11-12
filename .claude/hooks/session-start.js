@@ -99,16 +99,10 @@ function main() {
     process.exit(0);
   }
 
-  // GUARD: Validar variáveis de ambiente obrigatórias
-  const projectDir = process.env.CLAUDE_PROJECT_DIR;
-  if (!projectDir) {
-    console.error('❌ CLAUDE_PROJECT_DIR não definido');
-    outputJSON({
-      continue: true,
-      systemMessage: '⚠️ CLAUDE_PROJECT_DIR não definido (hook session-start.js)'
-    });
-    process.exit(0);
-  }
+  // STRATEGY: Usar CLAUDE_PROJECT_DIR se disponível, senão process.cwd()
+  const projectDir = process.env.CLAUDE_PROJECT_DIR || process.cwd();
+
+  console.error(`📂 Project directory: ${projectDir}`);
 
   console.error('🔧 Setting up Python environment for Claude-Code-Projetos (web)...');
 
