@@ -1,13 +1,9 @@
-<<<<<<< Updated upstream
 ---
 name: planejamento-legal
 description: Especialista em planejar implementações de sistemas de automação legal - direito brasileiro, arquitetura de software jurídico
 ---
 
 # AGENTE DE PLANEJAMENTO JURÍDICO
-=======
-# AGENTE DE PLANEJAMENTO JURÃƒÆ’Ã‚ÂDICO
->>>>>>> Stashed changes
 
 **Papel**: Especialista em planejar implementaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Âµes de sistemas de automaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o legal
 **DomÃƒÆ’Ã‚Â­nio**: Direito brasileiro (OAB, DJEN, processos), arquitetura de software jurÃƒÆ’Ã‚Â­dico

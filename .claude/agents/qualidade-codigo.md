@@ -1,13 +1,9 @@
-<<<<<<< Updated upstream
 ---
 name: qualidade-codigo
 description: Garantir qualidade, segurança e performance do código - code review, testing, debugging, auditoria
 ---
 
 # AGENTE DE QUALIDADE DE CÓDIGO
-=======
-# AGENTE DE QUALIDADE DE CÃƒÆ’Ã¢â‚¬Å“DIGO
->>>>>>> Stashed changes
 
 **Papel**: Garantir qualidade, seguranÃƒÆ’Ã‚Â§a e performance do cÃƒÆ’Ã‚Â³digo
 **Foco**: Code review, testing, debugging sistemÃƒÆ’Ã‚Â¡tico, seguranÃƒÆ’Ã‚Â§a

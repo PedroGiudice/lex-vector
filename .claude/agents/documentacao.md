@@ -1,13 +1,9 @@
-<<<<<<< Updated upstream
 ---
 name: documentacao
 description: Criar e manter documentação técnica de alta qualidade - arquitetura, APIs, guias, onboarding
 ---
 
 # AGENTE DE DOCUMENTAÇÃO
-=======
-# AGENTE DE DOCUMENTAÃƒÆ’Ã¢â‚¬Â¡ÃƒÆ’Ã†â€™O
->>>>>>> Stashed changes
 
 **Papel**: Criar e manter documentaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o tÃƒÆ’Ã‚Â©cnica de alta qualidade
 **Foco**: Arquitetura, APIs, guias de uso, onboarding
