@@ -1,7 +1,12 @@
 {
+  "_comment": "Configuração HÍBRIDA de hooks - Solução para Windows CLI subprocess polling issue",
+  "_docs": "https://github.com/DennisLiuCk/cc-toolkit/commit/09ab8674200a7bf9e31b0090f39ed12cbc3f6f5d",
+  "_strategy": "Use SessionStart para Web/Linux, UserPromptSubmit para Windows CLI. Hooks híbridos previnem execução repetida via run-once guard.",
+
   "hooks": {
     "UserPromptSubmit": [
       {
+        "_comment": "Skill activation - sempre em UserPromptSubmit (funciona em todos ambientes)",
         "hooks": [
           {
             "type": "command",
@@ -12,25 +17,68 @@
     ],
     "SessionStart": [
       {
+        "_comment": "Hooks de setup - SessionStart para Web/Linux, UserPromptSubmit para Windows CLI",
+        "_recommendation": "Use SessionStart se apenas Web. Use UserPromptSubmit se suportar Windows CLI.",
         "hooks": [
           {
             "type": "command",
-            "command": "node .claude/hooks/session-start.js"
+            "command": "node .claude/hooks/session-start.js",
+            "_note": "Instala dependências Python - pode demorar, melhor em SessionStart"
           },
           {
             "type": "command",
-            "command": "node .claude/hooks/session-context.js"
+            "command": "node .claude/hooks/session-context-hybrid.js",
+            "_note": "Híbrido com run-once guard - funciona em ambos"
           },
           {
             "type": "command",
-            "command": "node .claude/hooks/venv-check.js"
+            "command": "node .claude/hooks/venv-check.js",
+            "_note": "Validação rápida - funciona em ambos"
           },
           {
             "type": "command",
-            "command": "node .claude/hooks/invoke-legal-braniac.js"
+            "command": "node .claude/hooks/invoke-legal-braniac-hybrid.js",
+            "_note": "Híbrido com run-once guard - funciona em ambos"
           }
         ]
       }
     ]
+  },
+
+  "_alternative_windows_cli": {
+    "_comment": "Se precisar suportar Windows CLI, copie esta configuração para .claude/settings.json",
+    "hooks": {
+      "UserPromptSubmit": [
+        {
+          "hooks": [
+            {
+              "type": "command",
+              "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/skill-activation-prompt.sh"
+            },
+            {
+              "type": "command",
+              "command": "node .claude/hooks/session-context-hybrid.js",
+              "_note": "Executa apenas na 1ª vez via run-once guard"
+            },
+            {
+              "type": "command",
+              "command": "node .claude/hooks/invoke-legal-braniac-hybrid.js",
+              "_note": "Executa apenas na 1ª vez via run-once guard"
+            }
+          ]
+        }
+      ],
+      "SessionStart": [
+        {
+          "_comment": "Apenas hooks que não dependem de subprocess (rápidos e síncronos)",
+          "hooks": [
+            {
+              "type": "command",
+              "command": "node .claude/hooks/venv-check.js"
+            }
+          ]
+        }
+      ]
+    }
   }
 }
