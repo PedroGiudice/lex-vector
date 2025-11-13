@@ -26,21 +26,82 @@ Write-Host ("=" * 69) -ForegroundColor Cyan
 Write-Host ""
 
 # ============================================================================
-# 1. DETECTAR AMBIENTE
+# 1. DETECTAR AMBIENTE E VALIDAR LOCALIZAÇÃO
 # ============================================================================
 Write-Host "[1/4] Detectando ambiente..." -ForegroundColor Yellow
 
-$projectDir = Get-Location
+# CRITICAL: Detect if script is running from wrong location
+$currentDir = Get-Location
+Write-Host "   Diretório atual: $currentDir" -ForegroundColor Gray
+
+# Try to find project root (contains .git and .claude directories)
+$projectDir = $null
+
+# Check current directory first
+if ((Test-Path (Join-Path $currentDir ".git")) -and (Test-Path (Join-Path $currentDir ".claude"))) {
+    $projectDir = $currentDir
+    Write-Host "   ✅ Projeto detectado no diretório atual" -ForegroundColor Green
+}
+# Check if we're in a subdirectory - walk up to find project root
+elseif ($currentDir -match "Claude-Code-Projetos") {
+    $searchDir = $currentDir
+    while ($searchDir) {
+        if ((Test-Path (Join-Path $searchDir ".git")) -and (Test-Path (Join-Path $searchDir ".claude"))) {
+            $projectDir = $searchDir
+            Write-Host "   ✅ Projeto encontrado em: $projectDir" -ForegroundColor Green
+            break
+        }
+        $parentDir = Split-Path $searchDir -Parent
+        if ($parentDir -eq $searchDir) { break }  # Reached root
+        $searchDir = $parentDir
+    }
+}
+
+# If still not found, check common locations
+if (-not $projectDir) {
+    $commonPaths = @(
+        "C:\claude-work\repos\Claude-Code-Projetos",
+        "C:\Users\$env:USERNAME\Claude-Code-Projetos",
+        "D:\repos\Claude-Code-Projetos"
+    )
+
+    foreach ($path in $commonPaths) {
+        if (Test-Path $path) {
+            if ((Test-Path (Join-Path $path ".git")) -and (Test-Path (Join-Path $path ".claude"))) {
+                $projectDir = $path
+                Write-Host "   ✅ Projeto encontrado em: $projectDir" -ForegroundColor Yellow
+                Write-Host "   ⚠️  Navegando para diretório do projeto..." -ForegroundColor Yellow
+                Set-Location $projectDir
+                break
+            }
+        }
+    }
+}
+
+if (-not $projectDir) {
+    Write-Host ""
+    Write-Host "   ❌ ERRO: Projeto Claude-Code-Projetos NÃO encontrado!" -ForegroundColor Red
+    Write-Host ""
+    Write-Host "   Este script deve ser executado de dentro do projeto ou você deve especificar o caminho:" -ForegroundColor Yellow
+    Write-Host "   cd C:\claude-work\repos\Claude-Code-Projetos" -ForegroundColor Gray
+    Write-Host "   .\.claude\fix-windows-hooks.ps1" -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "   OU execute especificando o caminho manualmente:" -ForegroundColor Yellow
+    Write-Host "   C:\claude-work\repos\Claude-Code-Projetos\.claude\fix-windows-hooks.ps1" -ForegroundColor Gray
+    Write-Host ""
+    exit 1
+}
+
 $settingsPath = Join-Path $projectDir ".claude\settings.json"
 $settingsLocalPath = Join-Path $projectDir ".claude\settings.local.json"
 $settingsHybridPath = Join-Path $projectDir ".claude\settings.hybrid.json"
 
-Write-Host "   Diretório: $projectDir" -ForegroundColor Gray
+Write-Host "   Diretório do projeto: $projectDir" -ForegroundColor Cyan
 
 if (Test-Path $settingsPath) {
     Write-Host "   ✅ settings.json encontrado" -ForegroundColor Green
 } else {
-    Write-Host "   ❌ settings.json NÃO encontrado!" -ForegroundColor Red
+    Write-Host "   ❌ settings.json NÃO encontrado em: $settingsPath" -ForegroundColor Red
     exit 1
 }
 
@@ -208,3 +269,42 @@ Write-Host "   ✅ session-context-hybrid.js      (contexto do projeto)" -Foregr
 Write-Host "   ✅ invoke-legal-braniac-hybrid.js (orquestrador)" -ForegroundColor Green
 Write-Host "   ✅ venv-check.js                  (verifica venv)" -ForegroundColor Green
 Write-Host ""
+
+# ============================================================================
+# LIMPEZA: Remover settings.json criado em local errado
+# ============================================================================
+$userClaudeDir = Join-Path $env:USERPROFILE ".claude"
+$userSettingsPath = Join-Path $userClaudeDir "settings.json"
+
+if (Test-Path $userSettingsPath) {
+    Write-Host "⚠️  ATENÇÃO: Detectado settings.json no diretório do usuário" -ForegroundColor Yellow
+    Write-Host "   Caminho: $userSettingsPath" -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "   Este arquivo foi criado por engano quando o script foi executado" -ForegroundColor Yellow
+    Write-Host "   de fora do diretório do projeto." -ForegroundColor Yellow
+    Write-Host ""
+
+    $remove = Read-Host "   Deseja remover este arquivo agora? (S/N)"
+
+    if ($remove -eq 'S' -or $remove -eq 's') {
+        try {
+            Remove-Item $userSettingsPath -Force
+            Write-Host "   ✅ Arquivo removido com sucesso!" -ForegroundColor Green
+
+            # Check if .claude directory is now empty
+            $dirItems = Get-ChildItem $userClaudeDir -Force
+            if ($dirItems.Count -eq 0) {
+                Remove-Item $userClaudeDir -Force
+                Write-Host "   ✅ Diretório .claude vazio removido" -ForegroundColor Green
+            }
+        } catch {
+            Write-Host "   ❌ Erro ao remover arquivo: $_" -ForegroundColor Red
+            Write-Host "   Remova manualmente: Remove-Item '$userSettingsPath' -Force" -ForegroundColor Yellow
+        }
+    } else {
+        Write-Host "   ⚠️  Arquivo não removido. Para remover manualmente:" -ForegroundColor Yellow
+        Write-Host "   Remove-Item '$userSettingsPath' -Force" -ForegroundColor Gray
+    }
+    Write-Host ""
+}
+
