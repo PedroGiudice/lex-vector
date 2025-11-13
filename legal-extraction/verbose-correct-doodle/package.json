@@ -1,0 +1,79 @@
+{
+  "name": "preprocessador-juridico",
+  "version": "4.1.4",
+  "description": "Sistema de Extração Avançada de Documentos Processuais Eletrônicos Brasileiros",
+  "main": "preprocessador-juridico-v4.html",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "serve": "python3 -m http.server 8000",
+    "serve-php": "php -S localhost:8000"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/PedroGiudice/verbose-correct-doodle.git"
+  },
+  "keywords": [
+    "pdf",
+    "extractor",
+    "juridico",
+    "legal",
+    "ocr",
+    "brasil",
+    "processo",
+    "judicial"
+  ],
+  "author": "Pré-Processador Jurídico Team",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/PedroGiudice/verbose-correct-doodle/issues"
+  },
+  "homepage": "https://github.com/PedroGiudice/verbose-correct-doodle#readme",
+  "dependencies": {},
+  "devDependencies": {},
+  "cdnDependencies": {
+    "comment": "Dependências carregadas via CDN no HTML. Versões exatas documentadas aqui para referência.",
+    "pdf.js": {
+      "version": "2.6.347",
+      "url": "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.6.347/pdf.min.js",
+      "worker": "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.6.347/pdf.worker.min.js",
+      "purpose": "Parsing e renderização de PDFs"
+    },
+    "tesseract.js": {
+      "version": "4.x",
+      "url": "https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js",
+      "purpose": "OCR para PDFs escaneados"
+    },
+    "FileSaver.js": {
+      "version": "2.0.5",
+      "url": "https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js",
+      "purpose": "Download de arquivos processados"
+    },
+    "docx.js": {
+      "version": "8.5.0",
+      "url": "https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.min.js",
+      "type": "ES module",
+      "purpose": "Exportação para formato DOCX"
+    },
+    "jszip": {
+      "version": "3.10.1",
+      "url": "https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js",
+      "purpose": "Exportação em lote (ZIP) - OPCIONAL para v4.1",
+      "required": false,
+      "fallback": "Funcionalidade de batch export desabilitada se não disponível"
+    }
+  },
+  "browser": {
+    "comment": "Este é um projeto 100% client-side. Não há build process.",
+    "architecture": "Todos os módulos são carregados diretamente no navegador",
+    "requirements": [
+      "Navegador moderno com suporte a ES6+",
+      "WebAssembly support (para Tesseract.js OCR)",
+      "Mínimo 2GB RAM (para OCR de PDFs grandes)"
+    ]
+  },
+  "engines": {
+    "node": ">=14.0.0",
+    "comment": "Node é opcional, apenas para servir arquivos localmente durante desenvolvimento"
+  }
+}

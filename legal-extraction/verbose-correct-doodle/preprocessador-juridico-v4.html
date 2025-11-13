@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Pré-Processador Jurídico v4.0 - Enhanced</title>
+  <style>
+    /* Reset e Base */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #ffffff;
+      --surface: #f8f8f8;
+      --border: #e0e0e0;
+      --text: #1a1a1a;
+      --text-muted: #666666;
+      --accent: #000000;
+      --hover: #f0f0f0;
+      --success: #28a745;
+      --warning: #ffc107;
+      --danger: #dc3545;
+      --mono: 'Courier New', Consolas, Monaco, 'Lucida Console', monospace;
+      --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      --radius: 4px;
+      --shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    /* Header */
+    header {
+      border-bottom: 2px solid var(--accent);
+      padding: 2rem 0 1rem 0;
+      margin-bottom: 2rem;
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      margin-bottom: 0.25rem;
+      text-transform: uppercase;
+    }
+
+    h2 {
+      font-size: 0.75rem;
+      font-weight: 400;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* Layout */
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 0 1.5rem;
+    }
+
+    .grid {
+      display: grid;
+      gap: 2rem;
+      margin-top: 2rem;
+    }
+
+    @media (min-width: 1024px) {
+      .grid { grid-template-columns: 420px 1fr; }
+    }
+
+    /* Cards */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      margin-bottom: 1rem;
+    }
+
+    .card-header {
+      background: var(--accent);
+      color: var(--bg);
+      padding: 0.75rem 1rem;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-bottom: 2px solid var(--accent);
+    }
+
+    .card-body {
+      padding: 1.5rem;
+    }
+
+    .section {
+      margin-bottom: 1.5rem;
+    }
+
+    .section:last-child {
+      margin-bottom: 0;
+    }
+
+    .section-title {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    /* Quality Badge - NOVO */
+    .quality-badge {
+      padding: 1rem;
+      border-radius: var(--radius);
+      margin-bottom: 1rem;
+      border: 2px solid;
+      text-align: center;
+    }
+
+    .quality-badge.auto-accept {
+      border-color: var(--success);
+      background: #d4edda;
+    }
+
+    .quality-badge.automated-validation {
+      border-color: var(--warning);
+      background: #fff3cd;
+    }
+
+    .quality-badge.human-review {
+      border-color: var(--danger);
+      background: #f8d7da;
+    }
+
+    .quality-badge .score {
+      font-size: 2rem;
+      font-weight: 700;
+      display: block;
+      margin-bottom: 0.5rem;
+    }
+
+    .quality-badge .status {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .quality-details {
+      margin-top: 1rem;
+    }
+
+    .metric {
+      display: flex;
+      align-items: center;
+      margin-bottom: 0.75rem;
+      gap: 0.75rem;
+    }
+
+    .metric label {
+      min-width: 150px;
+      font-size: 0.7rem;
+      margin: 0;
+    }
+
+    .metric progress {
+      flex: 1;
+      height: 16px;
+      border-radius: 2px;
+    }
+
+    .metric span {
+      min-width: 45px;
+      text-align: right;
+      font-weight: 700;
+      font-size: 0.75rem;
+    }
+
+    progress {
+      -webkit-appearance: none;
+      appearance: none;
+      border: none;
+    }
+
+    progress::-webkit-progress-bar {
+      background-color: var(--border);
+      border-radius: 2px;
+    }
+
+    progress::-webkit-progress-value {
+      background-color: var(--accent);
+      border-radius: 2px;
+    }
+
+    /* Form Elements */
+    label {
+      display: block;
+      font-size: 0.85rem;
+      margin-bottom: 0.5rem;
+      cursor: pointer;
+    }
+
+    input[type="file"] {
+      display: none;
+    }
+
+    select, input[type="text"] {
+      width: 100%;
+      padding: 0.65rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--bg);
+      font-family: var(--mono);
+      font-size: 0.85rem;
+      transition: border-color 0.2s;
+    }
+
+    select:focus, input[type="text"]:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    select {
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%231a1a1a' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 0.65rem center;
+      padding-right: 2rem;
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-block;
+      padding: 0.65rem 1.25rem;
+      border: 2px solid var(--accent);
+      background: var(--accent);
+      color: var(--bg);
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+      border-radius: var(--radius);
+      transition: all 0.2s;
+      text-align: center;
+    }
+
+    .btn:hover:not(:disabled) {
+      background: var(--bg);
+      color: var(--accent);
+    }
+
+    .btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .btn-outline {
+      background: var(--bg);
+      color: var(--accent);
+    }
+
+    .btn-outline:hover:not(:disabled) {
+      background: var(--accent);
+      color: var(--bg);
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    /* Checkboxes */
+    .checkbox {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.5rem 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .checkbox:last-child {
+      border-bottom: none;
+    }
+
+    .checkbox label {
+      flex: 1;
+      margin: 0;
+      font-size: 0.85rem;
+    }
+
+    .checkbox input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+      accent-color: var(--accent);
+    }
+
+    .checkbox-description {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      margin-top: 0.25rem;
+    }
+
+    /* Textarea */
+    textarea {
+      width: 100%;
+      min-height: 600px;
+      padding: 1rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--bg);
+      font-family: var(--mono);
+      font-size: 0.85rem;
+      line-height: 1.6;
+      resize: vertical;
+    }
+
+    textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    /* Stats */
+    .stats {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem;
+      font-size: 0.75rem;
+      margin-bottom: 1rem;
+    }
+
+    .stats-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 0.25rem 0;
+    }
+
+    .stats-label {
+      color: var(--text-muted);
+    }
+
+    .stats-value {
+      font-weight: 700;
+    }
+
+    /* File Info */
+    .file-info {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 0.75rem;
+      font-size: 0.8rem;
+      margin-bottom: 1rem;
+      color: var(--text-muted);
+    }
+
+    .file-name {
+      color: var(--text);
+      font-weight: 700;
+    }
+
+    /* System Badges */
+    .system-selector {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .system-option {
+      position: relative;
+    }
+
+    .system-option input[type="radio"] {
+      position: absolute;
+      opacity: 0;
+    }
+
+    .system-label {
+      display: block;
+      padding: 0.65rem;
+      border: 2px solid var(--border);
+      border-radius: var(--radius);
+      text-align: center;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .system-option input[type="radio"]:checked + .system-label {
+      border-color: var(--accent);
+      background: var(--accent);
+      color: var(--bg);
+    }
+
+    .system-label:hover {
+      border-color: var(--accent);
+    }
+
+    /* Mode selector */
+    .mode-selector {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .mode-option {
+      position: relative;
+    }
+
+    .mode-option input[type="radio"] {
+      position: absolute;
+      opacity: 0;
+    }
+
+    .mode-label {
+      display: block;
+      padding: 0.5rem;
+      border: 2px solid var(--border);
+      border-radius: var(--radius);
+      text-align: center;
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .mode-option input[type="radio"]:checked + .mode-label {
+      border-color: var(--accent);
+      background: var(--accent);
+      color: var(--bg);
+    }
+
+    .mode-label:hover {
+      border-color: var(--accent);
+    }
+
+    /* Progress Bar - NOVO */
+    .progress-container {
+      margin: 1rem 0;
+      display: none;
+    }
+
+    .progress-container.active {
+      display: block;
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 24px;
+      background: var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: var(--accent);
+      transition: width 0.3s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--bg);
+      font-size: 0.7rem;
+      font-weight: 700;
+    }
+
+    .progress-text {
+      margin-top: 0.5rem;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      text-align: center;
+    }
+
+    /* Footer */
+    footer {
+      margin: 3rem 0 2rem 0;
+      padding-top: 2rem;
+      border-top: 1px solid var(--border);
+      text-align: center;
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* Alert */
+    .alert {
+      padding: 0.75rem 1rem;
+      border-radius: var(--radius);
+      margin-bottom: 1rem;
+      font-size: 0.8rem;
+      display: none;
+    }
+
+    .alert.error {
+      background: var(--accent);
+      color: var(--bg);
+      display: block;
+    }
+
+    .alert.info {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      display: block;
+    }
+
+    .alert.success {
+      background: var(--success);
+      color: var(--bg);
+      display: block;
+    }
+
+    /* Loading */
+    .loading {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border: 2px solid var(--bg);
+      border-radius: 50%;
+      border-top-color: transparent;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+      border-bottom: 2px solid var(--border);
+    }
+
+    .tab {
+      padding: 0.65rem 1rem;
+      border: none;
+      background: transparent;
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+      transition: all 0.2s;
+    }
+
+    .tab.active {
+      border-bottom-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .tab:hover {
+      color: var(--accent);
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      html, body { font-size: 13px; }
+      .container { padding: 0 1rem; }
+      header { padding: 1.5rem 0 1rem 0; }
+      h1 { font-size: 1.25rem; }
+      .system-selector { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>[ PRÉ-PROCESSADOR JURÍDICO v4.0 ENHANCED ]</h1>
+      <h2>Extração avançada com OCR, análise estrutural, e métricas de qualidade</h2>
+    </header>
+
+    <div id="errorBanner" class="alert error"></div>
+    <div id="successBanner" class="alert success"></div>
+
+    <div class="grid">
+      <!-- Painel Esquerdo -->
+      <div>
+        <!-- Upload -->
+        <div class="card">
+          <div class="card-header">[ 01 ] Arquivo PDF</div>
+          <div class="card-body">
+            <div class="section">
+              <div class="file-info" id="fileInfo">
+                <span class="file-name">Nenhum arquivo selecionado</span>
+              </div>
+              <div class="btn-group">
+                <label class="btn btn-outline" for="pdfFile">
+                  Selecionar PDF
+                </label>
+                <input id="pdfFile" type="file" accept="application/pdf,.pdf,.txt" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sistema Processual -->
+        <div class="card">
+          <div class="card-header">[ 02 ] Sistema Processual</div>
+          <div class="card-body">
+            <div class="section-title">Selecione o sistema de origem</div>
+            <div class="system-selector">
+              <div class="system-option">
+                <input type="radio" name="system" value="auto" id="sys-auto" checked>
+                <label class="system-label" for="sys-auto">AUTO</label>
+              </div>
+              <div class="system-option">
+                <input type="radio" name="system" value="eproc" id="sys-eproc">
+                <label class="system-label" for="sys-eproc">EPROC</label>
+              </div>
+              <div class="system-option">
+                <input type="radio" name="system" value="esaj" id="sys-esaj">
+                <label class="system-label" for="sys-esaj">ESAJ</label>
+              </div>
+              <div class="system-option">
+                <input type="radio" name="system" value="pje" id="sys-pje">
+                <label class="system-label" for="sys-pje">PJE</label>
+              </div>
+              <div class="system-option">
+                <input type="radio" name="system" value="projudi" id="sys-projudi">
+                <label class="system-label" for="sys-projudi">PROJUDI</label>
+              </div>
+              <div class="system-option">
+                <input type="radio" name="system" value="stf" id="sys-stf">
+                <label class="system-label" for="sys-stf">STF</label>
+              </div>
+              <div class="system-option">
+                <input type="radio" name="system" value="stj" id="sys-stj">
+                <label class="system-label" for="sys-stj">STJ</label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Modo de Limpeza -->
+        <div class="card">
+          <div class="card-header">[ 03 ] Modo de Limpeza</div>
+          <div class="card-body">
+            <div class="section-title">Intensidade da limpeza</div>
+            <div class="mode-selector">
+              <div class="mode-option">
+                <input type="radio" name="mode" value="leve" id="mode-leve" checked>
+                <label class="mode-label" for="mode-leve">LEVE</label>
+              </div>
+              <div class="mode-option">
+                <input type="radio" name="mode" value="moderado" id="mode-moderado">
+                <label class="mode-label" for="mode-moderado">MODERADO</label>
+              </div>
+              <div class="mode-option">
+                <input type="radio" name="mode" value="agressivo" id="mode-agressivo">
+                <label class="mode-label" for="mode-agressivo">AGRESSIVO</label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Configurações -->
+        <div class="card">
+          <div class="card-header">[ 04 ] Configurações</div>
+          <div class="card-body">
+            <div class="section">
+              <div class="checkbox">
+                <input type="checkbox" id="enableOCR" checked>
+                <label for="enableOCR">
+                  OCR Automático
+                  <div class="checkbox-description">Detectar e processar PDFs escaneados</div>
+                </label>
+              </div>
+              <div class="checkbox">
+                <input type="checkbox" id="rmHash" checked>
+                <label for="rmHash">
+                  Remover hashes e códigos
+                  <div class="checkbox-description">SHA-256, MD5, hexadecimais</div>
+                </label>
+              </div>
+              <div class="checkbox">
+                <input type="checkbox" id="rmAssinatura" checked>
+                <label for="rmAssinatura">
+                  Remover assinaturas digitais
+                  <div class="checkbox-description">ICP-Brasil, certificados, selos</div>
+                </label>
+              </div>
+              <div class="checkbox">
+                <input type="checkbox" id="rmProtocolo" checked>
+                <label for="rmProtocolo">
+                  Remover protocolos
+                  <div class="checkbox-description">Códigos verificadores, autenticidades</div>
+                </label>
+              </div>
+              <div class="checkbox">
+                <input type="checkbox" id="rmPageNum" checked>
+                <label for="rmPageNum">
+                  Remover numeração de páginas
+                  <div class="checkbox-description">Pág. X de Y, etc</div>
+                </label>
+              </div>
+              <div class="checkbox">
+                <input type="checkbox" id="rmHeader" checked>
+                <label for="rmHeader">
+                  Remover cabeçalho/rodapé repetitivo
+                  <div class="checkbox-description">Timbres, endereços, telefones</div>
+                </label>
+              </div>
+              <div class="checkbox">
+                <input type="checkbox" id="normalizeBreaks" checked>
+                <label for="normalizeBreaks">
+                  Normalizar quebras de linha
+                  <div class="checkbox-description">Espaçamentos e hifenização</div>
+                </label>
+              </div>
+            </div>
+
+            <div class="section" style="margin-top: 1.5rem;">
+              <div class="section-title">Lista branca (nunca remover)</div>
+              <input type="text" id="whitelist" placeholder="Defensoria Pública, Ministério Público, Procuradoria" />
+              <div class="checkbox-description" style="margin-top: 0.5rem;">Separe por vírgulas</div>
+            </div>
+
+            <div class="section" style="margin-top: 1.5rem;">
+              <div class="btn-group" style="width: 100%;">
+                <button class="btn" id="processBtn" style="flex: 1;">
+                  Processar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Exportação -->
+        <div class="card">
+          <div class="card-header">[ 05 ] Exportar Resultado</div>
+          <div class="card-body">
+            <div class="btn-group" style="width: 100%;">
+              <button class="btn btn-outline" id="downloadTxtBtn" disabled style="flex: 1;">
+                TXT
+              </button>
+              <button class="btn btn-outline" id="downloadMdBtn" disabled style="flex: 1;">
+                MD
+              </button>
+              <button class="btn btn-outline" id="downloadDocxBtn" disabled style="flex: 1;">
+                DOCX
+              </button>
+              <button class="btn btn-outline" id="downloadHtmlBtn" disabled style="flex: 1;">
+                HTML
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Painel Direito -->
+      <div>
+        <!-- Progress Bar -->
+        <div id="progressContainer" class="progress-container">
+          <div class="card">
+            <div class="card-header">[ PROGRESSO ]</div>
+            <div class="card-body">
+              <div class="progress-bar">
+                <div class="progress-fill" id="progressFill" style="width: 0%;">
+                  <span id="progressPercent">0%</span>
+                </div>
+              </div>
+              <div class="progress-text" id="progressText">Inicializando...</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quality Badge - NOVO -->
+        <div id="qualityBadgeContainer" style="display: none;">
+          <div id="qualityBadge" class="quality-badge">
+            <span class="score" id="qualityScore">-</span>
+            <span class="status" id="qualityStatus">-</span>
+          </div>
+
+          <div class="card">
+            <div class="card-header">[ MÉTRICAS DE QUALIDADE ]</div>
+            <div class="card-body">
+              <div class="quality-details">
+                <div class="metric">
+                  <label>Confiança ML:</label>
+                  <progress id="metricML" value="0" max="1"></progress>
+                  <span id="metricMLValue">-</span>
+                </div>
+                <div class="metric">
+                  <label>Completude Estrutural:</label>
+                  <progress id="metricStructure" value="0" max="1"></progress>
+                  <span id="metricStructureValue">-</span>
+                </div>
+                <div class="metric">
+                  <label>Qualidade do Texto:</label>
+                  <progress id="metricQuality" value="0" max="1"></progress>
+                  <span id="metricQualityValue">-</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">[ ESTATÍSTICAS ]</div>
+          <div class="card-body">
+            <div id="statsBox" class="stats" style="display: none;">
+              <div class="stats-row">
+                <span class="stats-label">Páginas processadas:</span>
+                <span class="stats-value" id="statPages">-</span>
+              </div>
+              <div class="stats-row">
+                <span class="stats-label">Itens removidos:</span>
+                <span class="stats-value" id="statRemoved">-</span>
+              </div>
+              <div class="stats-row">
+                <span class="stats-label">Sistema detectado:</span>
+                <span class="stats-value" id="statSystem">-</span>
+              </div>
+              <div class="stats-row">
+                <span class="stats-label">Modo de limpeza:</span>
+                <span class="stats-value" id="statMode">-</span>
+              </div>
+              <div class="stats-row">
+                <span class="stats-label">Método de extração:</span>
+                <span class="stats-value" id="statMethod">-</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">[ OUTPUT ] Visualização</div>
+          <div class="card-body">
+            <div class="tabs">
+              <button class="tab active" data-tab="texto">TEXTO LIMPO</button>
+              <button class="tab" data-tab="markdown">MARKDOWN</button>
+              <button class="tab" data-tab="html">HTML</button>
+            </div>
+
+            <div class="tab-content active" id="tab-texto">
+              <textarea id="outputText" placeholder="O texto extraído e limpo aparecerá aqui após o processamento...
+
+> Selecione um arquivo PDF
+> Escolha o sistema processual (ou deixe em AUTO)
+> Configure as opções de limpeza
+> Clique em PROCESSAR"></textarea>
+            </div>
+
+            <div class="tab-content" id="tab-markdown">
+              <textarea id="outputMarkdown" placeholder="A versão em Markdown aparecerá aqui..."></textarea>
+            </div>
+
+            <div class="tab-content" id="tab-html">
+              <textarea id="outputHtml" placeholder="A versão em HTML aparecerá aqui..."></textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <footer>
+      Pré-Processador Jurídico v4.0 Enhanced — OCR · Análise Estrutural · Métricas de Qualidade · 100% Offline
+    </footer>
+  </div>
+
+  <!-- Bibliotecas Externas -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.6.347/pdf.min.js"></script>
+  <script>
+    if (window['pdfjsLib']) {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.6.347/pdf.worker.min.js';
+    }
+  </script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
+  <!-- Tesseract.js para OCR -->
+  <script src='https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js'></script>
+
+  <!-- Biblioteca DOCX (carregamento assíncrono) -->
+  <script type="module">
+    try {
+      const docxNS = await import('https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.min.js');
+      window.docx = docxNS;
+      console.log('✓ Biblioteca DOCX carregada');
+    } catch (e) {
+      console.warn('⚠ DOCX não disponível:', e);
+    }
+  </script>
+
+  <!-- Carregar Módulos Enhanced -->
+  <script src="modules/pdf-structural-parser.js"></script>
+  <script src="modules/quality-metrics.js"></script>
+  <script src="modules/reading-order.js"></script>
+  <script src="modules/ocr-engine.js"></script>
+
+  <!-- Script Principal Enhanced -->
+  <script src="modules/main-enhanced.js"></script>
+</body>
+</html>

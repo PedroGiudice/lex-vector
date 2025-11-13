@@ -1,0 +1,1527 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Pré-Processador Jurídico v3.0</title>
+  <style>
+    /* Reset e Base */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #ffffff;
+      --surface: #f8f8f8;
+      --border: #e0e0e0;
+      --text: #1a1a1a;
+      --text-muted: #666666;
+      --accent: #000000;
+      --hover: #f0f0f0;
+      --mono: 'Courier New', Consolas, Monaco, 'Lucida Console', monospace;
+      --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      --radius: 4px;
+      --shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    /* Header */
+    header {
+      border-bottom: 2px solid var(--accent);
+      padding: 2rem 0 1rem 0;
+      margin-bottom: 2rem;
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      margin-bottom: 0.25rem;
+      text-transform: uppercase;
+    }
+
+    h2 {
+      font-size: 0.75rem;
+      font-weight: 400;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* Layout */
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 0 1.5rem;
+    }
+
+    .grid {
+      display: grid;
+      gap: 2rem;
+      margin-top: 2rem;
+    }
+
+    @media (min-width: 1024px) {
+      .grid { grid-template-columns: 420px 1fr; }
+    }
+
+    /* Cards */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      margin-bottom: 1rem;
+    }
+
+    .card-header {
+      background: var(--accent);
+      color: var(--bg);
+      padding: 0.75rem 1rem;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-bottom: 2px solid var(--accent);
+    }
+
+    .card-body {
+      padding: 1.5rem;
+    }
+
+    .section {
+      margin-bottom: 1.5rem;
+    }
+
+    .section:last-child {
+      margin-bottom: 0;
+    }
+
+    .section-title {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    /* Form Elements */
+    label {
+      display: block;
+      font-size: 0.85rem;
+      margin-bottom: 0.5rem;
+      cursor: pointer;
+    }
+
+    input[type="file"] {
+      display: none;
+    }
+
+    select, input[type="text"] {
+      width: 100%;
+      padding: 0.65rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--bg);
+      font-family: var(--mono);
+      font-size: 0.85rem;
+      transition: border-color 0.2s;
+    }
+
+    select:focus, input[type="text"]:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    select {
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%231a1a1a' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 0.65rem center;
+      padding-right: 2rem;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--accent);
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-block;
+      padding: 0.65rem 1.25rem;
+      border: 2px solid var(--accent);
+      background: var(--accent);
+      color: var(--bg);
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+      border-radius: var(--radius);
+      transition: all 0.2s;
+      text-align: center;
+    }
+
+    .btn:hover:not(:disabled) {
+      background: var(--bg);
+      color: var(--accent);
+    }
+
+    .btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .btn-outline {
+      background: var(--bg);
+      color: var(--accent);
+    }
+
+    .btn-outline:hover:not(:disabled) {
+      background: var(--accent);
+      color: var(--bg);
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    /* Checkboxes */
+    .checkbox {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.5rem 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .checkbox:last-child {
+      border-bottom: none;
+    }
+
+    .checkbox label {
+      flex: 1;
+      margin: 0;
+      font-size: 0.85rem;
+    }
+
+    .checkbox input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+      accent-color: var(--accent);
+    }
+
+    .checkbox-description {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      margin-top: 0.25rem;
+    }
+
+    /* Textarea */
+    textarea {
+      width: 100%;
+      min-height: 600px;
+      padding: 1rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--bg);
+      font-family: var(--mono);
+      font-size: 0.85rem;
+      line-height: 1.6;
+      resize: vertical;
+    }
+
+    textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    /* Stats */
+    .stats {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem;
+      font-size: 0.75rem;
+      margin-bottom: 1rem;
+    }
+
+    .stats-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 0.25rem 0;
+    }
+
+    .stats-label {
+      color: var(--text-muted);
+    }
+
+    .stats-value {
+      font-weight: 700;
+    }
+
+    /* File Info */
+    .file-info {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 0.75rem;
+      font-size: 0.8rem;
+      margin-bottom: 1rem;
+      color: var(--text-muted);
+    }
+
+    .file-name {
+      color: var(--text);
+      font-weight: 700;
+    }
+
+    /* System Badges */
+    .system-selector {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .system-option {
+      position: relative;
+    }
+
+    .system-option input[type="radio"] {
+      position: absolute;
+      opacity: 0;
+    }
+
+    .system-label {
+      display: block;
+      padding: 0.65rem;
+      border: 2px solid var(--border);
+      border-radius: var(--radius);
+      text-align: center;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .system-option input[type="radio"]:checked + .system-label {
+      border-color: var(--accent);
+      background: var(--accent);
+      color: var(--bg);
+    }
+
+    .system-label:hover {
+      border-color: var(--accent);
+    }
+
+    /* Mode selector */
+    .mode-selector {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .mode-option {
+      position: relative;
+    }
+
+    .mode-option input[type="radio"] {
+      position: absolute;
+      opacity: 0;
+    }
+
+    .mode-label {
+      display: block;
+      padding: 0.5rem;
+      border: 2px solid var(--border);
+      border-radius: var(--radius);
+      text-align: center;
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .mode-option input[type="radio"]:checked + .mode-label {
+      border-color: var(--accent);
+      background: var(--accent);
+      color: var(--bg);
+    }
+
+    .mode-label:hover {
+      border-color: var(--accent);
+    }
+
+    /* Footer */
+    footer {
+      margin: 3rem 0 2rem 0;
+      padding-top: 2rem;
+      border-top: 1px solid var(--border);
+      text-align: center;
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* Alert */
+    .alert {
+      padding: 0.75rem 1rem;
+      border-radius: var(--radius);
+      margin-bottom: 1rem;
+      font-size: 0.8rem;
+      display: none;
+    }
+
+    .alert.error {
+      background: var(--accent);
+      color: var(--bg);
+      display: block;
+    }
+
+    .alert.info {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      display: block;
+    }
+
+    /* Loading */
+    .loading {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border: 2px solid var(--bg);
+      border-radius: 50%;
+      border-top-color: transparent;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+      border-bottom: 2px solid var(--border);
+    }
+
+    .tab {
+      padding: 0.65rem 1rem;
+      border: none;
+      background: transparent;
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+      transition: all 0.2s;
+    }
+
+    .tab.active {
+      border-bottom-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .tab:hover {
+      color: var(--accent);
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      html, body { font-size: 13px; }
+      .container { padding: 0 1rem; }
+      header { padding: 1.5rem 0 1rem 0; }
+      h1 { font-size: 1.25rem; }
+      .system-selector { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>[ PRÉ-PROCESSADOR JURÍDICO v3.0 ]</h1>
+      <h2>Extração, limpeza e conversão automatizada de documentos processuais para análise por LLMs</h2>
+    </header>
+
+    <div id="errorBanner" class="alert error"></div>
+
+    <div class="grid">
+      <!-- Painel Esquerdo -->
+      <div>
+        <!-- Upload -->
+        <div class="card">
+          <div class="card-header">[ 01 ] Arquivo PDF</div>
+          <div class="card-body">
+            <div class="section">
+              <div class="file-info" id="fileInfo">
+                <span class="file-name">Nenhum arquivo selecionado</span>
+              </div>
+              <div class="btn-group">
+                <label class="btn btn-outline" for="pdfFile">
+                  Selecionar PDF
+                </label>
+                <input id="pdfFile" type="file" accept="application/pdf,.pdf,.txt" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sistema Processual -->
+        <div class="card">
+          <div class="card-header">[ 02 ] Sistema Processual</div>
+          <div class="card-body">
+            <div class="section-title">Selecione o sistema de origem</div>
+            <div class="system-selector">
+              <div class="system-option">
+                <input type="radio" name="system" value="auto" id="sys-auto" checked>
+                <label class="system-label" for="sys-auto">AUTO</label>
+              </div>
+              <div class="system-option">
+                <input type="radio" name="system" value="eproc" id="sys-eproc">
+                <label class="system-label" for="sys-eproc">EPROC</label>
+              </div>
+              <div class="system-option">
+                <input type="radio" name="system" value="esaj" id="sys-esaj">
+                <label class="system-label" for="sys-esaj">ESAJ</label>
+              </div>
+              <div class="system-option">
+                <input type="radio" name="system" value="pje" id="sys-pje">
+                <label class="system-label" for="sys-pje">PJE</label>
+              </div>
+              <div class="system-option">
+                <input type="radio" name="system" value="projudi" id="sys-projudi">
+                <label class="system-label" for="sys-projudi">PROJUDI</label>
+              </div>
+              <div class="system-option">
+                <input type="radio" name="system" value="stf" id="sys-stf">
+                <label class="system-label" for="sys-stf">STF</label>
+              </div>
+              <div class="system-option">
+                <input type="radio" name="system" value="stj" id="sys-stj">
+                <label class="system-label" for="sys-stj">STJ</label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Modo de Limpeza -->
+        <div class="card">
+          <div class="card-header">[ 03 ] Modo de Limpeza</div>
+          <div class="card-body">
+            <div class="section-title">Intensidade da limpeza</div>
+            <div class="mode-selector">
+              <div class="mode-option">
+                <input type="radio" name="mode" value="leve" id="mode-leve" checked>
+                <label class="mode-label" for="mode-leve">LEVE</label>
+              </div>
+              <div class="mode-option">
+                <input type="radio" name="mode" value="moderado" id="mode-moderado">
+                <label class="mode-label" for="mode-moderado">MODERADO</label>
+              </div>
+              <div class="mode-option">
+                <input type="radio" name="mode" value="agressivo" id="mode-agressivo">
+                <label class="mode-label" for="mode-agressivo">AGRESSIVO</label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Configurações -->
+        <div class="card">
+          <div class="card-header">[ 04 ] Configurações de Filtragem</div>
+          <div class="card-body">
+            <div class="section">
+              <div class="checkbox">
+                <input type="checkbox" id="rmHash" checked>
+                <label for="rmHash">
+                  Remover hashes e códigos
+                  <div class="checkbox-description">SHA-256, MD5, hexadecimais</div>
+                </label>
+              </div>
+              <div class="checkbox">
+                <input type="checkbox" id="rmAssinatura" checked>
+                <label for="rmAssinatura">
+                  Remover assinaturas digitais
+                  <div class="checkbox-description">ICP-Brasil, certificados, selos</div>
+                </label>
+              </div>
+              <div class="checkbox">
+                <input type="checkbox" id="rmProtocolo" checked>
+                <label for="rmProtocolo">
+                  Remover protocolos
+                  <div class="checkbox-description">Códigos verificadores, autenticidades</div>
+                </label>
+              </div>
+              <div class="checkbox">
+                <input type="checkbox" id="rmPageNum" checked>
+                <label for="rmPageNum">
+                  Remover numeração de páginas
+                  <div class="checkbox-description">Pág. X de Y, etc</div>
+                </label>
+              </div>
+              <div class="checkbox">
+                <input type="checkbox" id="rmHeader" checked>
+                <label for="rmHeader">
+                  Remover cabeçalho/rodapé repetitivo
+                  <div class="checkbox-description">Timbres, endereços, telefones</div>
+                </label>
+              </div>
+              <div class="checkbox">
+                <input type="checkbox" id="normalizeBreaks" checked>
+                <label for="normalizeBreaks">
+                  Normalizar quebras de linha
+                  <div class="checkbox-description">Espaçamentos e hifenização</div>
+                </label>
+              </div>
+            </div>
+
+            <div class="section" style="margin-top: 1.5rem;">
+              <div class="section-title">Lista branca (nunca remover)</div>
+              <input type="text" id="whitelist" placeholder="Defensoria Pública, Ministério Público, Procuradoria" />
+              <div class="checkbox-description" style="margin-top: 0.5rem;">Separe por vírgulas</div>
+            </div>
+
+            <div class="section" style="margin-top: 1.5rem;">
+              <div class="btn-group" style="width: 100%;">
+                <button class="btn" id="processBtn" style="flex: 1;">
+                  Processar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Exportação -->
+        <div class="card">
+          <div class="card-header">[ 05 ] Exportar Resultado</div>
+          <div class="card-body">
+            <div class="btn-group" style="width: 100%;">
+              <button class="btn btn-outline" id="downloadTxtBtn" disabled style="flex: 1;">
+                TXT
+              </button>
+              <button class="btn btn-outline" id="downloadMdBtn" disabled style="flex: 1;">
+                MD
+              </button>
+              <button class="btn btn-outline" id="downloadDocxBtn" disabled style="flex: 1;">
+                DOCX
+              </button>
+              <button class="btn btn-outline" id="downloadHtmlBtn" disabled style="flex: 1;">
+                HTML
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Painel Direito -->
+      <div>
+        <div class="card">
+          <div class="card-header">[ OUTPUT ] Visualização</div>
+          <div class="card-body">
+            <div id="statsBox" class="stats" style="display: none;">
+              <div class="stats-row">
+                <span class="stats-label">Páginas processadas:</span>
+                <span class="stats-value" id="statPages">-</span>
+              </div>
+              <div class="stats-row">
+                <span class="stats-label">Itens removidos:</span>
+                <span class="stats-value" id="statRemoved">-</span>
+              </div>
+              <div class="stats-row">
+                <span class="stats-label">Sistema detectado:</span>
+                <span class="stats-value" id="statSystem">-</span>
+              </div>
+              <div class="stats-row">
+                <span class="stats-label">Modo de limpeza:</span>
+                <span class="stats-value" id="statMode">-</span>
+              </div>
+            </div>
+
+            <div class="tabs">
+              <button class="tab active" data-tab="texto">TEXTO LIMPO</button>
+              <button class="tab" data-tab="markdown">MARKDOWN</button>
+              <button class="tab" data-tab="html">HTML</button>
+            </div>
+
+            <div class="tab-content active" id="tab-texto">
+              <textarea id="outputText" placeholder="O texto extraído e limpo aparecerá aqui após o processamento...
+
+> Selecione um arquivo PDF
+> Escolha o sistema processual (ou deixe em AUTO)
+> Configure as opções de limpeza
+> Clique em PROCESSAR"></textarea>
+            </div>
+
+            <div class="tab-content" id="tab-markdown">
+              <textarea id="outputMarkdown" placeholder="A versão em Markdown aparecerá aqui..."></textarea>
+            </div>
+
+            <div class="tab-content" id="tab-html">
+              <textarea id="outputHtml" placeholder="A versão em HTML aparecerá aqui..."></textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <footer>
+      Pré-Processador Jurídico v3.0 — 100% Offline · Open Source · Otimizado para LLMs
+    </footer>
+  </div>
+
+  <!-- Bibliotecas (CDN para versão web) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.6.347/pdf.min.js"></script>
+  <script>
+    if (window['pdfjsLib']) {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.6.347/pdf.worker.min.js';
+    }
+  </script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
+  <!-- Carregamento assíncrono da biblioteca docx para exportação DOCX -->
+  <script type="module">
+    try {
+      const docxNS = await import('https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.min.js');
+      window.docx = docxNS;
+      console.log('✓ Biblioteca DOCX carregada');
+    } catch (e) {
+      console.warn('⚠ DOCX não disponível:', e);
+    }
+  </script>
+
+  <script>
+    const $ = s => document.querySelector(s);
+    const $$ = s => document.querySelectorAll(s);
+    const errorBanner = $('#errorBanner');
+
+    function showError(msg) {
+      errorBanner.textContent = '[ ERROR ] ' + msg;
+      errorBanner.style.display = 'block';
+      setTimeout(() => hideError(), 5000);
+    }
+
+    function hideError() {
+      errorBanner.style.display = 'none';
+    }
+
+    // ===== TABS =====
+    $$('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        // Remove active de todas as tabs
+        $$('.tab').forEach(t => t.classList.remove('active'));
+        $$('.tab-content').forEach(c => c.classList.remove('active'));
+
+        // Ativa tab clicada
+        tab.classList.add('active');
+        const tabId = tab.dataset.tab;
+        $(`#tab-${tabId}`).classList.add('active');
+      });
+    });
+
+    // ===== PADRÕES POR SISTEMA PROCESSUAL =====
+    const SYSTEM_PATTERNS = {
+      eproc: {
+        name: 'E-PROC (TRF)',
+        signatures: [
+          /\bAssinado eletronicamente por[^\n]{0,100}\bem\s+\d{2}\/\d{2}\/\d{4}/gi,
+          /\be-Proc\b/gi,
+          /\bTribunal Regional Federal/gi,
+          /\bVerifique a assinatura digital em[^\n]{0,150}/gi,
+        ]
+      },
+      esaj: {
+        name: 'E-SAJ (TJSP)',
+        signatures: [
+          /\bE-SAJ\b/gi,
+          /\bTribunal de Justi[çc]a do Estado de S[ãa]o Paulo/gi,
+          /\bForo (?:Central|Regional)[^\n]{0,100}/gi,
+          /\bAssinado digitalmente[^\n]{0,100}e-SAJ/gi,
+          /\bC[óo]digo para valida[çc][ãa]o[:\s]*[A-Z0-9]{10,}/gi,
+        ]
+      },
+      pje: {
+        name: 'PJE (CNJ)',
+        signatures: [
+          /\bPJe\b/gi,
+          /\bProcesso Judicial Eletr[ôo]nico/gi,
+          /\bAssinado eletronicamente por[^\n]{0,100}PJe/gi,
+          /\bC[óo]digo Verificador[:\s]*[A-Z0-9]{8,}/gi,
+          /\bAssinatura digital conforme[^\n]{0,100}PJe/gi,
+        ]
+      },
+      projudi: {
+        name: 'PROJUDI',
+        signatures: [
+          /\bPROJUDI\b/gi,
+          /\bSistema de Processo Judicial Digital/gi,
+          /\bAssinado digitalmente[^\n]{0,100}PROJUDI/gi,
+        ]
+      },
+      stf: {
+        name: 'STF',
+        signatures: [
+          /\bSupremo Tribunal Federal\b/gi,
+          /\bSTF\b/g,
+          /\bPra[çc]a dos Tr[êe]s Poderes/gi,
+          /\bAssinado digitalmente[^\n]{0,100}STF/gi,
+        ]
+      },
+      stj: {
+        name: 'STJ',
+        signatures: [
+          /\bSuperior Tribunal de Justi[çc]a\b/gi,
+          /\bSTJ\b/g,
+          /\bAssinado digitalmente[^\n]{0,100}STJ/gi,
+        ]
+      }
+    };
+
+    // ===== REGEX UNIVERSAIS =====
+    const RE = {
+      // Hashes
+      hexId: /\b(?:[A-Fa-f0-9]{32,64})\b/g,
+      sha: /\bSHA[- ]?(?:1|224|256|384|512):?\s*[A-Fa-f0-9]{16,}\b/gi,
+      md5: /\bMD5:?[\s-]*[A-Fa-f0-9]{16,}\b/gi,
+
+      // Protocolos
+      protocolo: /\b(Protocolo|ID|Documento|Validador|Autenticidade|C[óo]digo Verificador|C[óo]digo de Verifica[çc][ãa]o)[:\s#-]*[A-Za-z0-9\-\.\/]{6,}\b/gi,
+
+      // Assinaturas digitais ICP-Brasil
+      icpBrasil: /\b(?:ICP-?Brasil|AC-?[A-Z]{2,}|Autoridade Certificadora|Certificado Digital|Cadeia de certifica[çc][ãa]o)\b/gi,
+      assinaturaEletronica: /\b(?:Assinado (?:eletronicamente|digitalmente)|Documento assinado (?:eletronicamente|digitalmente)|Assinatura eletr[ôo]nica|Assinatura digital)\b/gi,
+      carimboTempo: /\b(?:Carimbo de tempo|Timestamp|Data\/Hora da assinatura|Assinado em \d{2}\/\d{2}\/\d{4})\b/gi,
+      hashAssinatura: /\b(?:Hash do documento|Resumo criptogr[áa]fico|MessageDigest)\s*[:=]?\s*[A-Fa-f0-9]{32,}\b/gi,
+      certificadoSerial: /\b(?:N[úu]mero de s[ée]rie|Serial Number|N[úu]mero do certificado)[:\s]*[A-Fa-f0-9:]{16,}\b/gi,
+      emissorCertificado: /\b(?:Emissor|Emitido por|Issued by)[:\s]*(?:AC|CN=|O=)[^\n]{5,50}\b/gi,
+      validadeCertificado: /\b(?:V[áa]lido de|V[áa]lido at[ée]|Validade)[:\s]*\d{2}\/\d{2}\/\d{4}/gi,
+      selo: /\b(?:Selo|Carimbo|Autenticidade|Valida[çc][ãa]o|Valida\w+)\b/gi,
+
+      // Outros
+      pageNum: /\b(?:p(?:á|a)gina|pag\.?|p\.)\s*\d+(?:\s*de\s*\d+)?\b/gi,
+      oab: /\bOAB(?:\/[A-Z]{2})?\s*[Nn]?[ºo°]?\s*\d{1,6}(?:[-\/][A-Z])?\b/gi,
+      cnpj: /\b\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}\b/g,
+      cep: /\b\d{5}-\d{3}\b/g,
+      phone: /\(\s*\d{2}\s*\)\s*\d{4,5}-\d{4}\b/g,
+      email: /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g,
+      url: /\b(?:https?:\/\/|www\.)[^\s]+/gi,
+      addrKw: /\b(?:Rua|Av\.?|Avenida|Alameda|Largo|Pra[çc]a|Rodovia|BR-\d+|SP-\d+|CEP|Sala|Conj\.?|CJ|Edif[íi]cio|Torre)\b/gi,
+      firmKw: /\b(?:Sociedade de Advogados|Escrit[óo]rio de Advocacia|Advogado(?:a)?s?)\b/gi,
+      deferimento: /\b(?:Nestes termos,? pede deferimento|Termos em que,? pede deferimento)\b/gi,
+      assinaturaKw: /\b(?:Assina eletronicamente|Assinatura|Advogado|OAB|Procurador|Defensor)\b/gi
+    };
+
+    function resetRegex() {
+      Object.values(RE).forEach(r => { if (r.global) r.lastIndex = 0; });
+    }
+
+    function norm(s) {
+      return (s || '').replace(/[\t\r]+/g, ' ').replace(/\u00A0/g, ' ').replace(/\s+/g, ' ').trim();
+    }
+
+    function hash(s) {
+      s = norm(s).toLowerCase();
+      let h = 5381;
+      for (let i = 0; i < s.length; i++) {
+        h = ((h << 5) + h) + s.charCodeAt(i);
+      }
+      return (h >>> 0).toString(36);
+    }
+
+    function getSelectedSystem() {
+      const radio = document.querySelector('input[name="system"]:checked');
+      return radio ? radio.value : 'auto';
+    }
+
+    function getSelectedMode() {
+      const radio = document.querySelector('input[name="mode"]:checked');
+      return radio ? radio.value : 'leve';
+    }
+
+    function getWhitelist() {
+      const val = $('#whitelist').value || '';
+      return val.split(',').map(s => s.trim()).filter(Boolean);
+    }
+
+    function detectSystem(text) {
+      const scores = {};
+
+      for (const [key, config] of Object.entries(SYSTEM_PATTERNS)) {
+        let score = 0;
+        for (const pattern of config.signatures) {
+          const matches = text.match(pattern);
+          if (matches) score += matches.length;
+        }
+        scores[key] = score;
+      }
+
+      const detected = Object.entries(scores)
+        .sort((a, b) => b[1] - a[1])
+        .filter(([_, score]) => score > 0)[0];
+
+      return detected ? detected[0] : 'auto';
+    }
+
+    // ===== CLEANER - Versão Integrada =====
+    const Cleaner = {
+      clean(pages, options = {}) {
+        const opts = Object.assign({
+          system: 'auto',
+          mode: 'leve',
+          removeHash: true,
+          removeSignature: true,
+          removeProtocol: true,
+          removePageNum: true,
+          removeHeader: true,
+          normalizeBreaks: true,
+          whitelist: [],
+          topBand: 0.06,
+          bottomBand: 0.10,
+          minRepeat: 2,
+          maxBlockLen: 4,
+          minSignals: 2,
+          pageHeightFallback: 1000
+        }, options);
+
+        // Ajustar parâmetros por modo
+        if (opts.mode === 'leve') {
+          opts.topBand = 0.05;
+          opts.bottomBand = 0.08;
+          opts.minRepeat = 3;
+          opts.minSignals = 3;
+        } else if (opts.mode === 'moderado') {
+          opts.topBand = 0.06;
+          opts.bottomBand = 0.12;
+          opts.minRepeat = 2;
+          opts.minSignals = 2;
+        } else {  // agressivo
+          opts.topBand = 0.08;
+          opts.bottomBand = 0.18;
+          opts.minRepeat = 2;
+          opts.minSignals = 1;
+        }
+
+        const wl = (opts.whitelist || []).map(w => w.trim().toLowerCase()).filter(Boolean);
+        const whitelisted = s => wl.some(w => (s || '').toLowerCase().includes(w));
+        let removed = [];
+
+        const systemPatterns = opts.system !== 'auto' && SYSTEM_PATTERNS[opts.system]
+          ? SYSTEM_PATTERNS[opts.system].signatures
+          : [];
+
+        // Converter páginas em linhas
+        const pagesLines = pages.map(p => ({
+          lines: Array.isArray(p.lines) ? p.lines : []
+        }));
+
+        // FASE 1: Filtrar linhas indesejadas
+        const pages1 = pagesLines.map(pg => ({
+          lines: pg.lines.filter(line => {
+            const t = line.text || '';
+
+            // Whitelist tem prioridade
+            if (whitelisted(t)) return true;
+
+            // Testar padrões específicos do sistema
+            if (opts.removeSignature && systemPatterns.length > 0) {
+              for (const pattern of systemPatterns) {
+                if (pattern.test(t)) {
+                  resetRegex();
+                  removed.push({ text: t, reason: `signature-${opts.system}` });
+                  return false;
+                }
+                resetRegex();
+              }
+            }
+
+            // Hashes
+            if (opts.removeHash && (RE.hexId.test(t) || RE.sha.test(t) || RE.md5.test(t) || RE.hashAssinatura.test(t))) {
+              resetRegex();
+              removed.push({ text: t, reason: 'hash' });
+              return false;
+            }
+            resetRegex();
+
+            // Assinaturas digitais gerais
+            if (opts.removeSignature) {
+              if (RE.icpBrasil.test(t) || RE.assinaturaEletronica.test(t) ||
+                  RE.carimboTempo.test(t) || RE.certificadoSerial.test(t) ||
+                  RE.emissorCertificado.test(t) || RE.validadeCertificado.test(t) || RE.selo.test(t)) {
+                resetRegex();
+                removed.push({ text: t, reason: 'signature-general' });
+                return false;
+              }
+            }
+            resetRegex();
+
+            // Protocolos
+            if (opts.removeProtocol && RE.protocolo.test(t)) {
+              resetRegex();
+              removed.push({ text: t, reason: 'protocol' });
+              return false;
+            }
+            resetRegex();
+
+            // Paginação
+            if (opts.removePageNum && RE.pageNum.test(t)) {
+              resetRegex();
+              removed.push({ text: t, reason: 'page-number' });
+              return false;
+            }
+            resetRegex();
+
+            return true;
+          })
+        }));
+
+        // FASE 2: Detecção de cabeçalho/rodapé repetitivo
+        function isTopBottom(line, idx, total) {
+          const y = (typeof line.y === 'number') ? line.y : null;
+          const ph = (typeof line.pageHeight === 'number' && line.pageHeight > 0) ? line.pageHeight : opts.pageHeightFallback;
+          let inTop = false, inBottom = false;
+
+          if (y !== null) {
+            const rel = y / ph;
+            inTop = (rel <= opts.topBand) || (1 - rel <= opts.topBand);
+            inBottom = (rel >= 1 - opts.bottomBand) || (1 - rel >= 1 - opts.bottomBand);
+          } else {
+            inTop = (idx < Math.max(2, Math.ceil(total * opts.topBand)));
+            inBottom = (idx >= total - Math.max(2, Math.ceil(total * opts.bottomBand)));
+          }
+          return { inTop, inBottom };
+        }
+
+        function countSignals(s) {
+          let c = 0;
+          if (RE.oab.test(s)) c++;
+          if (RE.cnpj.test(s)) c++;
+          if (RE.cep.test(s)) c++;
+          if (RE.phone.test(s)) c++;
+          if (RE.email.test(s)) c++;
+          if (RE.url.test(s)) c++;
+          if (RE.addrKw.test(s)) c++;
+          if (RE.firmKw.test(s)) c++;
+          resetRegex();
+          return c;
+        }
+
+        const blocks = new Map(), samples = new Map();
+        const candidates = pages1.map(pg => {
+          const hits = [];
+          const tot = pg.lines.length;
+          for (let i = 0; i < tot; i++) {
+            const ln = pg.lines[i];
+            const txt = ln.text || '';
+            const pos = isTopBottom(ln, i, tot);
+            const sigs = countSignals(txt);
+            const pageNumMatch = RE.pageNum.test(txt);
+            resetRegex();
+            const likely = (pos.inTop || pos.inBottom) && (sigs >= opts.minSignals || pageNumMatch);
+            if (likely) hits.push(i);
+          }
+          return hits;
+        });
+
+        pages1.forEach((pg, idx) => {
+          const idxs = candidates[idx].sort((a, b) => a - b);
+          for (let i = 0; i < idxs.length; i++) {
+            for (let len = 1; len <= Math.min(opts.maxBlockLen, idxs.length - i); len++) {
+              const start = idxs[i];
+              const seq = idxs.slice(i, i + len);
+              if (seq[seq.length - 1] - seq[0] !== len - 1) break;
+              const text = pg.lines.slice(start, start + len).map(x => x.text || '').join('\n');
+              const key = pg.lines.slice(start, start + len).map(x => hash(x.text || '')).join('|');
+              const k = `${len}|${key}`;
+              blocks.set(k, (blocks.get(k) || 0) + 1);
+              if (!samples.has(k)) samples.set(k, text);
+            }
+          }
+        });
+
+        const repeated = [];
+        for (const [k, c] of blocks) {
+          if (c >= opts.minRepeat) {
+            const sample = samples.get(k);
+            if (countSignals(sample) >= opts.minSignals) {
+              repeated.push({ key: k, count: c, sample });
+            }
+          }
+        }
+
+        function removeRepeated(pagesLines) {
+          return pagesLines.map((pg, pidx) => {
+            const out = [];
+            for (let i = 0; i < pg.lines.length; i++) {
+              let cut = false;
+              for (const blk of repeated) {
+                const len = parseInt(blk.key.split('|')[0], 10);
+                const slice = pg.lines.slice(i, i + len).map(x => x.text || '').join('\n');
+                if (hash(slice) === hash(blk.sample)) {
+                  removed.push({ p: pidx + 1, i, len, text: slice, reason: 'repeated+signals' });
+                  i += len - 1;
+                  cut = true;
+                  break;
+                }
+              }
+              if (!cut) out.push(pg.lines[i]);
+            }
+            return { lines: out };
+          });
+        }
+
+        const pages2 = opts.removeHeader ? removeRepeated(pages1) : pages1;
+
+        // FASE 3: Detecção de blocos de assinatura válidos (para não remover OAB legítimo)
+        function detectSignatureBlocks(pagesLines) {
+          const allow = [];
+          const lastIdx = pagesLines.length - 1;
+
+          // Última página: permitir área de assinatura
+          if (lastIdx >= 0) {
+            const last = pagesLines[lastIdx];
+            const L = last.lines.length;
+            const start = Math.max(0, L - 12);
+            for (let i = L - 1; i >= start; i--) {
+              const t = (last.lines[i].text || '');
+              if (RE.oab.test(t) || RE.assinaturaKw.test(t)) {
+                allow.push({ p: lastIdx, from: Math.max(0, i - 5), to: Math.min(L, i + 3) });
+                break;
+              }
+              resetRegex();
+            }
+          }
+
+          // Primeiras páginas: permitir área de "pede deferimento"
+          const half = Math.ceil(pagesLines.length / 2);
+          for (let p = 0; p < half; p++) {
+            const pg = pagesLines[p];
+            for (let i = 0; i < pg.lines.length; i++) {
+              const t = (pg.lines[i].text || '');
+              if (RE.deferimento.test(t) || RE.assinaturaKw.test(t)) {
+                allow.push({ p, from: Math.max(0, i - 5), to: Math.min(pg.lines.length, i + 6) });
+                break;
+              }
+              resetRegex();
+            }
+          }
+          return allow;
+        }
+
+        const allow = detectSignatureBlocks(pages2);
+
+        function isAllowed(idx, pIdx) {
+          return allow.some(r => r.p === pIdx && idx >= r.from && idx < r.to);
+        }
+
+        function removeOABOutsideSignature(pagesLines) {
+          return pagesLines.map((pg, pidx) => {
+            const out = [];
+            for (let i = 0; i < pg.lines.length; i++) {
+              const t = pg.lines[i].text || '';
+              const hasOAB = RE.oab.test(t) || /\bAdvogado(?:a)?\b/i.test(t);
+              resetRegex();
+
+              if (hasOAB && !isAllowed(i, pidx)) {
+                removed.push({ p: pidx + 1, i, len: 1, text: t, reason: 'oab-outside-signature' });
+                continue;
+              }
+              out.push(pg.lines[i]);
+            }
+            return { lines: out };
+          });
+        }
+
+        const pages3 = removeOABOutsideSignature(pages2);
+
+        // FASE 4: Normalização de quebras
+        const pages4 = opts.normalizeBreaks ?
+          pages3.map(pg => ({
+            lines: pg.lines.map(l => ({
+              ...l,
+              text: (l.text || '')
+                .replace(/[\u00AD]/g, '')  // soft hyphen
+                .replace(/\s+\n/g, '\n')
+            }))
+          })) : pages3;
+
+        const stats = {
+          pages: pages.length,
+          removed: removed.length,
+          allowRanges: allow.length
+        };
+
+        return { pages: pages4, removedBlocks: removed, stats };
+      },
+
+      // Junção com preservação de parágrafos
+      joinPages(pagesLines) {
+        const paragraphs = [];
+
+        for (const page of pagesLines || []) {
+          let currentParagraph = [];
+
+          for (let i = 0; i < page.lines.length; i++) {
+            const line = page.lines[i];
+            const text = (line.text || '').trim();
+
+            if (!text) {
+              // Linha vazia = quebra de parágrafo
+              if (currentParagraph.length > 0) {
+                paragraphs.push(currentParagraph.join(' '));
+                currentParagraph = [];
+              }
+              continue;
+            }
+
+            // Detectar início de novo parágrafo
+            const isNewParagraph =
+              /^\s{2,}/.test(line.text || '') ||  // recuo
+              /^[0-9]+\./.test(text) ||            // numeração
+              /^[A-Z][).]/.test(text) ||           // letras
+              /^[IVX]+\./.test(text) ||            // romanos
+              /^[-•*]/.test(text);                 // bullets
+
+            if (isNewParagraph && currentParagraph.length > 0) {
+              paragraphs.push(currentParagraph.join(' '));
+              currentParagraph = [];
+            }
+
+            currentParagraph.push(text);
+          }
+
+          // Finalizar parágrafo ao fim da página
+          if (currentParagraph.length > 0) {
+            paragraphs.push(currentParagraph.join(' '));
+            currentParagraph = [];
+          }
+        }
+
+        return paragraphs.join('\n\n');
+      }
+    };
+
+    // ===== CONVERSOR PARA MARKDOWN =====
+    const MarkdownConverter = {
+      convert(text) {
+        let md = text;
+
+        // Detectar e formatar títulos (linhas em caixa alta no início de parágrafo)
+        md = md.replace(/^([A-ZÀÁÂÃÄÅÇÈÉÊËÌÍÎÏÑÒÓÔÕÖÙÚÛÜÝ][A-ZÀÁÂÃÄÅÇÈÉÊËÌÍÎÏÑÒÓÔÕÖÙÚÛÜÝ\s]{5,})$/gm, '## $1');
+
+        // Detectar numeração de seções
+        md = md.replace(/^(\d+\.\s+[A-Z][^\n]+)$/gm, '### $1');
+
+        // Detectar listas com bullets
+        md = md.replace(/^([-•*]\s+)/gm, '- ');
+
+        // Detectar listas numeradas já existentes
+        md = md.replace(/^(\d+\.)\s+/gm, '$1 ');
+
+        // Detectar citações (parágrafos começando com aspas)
+        md = md.replace(/^"([^\n]+)"$/gm, '> "$1"');
+
+        // Adicionar quebras de linha para melhor formatação
+        md = md.replace(/\n{3,}/g, '\n\n');
+
+        return md;
+      },
+
+      addMetadata(md, stats) {
+        const metadata = `---
+título: Documento Jurídico Processado
+data_processamento: ${new Date().toISOString().split('T')[0]}
+páginas: ${stats.pages}
+sistema: ${stats.system}
+modo_limpeza: ${stats.mode}
+---
+
+`;
+        return metadata + md;
+      }
+    };
+
+    // ===== CONVERSOR PARA HTML =====
+    const HtmlConverter = {
+      convert(text) {
+        let html = '<!DOCTYPE html>\n<html lang="pt-br">\n<head>\n';
+        html += '  <meta charset="UTF-8">\n';
+        html += '  <meta name="viewport" content="width=device-width, initial-scale=1.0">\n';
+        html += '  <title>Documento Jurídico</title>\n';
+        html += '  <style>\n';
+        html += '    body { font-family: "Times New Roman", serif; max-width: 800px; margin: 40px auto; padding: 20px; line-height: 1.8; }\n';
+        html += '    h1 { font-size: 24px; text-align: center; margin-bottom: 30px; }\n';
+        html += '    h2 { font-size: 18px; margin-top: 30px; margin-bottom: 15px; }\n';
+        html += '    h3 { font-size: 16px; margin-top: 20px; margin-bottom: 10px; }\n';
+        html += '    p { text-align: justify; margin-bottom: 15px; text-indent: 2em; }\n';
+        html += '    ul, ol { margin: 15px 0; padding-left: 40px; }\n';
+        html += '    li { margin-bottom: 8px; }\n';
+        html += '    blockquote { border-left: 3px solid #ccc; padding-left: 20px; margin: 20px 0; font-style: italic; }\n';
+        html += '  </style>\n';
+        html += '</head>\n<body>\n';
+        html += '  <h1>Documento Jurídico</h1>\n';
+
+        // Processar parágrafos
+        const paragraphs = text.split('\n\n');
+        for (const para of paragraphs) {
+          const trimmed = para.trim();
+          if (!trimmed) continue;
+
+          // Título (caixa alta)
+          if (/^[A-ZÀÁÂÃÄÅÇÈÉÊËÌÍÎÏÑÒÓÔÕÖÙÚÛÜÝ][A-ZÀÁÂÃÄÅÇÈÉÊËÌÍÎÏÑÒÓÔÕÖÙÚÛÜÝ\s]{5,}$/.test(trimmed)) {
+            html += `  <h2>${trimmed}</h2>\n`;
+          }
+          // Seção numerada
+          else if (/^\d+\.\s+[A-Z]/.test(trimmed)) {
+            html += `  <h3>${trimmed}</h3>\n`;
+          }
+          // Lista com bullets
+          else if (/^[-•*]\s+/.test(trimmed)) {
+            html += '  <ul>\n';
+            const items = trimmed.split('\n');
+            for (const item of items) {
+              const cleaned = item.replace(/^[-•*]\s+/, '');
+              html += `    <li>${cleaned}</li>\n`;
+            }
+            html += '  </ul>\n';
+          }
+          // Citação
+          else if (/^".*"$/.test(trimmed)) {
+            html += `  <blockquote>${trimmed}</blockquote>\n`;
+          }
+          // Parágrafo normal
+          else {
+            html += `  <p>${trimmed}</p>\n`;
+          }
+        }
+
+        html += '</body>\n</html>';
+        return html;
+      }
+    };
+
+    // ===== EXTRAÇÃO PDF =====
+    async function extractFromPDF(file) {
+      if (!window['pdfjsLib']) throw new Error('PDF.js não carregado');
+
+      const pdfjsLib = window['pdfjsLib'];
+      const buf = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+      const pages = [];
+
+      for (let p = 1; p <= pdf.numPages; p++) {
+        const page = await pdf.getPage(p);
+        const viewport = page.getViewport({ scale: 1 });
+        const txt = await page.getTextContent();
+        const items = txt.items || [];
+
+        const linesMap = new Map();
+        for (const it of items) {
+          const s = it.str || '';
+          const tr = it.transform || [1, 0, 0, 1, 0, 0];
+          const x = tr[4], y = tr[5];
+          const key = Math.round(y);
+
+          if (!linesMap.has(key)) linesMap.set(key, []);
+          linesMap.get(key).push({ text: s, x, y, pageHeight: viewport.height });
+        }
+
+        const lineKeys = Array.from(linesMap.keys()).sort((a, b) => b - a);
+        const lines = [];
+
+        for (const k of lineKeys) {
+          const arr = linesMap.get(k).sort((a, b) => a.x - b.x);
+          const text = arr.map(o => o.text).join(' ');
+          lines.push({ text, y: arr[0].y, x: arr[0].x, pageHeight: viewport.height });
+        }
+
+        pages.push({ lines });
+      }
+
+      return pages;
+    }
+
+    // ===== EXPORTAÇÃO DOCX =====
+    async function exportToDocx(text, filename) {
+      if (!window.docx) {
+        showError('Biblioteca DOCX não disponível. Recarregue a página.');
+        return;
+      }
+
+      const { Document, Packer, Paragraph, TextRun } = window.docx;
+
+      const paragraphs = text.split('\n\n').map(p => p.trim()).filter(Boolean);
+      const docParagraphs = [];
+
+      for (const para of paragraphs) {
+        const lines = para.split('\n');
+        const runs = [];
+
+        for (let i = 0; i < lines.length; i++) {
+          runs.push(new TextRun({ text: lines[i], font: 'Times New Roman', size: 24 }));
+          if (i < lines.length - 1) {
+            runs.push(new TextRun({ text: '\n', font: 'Times New Roman', size: 24 }));
+          }
+        }
+
+        docParagraphs.push(new Paragraph({ children: runs }));
+      }
+
+      const doc = new Document({ sections: [{ children: docParagraphs }] });
+      const blob = await Packer.toBlob(doc);
+      saveAs(blob, filename);
+    }
+
+    // ===== UI =====
+    const pdfInput = $('#pdfFile');
+    const fileInfo = $('#fileInfo');
+    const processBtn = $('#processBtn');
+    const downloadTxtBtn = $('#downloadTxtBtn');
+    const downloadMdBtn = $('#downloadMdBtn');
+    const downloadDocxBtn = $('#downloadDocxBtn');
+    const downloadHtmlBtn = $('#downloadHtmlBtn');
+    const outputText = $('#outputText');
+    const outputMarkdown = $('#outputMarkdown');
+    const outputHtml = $('#outputHtml');
+    const statsBox = $('#statsBox');
+    const statPages = $('#statPages');
+    const statRemoved = $('#statRemoved');
+    const statSystem = $('#statSystem');
+    const statMode = $('#statMode');
+
+    let lastResult = null;
+
+    pdfInput.addEventListener('change', () => {
+      const file = pdfInput.files?.[0];
+      if (file) {
+        fileInfo.innerHTML = `<span class="file-name">${file.name}</span> (${(file.size / 1024).toFixed(1)} KB)`;
+      } else {
+        fileInfo.innerHTML = `<span class="file-name">Nenhum arquivo selecionado</span>`;
+      }
+      hideError();
+    });
+
+    processBtn.addEventListener('click', async () => {
+      const file = pdfInput.files?.[0];
+      if (!file) {
+        showError('Selecione um arquivo PDF');
+        return;
+      }
+
+      processBtn.disabled = true;
+      processBtn.innerHTML = '<span class="loading"></span> Processando...';
+      hideError();
+
+      try {
+        const pages = await extractFromPDF(file);
+        const fullText = pages.map(p => p.lines.map(l => l.text).join('\n')).join('\n\n');
+
+        let selectedSystem = getSelectedSystem();
+        if (selectedSystem === 'auto') {
+          selectedSystem = detectSystem(fullText);
+        }
+
+        const selectedMode = getSelectedMode();
+
+        const result = Cleaner.clean(pages, {
+          system: selectedSystem,
+          mode: selectedMode,
+          removeHash: $('#rmHash').checked,
+          removeSignature: $('#rmAssinatura').checked,
+          removeProtocol: $('#rmProtocolo').checked,
+          removePageNum: $('#rmPageNum').checked,
+          removeHeader: $('#rmHeader').checked,
+          normalizeBreaks: $('#normalizeBreaks').checked,
+          whitelist: getWhitelist()
+        });
+
+        const cleanText = Cleaner.joinPages(result.pages);
+        const markdown = MarkdownConverter.addMetadata(
+          MarkdownConverter.convert(cleanText),
+          {
+            ...result.stats,
+            system: SYSTEM_PATTERNS[selectedSystem]?.name || selectedSystem.toUpperCase(),
+            mode: selectedMode.toUpperCase()
+          }
+        );
+        const html = HtmlConverter.convert(cleanText);
+
+        outputText.value = cleanText;
+        outputMarkdown.value = markdown;
+        outputHtml.value = html;
+
+        lastResult = { cleanText, markdown, html, stats: result.stats, system: selectedSystem, mode: selectedMode };
+
+        statPages.textContent = result.stats.pages;
+        statRemoved.textContent = result.stats.removed;
+        statSystem.textContent = SYSTEM_PATTERNS[selectedSystem]?.name || selectedSystem.toUpperCase();
+        statMode.textContent = selectedMode.toUpperCase();
+        statsBox.style.display = 'block';
+
+        downloadTxtBtn.disabled = false;
+        downloadMdBtn.disabled = false;
+        downloadDocxBtn.disabled = false;
+        downloadHtmlBtn.disabled = false;
+
+      } catch (err) {
+        console.error(err);
+        showError('Falha ao processar PDF. Verifique se o arquivo é válido.');
+      } finally {
+        processBtn.disabled = false;
+        processBtn.textContent = 'Processar';
+      }
+    });
+
+    downloadTxtBtn.addEventListener('click', () => {
+      if (!lastResult) return;
+      const blob = new Blob([lastResult.cleanText], { type: 'text/plain;charset=utf-8' });
+      saveAs(blob, 'documento_processado.txt');
+    });
+
+    downloadMdBtn.addEventListener('click', () => {
+      if (!lastResult) return;
+      const blob = new Blob([lastResult.markdown], { type: 'text/markdown;charset=utf-8' });
+      saveAs(blob, 'documento_processado.md');
+    });
+
+    downloadDocxBtn.addEventListener('click', async () => {
+      if (!lastResult) return;
+      await exportToDocx(lastResult.cleanText, 'documento_processado.docx');
+    });
+
+    downloadHtmlBtn.addEventListener('click', () => {
+      if (!lastResult) return;
+      const blob = new Blob([lastResult.html], { type: 'text/html;charset=utf-8' });
+      saveAs(blob, 'documento_processado.html');
+    });
+  </script>
+</body>
+</html>
