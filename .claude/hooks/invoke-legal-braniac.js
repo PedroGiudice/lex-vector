@@ -240,8 +240,9 @@ function formatMessage(agentes, skills, env) {
   if (env.possibleCorporate) {
     warnings.push('🏢 Env corporativo detectado');
   }
-  if (!env.isRemote) {
-    warnings.push('⚠️  Hooks podem falhar (CLI)');
+  // Warning APENAS para CLI Windows corporativo (risco real de EPERM)
+  if (!env.isRemote && env.isWindows && env.possibleCorporate) {
+    warnings.push('⚠️  CLI corporativo - EPERM possível');
   }
 
   if (warnings.length > 0) {
@@ -272,14 +273,14 @@ function main() {
     process.exit(0);
   }
 
-  // GUARD 2: Ambiente CLI Windows (onde hooks causam freeze)
+  // GUARD 2: Ambiente CLI Windows CORPORATIVO (onde hooks causam freeze)
   const env = detectEnvironment();
-  if (!env.isRemote && env.isWindows) {
-    // CLI Windows detectado - skip para evitar EPERM loop
-    // Usuário já sabe do problema (DISASTER_HISTORY DIA 4)
+  if (!env.isRemote && env.isWindows && env.possibleCorporate) {
+    // CLI Windows corporativo detectado - skip para evitar EPERM loop
+    // Silent skip - usuário já informado via DISASTER_HISTORY DIA 4
     outputJSON({
       continue: true,
-      systemMessage: '⚠️  Legal-Braniac: Desabilitado no CLI Windows (EPERM issue conhecida)'
+      systemMessage: ''
     });
     process.exit(0);
   }

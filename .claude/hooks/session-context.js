@@ -84,10 +84,6 @@ function main() {
   // -------------------------------------------------------------------------
   // 1. Arquitetura 3 Layers
   // -------------------------------------------------------------------------
-  const codeLayer = isWindows
-    ? 'C:\\claude-work\\repos\\Claude-Code-Projetos'
-    : projectDir;
-
   context += `📁 Arquitetura: CODE (Git) | ENV (.venv) | DATA (externo)
 ⚠️  Regras: RULE_006 (venv obrigatório) | RULE_004 (sem hardcode paths)
 `;
