@@ -2,8 +2,8 @@
 
 **Status**: ✅ ATIVO
 **Skills configuradas**: 34
-**Agentes especializados**: 5
-**Hook instalado**: UserPromptSubmit
+**Agentes especializados**: 6 (incluindo Legal-Braniac orquestrador)
+**Hooks instalados**: UserPromptSubmit + SessionStart
 
 ---
 
@@ -33,12 +33,20 @@ Claude usa code-auditor automaticamente
 Agentes têm **skills pré-configuradas** e workflows específicos:
 
 ```
+@legal-braniac → 🧠 ORQUESTRADOR MESTRE (coordena todos os outros agentes)
+  ├─ usa TODAS as skills (visão 360°)
+  ├─ delega para agentes especializados
+  ├─ executa subtarefas em paralelo quando possível
+  └─ valida qualidade cross-agente
+
 @planejamento-legal → usa feature-planning, project-bootstrapper
 @qualidade-codigo → usa code-auditor, systematic-debugging
 @documentacao → usa codebase-documenter, architecture-diagram-creator
 @analise-dados-legal → usa dashboard-creator, timeline-creator
 @desenvolvimento → usa code-execution, git-pushing
 ```
+
+**📖 Guia completo do Legal-Braniac**: `.claude/LEGAL_BRANIAC_GUIDE.md`
 
 ---
 
@@ -95,7 +103,10 @@ Agentes têm **skills pré-configuradas** e workflows específicos:
 
 ### Uso com Agentes
 ```
-# Invoque agente especializado
+# Orquestrador (tarefas complexas multi-agente)
+@legal-braniac Implementar feature X de ponta a ponta
+
+# Agentes especializados (tarefas de domínio específico)
 @planejamento-legal Preciso implementar filtro DJEN
 @qualidade-codigo Auditar todo o projeto
 @documentacao Criar docs completos
@@ -107,10 +118,11 @@ Agentes têm **skills pré-configuradas** e workflows específicos:
 
 ### Arquivos Principais
 - `.claude/skills/skill-rules.json` - Regras de ativação
-- `.claude/hooks/skill-activation-prompt.ts` - Lógica do hook
-- `.claude/hooks/skill-activation-prompt.sh` - Wrapper bash
-- `.claude/settings.json` - Configuração do hook
-- `.claude/agents/*.md` - Agentes especializados (5)
+- `.claude/hooks/skill-activation-prompt.ts` - Lógica do hook UserPromptSubmit
+- `.claude/hooks/invoke-legal-braniac.js` - Hook SessionStart (orquestrador)
+- `.claude/settings.json` - Configuração de hooks
+- `.claude/agents/*.md` - Agentes especializados (6)
+- `.claude/LEGAL_BRANIAC_GUIDE.md` - Guia completo do orquestrador
 
 ### Modificar Trigger Patterns
 
@@ -202,8 +214,18 @@ tail -f .claude/logs/skill-activation.log
 
 ## PRÓXIMOS PASSOS
 
-- [ ] Testar auto-ativação com vários prompts
+- [x] Criar orquestrador Legal-Braniac (✅ DIA 4 - 2025-11-13)
+- [x] Implementar auto-discovery de agentes + skills (✅)
+- [x] SessionStart hook para invocação automática (✅)
+- [ ] Testar Legal-Braniac com tarefas complexas reais
 - [ ] Invocar cada agente pelo menos uma vez
 - [ ] Ajustar trigger patterns conforme necessário
-- [ ] Adicionar logging de ativações (opcional)
-- [ ] Criar métricas de uso (opcional)
+- [ ] Adicionar logging estruturado de orquestração
+- [ ] Criar métricas de performance por agente
+
+## REFERÊNCIAS IMPORTANTES
+
+- **Legal-Braniac Guia Completo**: `.claude/LEGAL_BRANIAC_GUIDE.md`
+- **DISASTER_HISTORY**: `../DISASTER_HISTORY.md` (DIA 4 - EPERM loop bug)
+- **Corporate Detector**: `.claude/hooks/corporate-detector.js`
+- **Diagnóstico Windows**: `../diagnose-corporate-env.ps1`

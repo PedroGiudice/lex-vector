@@ -26,6 +26,43 @@ Este projeto segue uma separação rígida entre três camadas:
 
 **REGRA CRÍTICA:** Código NUNCA vai para E:\. Dados NUNCA vão para Git.
 
+## 🧠 Legal-Braniac - Orquestrador Inteligente
+
+Este projeto possui um **orquestrador mestre** chamado **Legal-Braniac** que coordena automaticamente:
+
+- **6 agentes especializados** (planejamento, desenvolvimento, qualidade, documentação, análise de dados)
+- **34 skills** instaladas (OCR, parsing, testing, diagramming, etc)
+- **Auto-discovery** (detecta novos agentes/skills automaticamente)
+- **Delegação inteligente** (a tarefa certa, para o agente certo)
+- **Execução paralela** (quando subtarefas são independentes)
+
+### Quando Usar Legal-Braniac
+
+✅ **Use quando:**
+- Tarefa complexa com múltiplas fases (ex: "implementar feature X de ponta a ponta")
+- Precisa coordenar diferentes domínios (planejamento + código + testes + docs)
+- Quer execução paralela eficiente
+- Precisa validação cross-agente
+
+❌ **Não use quando:**
+- Tarefa simples e atômica (ex: "corrigir typo")
+- Já sabe qual agente especializado invocar diretamente
+
+### Como Invocar
+
+```
+# Invocação automática (Web - SessionStart hook ativo)
+# Legal-Braniac detecta complexidade e orquestra automaticamente
+
+# Invocação explícita
+@legal-braniac Implementar feature X com planejamento + código + testes + docs
+
+# Invocação manual (Windows CLI)
+# Apenas descreva tarefa complexa que será reconhecida
+```
+
+📖 **Guia completo**: `.claude/LEGAL_BRANIAC_GUIDE.md`
+
 ## Estrutura de Diretórios
 
 ### Código-fonte (neste repositório)
@@ -38,7 +75,25 @@ Claude-Code-Projetos/
 ├── DISASTER_HISTORY.md
 ├── CLAUDE.md
 │
-├── agentes/                    # Agentes autônomos de monitoramento
+├── .claude/                    # Configuração Claude Code (hooks, agentes, settings)
+│   ├── agents/                 # Agentes especializados (6)
+│   │   ├── legal-braniac.md   # 🧠 Orquestrador mestre (coordena todos)
+│   │   ├── planejamento-legal.md
+│   │   ├── desenvolvimento.md
+│   │   ├── qualidade-codigo.md
+│   │   ├── documentacao.md
+│   │   └── analise-dados-legal.md
+│   ├── hooks/                  # SessionStart & UserPromptSubmit hooks
+│   │   ├── invoke-legal-braniac.js
+│   │   ├── corporate-detector.js
+│   │   ├── session-context.js
+│   │   ├── venv-check.js
+│   │   └── ...
+│   ├── settings.json           # Configuração de hooks
+│   ├── LEGAL_BRANIAC_GUIDE.md  # 📖 Guia de uso do orquestrador
+│   └── README_SKILLS.md        # Documentação de skills (34)
+│
+├── agentes/                    # Agentes autônomos de monitoramento (Python)
 │   ├── oab-watcher/           # Monitora Diário da OAB
 │   │   ├── .venv/             # Ambiente virtual (não versionado)
 │   │   ├── .gitignore
@@ -281,9 +336,31 @@ Se você usa Claude Code com este projeto, instale manualmente em cada máquina:
 
 **IMPORTANTE:** Plugins NÃO vão para Git. Instale via Marketplace em cada máquina.
 
+## Ambientes Suportados (SessionStart Hooks)
+
+### ✅ Claude Code Web (Linux)
+- **Status**: ✅ TOTALMENTE FUNCIONAL
+- **SessionStart hooks**: Ativos (auto-invocação Legal-Braniac)
+- **Restrições**: Nenhuma
+
+### ⚠️ Windows CLI (Casa/Pessoal)
+- **Status**: ✅ FUNCIONAL (invocação manual)
+- **SessionStart hooks**: Desabilitados (prevenção EPERM)
+- **Como usar**: Invocação manual via prompt
+
+### ❌ Windows CLI (Corporativo)
+- **Status**: ⚠️ DESABILITADO (bug EPERM loop)
+- **Motivo**: GPOs corporativas bloqueiam `.claude.json.lock`
+- **Workaround**: Use Claude Code Web
+- **Detalhes**: Ver `DISASTER_HISTORY.md` - DIA 4
+
+**Diagnóstico Windows**: Execute `diagnose-corporate-env.ps1` para análise completa
+
 ## Documentação Adicional
 
-- **DISASTER_HISTORY.md** - Histórico de 3 dias de problemas arquiteturais (leia para NUNCA repetir)
+- **`.claude/LEGAL_BRANIAC_GUIDE.md`** - 📖 Guia completo do orquestrador (exemplos, troubleshooting)
+- **`.claude/README_SKILLS.md`** - Documentação de 34 skills instaladas
+- **DISASTER_HISTORY.md** - Histórico de 4 dias de problemas arquiteturais (leia para NUNCA repetir)
 - **CLAUDE.md** - Guia para futuras instâncias do Claude Code
 - **docs/architecture.md** - Detalhes da arquitetura do sistema
 - **docs/setup.md** - Guia de setup passo-a-passo detalhado
