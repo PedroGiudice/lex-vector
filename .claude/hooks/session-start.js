@@ -95,7 +95,11 @@ function exportEnvVar(name, value) {
 function main() {
   // GUARD: Só executar em Claude Code Web (remoto)
   if (process.env.CLAUDE_CODE_REMOTE !== 'true') {
-    // Exit silencioso - não é ambiente remoto
+    // Exit silencioso - não é ambiente remoto, mas DEVE retornar JSON válido
+    outputJSON({
+      continue: true,
+      systemMessage: ''
+    });
     process.exit(0);
   }
 
