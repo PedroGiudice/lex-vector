@@ -177,14 +177,14 @@ $backupPath = "$settingsPath.backup-$(Get-Date -Format 'yyyyMMdd-HHmmss')"
 Copy-Item $settingsPath $backupPath -Force
 Write-Host "✅ Backup criado: $backupPath" -ForegroundColor Green
 
-# Salvar configuração correta
-$correctConfig | ConvertTo-Json -Depth 10 | Set-Content $settingsPath -Encoding UTF8
+# Salvar configuração correta (BEST PRACTICE: -Depth 100)
+$correctConfig | ConvertTo-Json -Depth 100 | Set-Content $settingsPath -Encoding UTF8 -NoNewline
 Write-Host "✅ settings.json atualizado com configuração correta" -ForegroundColor Green
 
-# Validar JSON
+# Validar JSON (BEST PRACTICE: -Raw)
 try {
     $null = Get-Content $settingsPath -Raw | ConvertFrom-Json
-    Write-Host "✅ JSON válido" -ForegroundColor Green
+    Write-Host "✅ JSON válido (validado programaticamente)" -ForegroundColor Green
 } catch {
     Write-Host "❌ JSON INVÁLIDO após correção! Restaurando backup..." -ForegroundColor Red
     Copy-Item $backupPath $settingsPath -Force
