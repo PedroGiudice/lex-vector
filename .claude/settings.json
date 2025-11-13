@@ -6,16 +6,21 @@
   "hooks": {
     "UserPromptSubmit": [
       {
-        "type": "command",
-        "command": "node .claude/hooks/session-context-hybrid.js"
-      },
-      {
-        "type": "command",
-        "command": "node .claude/hooks/invoke-legal-braniac-hybrid.js"
-      },
-      {
-        "type": "command",
-        "command": "node .claude/hooks/venv-check.js"
+        "matcher": {},
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node .claude/hooks/session-context-hybrid.js"
+          },
+          {
+            "type": "command",
+            "command": "node .claude/hooks/invoke-legal-braniac-hybrid.js"
+          },
+          {
+            "type": "command",
+            "command": "node .claude/hooks/venv-check.js"
+          }
+        ]
       }
     ]
   },
