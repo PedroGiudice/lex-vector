@@ -2,34 +2,16 @@
   "hooks": {
     "UserPromptSubmit": [
       {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/skill-activation-prompt.sh"
-          }
-        ]
-      }
-    ],
-    "SessionStart": [
+        "type": "command",
+        "command": "node .claude/hooks/session-context-hybrid.js"
+      },
       {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node .claude/hooks/session-start.js"
-          },
-          {
-            "type": "command",
-            "command": "node .claude/hooks/session-context.js"
-          },
-          {
-            "type": "command",
-            "command": "node .claude/hooks/venv-check.js"
-          },
-          {
-            "type": "command",
-            "command": "node .claude/hooks/invoke-legal-braniac.js"
-          }
-        ]
+        "type": "command",
+        "command": "node .claude/hooks/invoke-legal-braniac-hybrid.js"
+      },
+      {
+        "type": "command",
+        "command": "node .claude/hooks/venv-check.js"
       }
     ]
   }
