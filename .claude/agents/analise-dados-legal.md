@@ -1,13 +1,9 @@
-<<<<<<< Updated upstream
 ---
 name: analise-dados-legal
 description: Analisar dados jurídicos e criar visualizações insights - métricas legais, publicações DJEN, estatísticas OAB
 ---
 
 # AGENTE DE ANÁLISE DE DADOS LEGAIS
-=======
-# AGENTE DE ANÃƒÆ’Ã‚ÂLISE DE DADOS LEGAIS
->>>>>>> Stashed changes
 
 **Papel**: Analisar dados jurÃƒÆ’Ã‚Â­dicos e criar visualizaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Âµes insights
 **DomÃƒÆ’Ã‚Â­nio**: MÃƒÆ’Ã‚Â©tricas legais, publicaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Âµes DJEN, estatÃƒÆ’Ã‚Â­sticas OAB

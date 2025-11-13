@@ -1,5 +1,4 @@
 {
-<<<<<<< Updated upstream
   "_comment": "Configuração HÍBRIDA de hooks - Solução para Windows CLI subprocess polling issue",
   "_docs": "https://github.com/DennisLiuCk/cc-toolkit/commit/09ab8674200a7bf9e31b0090f39ed12cbc3f6f5d",
   "_strategy": "Use SessionStart para Web/Linux, UserPromptSubmit para Windows CLI. Hooks híbridos previnem execução repetida via run-once guard.",
@@ -57,40 +56,4 @@
       ]
     }
   }
-=======
-    "hooks":  {
-                  "UserPromptSubmit":  [
-                                           {
-                                               "hooks":  [
-                                                             {
-                                                                 "command":  "node .claude/hooks/session-context-hybrid.js",
-                                                                 "type":  "command"
-                                                             },
-                                                             {
-                                                                 "command":  "node .claude/hooks/invoke-legal-braniac-hybrid.js",
-                                                                 "type":  "command"
-                                                             },
-                                                             {
-                                                                 "command":  "node .claude/hooks/memory-integration.js",
-                                                                 "type":  "command"
-                                                             },
-                                                             {
-                                                                 "command":  "bash .claude/hooks/skill-activation-prompt.sh",
-                                                                 "type":  "command"
-                                                             }
-                                                         ]
-                                           }
-                                       ],
-                  "SessionStart":  [
-                                       {
-                                           "hooks":  [
-                                                         {
-                                                             "command":  "node .claude/hooks/venv-check.js",
-                                                             "type":  "command"
-                                                         }
-                                                     ]
-                                       }
-                                   ]
-              }
->>>>>>> Stashed changes
 }
