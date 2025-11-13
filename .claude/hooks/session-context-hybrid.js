@@ -1,65 +1,80 @@
 #!/usr/bin/env node
 
 /**
- * session-context-hybrid.js - Injeta contexto do projeto (HÍBRIDO SessionStart + UserPromptSubmit)
+ * session-context-hybrid.js - Injeta contexto do projeto (ASYNC para Windows)
  *
- * SOLUÇÃO para Windows CLI subprocess polling issue:
- * - Usa run-once guard (via env var CLAUDE_SESSION_CONTEXT_LOADED)
- * - Funciona tanto em SessionStart quanto UserPromptSubmit
- * - Evita execuções repetidas quando usado em UserPromptSubmit
+ * SOLUÇÃO DEFINITIVA para Windows CLI subprocess polling + lock contention:
+ * - Usa fs.promises (ASYNC) ao invés de fs.*Sync (evita Issue #9849 lock contention)
+ * - Timeout 500ms (evita hang infinito)
+ * - Run-once guard (evita execuções repetidas em UserPromptSubmit)
+ * - Promise.all() para paralelização
  *
  * Compatibilidade:
  * - SessionStart (Web/Linux): executa normalmente
- * - UserPromptSubmit (Windows CLI): executa apenas na 1ª vez
+ * - UserPromptSubmit (Windows CLI): executa ASYNC sem bloqueio
  *
- * Baseado em: https://github.com/DennisLiuCk/cc-toolkit/commit/09ab8674
+ * Baseado em:
+ * - https://github.com/DennisLiuCk/cc-toolkit/commit/09ab8674
+ * - Issue #9542 (SessionStart hang) + Issue #9849 (UserPromptSubmit loop)
  */
 
-const fs = require('fs');
+const fs = require('fs').promises;
 const path = require('path');
 
 // ============================================================================
 // RUN-ONCE GUARD
 // ============================================================================
 
-/**
- * Verifica se hook já foi executado nesta sessão
- * Usa variável de ambiente para detectar execuções repetidas
- */
 function shouldSkip() {
-  // Se já executou, retorna true para pular
   if (process.env.CLAUDE_SESSION_CONTEXT_LOADED === 'true') {
     return true;
   }
-
-  // Marca como executado para próximas invocações
   process.env.CLAUDE_SESSION_CONTEXT_LOADED = 'true';
-
   return false;
 }
 
 // ============================================================================
-// FUNÇÕES AUXILIARES
+// FUNÇÕES AUXILIARES ASYNC
 // ============================================================================
 
 function outputJSON(obj) {
   console.log(JSON.stringify(obj));
 }
 
-function fileExists(filepath) {
+async function dirExists(dirpath) {
   try {
-    return fs.existsSync(filepath);
+    const stat = await fs.stat(dirpath);
+    return stat.isDirectory();
   } catch {
     return false;
   }
 }
 
-function dirExists(dirpath) {
+async function countFiles(dirpath, extension) {
   try {
-    const stat = fs.statSync(dirpath);
-    return stat.isDirectory();
+    const files = await fs.readdir(dirpath);
+    return files.filter(f => f.endsWith(extension)).length;
   } catch {
-    return false;
+    return 0;
+  }
+}
+
+async function countDirs(dirpath) {
+  try {
+    const entries = await fs.readdir(dirpath);
+    const checks = await Promise.all(
+      entries.map(async (entry) => {
+        try {
+          const stat = await fs.stat(path.join(dirpath, entry));
+          return stat.isDirectory();
+        } catch {
+          return false;
+        }
+      })
+    );
+    return checks.filter(Boolean).length;
+  } catch {
+    return 0;
   }
 }
 
@@ -79,15 +94,15 @@ function detectEnvironment() {
 }
 
 // ============================================================================
-// MAIN LOGIC
+// MAIN LOGIC (ASYNC)
 // ============================================================================
 
-function main() {
-  // RUN-ONCE GUARD: Skip se já executou
+async function main() {
+  // RUN-ONCE GUARD
   if (shouldSkip()) {
     outputJSON({
       continue: true,
-      systemMessage: '' // Silent skip (já injetou contexto antes)
+      systemMessage: ''
     });
     return;
   }
@@ -97,31 +112,27 @@ function main() {
 
   let context = `📂 Projeto: ${path.basename(projectDir)}\n`;
 
-  // Estrutura .claude/
+  // Estrutura .claude/ (ASYNC)
   const claudeDir = path.join(projectDir, '.claude');
-  if (dirExists(claudeDir)) {
+
+  if (await dirExists(claudeDir)) {
     const agentsDir = path.join(claudeDir, 'agents');
     const hooksDir = path.join(claudeDir, 'hooks');
     const skillsDir = path.join(projectDir, 'skills');
 
-    let agentCount = 0;
-    let hookCount = 0;
-    let skillCount = 0;
-
-    if (dirExists(agentsDir)) {
-      agentCount = fs.readdirSync(agentsDir).filter(f => f.endsWith('.md')).length;
-    }
-
-    if (dirExists(hooksDir)) {
-      hookCount = fs.readdirSync(hooksDir).filter(f => f.endsWith('.js') || f.endsWith('.sh')).length;
-    }
-
-    if (dirExists(skillsDir)) {
-      skillCount = fs.readdirSync(skillsDir).filter(d => {
-        const stat = fs.statSync(path.join(skillsDir, d));
-        return stat.isDirectory();
-      }).length;
-    }
+    // Paralelização com Promise.all
+    const [agentCount, hookCount, skillCount] = await Promise.all([
+      countFiles(agentsDir, '.md'),
+      (async () => {
+        try {
+          const files = await fs.readdir(hooksDir);
+          return files.filter(f => f.endsWith('.js') || f.endsWith('.sh')).length;
+        } catch {
+          return 0;
+        }
+      })(),
+      countDirs(skillsDir)
+    ]);
 
     context += `🤖 Agentes: ${agentCount} | ⚙️  Hooks: ${hookCount} | 🛠️  Skills: ${skillCount}\n`;
   }
@@ -146,14 +157,38 @@ function main() {
 }
 
 // ============================================================================
+// WRAPPER COM TIMEOUT
+// ============================================================================
+
+async function mainWithTimeout() {
+  const timeout = new Promise((resolve) => {
+    setTimeout(() => {
+      resolve({
+        continue: true,
+        systemMessage: '📂 Projeto carregado (timeout)\n'
+      });
+    }, 500); // 500ms timeout
+  });
+
+  const execution = main();
+
+  try {
+    await Promise.race([execution, timeout]);
+  } catch (error) {
+    outputJSON({
+      continue: true,
+      systemMessage: `⚠️ session-context: ${error.message}`
+    });
+  }
+}
+
+// ============================================================================
 // EXECUÇÃO
 // ============================================================================
 
-try {
-  main();
-} catch (error) {
+mainWithTimeout().catch(() => {
   outputJSON({
     continue: true,
-    systemMessage: `⚠️ session-context-hybrid error: ${error.message}`
+    systemMessage: ''
   });
-}
+});

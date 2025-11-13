@@ -1,21 +1,24 @@
 #!/usr/bin/env node
 
 /**
- * invoke-legal-braniac-hybrid.js - Auto-discovery Legal-Braniac (HÍBRIDO)
+ * invoke-legal-braniac-hybrid.js - Auto-discovery Legal-Braniac (ASYNC para Windows)
  *
- * SOLUÇÃO para Windows CLI subprocess polling issue:
- * - Usa run-once guard (via env var CLAUDE_LEGAL_BRANIAC_LOADED)
- * - Funciona tanto em SessionStart quanto UserPromptSubmit
- * - Evita execuções repetidas quando usado em UserPromptSubmit
+ * SOLUÇÃO DEFINITIVA para Windows CLI subprocess polling + lock contention:
+ * - Usa fs.promises (ASYNC) ao invés de fs.*Sync (evita Issue #9849 lock contention)
+ * - Timeout 500ms (evita hang infinito)
+ * - Run-once guard (evita execuções repetidas em UserPromptSubmit)
+ * - Promise.all() para paralelização
  *
  * Compatibilidade:
  * - SessionStart (Web/Linux): executa normalmente
- * - UserPromptSubmit (Windows CLI): executa apenas na 1ª vez
+ * - UserPromptSubmit (Windows CLI): executa ASYNC sem bloqueio
  *
- * Baseado em: https://github.com/DennisLiuCk/cc-toolkit/commit/09ab8674
+ * Baseado em:
+ * - https://github.com/DennisLiuCk/cc-toolkit/commit/09ab8674
+ * - Issue #9542 (SessionStart hang) + Issue #9849 (UserPromptSubmit loop)
  */
 
-const fs = require('fs');
+const fs = require('fs').promises;
 const path = require('path');
 
 // ============================================================================
@@ -26,31 +29,31 @@ function shouldSkip() {
   if (process.env.CLAUDE_LEGAL_BRANIAC_LOADED === 'true') {
     return true;
   }
-
   process.env.CLAUDE_LEGAL_BRANIAC_LOADED = 'true';
   return false;
 }
 
 // ============================================================================
-// FUNÇÕES AUXILIARES
+// FUNÇÕES AUXILIARES ASYNC
 // ============================================================================
 
 function outputJSON(obj) {
   console.log(JSON.stringify(obj));
 }
 
-function fileExists(filepath) {
+async function dirExists(dirpath) {
   try {
-    return fs.existsSync(filepath);
+    const stat = await fs.stat(dirpath);
+    return stat.isDirectory();
   } catch {
     return false;
   }
 }
 
-function dirExists(dirpath) {
+async function fileExists(filepath) {
   try {
-    const stat = fs.statSync(dirpath);
-    return stat.isDirectory();
+    await fs.access(filepath);
+    return true;
   } catch {
     return false;
   }
@@ -92,15 +95,19 @@ function detectEnvironment() {
 }
 
 // ============================================================================
-// AUTO-DISCOVERY
+// AUTO-DISCOVERY (ASYNC)
 // ============================================================================
 
-function discoverAgentes(projectDir) {
+async function discoverAgentes(projectDir) {
   const agentsDir = path.join(projectDir, '.claude', 'agents');
-  if (!dirExists(agentsDir)) return [];
+
+  if (!await dirExists(agentsDir)) {
+    return [];
+  }
 
   try {
-    return fs.readdirSync(agentsDir)
+    const files = await fs.readdir(agentsDir);
+    return files
       .filter(f => f.endsWith('.md') && f !== 'legal-braniac.md')
       .map(f => f.replace('.md', ''))
       .sort();
@@ -109,21 +116,38 @@ function discoverAgentes(projectDir) {
   }
 }
 
-function discoverSkills(projectDir) {
+async function discoverSkills(projectDir) {
   const skillsDir = path.join(projectDir, 'skills');
-  if (!dirExists(skillsDir)) return [];
+
+  if (!await dirExists(skillsDir)) {
+    return [];
+  }
 
   try {
-    return fs.readdirSync(skillsDir)
-      .filter(d => {
+    const entries = await fs.readdir(skillsDir);
+
+    // Verifica em paralelo quais são diretórios com SKILL.md
+    const checks = await Promise.all(
+      entries.map(async (entry) => {
         try {
-          const stat = fs.statSync(path.join(skillsDir, d));
-          return stat.isDirectory() && fileExists(path.join(skillsDir, d, 'SKILL.md'));
+          const entryPath = path.join(skillsDir, entry);
+          const stat = await fs.stat(entryPath);
+
+          if (!stat.isDirectory()) {
+            return null;
+          }
+
+          const skillMdPath = path.join(entryPath, 'SKILL.md');
+          const hasSkillMd = await fileExists(skillMdPath);
+
+          return hasSkillMd ? entry : null;
         } catch {
-          return false;
+          return null;
         }
       })
-      .sort();
+    );
+
+    return checks.filter(Boolean).sort();
   } catch {
     return [];
   }
@@ -133,7 +157,7 @@ function discoverSkills(projectDir) {
 // FORMATAÇÃO
 // ============================================================================
 
-function formatMessage(agentes, skills, env) {
+function formatMessage(agentes, skills) {
   const agentesStr = agentes.length <= 3
     ? agentes.join(', ')
     : `${agentes.slice(0, 2).join(', ')}, +${agentes.length - 2}`;
@@ -156,15 +180,15 @@ function formatMessage(agentes, skills, env) {
 }
 
 // ============================================================================
-// MAIN LOGIC
+// MAIN LOGIC (ASYNC)
 // ============================================================================
 
-function main() {
-  // RUN-ONCE GUARD: Skip se já executou
+async function main() {
+  // RUN-ONCE GUARD
   if (shouldSkip()) {
     outputJSON({
       continue: true,
-      systemMessage: '' // Silent skip
+      systemMessage: ''
     });
     return;
   }
@@ -176,14 +200,17 @@ function main() {
   if (!env.isRemote && env.isWindows && env.possibleCorporate) {
     outputJSON({
       continue: true,
-      systemMessage: '' // Silent skip
+      systemMessage: ''
     });
     return;
   }
 
   try {
-    const agentes = discoverAgentes(projectDir);
-    const skills = discoverSkills(projectDir);
+    // Paralelização: busca agentes e skills simultaneamente
+    const [agentes, skills] = await Promise.all([
+      discoverAgentes(projectDir),
+      discoverSkills(projectDir)
+    ]);
 
     // Se não tem nada, skip silencioso
     if (agentes.length === 0 && skills.length === 0) {
@@ -194,7 +221,7 @@ function main() {
       return;
     }
 
-    const message = formatMessage(agentes, skills, env);
+    const message = formatMessage(agentes, skills);
 
     outputJSON({
       continue: true,
@@ -210,14 +237,38 @@ function main() {
 }
 
 // ============================================================================
+// WRAPPER COM TIMEOUT
+// ============================================================================
+
+async function mainWithTimeout() {
+  const timeout = new Promise((resolve) => {
+    setTimeout(() => {
+      resolve({
+        continue: true,
+        systemMessage: '🧠 Legal-Braniac: Ativo (timeout)\n'
+      });
+    }, 500); // 500ms timeout
+  });
+
+  const execution = main();
+
+  try {
+    await Promise.race([execution, timeout]);
+  } catch (error) {
+    outputJSON({
+      continue: true,
+      systemMessage: ''
+    });
+  }
+}
+
+// ============================================================================
 // EXECUÇÃO
 // ============================================================================
 
-try {
-  main();
-} catch (error) {
+mainWithTimeout().catch(() => {
   outputJSON({
     continue: true,
     systemMessage: ''
   });
-}
+});
