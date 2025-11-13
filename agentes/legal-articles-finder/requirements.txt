@@ -1,0 +1,26 @@
+# Legal Articles Finder - Dependencies
+# Python 3.10+
+
+# Core (nenhuma dependência externa para funcionamento básico!)
+# O agente usa apenas biblioteca padrão Python:
+# - sqlite3 (built-in)
+# - json (built-in)
+# - re (built-in)
+# - pathlib (built-in)
+# - dataclasses (built-in Python 3.7+)
+# - argparse (built-in)
+
+# Opcional: Testes
+pytest>=7.0.0
+pytest-cov>=4.0.0
+
+# Opcional: Linting
+ruff>=0.1.0
+mypy>=1.0.0
+
+# Opcional: Análise de HTML (se precisar converter HTMLs do Planalto)
+beautifulsoup4>=4.12.0
+lxml>=4.9.0
+
+# Nota: O agente é intencionalmente minimalista, usando apenas Python stdlib
+# para máxima portabilidade e zero overhead de instalação.
