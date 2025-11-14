@@ -9,15 +9,38 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node .claude/hooks/session-context-hybrid.js"
+            "command": "node .claude/hooks/session-context-hybrid.js",
+            "_note": "Injeta contexto do projeto (agentes, skills, arquitetura)"
           },
           {
             "type": "command",
-            "command": "node .claude/hooks/invoke-legal-braniac-hybrid.js"
+            "command": "node .claude/hooks/invoke-legal-braniac-hybrid.js",
+            "_note": "Orquestrador mestre - auto-descobre agentes e skills"
           },
           {
             "type": "command",
-            "command": "node .claude/hooks/venv-check.js"
+            "command": "node .claude/hooks/venv-check.js",
+            "_note": "Valida se venv está ativo (RULE_006)"
+          },
+          {
+            "type": "command",
+            "command": "node .claude/hooks/git-status-watcher.js",
+            "_note": "Avisa se último commit há >1h (previne perda de trabalho)"
+          },
+          {
+            "type": "command",
+            "command": "node .claude/hooks/data-layer-validator.js",
+            "_note": "Valida separação CODE/ENV/DATA (previne DISASTER_HISTORY)"
+          },
+          {
+            "type": "command",
+            "command": "node .claude/hooks/dependency-drift-checker.js",
+            "_note": "Detecta requirements.txt desatualizados (>30 dias)"
+          },
+          {
+            "type": "command",
+            "command": "node .claude/hooks/corporate-detector.js",
+            "_note": "Detecta ambiente corporativo Windows (GPOs, EPERM)"
           }
         ]
       }
