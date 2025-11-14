@@ -5,7 +5,15 @@
       "Bash(powershell -Command \"Get-ChildItem -Directory -Path ''C:\\claude-work\\repos\\Claude-Code-Projetos\\skills'' | Format-Table Name\")",
       "Bash(powershell:*)",
       "Bash(Test-Path \"C:\\claude-work\\repos\\Claude-Code-Projetos\\claude-code-projetos-architecture.html\")",
-      "Bash(.venvScriptsActivate.ps1)"
+      "Bash(.venvScriptsActivate.ps1)",
+      "Bash(node -c:*)",
+      "Bash(echo:*)",
+      "Bash(node:*)",
+      "Bash(Get-ChildItem -Path \"agentes\" -Directory)",
+      "Bash(Select-Object -ExpandProperty Name)",
+      "Bash(Get-ChildItem -Path \"skills\" -Directory)",
+      "Bash(test:*)",
+      "Bash(git log:*)"
     ],
     "deny": [],
     "ask": []

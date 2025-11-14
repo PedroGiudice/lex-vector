@@ -58,6 +58,9 @@ superpowers_cache/
 claude_plugins/
 .claude/plugins/cache/
 
+# Claude Code Statusline (temporary runtime files)
+.claude/statusline/*.json
+
 # Node.js (for Claude Code plugins)
 node_modules/
 npm-debug.log*

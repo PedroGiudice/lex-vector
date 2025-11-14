@@ -3,6 +3,13 @@
   "_docs": "https://github.com/DennisLiuCk/cc-toolkit/commit/09ab8674200a7bf9e31b0090f39ed12cbc3f6f5d",
   "_strategy": "Use SessionStart para Web/Linux, UserPromptSubmit para Windows CLI. Hooks híbridos previnem execução repetida via run-once guard.",
 
+  "statusLine": {
+    "type": "command",
+    "command": "node .claude/statusline/legal-braniac-statusline.js",
+    "padding": 0,
+    "_note": "Status line customizado - exibe agentes/skills/hooks em tempo real"
+  },
+
   "hooks": {
     "UserPromptSubmit": [
       {
@@ -14,8 +21,8 @@
           },
           {
             "type": "command",
-            "command": "node .claude/hooks/invoke-legal-braniac-hybrid.js",
-            "_note": "Orquestrador mestre - auto-descobre agentes e skills"
+            "command": "node .claude/hooks/hook-wrapper.js .claude/hooks/invoke-legal-braniac-hybrid.js",
+            "_note": "Orquestrador mestre - auto-descobre agentes e skills (wrapped para tracking)"
           },
           {
             "type": "command",
