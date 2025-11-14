@@ -24,6 +24,7 @@ process.env.CLAUDE_DEPS_CHECKED = 'true';
 // LÓGICA PRINCIPAL (ASYNC)
 // ============================================================================
 async function checkDependencies() {
+  console.error('[DEBUG] dependency-drift-checker: Iniciando verificação...');
   try {
     const cwd = process.env.CLAUDE_PROJECT_DIR || process.cwd();
 
@@ -53,7 +54,7 @@ async function checkDependencies() {
       const daysSinceModified = (Date.now() - stat.mtimeMs) / 1000 / 60 / 60 / 24;
 
       if (daysSinceModified > DAYS_THRESHOLD) {
-        warnings.push(`📦 Root: requirements.txt há ${Math.floor(daysSinceModified)} dias sem atualização`);
+        warnings.push(`Root: requirements.txt há ${Math.floor(daysSinceModified)} dias sem atualização`);
       }
     } catch {
       // requirements.txt não existe no root (OK)
@@ -86,7 +87,7 @@ async function checkDependencies() {
           const daysSinceModified = (Date.now() - stat.mtimeMs) / 1000 / 60 / 60 / 24;
 
           if (daysSinceModified > DAYS_THRESHOLD) {
-            warnings.push(`📦 ${agent}: requirements.txt há ${Math.floor(daysSinceModified)} dias sem atualização`);
+            warnings.push(`${agent}: requirements.txt há ${Math.floor(daysSinceModified)} dias sem atualização`);
           }
         } catch {
           // requirements.txt não existe neste agente (OK)
@@ -123,7 +124,7 @@ async function checkDependencies() {
           const daysSinceModified = (Date.now() - stat.mtimeMs) / 1000 / 60 / 60 / 24;
 
           if (daysSinceModified > DAYS_THRESHOLD) {
-            warnings.push(`📦 comandos/${cmd}: requirements.txt há ${Math.floor(daysSinceModified)} dias sem atualização`);
+            warnings.push(`comandos/${cmd}: requirements.txt há ${Math.floor(daysSinceModified)} dias sem atualização`);
           }
         } catch {
           // requirements.txt não existe neste comando (OK)
@@ -160,7 +161,7 @@ async function checkDependencies() {
           const daysSinceModified = (Date.now() - stat.mtimeMs) / 1000 / 60 / 60 / 24;
 
           if (daysSinceModified > DAYS_THRESHOLD) {
-            warnings.push(`📦 skills/${skill}: requirements.txt há ${Math.floor(daysSinceModified)} dias sem atualização`);
+            warnings.push(`skills/${skill}: requirements.txt há ${Math.floor(daysSinceModified)} dias sem atualização`);
           }
         } catch {
           // requirements.txt não existe nesta skill (OK)
@@ -181,7 +182,7 @@ async function checkDependencies() {
         message += `\n   ... e mais ${warnings.length - 5} arquivos\n`;
       }
 
-      message += '\n💡 Atualize com:\n';
+      message += '\nAtualize com:\n';
       message += '   cd <diretório>\n';
       message += '   .venv\\Scripts\\activate  # Windows\n';
       message += '   # ou: source .venv/bin/activate  # Linux\n';

@@ -24,6 +24,7 @@ process.env.CLAUDE_DATA_LAYER_VALIDATED = 'true';
 // LÓGICA PRINCIPAL (ASYNC)
 // ============================================================================
 async function validateLayers() {
+  console.error('[DEBUG] data-layer-validator: Iniciando validação de camadas...');
   try {
     const cwd = process.env.CLAUDE_PROJECT_DIR || process.cwd();
 
@@ -41,10 +42,9 @@ async function validateLayers() {
           continue: true,
           systemMessage:
             '🚨 VIOLAÇÃO RULE_001: Código detectado em drive externo!\n' +
-            `📂 Localização atual: ${cwd}\n` +
+            `Localização: ${cwd}\n` +
             '⚠️ DESASTRE IMINENTE - Ver DISASTER_HISTORY.md\n' +
-            '✅ Ação: Mova código para C:\\claude-work\\repos\\ IMEDIATAMENTE\n' +
-            '📖 Razão: Código deve estar em C:\ (Git), dados em drive externo\n'
+            'Ação: Mova código para C:\\claude-work\\repos\\ IMEDIATAMENTE\n'
         };
       }
     } else {
@@ -56,9 +56,9 @@ async function validateLayers() {
           continue: true,
           systemMessage:
             '🚨 VIOLAÇÃO RULE_001: Código detectado em montagem externa!\n' +
-            `📂 Localização atual: ${cwd}\n` +
+            `Localização: ${cwd}\n` +
             '⚠️ Ver DISASTER_HISTORY.md\n' +
-            '✅ Ação: Mova código para /home/$USER/ ou /opt/\n'
+            'Ação: Mova código para /home/$USER/ ou /opt/\n'
         };
       }
     }
@@ -79,12 +79,11 @@ async function validateLayers() {
           continue: true,
           systemMessage:
             '⚠️ VIOLAÇÃO RULE_002: .venv não está em .gitignore!\n' +
-            '📖 Adicione ao .gitignore:\n' +
+            'Adicione ao .gitignore:\n' +
             '   .venv/\n' +
             '   venv/\n' +
             '   __pycache__/\n' +
-            '   *.pyc\n' +
-            '💡 Razão: Ambiente virtual é específico da máquina (não portável)\n'
+            '   *.pyc\n'
         };
       }
     } catch {
@@ -107,11 +106,11 @@ async function validateLayers() {
         continue: true,
         systemMessage:
           '⚠️ VIOLAÇÃO RULE_003: Data dir dentro do repositório!\n' +
-          `📂 Repo: ${normalizedCwd}\n` +
-          `📂 Data dir: ${normalizedDataDir}\n` +
-          '✅ Configure: CLAUDE_DATA_ROOT para localização externa\n' +
-          '💡 Exemplo Windows: set CLAUDE_DATA_ROOT=E:\\claude-code-data\n' +
-          '💡 Exemplo Linux: export CLAUDE_DATA_ROOT=/data/claude-code-data\n'
+          `Repo: ${normalizedCwd}\n` +
+          `Data dir: ${normalizedDataDir}\n` +
+          'Configure: CLAUDE_DATA_ROOT para localização externa\n' +
+          'Exemplo Windows: set CLAUDE_DATA_ROOT=E:\\claude-code-data\n' +
+          'Exemplo Linux: export CLAUDE_DATA_ROOT=/data/claude-code-data\n'
       };
     }
 
@@ -134,7 +133,7 @@ async function validateLayers() {
           await fs.access(dirPath);
           // Diretório existe - verificar se está no .gitignore
           if (!gitignoreContent.includes(dir) && !gitignoreContent.includes(dir.replace('/', ''))) {
-            warnings.push(`📁 ${dir} existe mas NÃO está em .gitignore`);
+            warnings.push(`${dir} existe mas NÃO está em .gitignore`);
           }
         } catch {
           // Diretório não existe (OK)
@@ -147,7 +146,7 @@ async function validateLayers() {
           systemMessage:
             '⚠️ VIOLAÇÃO RULE_004: Diretórios de dados não ignorados pelo Git!\n' +
             warnings.join('\n') + '\n' +
-            '💡 Adicione ao .gitignore para evitar commit acidental de dados\n'
+            'Adicione ao .gitignore para evitar commit acidental de dados\n'
         };
       }
     } catch {

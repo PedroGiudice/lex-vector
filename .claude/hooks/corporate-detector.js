@@ -248,12 +248,7 @@ function formatCorporateWarning(detection) {
 
   // Workaround disponível (apenas se EPERM detectado)
   if (detection.indicators.includes('EPERM on lock creation')) {
-    lines.push('💡 Workaround: ./fix-claude-permissions.ps1');
-  }
-
-  // Referência (apenas se alta confiança)
-  if (detection.classification === 'CORPORATE_HIGH_CONFIDENCE') {
-    lines.push('📖 Detalhes: DISASTER_HISTORY.md DIA 4');
+    lines.push('Workaround: ./fix-claude-permissions.ps1');
   }
 
   return lines.join('\n');
@@ -264,8 +259,10 @@ function formatCorporateWarning(detection) {
 // =============================================================================
 
 function main() {
+  console.error('[DEBUG] corporate-detector: Iniciando detecção...');
   // GUARD: Só roda em Windows (corporativo é problema Windows-specific)
   if (os.platform() !== 'win32') {
+    console.error('[DEBUG] corporate-detector: Não é Windows, skipando');
     outputJSON({
       continue: true,
       systemMessage: ''
@@ -285,6 +282,7 @@ function main() {
   try {
     // Executar detecção
     const detection = detectCorporateEnvironment();
+    console.error(`[DEBUG] corporate-detector: Detecção completa - isCorporate:${detection.isCorporate}, score:${detection.score}`);
 
     // Formatar mensagem
     const message = formatCorporateWarning(detection);

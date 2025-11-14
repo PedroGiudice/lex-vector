@@ -24,6 +24,7 @@ process.env.CLAUDE_GIT_STATUS_CHECKED = 'true';
 // LÓGICA PRINCIPAL (ASYNC)
 // ============================================================================
 async function checkGitStatus() {
+  console.error('[DEBUG] git-status-watcher: Iniciando verificação...');
   try {
     const cwd = process.env.CLAUDE_PROJECT_DIR || process.cwd();
     const gitDir = path.join(cwd, '.git');
@@ -52,9 +53,11 @@ async function checkGitStatus() {
         const hours = Math.floor(minutesSinceLastCommit / 60);
         const minutes = Math.floor(minutesSinceLastCommit % 60);
 
+        console.error(`[DEBUG] git-status-watcher: Último commit há ${hours}h ${minutes}m - emitindo warning`);
         message = `⚠️ GIT: Último commit há ${hours}h ${minutes}m\n`;
-        message += `💡 Considere commitar mudanças: git add . && git commit -m "..." && git push\n`;
-        message += `📖 Ver DISASTER_HISTORY.md sobre importância de commits frequentes\n`;
+        message += `Considere commitar: git add . && git commit -m "..." && git push\n`;
+      } else {
+        console.error(`[DEBUG] git-status-watcher: Último commit há ${Math.floor(minutesSinceLastCommit)}min - OK`);
       }
 
       return {

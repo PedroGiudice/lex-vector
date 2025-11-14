@@ -15,10 +15,12 @@ const os = require('os');
 // ============================================================================
 
 function main() {
+  console.error('[DEBUG] venv-check: Verificando VIRTUAL_ENV...');
   const venvPath = process.env.VIRTUAL_ENV;
   const platform = os.platform();
 
   if (!venvPath) {
+    console.error('[DEBUG] venv-check: VIRTUAL_ENV não definido - emitindo warning');
     // VENV NÃO ATIVO - Gerar mensagem com instruções multi-plataforma
     const isWindows = platform === 'win32';
 
@@ -34,10 +36,11 @@ function main() {
     });
 
   } else {
-    // VENV ATIVO - Mensagem concisa
+    // VENV ATIVO - Silencioso (sem emojis decorativos)
+    console.error(`[DEBUG] venv-check: VIRTUAL_ENV ativo em ${venvPath}`);
     outputJSON({
       continue: true,
-      systemMessage: `✓ venv ativo`
+      systemMessage: ''
     });
   }
 }

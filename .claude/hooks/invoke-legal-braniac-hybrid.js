@@ -184,8 +184,11 @@ function formatMessage(agentes, skills) {
 // ============================================================================
 
 async function main() {
+  console.error('[DEBUG] invoke-legal-braniac-hybrid: Iniciando...');
+
   // RUN-ONCE GUARD
   if (shouldSkip()) {
+    console.error('[DEBUG] invoke-legal-braniac-hybrid: Skipando (run-once guard)');
     outputJSON({
       continue: true,
       systemMessage: ''
@@ -195,9 +198,11 @@ async function main() {
 
   const projectDir = process.env.CLAUDE_PROJECT_DIR || process.cwd();
   const env = detectEnvironment();
+  console.error(`[DEBUG] invoke-legal-braniac-hybrid: Env detectado - isWindows:${env.isWindows}, isRemote:${env.isRemote}, possibleCorporate:${env.possibleCorporate}`);
 
   // Skip no Windows CLI corporativo (EPERM risk)
   if (!env.isRemote && env.isWindows && env.possibleCorporate) {
+    console.error('[DEBUG] invoke-legal-braniac-hybrid: Skipando (ambiente corporativo Windows)');
     outputJSON({
       continue: true,
       systemMessage: ''
@@ -212,8 +217,11 @@ async function main() {
       discoverSkills(projectDir)
     ]);
 
+    console.error(`[DEBUG] invoke-legal-braniac-hybrid: Descobertos - Agentes:${agentes.length}, Skills:${skills.length}`);
+
     // Se não tem nada, skip silencioso
     if (agentes.length === 0 && skills.length === 0) {
+      console.error('[DEBUG] invoke-legal-braniac-hybrid: Nenhum agente/skill descoberto');
       outputJSON({
         continue: true,
         systemMessage: '🧠 Legal-Braniac: Ativo (sem agentes/skills descobertos)'
@@ -222,6 +230,7 @@ async function main() {
     }
 
     const message = formatMessage(agentes, skills);
+    console.error(`[DEBUG] invoke-legal-braniac-hybrid: Mensagem formatada, enviando output`);
 
     outputJSON({
       continue: true,

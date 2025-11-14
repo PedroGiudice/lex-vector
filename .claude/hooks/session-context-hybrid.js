@@ -98,8 +98,10 @@ function detectEnvironment() {
 // ============================================================================
 
 async function main() {
+  console.error('[DEBUG] session-context-hybrid: Iniciando...');
   // RUN-ONCE GUARD
   if (shouldSkip()) {
+    console.error('[DEBUG] session-context-hybrid: Skipando (run-once guard)');
     outputJSON({
       continue: true,
       systemMessage: ''
@@ -109,8 +111,9 @@ async function main() {
 
   const env = detectEnvironment();
   const projectDir = process.env.CLAUDE_PROJECT_DIR || process.cwd();
+  console.error(`[DEBUG] session-context-hybrid: Projeto: ${path.basename(projectDir)}`);
 
-  let context = `📂 Projeto: ${path.basename(projectDir)}\n`;
+  let context = `Projeto: ${path.basename(projectDir)}\n`;
 
   // Estrutura .claude/ (ASYNC)
   const claudeDir = path.join(projectDir, '.claude');
@@ -134,20 +137,20 @@ async function main() {
       countDirs(skillsDir)
     ]);
 
-    context += `🤖 Agentes: ${agentCount} | ⚙️  Hooks: ${hookCount} | 🛠️  Skills: ${skillCount}\n`;
+    context += `Agentes: ${agentCount} | Hooks: ${hookCount} | Skills: ${skillCount}\n`;
   }
 
   // Arquitetura do projeto
-  context += `📁 Arquitetura: CODE (Git) | ENV (.venv) | DATA (externo)\n`;
-  context += `⚠️  Regras: RULE_006 (venv obrigatório) | RULE_004 (sem hardcode paths)\n`;
+  context += `Arquitetura: CODE (Git) | ENV (.venv) | DATA (externo)\n`;
+  context += `Regras: RULE_006 (venv obrigatório) | RULE_004 (sem hardcode paths)\n`;
 
   // Ambiente atual
   if (env.isRemote) {
-    context += `🌐 Ambiente: Web (Linux)\n`;
+    context += `Ambiente: Web (Linux)\n`;
   } else if (env.isWindows) {
-    context += `💻 Ambiente: Windows CLI\n`;
+    context += `Ambiente: Windows CLI\n`;
   } else {
-    context += `🖥️  Ambiente: ${env.platform}\n`;
+    context += `Ambiente: ${env.platform}\n`;
   }
 
   outputJSON({
@@ -165,7 +168,7 @@ async function mainWithTimeout() {
     setTimeout(() => {
       resolve({
         continue: true,
-        systemMessage: '📂 Projeto carregado (timeout)\n'
+        systemMessage: 'Projeto carregado (timeout)\n'
       });
     }, 500); // 500ms timeout
   });
