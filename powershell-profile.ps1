@@ -96,10 +96,13 @@ function Get-ClaudeEnv {
     Write-Host "  WSLENV: $env:WSLENV" -ForegroundColor Green
     Write-Host ""
     Write-Host "WSL Environment:" -ForegroundColor Cyan
-    wsl -- bash -c "echo '  Distribution: ' && cat /etc/os-release | grep PRETTY_NAME | cut -d= -f2 | tr -d '\"'"
-    wsl -- bash -c "echo '  Node.js: ' && node --version"
-    wsl -- bash -c "echo '  npm: ' && npm --version"
-    wsl -- bash -c "echo '  Claude Code: ' && claude --version 2>/dev/null || echo 'Not installed'"
+    wsl -- bash -c "cat /etc/os-release | grep PRETTY_NAME | cut -d= -f2"
+    Write-Host "  Node.js: " -NoNewline -ForegroundColor White
+    wsl -- node --version
+    Write-Host "  npm: " -NoNewline -ForegroundColor White
+    wsl -- npm --version
+    Write-Host "  Claude: " -NoNewline -ForegroundColor White
+    wsl -- claude --version 2>$null
     Write-Host ""
     Write-Host "Project Directory:" -ForegroundColor Cyan
     Write-Host "  $PROJECT_DIR" -ForegroundColor Green
@@ -116,9 +119,12 @@ function Get-ProjectStatus {
     wsl -- bash -c "cd $PROJECT_DIR && git status --short --branch"
     Write-Host ""
     Write-Host "Structure:" -ForegroundColor Yellow
-    wsl -- bash -c "cd $PROJECT_DIR && echo '  Agents: ' && ls -1 .claude/agents/*.md 2>/dev/null | wc -l"
-    wsl -- bash -c "cd $PROJECT_DIR && echo '  Skills: ' && ls -1d skills/*/ 2>/dev/null | wc -l"
-    wsl -- bash -c "cd $PROJECT_DIR && echo '  Hooks: ' && ls -1 .claude/hooks/*.js 2>/dev/null | wc -l"
+    Write-Host "  Agents: " -NoNewline -ForegroundColor White
+    wsl -- bash -c "cd $PROJECT_DIR && ls -1 .claude/agents/*.md 2>/dev/null | wc -l"
+    Write-Host "  Skills: " -NoNewline -ForegroundColor White
+    wsl -- bash -c "cd $PROJECT_DIR && ls -1d skills/*/ 2>/dev/null | wc -l"
+    Write-Host "  Hooks: " -NoNewline -ForegroundColor White
+    wsl -- bash -c "cd $PROJECT_DIR && ls -1 .claude/hooks/*.js 2>/dev/null | wc -l"
     Write-Host ""
 }
 Set-Alias -Name pstatus -Value Get-ProjectStatus
@@ -180,7 +186,7 @@ function Show-ClaudeWelcome {
     Write-Host "  cenv        - Show environment info" -ForegroundColor Green
     Write-Host "  pstatus     - Show project status" -ForegroundColor Green
     Write-Host ""
-    Write-Host "Tip: Type 'owsl' to start WSL in the project directory" -ForegroundColor Gray
+    Write-Host "Tip: Type owsl to start WSL in the project directory" -ForegroundColor Gray
     Write-Host ""
 }
 
