@@ -65,14 +65,19 @@ Isso é **esperado**! O `scc` é um comando **PowerShell** (Windows), não WSL.
 
 ### Erro: "readdirent Documents/CÓPIA DO PEN DRIVE/..."
 
-**Causa:** Você executou `scc` quando estava em um diretório Windows com caracteres especiais.
+**Causa:** Claude Code tentava indexar o diretório Windows atual antes de navegar para WSL.
 
-**Solução:** O comando `scc` **sempre navega automaticamente** para o projeto correto:
+**Solução aplicada (v1.1):** O comando `scc` agora muda para diretório seguro antes de iniciar:
 ```powershell
-# Não importa onde você está, scc vai para o projeto
-cd C:\Users\CRM Advogados\Documents   # ❌ Caminho com problema
-scc  # ✅ Funciona! Vai para /home/user/Claude-Code-Projetos automaticamente
+# Agora funciona de qualquer diretório (inclusive com caracteres especiais)
+cd "C:\Users\CRM Advogados\Documents\CÓPIA DO PEN DRIVE"
+scc  # ✅ Funciona! Muda para USERPROFILE antes de chamar WSL
 ```
+
+**Como funciona internamente:**
+1. `Push-Location $env:USERPROFILE` - Vai para diretório seguro
+2. `wsl -- bash -c "cd $PROJECT_DIR && exec $CLAUDE_PATH"` - Executa Claude no WSL
+3. `Pop-Location` - Restaura diretório original
 
 Se ainda ocorrer erro, verifique se o profile está atualizado:
 ```powershell

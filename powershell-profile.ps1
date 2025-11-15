@@ -60,7 +60,10 @@ function claude {
 
 function Start-Claude {
     Write-Host "[*] Starting Claude Code in project..." -ForegroundColor Cyan
-    wsl -- bash -c "cd $PROJECT_DIR && $CLAUDE_PATH"
+    # Change to safe directory first (prevents Claude from indexing problematic Windows paths)
+    Push-Location $env:USERPROFILE
+    wsl -- bash -c "cd $PROJECT_DIR && exec $CLAUDE_PATH"
+    Pop-Location
 }
 Set-Alias -Name scc -Value Start-Claude
 
