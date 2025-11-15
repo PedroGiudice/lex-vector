@@ -356,6 +356,22 @@ Se você usa Claude Code com este projeto, instale manualmente em cada máquina:
 
 **Diagnóstico Windows**: Execute `diagnose-corporate-env.ps1` para análise completa
 
+## WSL2 Setup (Sprint 1-2 Complete)
+
+Este projeto está migrando para WSL2. Status atual:
+
+✅ **PC Casa: Sprint 1-2 Complete**
+- Ubuntu 24.04 LTS
+- Node.js v24.11.1 + Claude Code 2.0.42
+- 5 Python venvs criados (agentes)
+- 340 npm packages instalados
+- 10 hooks validados
+- Diretório: `~/claude-work/repos/Claude-Code-Projetos`
+
+📖 **Guia completo:** `WSL_SETUP.md`
+📋 **Histórico:** `CHANGELOG.md`
+🗺️ **Plano completo:** `docs/plano-migracao-wsl2.md` (6 sprints)
+
 ## Documentação Adicional
 
 - **`.claude/LEGAL_BRANIAC_GUIDE.md`** - 📖 Guia completo do orquestrador (exemplos, troubleshooting)

@@ -453,9 +453,27 @@ Before proposing or implementing any architectural change:
 
 ---
 
-**Last updated:** 2025-11-11
+## WSL2 Migration Status
+
+**Sprint 1-2: Complete** ✅
+
+Infrastructure deployed:
+- Ubuntu 24.04 LTS
+- Node.js v24.11.1 (nvm)
+- Claude Code 2.0.42
+- Python 3.12.3 + 5 venvs (all agentes)
+- npm packages (340) - mcp-servers/djen-mcp-server
+- 10 hooks validated
+
+Directory structure: `~/claude-work/repos/Claude-Code-Projetos`
+
+See `WSL_SETUP.md` and `CHANGELOG.md` for details.
+
+---
+
+**Last updated:** 2025-11-15
 **Maintained by:** PedroGiudice
-**For Claude Code instances operating in:** C:\claude-work\repos\Claude-Code-Projetos
+**For Claude Code instances operating in:** `~/claude-work/repos/Claude-Code-Projetos` (WSL2)
 - add to memory
 - add
 - add to session-context and episodic-memory
