@@ -184,3 +184,4 @@ mainWithTimeout().catch(() => {
   // Fallback final: Se tudo falhar, retornar JSON vazio
   console.log(JSON.stringify({ continue: true }));
 });
+

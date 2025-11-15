@@ -292,7 +292,7 @@ Legal-Braniac garante que TODAS as delegaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Âµes 
 
 ### LIÃƒÆ’Ã¢â‚¬Â¡ÃƒÆ’Ã†â€™O 1: SeparaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o de Camadas (InviolÃƒÆ’Ã‚Â¡vel)
 ```
-ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦ CÃƒÆ’Ã¢â‚¬Å“DIGO: C:\claude-work\repos\ (Git)
+ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦ CÃƒÆ’Ã¢â‚¬Å“DIGO: ~/claude-work/repos/ (Git)
 ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦ AMBIENTE: .venv (local, nÃƒÆ’Ã‚Â£o versionado)
 ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦ DADOS: E:\claude-code-data\ (externo)
 ÃƒÂ¢Ã‚ÂÃ…â€™ NUNCA: CÃƒÆ’Ã‚Â³digo em E:\, dados em Git

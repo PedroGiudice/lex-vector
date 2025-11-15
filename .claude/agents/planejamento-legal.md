@@ -52,7 +52,7 @@ PASSO 4: Se precisar novo mÃƒÆ’Ã‚Â³dulo, USE project-bootstrapper
 - **Windows corporate** com restriÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Âµes de seguranÃƒÆ’Ã‚Â§a
 
 ### Arquitetura 3-Camadas (CRÃƒÆ’Ã‚ÂTICO)
-- **LAYER_1_CODE**: `C:\claude-work\repos\Claude-Code-Projetos\` (Git versionado)
+- **LAYER_1_CODE**: `~/claude-work/repos/Claude-Code-Projetos/` (Git versionado)
 - **LAYER_2_ENVIRONMENT**: `.venv` local em cada subprojeto (NUNCA versionado)
 - **LAYER_3_DATA**: `E:\claude-code-data\<subprojeto>\` (downloads, logs, outputs)
 
