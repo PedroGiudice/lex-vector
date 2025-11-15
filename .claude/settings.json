@@ -16,6 +16,11 @@
         "hooks": [
           {
             "type": "command",
+            "command": "node .claude/hooks/hook-wrapper.js .claude/hooks/superpowers-activator.js",
+            "_note": "Auto-ativa skills do superpowers baseado em contexto (brainstorming, debugging, TDD) [WRAPPED]"
+          },
+          {
+            "type": "command",
             "command": "node .claude/hooks/hook-wrapper.js .claude/hooks/session-context-hybrid.js",
             "_note": "Injeta contexto do projeto (agentes, skills, arquitetura) [WRAPPED]"
           },
