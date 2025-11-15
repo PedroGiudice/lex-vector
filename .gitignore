@@ -156,3 +156,13 @@ dmypy.json
 # Backup files
 *.bak
 *.backup
+
+# VibbinLoggin/ - Analytics & coaching tools
+# Exclude build artifacts and dependencies, keep source code
+VibbinLoggin/**/node_modules/
+VibbinLoggin/**/dist/
+VibbinLoggin/**/coverage/
+VibbinLoggin/**/test-reports/
+VibbinLoggin/**/.vibe-log/
+VibbinLoggin/**/package-lock.json
+VibbinLoggin/**/*.log

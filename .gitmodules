@@ -1,0 +1,3 @@
+[submodule "VibbinLoggin/vibe-log-cli"]
+	path = VibbinLoggin/vibe-log-cli
+	url = https://github.com/vibe-log/vibe-log-cli.git
