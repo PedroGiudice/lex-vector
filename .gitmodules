@@ -1,3 +1,6 @@
 [submodule "VibbinLoggin/vibe-log-cli"]
 	path = VibbinLoggin/vibe-log-cli
 	url = https://github.com/vibe-log/vibe-log-cli.git
+[submodule ".claude/skills/superpowers"]
+	path = .claude/skills/superpowers
+	url = https://github.com/obra/superpowers.git

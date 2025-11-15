@@ -92,15 +92,34 @@ function getSkillsStatus() {
   return `${colorize('✨ Skills:', 'gray')} ${colorize(`${total} available`, 'blue')}`;
 }
 
-function line1() {
-  const parts = [
-    getVenvStatus(),
-    getGitStatus(),
-    getHooksStatus(),
-    getSkillsStatus()
-  ].filter(Boolean);
+// Helper para padding de texto (alinhamento)
+function padRight(text, width) {
+  // Remove ANSI codes para calcular largura real
+  const stripped = text.replace(/\x1b\[[0-9;]*m/g, '');
+  const actualLength = stripped.length;
+  const padding = Math.max(0, width - actualLength);
+  return text + ' '.repeat(padding);
+}
 
-  return parts.join(` ${separator()} `);
+function line1() {
+  // Coluna esquerda: informações principais
+  const gitStatus = getGitStatus();
+  const hooksStatus = getHooksStatus();
+  const skillsStatus = getSkillsStatus();
+
+  const leftColumn = [gitStatus, hooksStatus, skillsStatus].filter(Boolean).join(` ${separator()} `);
+
+  // Coluna direita: contexto
+  const venvStatus = getVenvStatus();
+  const rightColumn = venvStatus;
+
+  // Calcular largura do terminal
+  const termWidth = getTerminalWidth();
+  const dividerPos = Math.floor(termWidth * 0.70);  // 70% para esquerda
+
+  // Alinhar
+  const paddedLeft = padRight(leftColumn, dividerPos - 3);
+  return `${paddedLeft} ${colorize('┃', 'gray')} ${rightColumn}`;
 }
 
 // ============================================================================
@@ -175,13 +194,23 @@ function getAgentsStatus() {
 }
 
 function line2() {
-  const parts = [
-    getVibeStatus(),
-    getMCPStatus(),
-    getAgentsStatus()
-  ].filter(Boolean);
+  // Coluna esquerda: VibbinLoggin, MCP, Agents
+  const vibeStatus = getVibeStatus();
+  const mcpStatus = getMCPStatus();
+  const agentsStatus = getAgentsStatus();
 
-  return parts.join(` ${separator()} `);
+  const leftColumn = [vibeStatus, mcpStatus, agentsStatus].filter(Boolean).join(` ${separator()} `);
+
+  // Coluna direita: Session duration
+  const duration = getSessionDuration();
+  const rightColumn = `${colorize('⏱ Session:', 'gray')} ${colorize(duration, 'cyan')}`;
+
+  // Alinhar
+  const termWidth = getTerminalWidth();
+  const dividerPos = Math.floor(termWidth * 0.70);
+  const paddedLeft = padRight(leftColumn, dividerPos - 3);
+
+  return `${paddedLeft} ${colorize('┃', 'gray')} ${rightColumn}`;
 }
 
 // ============================================================================
@@ -238,26 +267,71 @@ function getContextPercentage() {
 }
 
 function line3() {
-  const duration = getSessionDuration();
-  const cost = getTokenCost();
+  // Linha 3 simplificada: apenas Context % na direita
   const contextPct = getContextPercentage();
-
-  const parts = [
-    `${colorize('⏱ Session:', 'gray')} ${colorize(duration, 'cyan')}`
-  ];
-
-  if (cost > 0) {
-    parts.push(`${colorize('💰 Cost:', 'gray')} ${colorize('$' + cost.toFixed(2), 'yellow')}`);
-  }
 
   // Contexto % (com cor baseada em uso)
   let contextColor = 'green';
   if (contextPct > 80) contextColor = 'red';
   else if (contextPct > 60) contextColor = 'yellow';
 
-  parts.push(`${colorize('🧠 Context:', 'gray')} ${colorize(contextPct + '%', contextColor)}`);
+  // Coluna esquerda: vazia (ou pode adicionar outras métricas no futuro)
+  const leftColumn = '';
 
-  return parts.join(` ${separator()} `);
+  // Coluna direita: Context %
+  const rightColumn = `${colorize('🧠 Context:', 'gray')} ${colorize(contextPct + '%', contextColor)}`;
+
+  // Alinhar
+  const termWidth = getTerminalWidth();
+  const dividerPos = Math.floor(termWidth * 0.70);
+  const paddedLeft = padRight(leftColumn, dividerPos - 3);
+
+  return `${paddedLeft} ${colorize('┃', 'gray')} ${rightColumn}`;
+}
+
+// ============================================================================
+// SEPARADORES VISUAIS
+// ============================================================================
+
+// Obter largura do terminal (padrão: 80)
+function getTerminalWidth() {
+  try {
+    return process.stdout.columns || 80;
+  } catch {
+    return 80;
+  }
+}
+
+// Opção 1: Linhas horizontais finas entre cada linha
+function separator_style_1() {
+  const width = getTerminalWidth();
+  return colorize('─'.repeat(width), 'gray');
+}
+
+// Opção 2: Linha central mais destacada
+function separator_style_2() {
+  const width = getTerminalWidth();
+  return colorize('━'.repeat(width), 'cyan');
+}
+
+// Opção 3: Box completo com bordas
+function box_top() {
+  const width = getTerminalWidth() - 2;
+  return colorize('╭' + '─'.repeat(width) + '╮', 'cyan');
+}
+
+function box_middle() {
+  const width = getTerminalWidth() - 2;
+  return colorize('├' + '─'.repeat(width) + '┤', 'gray');
+}
+
+function box_bottom() {
+  const width = getTerminalWidth() - 2;
+  return colorize('╰' + '─'.repeat(width) + '╯', 'cyan');
+}
+
+function wrap_in_box(text) {
+  return `${colorize('│', 'cyan')} ${text} ${colorize('│', 'cyan')}`;
 }
 
 // ============================================================================
@@ -270,10 +344,34 @@ function main() {
     const l2 = line2();
     const l3 = line3();
 
-    // Output
-    console.log(l1);
-    if (l2) console.log(l2);
-    console.log(l3);
+    // ESCOLHA DE ESTILO (pode trocar facilmente)
+    const STYLE = 'clean_separators';  // Options: 'clean_separators', 'bold_middle', 'full_box'
+
+    if (STYLE === 'clean_separators') {
+      // Estilo 1: Linhas finas entre cada linha
+      console.log(separator_style_1());
+      console.log(l1);
+      console.log(separator_style_1());
+      console.log(l2);
+      console.log(separator_style_1());
+      console.log(l3);
+      console.log(separator_style_1());
+    } else if (STYLE === 'bold_middle') {
+      // Estilo 2: Apenas linha central destacada
+      console.log(l1);
+      console.log(separator_style_2());
+      console.log(l2);
+      console.log(l3);
+    } else if (STYLE === 'full_box') {
+      // Estilo 3: Box completo com bordas
+      console.log(box_top());
+      console.log(wrap_in_box(l1));
+      console.log(box_middle());
+      console.log(wrap_in_box(l2));
+      console.log(box_middle());
+      console.log(wrap_in_box(l3));
+      console.log(box_bottom());
+    }
   } catch (err) {
     // Fallback: output mínimo
     console.error('Statusline error:', err.message);
