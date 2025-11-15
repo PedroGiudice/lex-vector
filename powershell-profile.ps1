@@ -42,8 +42,8 @@ $WSL_USERNAME = "cmr-auto"
 # Find it with: wsl -- which claude
 $CLAUDE_PATH = "/home/$WSL_USERNAME/.npm-global/bin/claude"
 
-# Project directory in WSL
-$PROJECT_DIR = "~/claude-work/repos/Claude-Code-Projetos"
+# Project directory in WSL (using absolute path to ensure correct path)
+$PROJECT_DIR = "/home/user/Claude-Code-Projetos"
 
 #==============================================================================
 # FUNCTION: claude command interceptor
