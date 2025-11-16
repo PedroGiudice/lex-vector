@@ -61,6 +61,10 @@ claude_plugins/
 # Claude Code Statusline (temporary runtime files)
 .claude/statusline/*.json
 
+# Claude Code Runtime Files (session state, temporary tracking)
+.claude/*-session.json
+.claude/legal-braniac-session.json
+
 # Node.js (for Claude Code plugins)
 node_modules/
 npm-debug.log*
