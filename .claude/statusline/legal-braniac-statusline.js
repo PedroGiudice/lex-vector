@@ -309,7 +309,7 @@ function generateSystemInfo(agents, skills, hooks, hooksStatus, activeAgents) {
 
   // Separador de seção
   lines.push(`${colors.dim}${'─'.repeat(80)}${colors.reset}`);
-  lines.push(`${colors.bold}${colors.white}⚙  SYSTEM${colors.reset}`);
+  lines.push(`${colors.bold}${colors.white}🧠 SYSTEM${colors.reset}`);
 
   // Agentes
   let agentInfo = `${colors.dim}├─${colors.reset} 🤖 Agents: ${colors.green}${agentCount}${colors.reset} available`;
@@ -379,7 +379,7 @@ function generatePromptEnhancerStatus(qualityData, vocabulary, confidence) {
 
   const lines = [];
   lines.push(`${colors.dim}${'─'.repeat(80)}${colors.reset}`);
-  lines.push(`${colors.bold}${colors.cyan}${enhancerSpinner}📝 PROMPT ENHANCER${colors.reset} ${statusIndicator}`);
+  lines.push(`${colors.bold}${colors.cyan}${enhancerSpinner}🧠 PROMPT ENHANCER${colors.reset} ${statusIndicator}`);
 
   lines.push(`${colors.dim}├─${colors.reset} Quality: ${qualityColor}${avg}/100${colors.reset} avg ${colors.dim}•${colors.reset} ` +
              `Enhanced: ${colors.cyan}${rate}%${colors.reset} ${colors.dim}(${enhanced}/${total} prompts)${colors.reset}`);
@@ -428,8 +428,8 @@ function generateBrainiacStatus(hooksStatus) {
   lines.push(`${colors.dim}${'─'.repeat(80)}${colors.reset}`);
 
   const title = errorSpinner
-    ? `${colors.bold}${errorSpinner}${colors.magenta}🎯 LEGAL-BRANIAC ORCHESTRATOR${colors.reset}`
-    : `${colors.bold}${colors.magenta}🎯 LEGAL-BRANIAC ORCHESTRATOR${colors.reset}`;
+    ? `${colors.bold}${errorSpinner}${colors.magenta}🧠 LEGAL-BRANIAC ORCHESTRATOR${colors.reset}`
+    : `${colors.bold}${colors.magenta}🧠 LEGAL-BRANIAC ORCHESTRATOR${colors.reset}`;
 
   lines.push(title);
 
