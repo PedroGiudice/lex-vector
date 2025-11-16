@@ -24,6 +24,38 @@
             "type": "command",
             "command": "node .claude/hooks/legal-braniac-loader.js",
             "_note": "Auto-discovery de agentes/skills + criar legal-braniac-session.json (estado persistente)"
+          },
+          {
+            "type": "command",
+            "command": "npx vibe-log-cli send --silent --hook sessionstart",
+            "timeout": 30000,
+            "_note": "Vibe-log: capture session on startup"
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "_comment": "Vibe-log: capture before context compression",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "npx vibe-log-cli send --silent --hook precompact",
+            "timeout": 30000,
+            "_note": "Vibe-log: capture full session before compression"
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "_comment": "Vibe-log: capture on session end",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "npx vibe-log-cli send --silent --hook sessionend",
+            "timeout": 30000,
+            "_note": "Vibe-log: capture final session state"
           }
         ]
       }
