@@ -6,12 +6,16 @@
  * - Informações do modelo e sessão (tokens, custo)
  * - Contadores de agentes, skills e hooks disponíveis
  * - Contexto do projeto (diretório, branch Git)
+ * - Prompt Enhancer metrics com learning adaptativo
  *
- * MVP - Fase 1: Auto-discovery estático (sem tracking de execução)
+ * Design v2: Layout aprimorado com liquid spinner e separações visuais
  */
 
 const fs = require('fs').promises;
 const path = require('path');
+
+// Import liquid spinner
+const liquidSpinner = require('./lib/liquid-spinner.js');
 
 // ANSI Colors
 const colors = {
@@ -264,7 +268,7 @@ function generateStatusline(claudeData, projectData) {
 }
 
 /**
- * Gera cabeçalho principal
+ * Gera cabeçalho principal com design aprimorado
  */
 function generateHeader(model, workspace, git, cost, tokens) {
   const modelName = model?.display_name ? model.display_name.replace('claude-', '').replace('sonnet-', 'snt-') : 'unknown';
@@ -273,16 +277,23 @@ function generateHeader(model, workspace, git, cost, tokens) {
   const costUsd = cost?.total_usd ? `$${cost.total_usd.toFixed(2)}` : '$0.00';
   const totalTokens = tokens?.total ? formatTokens(tokens.total) : '0k';
 
-  return `${colors.bold}${colors.cyan}🧠 LEGAL-BRANIAC${colors.reset} ` +
-         `${colors.yellow}${modelName}${colors.reset} ${colors.dim}|${colors.reset} ` +
-         `📂 ${colors.blue}${dirName}${colors.reset} ${colors.dim}|${colors.reset} ` +
-         `🌿 ${colors.green}${branch}${colors.reset} ${colors.dim}|${colors.reset} ` +
-         `💰 ${colors.magenta}${costUsd}${colors.reset} ${colors.dim}|${colors.reset} ` +
-         `📊 ${colors.white}${totalTokens}${colors.reset}`;
+  // Spinner para indicar sistema ativo
+  const spinner = liquidSpinner.getCurrentFrame();
+
+  const header = `${colors.bold}${colors.cyan}${spinner}LEGAL-BRANIAC${colors.reset} ${colors.dim}┊${colors.reset} ` +
+                 `${colors.yellow}${modelName}${colors.reset} ${colors.dim}┊${colors.reset} ` +
+                 `📂 ${colors.blue}${dirName}${colors.reset} ${colors.dim}┊${colors.reset} ` +
+                 `🌿 ${colors.green}${branch}${colors.reset}`;
+
+  const metrics = `${colors.dim}└─${colors.reset} ` +
+                  `💰 ${colors.magenta}${costUsd}${colors.reset} ${colors.dim}•${colors.reset} ` +
+                  `📊 ${colors.white}${totalTokens}${colors.reset} tokens`;
+
+  return header + '\n' + metrics;
 }
 
 /**
- * Gera informações de sistema
+ * Gera informações de sistema com layout melhorado
  */
 function generateSystemInfo(agents, skills, hooks, hooksStatus, activeAgents) {
   const agentCount = agents.length;
@@ -294,42 +305,50 @@ function generateSystemInfo(agents, skills, hooks, hooksStatus, activeAgents) {
   const hooksSuccess = hooksArray.filter(h => h.status === 'success').length;
   const hooksError = hooksArray.filter(h => h.status === 'error').length;
 
-  // Formatar agentes (com ativos se houver)
-  let agentInfo = `🤖 ${colors.green}${agentCount}${colors.reset} agentes`;
-  if (activeAgents && activeAgents.length > 0) {
-    const activeNames = activeAgents.map(a => a.name).join(', ');
-    agentInfo += ` ${colors.yellow}(${activeAgents.length} ativo${activeAgents.length > 1 ? 's' : ''}: ${activeNames})${colors.reset}`;
-  }
+  const lines = [];
 
-  // Formatar hooks (com status se houver)
-  let hookInfo = `🔧 ${colors.green}${hookCount}${colors.reset} hooks`;
+  // Separador de seção
+  lines.push(`${colors.dim}${'─'.repeat(80)}${colors.reset}`);
+  lines.push(`${colors.bold}${colors.white}⚙  SYSTEM${colors.reset}`);
+
+  // Agentes
+  let agentInfo = `${colors.dim}├─${colors.reset} 🤖 Agents: ${colors.green}${agentCount}${colors.reset} available`;
+  if (activeAgents && activeAgents.length > 0) {
+    const activeNames = activeAgents.map(a => truncate(a.name, 15)).join(', ');
+    agentInfo += ` ${colors.dim}•${colors.reset} ${colors.yellow}${activeAgents.length} active${colors.reset} ${colors.dim}(${activeNames})${colors.reset}`;
+  }
+  lines.push(agentInfo);
+
+  // Skills
+  lines.push(`${colors.dim}├─${colors.reset} 📦 Skills: ${colors.green}${skillCount}${colors.reset} loaded`);
+
+  // Hooks com spinner se houver erros
+  const hookSpinner = hooksError > 0 ? `${colors.red}${liquidSpinner.getCurrentFrame()}${colors.reset} ` : '';
+  let hookInfo = `${colors.dim}└─${colors.reset} ${hookSpinner}🔧 Hooks: ${colors.green}${hookCount}${colors.reset} configured`;
+
   if (hooksArray.length > 0) {
     if (hooksError > 0) {
-      hookInfo += ` ${colors.red}(${hooksError} ✗)${colors.reset}`;
+      hookInfo += ` ${colors.dim}•${colors.reset} ${colors.red}${hooksError} failed${colors.reset}`;
     } else if (hooksSuccess === hooksArray.length) {
-      hookInfo += ` ${colors.green}(all ✓)${colors.reset}`;
+      hookInfo += ` ${colors.dim}•${colors.reset} ${colors.green}all passing${colors.reset}`;
     } else {
-      hookInfo += ` ${colors.yellow}(${hooksSuccess}/${hooksArray.length} ✓)${colors.reset}`;
+      hookInfo += ` ${colors.dim}•${colors.reset} ${colors.yellow}${hooksSuccess}/${hooksArray.length} ok${colors.reset}`;
     }
   }
+  lines.push(hookInfo);
 
-  return `${colors.dim}├${colors.reset} ` +
-         `${agentInfo} ${colors.dim}|${colors.reset} ` +
-         `📦 ${colors.green}${skillCount}${colors.reset} skills ${colors.dim}|${colors.reset} ` +
-         `${hookInfo}`;
+  return lines.join('\n');
 }
 
 /**
- * Gera status do Prompt Enhancer
+ * Gera status do Prompt Enhancer com design aprimorado
  */
 function generatePromptEnhancerStatus(qualityData, vocabulary, confidence) {
   if (!qualityData || !qualityData.stats) {
     return null;
   }
 
-  const enabled = qualityData.enabled ? '●ON' : '○OFF';
-  const enabledColor = qualityData.enabled ? colors.green : colors.dim;
-
+  const enabled = qualityData.enabled;
   const avg = qualityData.stats.averageQuality || 0;
   const total = qualityData.stats.totalPrompts || 0;
   const enhanced = qualityData.stats.enhancedPrompts || 0;
@@ -354,29 +373,40 @@ function generatePromptEnhancerStatus(qualityData, vocabulary, confidence) {
   if (avgConfidence >= 80) confidenceColor = colors.green;
   else if (avgConfidence < 60) confidenceColor = colors.red;
 
-  return `${colors.dim}├${colors.reset} ` +
-         `📝 Enhancer [${enabledColor}${enabled}${colors.reset}] ` +
-         `Quality: ${qualityColor}${avg}/100${colors.reset} ${colors.dim}|${colors.reset} ` +
-         `Enhanced: ${colors.cyan}${rate}%${colors.reset} ${colors.dim}(${enhanced}/${total})${colors.reset} ${colors.dim}|${colors.reset} ` +
-         `📚 Learned: ${colors.magenta}${termCount}${colors.reset} terms ${colors.dim}|${colors.reset} ` +
-         `Confidence: ${confidenceColor}${avgConfidence}%${colors.reset} ${colors.dim}|${colors.reset} ` +
-         `${colors.dim}Manual: ${colors.yellow}++${colors.reset}`;
+  // Spinner se enhancer ativo e processando
+  const enhancerSpinner = enabled && rate > 0 ? liquidSpinner.getCurrentFrame() : '';
+  const statusIndicator = enabled ? `${colors.green}●${colors.reset}` : `${colors.dim}○${colors.reset}`;
+
+  const lines = [];
+  lines.push(`${colors.dim}${'─'.repeat(80)}${colors.reset}`);
+  lines.push(`${colors.bold}${colors.cyan}${enhancerSpinner}📝 PROMPT ENHANCER${colors.reset} ${statusIndicator}`);
+
+  lines.push(`${colors.dim}├─${colors.reset} Quality: ${qualityColor}${avg}/100${colors.reset} avg ${colors.dim}•${colors.reset} ` +
+             `Enhanced: ${colors.cyan}${rate}%${colors.reset} ${colors.dim}(${enhanced}/${total} prompts)${colors.reset}`);
+
+  lines.push(`${colors.dim}├─${colors.reset} Learning: ${colors.magenta}${termCount}${colors.reset} terms captured ${colors.dim}•${colors.reset} ` +
+             `${colors.magenta}${customPatterns}${colors.reset} custom patterns`);
+
+  lines.push(`${colors.dim}└─${colors.reset} Confidence: ${confidenceColor}${avgConfidence}%${colors.reset} ${colors.dim}•${colors.reset} ` +
+             `Manual enhance: ${colors.yellow}++${colors.reset} prefix`);
+
+  return lines.join('\n');
 }
 
 /**
- * Gera status do Legal-Braniac (orquestrador)
+ * Gera status do Legal-Braniac (orquestrador) com design aprimorado
  */
 function generateBrainiacStatus(hooksStatus) {
   const brainiacKey = 'invoke-legal-braniac-hybrid';
 
   if (!hooksStatus[brainiacKey]) {
-    return null; // Não foi executado ainda
+    return null;
   }
 
   const status = hooksStatus[brainiacKey];
   const isSuccess = status.status === 'success';
-  const statusIcon = isSuccess ? '✅' : '❌';
   const statusColor = isSuccess ? colors.green : colors.red;
+  const statusIcon = isSuccess ? '✓' : '✗';
 
   // Formatar tempo desde última execução
   let timeAgo = '';
@@ -391,21 +421,36 @@ function generateBrainiacStatus(hooksStatus) {
     }
   }
 
-  let line = `${colors.dim}└${colors.reset} ` +
-             `${statusIcon} ${colors.bold}LEGAL-BRANIAC${colors.reset} ` +
-             `${statusColor}${status.status}${colors.reset}`;
+  // Spinner se houver erro (indicando possível retry)
+  const errorSpinner = !isSuccess ? `${colors.red}${liquidSpinner.getCurrentFrame()}${colors.reset} ` : '';
+
+  const lines = [];
+  lines.push(`${colors.dim}${'─'.repeat(80)}${colors.reset}`);
+
+  const title = errorSpinner
+    ? `${colors.bold}${errorSpinner}${colors.magenta}🎯 LEGAL-BRANIAC ORCHESTRATOR${colors.reset}`
+    : `${colors.bold}${colors.magenta}🎯 LEGAL-BRANIAC ORCHESTRATOR${colors.reset}`;
+
+  lines.push(title);
+
+  let statusLine = `${colors.dim}└─${colors.reset} Status: ${statusColor}${statusIcon} ${status.status}${colors.reset}`;
 
   if (timeAgo) {
-    line += ` ${colors.dim}(${timeAgo} ago)${colors.reset}`;
+    statusLine += ` ${colors.dim}• ${timeAgo} ago${colors.reset}`;
   }
 
   // Adicionar mensagem de erro se houver
   if (!isSuccess && status.error) {
-    const errorMsg = truncate(status.error, 50);
-    line += ` ${colors.red}- ${errorMsg}${colors.reset}`;
+    const errorMsg = truncate(status.error, 60);
+    statusLine += `\n${colors.dim}   ${colors.reset}${colors.red}└─ Error: ${errorMsg}${colors.reset}`;
   }
 
-  return line;
+  lines.push(statusLine);
+
+  // Footer
+  lines.push(`${colors.dim}${'─'.repeat(80)}${colors.reset}`);
+
+  return lines.join('\n');
 }
 
 /**
