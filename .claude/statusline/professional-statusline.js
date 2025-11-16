@@ -157,22 +157,12 @@ function line1() {
 }
 
 // ============================================================================
-// LINHA 2: VibbinLoggin + MCP
+// LINHA 2: VibbinLoggin
 // ============================================================================
 
 function getVibeStatus() {
-  if (!vibeIntegration.isAvailable()) {
-    return `${colorize('💫 VibbinLoggin:', 'gray')} ${colorize('offline', 'gray')}`;
-  }
-
-  const prompts = vibeIntegration.getPromptsToday();
-  const score = vibeIntegration.getAvgScore();
-
-  if (prompts === 0) {
-    return `${colorize('💫 VibbinLoggin:', 'gray')} ${colorize('no data yet', 'gray')}`;
-  }
-
-  return `${colorize('💫 VibbinLoggin:', 'purple')} ${colorize(prompts + ' prompts analyzed', 'purple')} ${separator()} ${colorize('Quality: ' + score + '/10', 'purple')}`;
+  // Nova integração - lê de ~/.vibe-log/analyzed-prompts/
+  return vibeIntegration.getVibeLoggingMetrics();
 }
 
 function getMCPStatus() {
@@ -228,12 +218,11 @@ function getAgentsStatus() {
 }
 
 function line2() {
-  // Coluna esquerda: VibbinLoggin, MCP, Agents
+  // Coluna esquerda: VibbinLoggin, Agents
   const vibeStatus = getVibeStatus();
-  const mcpStatus = getMCPStatus();
   const agentsStatus = getAgentsStatus();
 
-  const leftColumn = [vibeStatus, mcpStatus, agentsStatus].filter(Boolean).join(` ${separator()} `);
+  const leftColumn = [vibeStatus, agentsStatus].filter(Boolean).join(` ${separator()} `);
 
   // Coluna direita: Session duration
   const duration = getSessionDuration();

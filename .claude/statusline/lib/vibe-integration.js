@@ -1,105 +1,149 @@
 // vibe-integration.js - Integração com VibbinLoggin (vibe-log-cli)
 //
-// Chama vibe-log statusline para obter métricas de qualidade
+// Lê análises de prompts de ~/.vibe-log/analyzed-prompts/
+// Vibe-log salva análises por session_id quando hooks estão instalados
 
-const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
+const { colorize } = require('./color-palette');
 
-// Cache de resultados (1 segundo)
-let cache = null;
-let cacheTimestamp = 0;
-const CACHE_TTL = 1000;  // 1s
-
-// Verificar se vibe-log está disponível
-function isAvailable() {
-  try {
-    execSync('which vibe-log', { stdio: 'ignore' });
-    return true;
-  } catch {
-    return false;
-  }
+/**
+ * Get score emoji based on vibe-log scoring
+ */
+function getScoreEmoji(score) {
+  if (score <= 40) return '🔴';      // Poor (0-40)
+  if (score <= 60) return '🟠';      // Fair (41-60)
+  if (score <= 80) return '🟡';      // Good (61-80)
+  return '🟢';                       // Excellent (81-100)
 }
 
-// Obter dados do statusline (com cache)
-function getStatuslineData() {
-  const now = Date.now();
-
-  // Retornar cache se ainda válido
-  if (cache && (now - cacheTimestamp) < CACHE_TTL) {
-    return cache;
-  }
-
-  if (!isAvailable()) {
-    cache = null;
-    return null;
-  }
+/**
+ * Get most recent analysis file from vibe-log
+ * Returns null if:
+ * - Directory doesn't exist (vibe-log not installed)
+ * - No files found
+ * - Files are stale (> 5 minutes old)
+ */
+function getLatestAnalysis() {
+  const homeDir = process.env.HOME || process.env.USERPROFILE;
+  const analysisDir = path.join(homeDir, '.vibe-log', 'analyzed-prompts');
 
   try {
-    const output = execSync('vibe-log statusline --json 2>/dev/null', {
-      timeout: 200,
-      encoding: 'utf8',
-      stdio: ['ignore', 'pipe', 'ignore']  // Silenciar stderr
-    });
+    if (!fs.existsSync(analysisDir)) {
+      return null; // Vibe-log not installed or no hooks configured
+    }
 
-    cache = JSON.parse(output);
-    cacheTimestamp = now;
-    return cache;
-  } catch (err) {
-    // Timeout ou erro - degrade gracefully
-    cache = null;
+    // List all JSON files
+    const files = fs.readdirSync(analysisDir)
+      .filter(f => f.endsWith('.json'))
+      .map(f => ({
+        name: f,
+        path: path.join(analysisDir, f),
+        mtime: fs.statSync(path.join(analysisDir, f)).mtime.getTime()
+      }))
+      .sort((a, b) => b.mtime - a.mtime); // Most recent first
+
+    if (files.length === 0) {
+      return null; // No analysis files yet
+    }
+
+    // Get most recent file
+    const latest = files[0];
+
+    // Check if stale (older than 5 minutes)
+    const age = Date.now() - latest.mtime;
+    if (age > 5 * 60 * 1000) {
+      return null; // Too old, not relevant
+    }
+
+    // Read and parse
+    const content = fs.readFileSync(latest.path, 'utf8');
+    const data = JSON.parse(content);
+
+    return data;
+  } catch (error) {
+    // Parsing error, permission error, etc - degrade gracefully
     return null;
   }
 }
 
-// Obter número de prompts analisados hoje
-function getPromptsToday() {
-  const data = getStatuslineData();
-  return data?.prompts_today || 0;
-}
+/**
+ * Get VibbinLoggin coaching metrics
+ *
+ * Reads from ~/.vibe-log/analyzed-prompts/ directory
+ *
+ * Expected JSON format:
+ * {
+ *   "quality": "excellent" | "good" | "fair" | "poor",
+ *   "score": 0-100,
+ *   "suggestion": "string",
+ *   "contextualEmoji": "💡" (optional),
+ *   "actionableSteps": "string" (optional)
+ * }
+ *
+ * Or loading state:
+ * {
+ *   "state": "loading",
+ *   "message": "Analyzing...",
+ *   "timestamp": 123456789
+ * }
+ *
+ * Returns formatted string for statusline
+ */
+function getVibeLoggingMetrics() {
+  try {
+    const analysis = getLatestAnalysis();
 
-// Obter score médio de qualidade
-function getAvgScore() {
-  const data = getStatuslineData();
-  if (data?.avg_quality_score !== undefined) {
-    return data.avg_quality_score.toFixed(1);
+    if (!analysis) {
+      // No data - either not installed, no hooks, or stale
+      return colorize('💫 Vibe: not configured', 'gray');
+    }
+
+    // Check if loading state
+    if (analysis.state === 'loading') {
+      const message = analysis.message || 'Analyzing...';
+      // Truncate long loading messages
+      const shortMessage = message.length > 25
+        ? message.substring(0, 22) + '...'
+        : message;
+      return colorize(`⏳ Vibe: ${shortMessage}`, 'cyan');
+    }
+
+    // Check if valid completed analysis
+    if (typeof analysis.score !== 'number' || !analysis.suggestion) {
+      return colorize('💫 Vibe: invalid data', 'gray');
+    }
+
+    const score = analysis.score;
+    const suggestion = analysis.suggestion;
+
+    // Use contextual emoji from analysis, or default based on score
+    const emoji = analysis.contextualEmoji || getScoreEmoji(score);
+
+    // Color based on score
+    let scoreColor = 'cyan';
+    if (score >= 80) scoreColor = 'green';
+    else if (score >= 60) scoreColor = 'cyan';
+    else if (score >= 40) scoreColor = 'yellow';
+    else scoreColor = 'red';
+
+    // Truncate suggestion if too long (statusline real estate is limited)
+    const maxLen = 35;
+    const shortSuggestion = suggestion.length > maxLen
+      ? suggestion.substring(0, maxLen - 3) + '...'
+      : suggestion;
+
+    // Format: "🟢 Vibe: 85/100 Add more context"
+    const scoreText = colorize(`${emoji} Vibe: ${score}/100`, scoreColor);
+    const suggestionText = colorize(shortSuggestion, 'gray');
+
+    return `${scoreText} ${suggestionText}`;
+  } catch (error) {
+    // Unexpected error - degrade gracefully
+    return colorize('💫 Vibe: error', 'red');
   }
-  return 'N/A';
-}
-
-// Obter sugestões ativas
-function getActiveSuggestions() {
-  const data = getStatuslineData();
-  return data?.active_suggestions || [];
-}
-
-// Obter contagem de sugestões
-function getSuggestionsCount() {
-  return getActiveSuggestions().length;
-}
-
-// Formatar linha de status
-function getFormattedStatus() {
-  if (!isAvailable()) {
-    return null;
-  }
-
-  const prompts = getPromptsToday();
-  const score = getAvgScore();
-
-  if (prompts === 0) {
-    return 'no data';
-  }
-
-  return `${prompts} prompts │ Quality: ${score}/10`;
 }
 
 module.exports = {
-  isAvailable,
-  getStatuslineData,
-  getPromptsToday,
-  getAvgScore,
-  getActiveSuggestions,
-  getSuggestionsCount,
-  getFormattedStatus
+  getVibeLoggingMetrics
 };
