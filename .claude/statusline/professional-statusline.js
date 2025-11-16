@@ -81,18 +81,38 @@ function getLegalBraniacStatus() {
 
 function getHooksStatus() {
   // Verificar se há hooks rodando (via marker file)
-  const hooksStatusFile = path.join(
-    process.env.HOME || '/home/cmr-auto',
-    '.claude/statusline/hooks-status.json'
-  );
+  const projectDir = process.env.CLAUDE_PROJECT_DIR || process.cwd();
+  const hooksStatusFile = path.join(projectDir, '.claude/statusline/hooks-status.json');
 
   try {
     if (fs.existsSync(hooksStatusFile)) {
       const data = JSON.parse(fs.readFileSync(hooksStatusFile, 'utf8'));
-      if (data.status === 'running' && data.hooks && data.hooks.length > 0) {
+
+      // Encontrar hook executado mais recentemente
+      let mostRecent = null;
+      let mostRecentTime = 0;
+
+      for (const [hookName, hookData] of Object.entries(data)) {
+        if (hookData.timestamp && hookData.timestamp > mostRecentTime) {
+          mostRecentTime = hookData.timestamp;
+          mostRecent = { name: hookName, ...hookData };
+        }
+      }
+
+      // Se hook foi executado nos últimos 10 segundos, mostrar como "active"
+      if (mostRecent && (Date.now() - mostRecentTime) < 10000) {
         const frame = spinner.getCurrentFrame();
-        const hookName = data.hooks[0].replace('.js', '').replace(/-/g, ' ');
+        const hookName = mostRecent.name.replace('.js', '').replace(/-/g, ' ');
         return `${colorize('⚡ Hooks:', 'gray')} ${colorize(frame + ' ' + hookName, 'blue')}`;
+      }
+
+      // Mostrar total de hooks executados recentemente (últimos 60s)
+      const recentCount = Object.values(data).filter(
+        h => h.timestamp && (Date.now() - h.timestamp) < 60000
+      ).length;
+
+      if (recentCount > 0) {
+        return `${colorize('⚡ Hooks:', 'gray')} ${colorize(`${recentCount} recent`, 'cyan')}`;
       }
     }
   } catch {}
@@ -242,10 +262,8 @@ function line2() {
 
 function getSessionDuration() {
   // Tentar ler do session file do Claude Code
-  const sessionFile = path.join(
-    process.env.HOME || '/home/cmr-auto',
-    '.claude/statusline/session-start.json'
-  );
+  const projectDir = process.env.CLAUDE_PROJECT_DIR || process.cwd();
+  const sessionFile = path.join(projectDir, '.claude/statusline/session-start.json');
 
   try {
     if (fs.existsSync(sessionFile)) {
@@ -301,10 +319,8 @@ function getContextPercentage() {
     }
 
     // Estratégia 3: Estimar baseado em timestamp da sessão
-    const sessionFile = path.join(
-      process.env.HOME || '/home/cmr-auto',
-      '.claude/statusline/session-start.json'
-    );
+    const projectDir = process.env.CLAUDE_PROJECT_DIR || process.cwd();
+    const sessionFile = path.join(projectDir, '.claude/statusline/session-start.json');
 
     if (fs.existsSync(sessionFile)) {
       const data = JSON.parse(fs.readFileSync(sessionFile, 'utf8'));

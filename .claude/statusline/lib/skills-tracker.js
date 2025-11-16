@@ -9,10 +9,10 @@ const path = require('path');
 
 // Diretórios relevantes
 const PROJECT_ROOT = process.env.PWD || process.cwd();
-const SKILLS_DIR = path.join(PROJECT_ROOT, '.claude/skills');
-const MARKER_FILE = path.join(process.env.HOME || '/home/cmr-auto', '.claude/statusline/active-skills.json');
+const SKILLS_DIR = path.join(PROJECT_ROOT, 'skills');
+const MARKER_FILE = path.join(PROJECT_ROOT, '.claude/statusline/active-skills.json');
 
-// Contar total de skills instaladas
+// Contar total de skills instaladas (apenas skills/ - .claude/skills/ são settings)
 function getTotalCount() {
   try {
     if (!fs.existsSync(SKILLS_DIR)) {

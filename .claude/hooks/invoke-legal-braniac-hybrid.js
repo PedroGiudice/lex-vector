@@ -232,6 +232,21 @@ async function main() {
     const message = formatMessage(agentes, skills);
     console.error(`[DEBUG] invoke-legal-braniac-hybrid: Mensagem formatada, enviando output`);
 
+    // Criar marker file para statusline
+    try {
+      const markerPath = path.join(projectDir, '.claude/legal-braniac-active.json');
+      const markerData = {
+        timestamp: Date.now(),
+        action: 'orchestrating',
+        agentes: agentes.length,
+        skills: skills.length
+      };
+      await fs.writeFile(markerPath, JSON.stringify(markerData, null, 2));
+      console.error(`[DEBUG] invoke-legal-braniac-hybrid: Marker file criado em ${markerPath}`);
+    } catch (err) {
+      console.error(`[DEBUG] invoke-legal-braniac-hybrid: Erro ao criar marker file: ${err.message}`);
+    }
+
     outputJSON({
       continue: true,
       systemMessage: message

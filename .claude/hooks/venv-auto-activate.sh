@@ -44,4 +44,10 @@ fi
 export VIRTUAL_ENV="$VENV_PATH"
 export PATH="$VENV_PATH/bin:$PATH"
 
+# Criar/atualizar session-start.json para statusline tracking
+SESSION_START_FILE="$PROJECT_ROOT/.claude/statusline/session-start.json"
+mkdir -p "$(dirname "$SESSION_START_FILE")"
+TIMESTAMP=$(date +%s)000  # milliseconds
+echo "{\"timestamp\":$TIMESTAMP}" > "$SESSION_START_FILE"
+
 exit 0
