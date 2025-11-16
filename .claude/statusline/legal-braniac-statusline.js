@@ -309,7 +309,13 @@ function generateSystemInfo(agents, skills, hooks, hooksStatus, activeAgents) {
 
   // Separador de seção
   lines.push(`${colors.dim}${'─'.repeat(80)}${colors.reset}`);
-  lines.push(`${colors.bold}${colors.white}🧠 SYSTEM${colors.reset}`);
+
+  // Spinner colorido: vermelho se houver erros, verde caso contrário
+  const systemSpinner = hooksError > 0
+    ? `${colors.red}${liquidSpinner.getCurrentFrame()}${colors.reset}`
+    : `${colors.green}${liquidSpinner.getCurrentFrame()}${colors.reset}`;
+
+  lines.push(`${colors.bold}${colors.white}${systemSpinner} SYSTEM${colors.reset}`);
 
   // Agentes
   let agentInfo = `${colors.dim}├─${colors.reset} 🤖 Agents: ${colors.green}${agentCount}${colors.reset} available`;
@@ -322,9 +328,8 @@ function generateSystemInfo(agents, skills, hooks, hooksStatus, activeAgents) {
   // Skills
   lines.push(`${colors.dim}├─${colors.reset} 📦 Skills: ${colors.green}${skillCount}${colors.reset} loaded`);
 
-  // Hooks com spinner se houver erros
-  const hookSpinner = hooksError > 0 ? `${colors.red}${liquidSpinner.getCurrentFrame()}${colors.reset} ` : '';
-  let hookInfo = `${colors.dim}└─${colors.reset} ${hookSpinner}🔧 Hooks: ${colors.green}${hookCount}${colors.reset} configured`;
+  // Remover spinner individual dos hooks - já está no header da seção
+  let hookInfo = `${colors.dim}└─${colors.reset} 🔧 Hooks: ${colors.green}${hookCount}${colors.reset} configured`;
 
   if (hooksArray.length > 0) {
     if (hooksError > 0) {
@@ -373,13 +378,23 @@ function generatePromptEnhancerStatus(qualityData, vocabulary, confidence) {
   if (avgConfidence >= 80) confidenceColor = colors.green;
   else if (avgConfidence < 60) confidenceColor = colors.red;
 
-  // Spinner se enhancer ativo e processando
-  const enhancerSpinner = enabled && rate > 0 ? liquidSpinner.getCurrentFrame() : '';
+  // Spinner colorido: cyan se ativo e processando, dim se desabilitado
+  let enhancerSpinner;
+  if (!enabled) {
+    enhancerSpinner = `${colors.dim}${liquidSpinner.getCurrentFrame()}${colors.reset}`;
+  } else if (avg >= 70) {
+    enhancerSpinner = `${colors.green}${liquidSpinner.getCurrentFrame()}${colors.reset}`;
+  } else if (avg < 40) {
+    enhancerSpinner = `${colors.red}${liquidSpinner.getCurrentFrame()}${colors.reset}`;
+  } else {
+    enhancerSpinner = `${colors.cyan}${liquidSpinner.getCurrentFrame()}${colors.reset}`;
+  }
+
   const statusIndicator = enabled ? `${colors.green}●${colors.reset}` : `${colors.dim}○${colors.reset}`;
 
   const lines = [];
   lines.push(`${colors.dim}${'─'.repeat(80)}${colors.reset}`);
-  lines.push(`${colors.bold}${colors.cyan}${enhancerSpinner}🧠 PROMPT ENHANCER${colors.reset} ${statusIndicator}`);
+  lines.push(`${colors.bold}${colors.cyan}${enhancerSpinner} PROMPT ENHANCER${colors.reset} ${statusIndicator}`);
 
   lines.push(`${colors.dim}├─${colors.reset} Quality: ${qualityColor}${avg}/100${colors.reset} avg ${colors.dim}•${colors.reset} ` +
              `Enhanced: ${colors.cyan}${rate}%${colors.reset} ${colors.dim}(${enhanced}/${total} prompts)${colors.reset}`);
@@ -421,17 +436,14 @@ function generateBrainiacStatus(hooksStatus) {
     }
   }
 
-  // Spinner se houver erro (indicando possível retry)
-  const errorSpinner = !isSuccess ? `${colors.red}${liquidSpinner.getCurrentFrame()}${colors.reset} ` : '';
+  // Spinner colorido: vermelho se erro, verde se sucesso
+  const orchestratorSpinner = !isSuccess
+    ? `${colors.red}${liquidSpinner.getCurrentFrame()}${colors.reset}`
+    : `${colors.green}${liquidSpinner.getCurrentFrame()}${colors.reset}`;
 
   const lines = [];
   lines.push(`${colors.dim}${'─'.repeat(80)}${colors.reset}`);
-
-  const title = errorSpinner
-    ? `${colors.bold}${errorSpinner}${colors.magenta}🧠 LEGAL-BRANIAC ORCHESTRATOR${colors.reset}`
-    : `${colors.bold}${colors.magenta}🧠 LEGAL-BRANIAC ORCHESTRATOR${colors.reset}`;
-
-  lines.push(title);
+  lines.push(`${colors.bold}${colors.magenta}${orchestratorSpinner} LEGAL-BRANIAC ORCHESTRATOR${colors.reset}`);
 
   let statusLine = `${colors.dim}└─${colors.reset} Status: ${statusColor}${statusIcon} ${status.status}${colors.reset}`;
 
