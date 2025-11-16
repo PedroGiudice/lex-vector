@@ -1,0 +1,32 @@
+{
+  "patterns": {
+    "api-integration": {
+      "totalMatches": 5,
+      "successfulTranslations": 5,
+      "confidenceScore": 100,
+      "lastUpdated": 1763279353976,
+      "history": [
+        {
+          "timestamp": 1763279353743,
+          "successful": true
+        },
+        {
+          "timestamp": 1763279353791,
+          "successful": true
+        },
+        {
+          "timestamp": 1763279353835,
+          "successful": true
+        },
+        {
+          "timestamp": 1763279353915,
+          "successful": true
+        },
+        {
+          "timestamp": 1763279353976,
+          "successful": true
+        }
+      ]
+    }
+  }
+}

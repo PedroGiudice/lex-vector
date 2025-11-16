@@ -1,6 +1,6 @@
-# 📝 Prompt Enhancer v0 - Sistema de Tradução Intenção → Arquitetura
+# 📝 Prompt Enhancer v0.2 - Sistema de Tradução Intenção → Arquitetura
 
-**Status**: ✅ Production-Ready (v0.1.0)
+**Status**: ✅ Production-Ready (v0.2.0)
 **Última atualização**: 2025-11-16
 **Autor**: Legal-Braniac Orchestrator
 
@@ -14,6 +14,7 @@ Transformar prompts vagos em especificações técnicas claras, reduzindo itera�
 2. **Tradução** intenção → contexto arquitetural
 3. **Enriquecimento** com componentes técnicos sugeridos
 4. **Tracking** de qualidade e métricas
+5. **🆕 Learning adaptativo** - aprende com seu vocabulário e melhora com o tempo
 
 ---
 
@@ -228,7 +229,143 @@ Resultado: Passa direto para Claude (sem enhancement)
 
 **Executar testes**:
 ```bash
-./.claude/hooks/test-prompt-enhancer.sh
+./.claude/hooks/test-prompt-enhancer.sh  # Testes básicos (10 tests)
+./.claude/hooks/test-learning.sh         # Testes de learning (3 tests)
+```
+
+---
+
+## 🧠 Sistema de Learning Adaptativo (v0.2)
+
+### O Que É
+
+O Prompt Enhancer **aprende automaticamente** com seu vocabulário e padrões de uso, tornando-se mais preciso ao longo do tempo.
+
+### Como Funciona
+
+#### 1. **User Vocabulary Capture**
+
+Toda vez que você usa um termo técnico, o sistema:
+- Captura o termo (camelCase, snake_case, kebab-case, ACRONYMS)
+- Conta frequência de uso
+- Trackeia quais patterns matcharam quando o termo foi usado
+- **Auto-cria pattern customizado** após 5 usos do mesmo termo
+
+**Exemplo**:
+```
+Você usa "superTech" 5 vezes → Sistema cria pattern "custom-supertech"
+Próxima vez que usar "superTech" → Match automático!
+```
+
+**Arquivo**: `.claude/hooks/lib/user-vocabulary.json`
+```json
+{
+  "terms": {
+    "supertech": {
+      "count": 5,
+      "firstSeen": 1699999999,
+      "lastSeen": 1700000100,
+      "matchedPatterns": ["api-integration", "api-integration", ...]
+    }
+  },
+  "customPatterns": [
+    {
+      "id": "custom-supertech",
+      "intent": "\\bsupertech\\b",
+      "architecture": "USER_CUSTOM_PATTERN",
+      "translation": "Padrão customizado: termo 'superTech' usado frequentemente (5x)",
+      "source": "auto-learned",
+      "createdAt": 1700000100
+    }
+  ]
+}
+```
+
+#### 2. **Pattern Confidence Tracking**
+
+Para cada pattern detectado, o sistema trackeia:
+- Total de matches
+- Traduções bem-sucedidas (quando você não faz follow-up de clarificação)
+- **Confidence score** (0-100%) com decay temporal
+- Histórico das últimas 20 matches
+
+**Arquivo**: `.claude/hooks/lib/pattern-confidence.json`
+```json
+{
+  "patterns": {
+    "api-integration": {
+      "totalMatches": 15,
+      "successfulTranslations": 14,
+      "confidenceScore": 95,
+      "lastUpdated": 1700000200,
+      "history": [
+        {"timestamp": 1700000100, "successful": true},
+        {"timestamp": 1700000150, "successful": true},
+        ...
+      ]
+    }
+  }
+}
+```
+
+**Confidence Score**:
+- `>= 80%` = Pattern muito confiável (verde no statusline)
+- `60-79%` = Moderado (amarelo)
+- `< 60%` = Baixa confiança (vermelho) + warning no log
+
+**Decay Factor**: 0.95 → Dados recentes pesam mais que antigos
+
+#### 3. **Visualização no Statusline**
+
+O statusline agora exibe métricas de learning:
+
+```
+📝 Enhancer [●ON] Quality: 14/100 | Enhanced: 38% (10/26) | 📚 Learned: 2 terms | Confidence: 100% | Manual: ++
+```
+
+**Legenda**:
+- `Learned: 2 terms` = Quantos termos técnicos únicos o sistema capturou
+- `Confidence: 100%` = Confidence médio dos patterns (color-coded)
+
+### Benefícios
+
+1. ✅ **Personalização automática**: Sistema se adapta ao SEU vocabulário
+2. ✅ **Zero configuração**: Learning acontece em background
+3. ✅ **Melhora contínua**: Quanto mais você usa, mais preciso fica
+4. ✅ **Transparência**: Logs de criação de patterns + warnings de baixa confidence
+
+### Testes de Learning
+
+```bash
+./.claude/hooks/test-learning.sh
+```
+
+**Output esperado**:
+```
+🧪 Testing Prompt Enhancer Learning System
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Test 1: Auto-learning custom pattern (5x repetition)...
+  ✅ Vocabulary file created
+  📚 Terms learned: 2
+  🎯 Custom patterns created: 2
+
+Test 2: Pattern confidence tracking...
+  ✅ Confidence file created
+  📊 Patterns tracked: 1
+  💯 Average confidence: 100%
+
+Test 3: Learning data inspection...
+
+📚 Most frequent terms:
+  - api: 5x
+  - supertech: 5x
+
+📊 Pattern confidence scores:
+  - api-integration: 100% (5/5)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ Learning system test complete!
 ```
 
 **Resultado esperado**:

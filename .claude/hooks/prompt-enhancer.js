@@ -28,7 +28,11 @@ const CONFIG = {
   MIN_QUALITY_FOR_ENHANCEMENT: 30,
   MAX_ENHANCEMENT_OVERHEAD_MS: 200,
   PATTERNS_FILE: '.claude/hooks/lib/intent-patterns.json',
-  QUALITY_FILE: '.claude/statusline/prompt-quality.json'
+  QUALITY_FILE: '.claude/statusline/prompt-quality.json',
+  VOCABULARY_FILE: '.claude/hooks/lib/user-vocabulary.json',
+  CONFIDENCE_FILE: '.claude/hooks/lib/pattern-confidence.json',
+  MIN_TERM_FREQUENCY_FOR_PATTERN: 5, // Create custom pattern after 5 uses
+  CONFIDENCE_DECAY_FACTOR: 0.95 // Older data has less weight
 };
 
 /**
@@ -92,6 +96,12 @@ async function main() {
     // Track metrics
     const elapsed = Date.now() - startTime;
     await trackPrompt(userPrompt, quality, true, 'enhanced', { matches, elapsed });
+
+    // Learning: capture user vocabulary
+    await learnUserVocabulary(userPrompt, matches, projectDir);
+
+    // Learning: update pattern confidence
+    await updatePatternConfidence(matches, true, projectDir);
 
     // Output enhanced context
     outputJSON({
@@ -361,6 +371,144 @@ function readStdin() {
  */
 function outputJSON(obj) {
   console.log(JSON.stringify(obj));
+}
+
+/**
+ * Learn from user vocabulary - capture frequently used technical terms
+ */
+async function learnUserVocabulary(prompt, matches, projectDir) {
+  try {
+    const vocabPath = path.join(projectDir, CONFIG.VOCABULARY_FILE);
+
+    // Load existing vocabulary
+    let vocab = { terms: {}, customPatterns: [] };
+    try {
+      const content = await fs.readFile(vocabPath, 'utf8');
+      vocab = JSON.parse(content);
+    } catch {
+      // File doesn't exist yet
+    }
+
+    // Extract technical terms (camelCase, snake_case, kebab-case, acronyms)
+    const technicalTermRegex = /\b([a-z]+[A-Z][a-zA-Z]*|[a-z]+_[a-z_]+|[a-z]+-[a-z-]+|[A-Z]{2,})\b/g;
+    const terms = prompt.match(technicalTermRegex) || [];
+
+    // Count term frequency
+    for (const term of terms) {
+      const normalized = term.toLowerCase();
+
+      if (!vocab.terms[normalized]) {
+        vocab.terms[normalized] = {
+          count: 0,
+          firstSeen: Date.now(),
+          lastSeen: Date.now(),
+          matchedPatterns: []
+        };
+      }
+
+      vocab.terms[normalized].count++;
+      vocab.terms[normalized].lastSeen = Date.now();
+
+      // Track which patterns matched when this term was used
+      if (matches.length > 0) {
+        const patternIds = matches.map(m => m.id);
+        vocab.terms[normalized].matchedPatterns.push(...patternIds);
+      }
+
+      // Auto-create custom pattern if term used frequently
+      if (vocab.terms[normalized].count === CONFIG.MIN_TERM_FREQUENCY_FOR_PATTERN) {
+        const customPattern = {
+          id: `custom-${normalized}`,
+          intent: `\\b${normalized}\\b`,
+          architecture: 'USER_CUSTOM_PATTERN',
+          components: ['user-specific-component'],
+          translation: `Padrão customizado detectado: termo "${term}" usado frequentemente (${vocab.terms[normalized].count}x)`,
+          source: 'auto-learned',
+          createdAt: Date.now()
+        };
+
+        vocab.customPatterns.push(customPattern);
+        console.error(`📚 Learning: Created custom pattern for term "${term}" (${vocab.terms[normalized].count} uses)`);
+      }
+    }
+
+    // Save updated vocabulary
+    await fs.mkdir(path.dirname(vocabPath), { recursive: true });
+    await fs.writeFile(vocabPath, JSON.stringify(vocab, null, 2), 'utf8');
+
+  } catch (error) {
+    console.error(`⚠️ Failed to learn vocabulary: ${error.message}`);
+  }
+}
+
+/**
+ * Update pattern confidence based on translation accuracy
+ */
+async function updatePatternConfidence(matches, wasSuccessful, projectDir) {
+  try {
+    const confidencePath = path.join(projectDir, CONFIG.CONFIDENCE_FILE);
+
+    // Load existing confidence data
+    let confidence = { patterns: {} };
+    try {
+      const content = await fs.readFile(confidencePath, 'utf8');
+      confidence = JSON.parse(content);
+    } catch {
+      // File doesn't exist yet
+    }
+
+    // Update confidence for each matched pattern
+    for (const match of matches) {
+      const patternId = match.id;
+
+      if (!confidence.patterns[patternId]) {
+        confidence.patterns[patternId] = {
+          totalMatches: 0,
+          successfulTranslations: 0,
+          confidenceScore: 100, // Start optimistic
+          lastUpdated: Date.now(),
+          history: []
+        };
+      }
+
+      const pattern = confidence.patterns[patternId];
+      pattern.totalMatches++;
+
+      if (wasSuccessful) {
+        pattern.successfulTranslations++;
+      }
+
+      // Calculate confidence with decay (recent data weighs more)
+      const rawConfidence = (pattern.successfulTranslations / pattern.totalMatches) * 100;
+      const decayedConfidence = (pattern.confidenceScore * CONFIG.CONFIDENCE_DECAY_FACTOR) +
+                                (rawConfidence * (1 - CONFIG.CONFIDENCE_DECAY_FACTOR));
+
+      pattern.confidenceScore = Math.round(decayedConfidence);
+      pattern.lastUpdated = Date.now();
+
+      // Track history (last 20 matches)
+      pattern.history.push({
+        timestamp: Date.now(),
+        successful: wasSuccessful
+      });
+
+      if (pattern.history.length > 20) {
+        pattern.history = pattern.history.slice(-20);
+      }
+
+      // Log low confidence warnings
+      if (pattern.confidenceScore < 60) {
+        console.error(`⚠️ Pattern "${patternId}" has low confidence: ${pattern.confidenceScore}% (${pattern.successfulTranslations}/${pattern.totalMatches} successful)`);
+      }
+    }
+
+    // Save updated confidence
+    await fs.mkdir(path.dirname(confidencePath), { recursive: true });
+    await fs.writeFile(confidencePath, JSON.stringify(confidence, null, 2), 'utf8');
+
+  } catch (error) {
+    console.error(`⚠️ Failed to update confidence: ${error.message}`);
+  }
 }
 
 // Execute

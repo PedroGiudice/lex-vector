@@ -1,0 +1,52 @@
+{
+  "terms": {
+    "api": {
+      "count": 5,
+      "firstSeen": 1763279353742,
+      "lastSeen": 1763279353974,
+      "matchedPatterns": [
+        "api-integration",
+        "api-integration",
+        "api-integration",
+        "api-integration",
+        "api-integration"
+      ]
+    },
+    "supertech": {
+      "count": 5,
+      "firstSeen": 1763279353742,
+      "lastSeen": 1763279353975,
+      "matchedPatterns": [
+        "api-integration",
+        "api-integration",
+        "api-integration",
+        "api-integration",
+        "api-integration"
+      ]
+    }
+  },
+  "customPatterns": [
+    {
+      "id": "custom-api",
+      "intent": "\\bapi\\b",
+      "architecture": "USER_CUSTOM_PATTERN",
+      "components": [
+        "user-specific-component"
+      ],
+      "translation": "Padrão customizado detectado: termo \"API\" usado frequentemente (5x)",
+      "source": "auto-learned",
+      "createdAt": 1763279353974
+    },
+    {
+      "id": "custom-supertech",
+      "intent": "\\bsupertech\\b",
+      "architecture": "USER_CUSTOM_PATTERN",
+      "components": [
+        "user-specific-component"
+      ],
+      "translation": "Padrão customizado detectado: termo \"superTech\" usado frequentemente (5x)",
+      "source": "auto-learned",
+      "createdAt": 1763279353975
+    }
+  ]
+}

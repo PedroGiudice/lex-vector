@@ -56,13 +56,15 @@ async function main() {
  * Coleta dados do projeto
  */
 async function getProjectData(projectDir) {
-  const [agents, skills, hooks, hooksStatus, activeAgents, promptQuality] = await Promise.all([
+  const [agents, skills, hooks, hooksStatus, activeAgents, promptQuality, vocabulary, confidence] = await Promise.all([
     discoverAgents(projectDir),
     discoverSkills(projectDir),
     discoverHooks(projectDir),
     getHooksStatus(projectDir),
     getActiveAgents(projectDir),
-    getPromptQuality(projectDir)
+    getPromptQuality(projectDir),
+    getUserVocabulary(projectDir),
+    getPatternConfidence(projectDir)
   ]);
 
   return {
@@ -71,7 +73,9 @@ async function getProjectData(projectDir) {
     hooks,
     hooksStatus,
     activeAgents,
-    promptQuality
+    promptQuality,
+    vocabulary,
+    confidence
   };
 }
 
@@ -191,6 +195,32 @@ async function getActiveAgents(projectDir) {
 }
 
 /**
+ * Lê vocabulário aprendido do usuário
+ */
+async function getUserVocabulary(projectDir) {
+  try {
+    const vocabFile = path.join(projectDir, '.claude', 'hooks', 'lib', 'user-vocabulary.json');
+    const content = await fs.readFile(vocabFile, 'utf8');
+    return JSON.parse(content);
+  } catch {
+    return { terms: {}, customPatterns: [] };
+  }
+}
+
+/**
+ * Lê confidence dos patterns
+ */
+async function getPatternConfidence(projectDir) {
+  try {
+    const confidenceFile = path.join(projectDir, '.claude', 'hooks', 'lib', 'pattern-confidence.json');
+    const content = await fs.readFile(confidenceFile, 'utf8');
+    return JSON.parse(content);
+  } catch {
+    return { patterns: {} };
+  }
+}
+
+/**
  * Lê métricas de qualidade de prompts
  */
 async function getPromptQuality(projectDir) {
@@ -208,7 +238,7 @@ async function getPromptQuality(projectDir) {
  */
 function generateStatusline(claudeData, projectData) {
   const { workspace, model, git, tokens, cost } = claudeData;
-  const { agents, skills, hooks, hooksStatus, activeAgents, promptQuality } = projectData;
+  const { agents, skills, hooks, hooksStatus, activeAgents, promptQuality, vocabulary, confidence } = projectData;
 
   const lines = [];
 
@@ -219,7 +249,7 @@ function generateStatusline(claudeData, projectData) {
   lines.push(generateSystemInfo(agents, skills, hooks, hooksStatus, activeAgents));
 
   // Linha 3: Prompt Enhancer status (se disponível)
-  const enhancerInfo = generatePromptEnhancerStatus(promptQuality);
+  const enhancerInfo = generatePromptEnhancerStatus(promptQuality, vocabulary, confidence);
   if (enhancerInfo) {
     lines.push(enhancerInfo);
   }
@@ -292,7 +322,7 @@ function generateSystemInfo(agents, skills, hooks, hooksStatus, activeAgents) {
 /**
  * Gera status do Prompt Enhancer
  */
-function generatePromptEnhancerStatus(qualityData) {
+function generatePromptEnhancerStatus(qualityData, vocabulary, confidence) {
   if (!qualityData || !qualityData.stats) {
     return null;
   }
@@ -305,15 +335,31 @@ function generatePromptEnhancerStatus(qualityData) {
   const enhanced = qualityData.stats.enhancedPrompts || 0;
   const rate = total > 0 ? Math.round((enhanced / total) * 100) : 0;
 
-  // Color coding para quality
+  // Learning metrics
+  const termCount = Object.keys(vocabulary.terms || {}).length;
+  const customPatterns = (vocabulary.customPatterns || []).length;
+
+  // Calculate average confidence
+  const patterns = Object.values(confidence.patterns || {});
+  const avgConfidence = patterns.length > 0
+    ? Math.round(patterns.reduce((sum, p) => sum + p.confidenceScore, 0) / patterns.length)
+    : 100;
+
+  // Color coding
   let qualityColor = colors.yellow;
   if (avg >= 70) qualityColor = colors.green;
   else if (avg < 40) qualityColor = colors.red;
+
+  let confidenceColor = colors.yellow;
+  if (avgConfidence >= 80) confidenceColor = colors.green;
+  else if (avgConfidence < 60) confidenceColor = colors.red;
 
   return `${colors.dim}├${colors.reset} ` +
          `📝 Enhancer [${enabledColor}${enabled}${colors.reset}] ` +
          `Quality: ${qualityColor}${avg}/100${colors.reset} ${colors.dim}|${colors.reset} ` +
          `Enhanced: ${colors.cyan}${rate}%${colors.reset} ${colors.dim}(${enhanced}/${total})${colors.reset} ${colors.dim}|${colors.reset} ` +
+         `📚 Learned: ${colors.magenta}${termCount}${colors.reset} terms ${colors.dim}|${colors.reset} ` +
+         `Confidence: ${confidenceColor}${avgConfidence}%${colors.reset} ${colors.dim}|${colors.reset} ` +
          `${colors.dim}Manual: ${colors.yellow}++${colors.reset}`;
 }
 
