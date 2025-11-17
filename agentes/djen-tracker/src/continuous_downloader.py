@@ -5,6 +5,8 @@ import json
 import logging
 import time
 import sys
+import zipfile
+import io
 from pathlib import Path
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Set
@@ -207,8 +209,8 @@ class ContinuousDownloader:
                 'tribunal': tribunal,
                 'data': data,
                 'meio': meio,
-                # URL de download direto (endpoint documentado)
-                'url': f"https://comunicaapi.pje.jus.br/api/v1/caderno/{tribunal}/{data}/{meio}/download"
+                # URL da API (retorna JSON com link S3 temporário)
+                'url': f"https://comunicaapi.pje.jus.br/api/v1/caderno/{tribunal}/{data}/{meio}"
             })
 
         logger.info(f"[{tribunal}] {len(cadernos)} cadernos para tentar baixar em {data}")
@@ -255,24 +257,73 @@ class ContinuousDownloader:
         # Rate limiting
         self.rate_limiter.wait()
 
-        # Download
+        # Download em 2 etapas: API → JSON → URL S3 → ZIP → PDF
         inicio = time.time()
         try:
-            response = self.session.get(url, timeout=60, stream=True)
+            # Etapa 1: GET na API para obter metadados e URL do S3
+            logger.debug(f"[{tribunal}] Consultando API: {url}")
+            response = self.session.get(url, timeout=30)
 
             if response.status_code == 429:
                 self.rate_limiter.trigger_backoff(429)
                 raise Exception("Rate limit exceeded (429)")
 
+            if response.status_code == 404:
+                # 404 = sem publicações nesta data (comportamento esperado)
+                logger.debug(f"[{tribunal}] Sem publicações em {data}")
+                return DownloadStatus(
+                    tribunal=tribunal,
+                    data=data,
+                    meio=meio,
+                    status='sem_publicacoes'
+                )
+
             response.raise_for_status()
             self.rate_limiter.record_request()
 
-            # Salvar arquivo
+            # Parsear JSON
+            api_data = response.json()
+
+            # Verificar status
+            if api_data.get('status') != 'Processado':
+                raise Exception(f"Caderno não processado: {api_data.get('status')}")
+
+            # Extrair URL do S3 (link temporário)
+            s3_url = api_data.get('url')
+            if not s3_url:
+                raise Exception("URL de download não encontrada no JSON da API")
+
+            logger.debug(f"[{tribunal}] URL S3 obtida, baixando ZIP...")
+
+            # Etapa 2: GET na URL do S3 para baixar ZIP
+            s3_response = self.session.get(s3_url, timeout=60, stream=True)
+            s3_response.raise_for_status()
+
+            # Baixar ZIP na memória
+            zip_bytes = io.BytesIO()
             total_bytes = 0
-            with open(output_path, 'wb') as f:
-                for chunk in response.iter_content(chunk_size=8192):
-                    f.write(chunk)
-                    total_bytes += len(chunk)
+            for chunk in s3_response.iter_content(chunk_size=8192):
+                zip_bytes.write(chunk)
+                total_bytes += len(chunk)
+
+            # Etapa 3: Descompactar ZIP e extrair PDF
+            zip_bytes.seek(0)
+            with zipfile.ZipFile(zip_bytes, 'r') as zip_file:
+                # Listar arquivos no ZIP
+                pdf_files = [f for f in zip_file.namelist() if f.endswith('.pdf')]
+
+                if not pdf_files:
+                    raise Exception("Nenhum PDF encontrado no ZIP")
+
+                # Extrair primeiro PDF (geralmente só tem 1)
+                pdf_filename = pdf_files[0]
+                logger.debug(f"[{tribunal}] Extraindo {pdf_filename} do ZIP")
+
+                pdf_data = zip_file.read(pdf_filename)
+
+                # Salvar PDF
+                with open(output_path, 'wb') as f:
+                    f.write(pdf_data)
 
             tempo = time.time() - inicio
 
@@ -280,13 +331,14 @@ class ContinuousDownloader:
             self.checkpoint[checkpoint_key] = {
                 'arquivo': str(output_path),
                 'timestamp': datetime.now().isoformat(),
-                'tamanho': total_bytes
+                'tamanho': len(pdf_data),
+                'hash': api_data.get('hash', '')
             }
             self._save_checkpoint()
 
             logger.info(
                 f"[{tribunal}] ✓ {filename} "
-                f"({total_bytes/1024/1024:.1f}MB em {tempo:.1f}s)"
+                f"({len(pdf_data)/1024/1024:.1f}MB em {tempo:.1f}s)"
             )
 
             return DownloadStatus(
@@ -295,7 +347,7 @@ class ContinuousDownloader:
                 meio=meio,
                 status='sucesso',
                 arquivo=str(output_path),
-                tamanho_bytes=total_bytes,
+                tamanho_bytes=len(pdf_data),
                 tempo_download=tempo
             )
 
