@@ -126,7 +126,8 @@
       "Bash(for data in 2025-11-15 2025-11-13 2025-11-12 2025-11-11)",
       "Bash(do echo \"=== TJSP $data ===\" curl -s \"https://comunicaapi.pje.jus.br/api/v1/caderno/TJSP/$data/E\")",
       "Bash(timeout 120 python:*)",
-      "Bash(git restore:*)"
+      "Bash(git restore:*)",
+      "Bash(xargs:*)"
     ],
     "deny": [],
     "ask": []
