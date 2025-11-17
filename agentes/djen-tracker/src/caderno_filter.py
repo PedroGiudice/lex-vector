@@ -6,8 +6,7 @@ Após download massivo de cadernos, permite filtrar por:
 - Estado/Tribunal
 - Data (range)
 - Tipo de processo (1ª/2ª instância)
-
-Integra com BuscaInteligente do oab-watcher para scoring de relevância.
+- Score de relevância customizável
 """
 import json
 import logging
@@ -49,7 +48,7 @@ class CadernoFilter:
     Filtro de jurisprudência em cadernos DJEN baixados.
 
     Processa PDFs de cadernos e filtra por tema, estado, data.
-    Integra com BuscaInteligente para scoring de relevância.
+    Usa algoritmo interno de scoring de relevância.
     """
 
     def __init__(self, cadernos_dir: Path):

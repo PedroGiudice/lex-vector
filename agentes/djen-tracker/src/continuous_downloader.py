@@ -10,20 +10,14 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Set
 from dataclasses import dataclass, asdict
 
-# Importar componentes do oab-watcher (integração)
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / "oab-watcher"))
-try:
-    from src import CacheManager, TextParser, BuscaInteligente
-    OAB_WATCHER_AVAILABLE = True
-except ImportError:
-    OAB_WATCHER_AVAILABLE = False
-    logging.warning("oab-watcher não disponível, funcionalidades de análise desabilitadas")
+# Rate limiting e download de cadernos DJEN
 
 import requests
 from tenacity import retry, stop_after_attempt, wait_exponential
 from tqdm import tqdm
 
 from .rate_limiter import RateLimiter
+from .tribunais import get_all_tribunais, get_tribunais_prioritarios, get_stats, TODOS_OS_TRIBUNAIS
 
 logger = logging.getLogger(__name__)
 
@@ -45,17 +39,25 @@ class ContinuousDownloader:
     """
     Downloader contínuo de cadernos DJEN.
 
-    Roda indefinidamente até ser interrompido (Ctrl+C), baixando:
-    - STF (Supremo Tribunal Federal)
-    - STJ (Superior Tribunal de Justiça)
-    - TJSP 2ª Instância (Tribunal de Justiça de São Paulo)
+    Roda indefinidamente até ser interrompido (Ctrl+C), baixando de TODOS os tribunais:
+    - 5 Tribunais Superiores (STF, STJ, TST, TSE, STM)
+    - 27 Tribunais de Justiça Estaduais (TJSP, TJRJ, TJMG, etc)
+    - 6 Tribunais Regionais Federais (TRF1-6)
+    - 24 Tribunais Regionais do Trabalho (TRT1-24)
+    - 3 Tribunais de Justiça Militar (TJMSP, TJMRS, TJMMG)
+
+    TOTAL: 65 tribunais
+
+    Modos de operação:
+    - "all": Busca em TODOS os tribunais (65)
+    - "prioritarios": Busca apenas em tribunais prioritários (configurável)
 
     Features:
     - Rate limiting inteligente
     - Checkpoint para resumir downloads
-    - Integração com oab-watcher para análise
     - Estatísticas em tempo real
     - Retry automático
+    - Download paralelo com controle de concorrência
     """
 
     def __init__(self, config: Dict):
@@ -106,19 +108,49 @@ class ContinuousDownloader:
             'inicio': datetime.now().isoformat()
         }
 
-        # Integração oab-watcher
-        self.oab_integration_enabled = (
-            config.get('integracao_oab_watcher', {}).get('enabled', False)
-            and OAB_WATCHER_AVAILABLE
-        )
-
-        if self.oab_integration_enabled:
-            cache_dir = self.data_root / "cache"
-            self.cache_manager = CacheManager(cache_dir)
-            self.text_parser = TextParser()
-            logger.info("Integração oab-watcher ATIVA")
+        # Determinar lista de tribunais a buscar
+        self.tribunais_ativos = self._get_tribunais_ativos()
+        tribunal_stats = get_stats()
 
         logger.info(f"ContinuousDownloader inicializado: {self.data_root}")
+        logger.info(f"Modo: {config['tribunais'].get('modo', 'prioritarios')}")
+        logger.info(f"Tribunais ativos: {len(self.tribunais_ativos)}/{tribunal_stats['total']}")
+
+    def _get_tribunais_ativos(self) -> List[str]:
+        """
+        Retorna lista de tribunais a serem buscados, baseado no modo configurado.
+
+        Returns:
+            Lista de siglas de tribunais
+        """
+        modo = self.config['tribunais'].get('modo', 'prioritarios')
+        excluidos = set(self.config['tribunais'].get('excluidos', []))
+
+        if modo == 'all':
+            # TODOS os tribunais (65)
+            tribunais = TODOS_OS_TRIBUNAIS
+            logger.info("Modo ALL: buscando em TODOS os 65 tribunais brasileiros")
+        elif modo == 'prioritarios':
+            # Apenas prioritários (padrão ou customizado)
+            prioritarios_config = self.config['tribunais'].get('prioritarios', [])
+            if prioritarios_config:
+                tribunais = prioritarios_config
+                logger.info(f"Modo PRIORITARIOS: {len(prioritarios_config)} tribunais configurados")
+            else:
+                tribunais = get_tribunais_prioritarios()
+                logger.info(f"Modo PRIORITARIOS: {len(tribunais)} tribunais (padrão)")
+        else:
+            # Fallback: usar prioritários configurados ou padrão
+            tribunais = self.config['tribunais'].get('prioritarios', get_tribunais_prioritarios())
+            logger.warning(f"Modo desconhecido '{modo}', usando prioritários")
+
+        # Remover excluídos
+        tribunais_filtrados = [t for t in tribunais if t not in excluidos]
+
+        if excluidos:
+            logger.info(f"Excluídos: {', '.join(excluidos)}")
+
+        return tribunais_filtrados
 
     def _load_checkpoint(self) -> Dict:
         """Carrega checkpoint de downloads anteriores."""
@@ -142,52 +174,41 @@ class ContinuousDownloader:
         except Exception as e:
             logger.error(f"Erro ao salvar checkpoint: {e}")
 
-    @retry(stop=stop_after_attempt(3), wait=wait_exponential(min=2, max=30))
     def _fetch_cadernos_disponiveis(
         self,
         tribunal: str,
         data: str
     ) -> List[Dict]:
         """
-        Busca cadernos disponíveis na API.
+        Gera lista de cadernos disponíveis baseado nos meios de publicação.
+
+        NOTA: A API DJEN não tem endpoint para listar cadernos disponíveis.
+        Precisamos tentar baixar diretamente cada meio (E=Eletrônico, I=Impresso, etc).
 
         Args:
             tribunal: Sigla (STF, STJ, TJSP)
             data: Data (YYYY-MM-DD)
 
         Returns:
-            Lista de cadernos disponíveis
+            Lista de cadernos disponíveis (formato simplificado)
         """
-        # Rate limiting
-        self.rate_limiter.wait()
+        # Meios de publicação possíveis
+        # E = Eletrônico (principal)
+        # TODO: Adicionar outros meios se necessário (I=Impresso, etc)
+        meios = ['E']
 
-        url = "https://comunicaapi.pje.jus.br/api/v1/cadernos"
-        params = {
-            'siglaTribunal': tribunal,
-            'data': data
-        }
+        cadernos = []
+        for meio in meios:
+            cadernos.append({
+                'tribunal': tribunal,
+                'data': data,
+                'meio': meio,
+                # URL de download direto (endpoint documentado)
+                'url': f"https://comunicaapi.pje.jus.br/api/v1/caderno/{tribunal}/{data}/{meio}/download"
+            })
 
-        try:
-            response = self.session.get(url, params=params, timeout=30)
-
-            # Tratar 429 (Too Many Requests)
-            if response.status_code == 429:
-                self.rate_limiter.trigger_backoff(429)
-                raise Exception("Rate limit exceeded (429)")
-
-            response.raise_for_status()
-            self.rate_limiter.record_request()
-
-            data = response.json()
-            cadernos = data.get('items', [])
-
-            logger.info(f"[{tribunal}] {len(cadernos)} cadernos disponíveis em {data}")
-
-            return cadernos
-
-        except requests.RequestException as e:
-            logger.error(f"Erro ao buscar cadernos {tribunal}/{data}: {e}")
-            raise
+        logger.info(f"[{tribunal}] {len(cadernos)} cadernos para tentar baixar em {data}")
+        return cadernos
 
     def _download_caderno(
         self,
@@ -204,17 +225,16 @@ class ContinuousDownloader:
         Returns:
             DownloadStatus
         """
-        hash_caderno = caderno.get('hash', 'unknown')
         data = caderno.get('data', 'unknown')
-        meio = caderno.get('meio', 'unknown')
+        meio = caderno.get('meio', 'E')
         url = caderno.get('url', '')
 
-        # Nome do arquivo
-        filename = f"{tribunal}_{data}_{meio}_{hash_caderno}.pdf"
+        # Nome do arquivo (sem hash pois API não retorna mais)
+        filename = f"{tribunal}_{data}_{meio}.pdf"
         output_path = self.cadernos_dir / tribunal / filename
 
-        # Verificar se já baixou
-        checkpoint_key = f"{tribunal}_{hash_caderno}"
+        # Verificar se já baixou (usar data+meio como chave)
+        checkpoint_key = f"{tribunal}_{data}_{meio}"
         if checkpoint_key in self.checkpoint:
             logger.debug(f"[{tribunal}] Duplicata: {filename}")
             return DownloadStatus(
@@ -302,8 +322,10 @@ class ContinuousDownloader:
         logger.info(f"CICLO DE DOWNLOAD - {data}")
         logger.info(f"{'='*70}")
 
-        tribunais = self.config['tribunais']['prioritarios']
+        tribunais = self.tribunais_ativos
         resultados = []
+
+        logger.info(f"Buscando em {len(tribunais)} tribunais...")
 
         for tribunal in tribunais:
             try:
@@ -359,7 +381,12 @@ class ContinuousDownloader:
         logger.info(f"\n{'#'*70}")
         logger.info(f"DOWNLOAD CONTÍNUO INICIADO")
         logger.info(f"Intervalo: {intervalo} minutos")
-        logger.info(f"Tribunais: {', '.join(self.config['tribunais']['prioritarios'])}")
+        logger.info(f"Modo: {self.config['tribunais'].get('modo', 'prioritarios')}")
+        logger.info(f"Tribunais: {len(self.tribunais_ativos)} ativos")
+        if len(self.tribunais_ativos) <= 10:
+            logger.info(f"Lista: {', '.join(self.tribunais_ativos)}")
+        else:
+            logger.info(f"Primeiros: {', '.join(self.tribunais_ativos[:10])}...")
         logger.info(f"Ctrl+C para interromper")
         logger.info(f"{'#'*70}\n")
 

@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 
 from src import ContinuousDownloader
+from src.path_utils import resolve_config_paths
 
 
 def configurar_logging(config: dict):
@@ -42,6 +43,9 @@ def main():
     config_path = Path(__file__).parent / 'config.json'
     with open(config_path, 'r', encoding='utf-8') as f:
         config = json.load(f)
+
+    # Resolver paths (auto-detecção Windows/WSL2)
+    config = resolve_config_paths(config, 'djen-tracker')
 
     # Configurar logging
     configurar_logging(config)
