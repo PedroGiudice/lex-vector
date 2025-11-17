@@ -1,0 +1,506 @@
+{
+  "enabled": true,
+  "stats": {
+    "totalPrompts": 36,
+    "enhancedPrompts": 18,
+    "averageQuality": 19,
+    "lastRun": 1763349519741
+  },
+  "history": [
+    {
+      "timestamp": 1763277875952,
+      "quality": 0,
+      "enhanced": false,
+      "reason": "bypassed",
+      "promptLength": 18
+    },
+    {
+      "timestamp": 1763277881832,
+      "quality": 0,
+      "enhanced": false,
+      "reason": "bypassed",
+      "promptLength": 6
+    },
+    {
+      "timestamp": 1763277893625,
+      "quality": 0,
+      "enhanced": false,
+      "reason": "bypassed",
+      "promptLength": 18
+    },
+    {
+      "timestamp": 1763277898496,
+      "quality": 0,
+      "enhanced": false,
+      "reason": "bypassed",
+      "promptLength": 18
+    },
+    {
+      "timestamp": 1763278476827,
+      "quality": 0,
+      "enhanced": false,
+      "reason": "bypassed",
+      "promptLength": 18
+    },
+    {
+      "timestamp": 1763278487814,
+      "quality": 0,
+      "enhanced": false,
+      "reason": "bypassed",
+      "promptLength": 18
+    },
+    {
+      "timestamp": 1763278494287,
+      "quality": 0,
+      "enhanced": false,
+      "reason": "bypassed",
+      "promptLength": 18
+    },
+    {
+      "timestamp": 1763278510617,
+      "quality": 0,
+      "enhanced": false,
+      "reason": "bypassed",
+      "promptLength": 18
+    },
+    {
+      "timestamp": 1763278565830,
+      "quality": 0,
+      "enhanced": false,
+      "reason": "bypassed",
+      "promptLength": 18
+    },
+    {
+      "timestamp": 1763278565916,
+      "quality": 0,
+      "enhanced": false,
+      "reason": "bypassed",
+      "promptLength": 13
+    },
+    {
+      "timestamp": 1763278566001,
+      "quality": 0,
+      "enhanced": false,
+      "reason": "bypassed",
+      "promptLength": 19
+    },
+    {
+      "timestamp": 1763278566084,
+      "quality": 25,
+      "enhanced": true,
+      "reason": "enhanced",
+      "promptLength": 24,
+      "matches": [],
+      "elapsed": 7
+    },
+    {
+      "timestamp": 1763278566176,
+      "quality": 25,
+      "enhanced": true,
+      "reason": "enhanced",
+      "promptLength": 36,
+      "matches": [
+        {
+          "id": "mass-data-collection",
+          "architecture": "API_SCRAPING_STORAGE",
+          "components": [
+            "api-client (with retry logic)",
+            "rate-limiter (respect API quotas)",
+            "data-parser (normalize formats)",
+            "storage-layer (scalable persistence)",
+            "error-handler (resume on failure)"
+          ],
+          "translation": "Sistema de coleta em massa requer:\n  1. Cliente API com rate limiting e retry\n  2. Parser de dados para normalização\n  3. Storage escalável (considere chunking para grandes volumes)\n  4. Error handling robusto para retomar de falhas",
+          "questions": [
+            "Qual a fonte de dados? (API REST, scraping HTML, arquivos, outro)",
+            "Volume estimado? (centenas, milhares, milhões)",
+            "Formato de saída? (JSON, CSV, banco de dados)"
+          ]
+        }
+      ],
+      "elapsed": 8
+    },
+    {
+      "timestamp": 1763278566268,
+      "quality": 20,
+      "enhanced": true,
+      "reason": "enhanced",
+      "promptLength": 47,
+      "matches": [
+        {
+          "id": "monitor-notify",
+          "architecture": "POLLING_NOTIFICATION",
+          "components": [
+            "scheduler (cron/interval)",
+            "diff-detector (state comparison)",
+            "notification-service (email/webhook/etc)",
+            "state-storage (track last known state)"
+          ],
+          "translation": "Sistema de monitoramento requer:\n  1. Scheduler para polling periódico\n  2. Detector de mudanças (diff entre estados)\n  3. Serviço de notificação (email, SMS, webhook)\n  4. Storage de estado para comparação",
+          "questions": [
+            "Frequência de verificação? (tempo real, minutos, horas, diário)",
+            "Canal de notificação? (email, SMS, webhook, log)",
+            "O que caracteriza uma mudança relevante?"
+          ]
+        }
+      ],
+      "elapsed": 9
+    },
+    {
+      "timestamp": 1763278566360,
+      "quality": 30,
+      "enhanced": true,
+      "reason": "enhanced",
+      "promptLength": 35,
+      "matches": [
+        {
+          "id": "api-integration",
+          "architecture": "API_CLIENT_WRAPPER",
+          "components": [
+            "http-client (requests library)",
+            "auth-handler (API keys, OAuth, etc)",
+            "response-parser (handle API formats)",
+            "cache-layer (optional, reduce API calls)"
+          ],
+          "translation": "Integração com API requer:\n  1. Cliente HTTP com autenticação\n  2. Parser de respostas\n  3. Error handling para status codes\n  4. Cache opcional para reduzir chamadas",
+          "questions": [
+            "API pública ou privada? (autenticação necessária?)",
+            "Rate limits da API? (quota por minuto/hora/dia)",
+            "Formato de resposta? (JSON, XML, outro)"
+          ]
+        }
+      ],
+      "elapsed": 9
+    },
+    {
+      "timestamp": 1763278566454,
+      "quality": 69,
+      "enhanced": false,
+      "reason": "clear-prompt",
+      "promptLength": 125
+    },
+    {
+      "timestamp": 1763278566634,
+      "quality": 6,
+      "enhanced": true,
+      "reason": "enhanced",
+      "promptLength": 6,
+      "matches": [],
+      "elapsed": 8
+    },
+    {
+      "timestamp": 1763278686847,
+      "quality": 0,
+      "enhanced": false,
+      "reason": "bypassed",
+      "promptLength": 18
+    },
+    {
+      "timestamp": 1763278686949,
+      "quality": 0,
+      "enhanced": false,
+      "reason": "bypassed",
+      "promptLength": 13
+    },
+    {
+      "timestamp": 1763278687032,
+      "quality": 0,
+      "enhanced": false,
+      "reason": "bypassed",
+      "promptLength": 19
+    },
+    {
+      "timestamp": 1763278687119,
+      "quality": 25,
+      "enhanced": true,
+      "reason": "enhanced",
+      "promptLength": 24,
+      "matches": [],
+      "elapsed": 8
+    },
+    {
+      "timestamp": 1763278687206,
+      "quality": 25,
+      "enhanced": true,
+      "reason": "enhanced",
+      "promptLength": 36,
+      "matches": [
+        {
+          "id": "mass-data-collection",
+          "architecture": "API_SCRAPING_STORAGE",
+          "components": [
+            "api-client (with retry logic)",
+            "rate-limiter (respect API quotas)",
+            "data-parser (normalize formats)",
+            "storage-layer (scalable persistence)",
+            "error-handler (resume on failure)"
+          ],
+          "translation": "Sistema de coleta em massa requer:\n  1. Cliente API com rate limiting e retry\n  2. Parser de dados para normalização\n  3. Storage escalável (considere chunking para grandes volumes)\n  4. Error handling robusto para retomar de falhas",
+          "questions": [
+            "Qual a fonte de dados? (API REST, scraping HTML, arquivos, outro)",
+            "Volume estimado? (centenas, milhares, milhões)",
+            "Formato de saída? (JSON, CSV, banco de dados)"
+          ]
+        }
+      ],
+      "elapsed": 9
+    },
+    {
+      "timestamp": 1763278687291,
+      "quality": 20,
+      "enhanced": true,
+      "reason": "enhanced",
+      "promptLength": 47,
+      "matches": [
+        {
+          "id": "monitor-notify",
+          "architecture": "POLLING_NOTIFICATION",
+          "components": [
+            "scheduler (cron/interval)",
+            "diff-detector (state comparison)",
+            "notification-service (email/webhook/etc)",
+            "state-storage (track last known state)"
+          ],
+          "translation": "Sistema de monitoramento requer:\n  1. Scheduler para polling periódico\n  2. Detector de mudanças (diff entre estados)\n  3. Serviço de notificação (email, SMS, webhook)\n  4. Storage de estado para comparação",
+          "questions": [
+            "Frequência de verificação? (tempo real, minutos, horas, diário)",
+            "Canal de notificação? (email, SMS, webhook, log)",
+            "O que caracteriza uma mudança relevante?"
+          ]
+        }
+      ],
+      "elapsed": 7
+    },
+    {
+      "timestamp": 1763278687378,
+      "quality": 30,
+      "enhanced": true,
+      "reason": "enhanced",
+      "promptLength": 35,
+      "matches": [
+        {
+          "id": "api-integration",
+          "architecture": "API_CLIENT_WRAPPER",
+          "components": [
+            "http-client (requests library)",
+            "auth-handler (API keys, OAuth, etc)",
+            "response-parser (handle API formats)",
+            "cache-layer (optional, reduce API calls)"
+          ],
+          "translation": "Integração com API requer:\n  1. Cliente HTTP com autenticação\n  2. Parser de respostas\n  3. Error handling para status codes\n  4. Cache opcional para reduzir chamadas",
+          "questions": [
+            "API pública ou privada? (autenticação necessária?)",
+            "Rate limits da API? (quota por minuto/hora/dia)",
+            "Formato de resposta? (JSON, XML, outro)"
+          ]
+        }
+      ],
+      "elapsed": 7
+    },
+    {
+      "timestamp": 1763278687463,
+      "quality": 69,
+      "enhanced": false,
+      "reason": "clear-prompt",
+      "promptLength": 125
+    },
+    {
+      "timestamp": 1763278687631,
+      "quality": 6,
+      "enhanced": true,
+      "reason": "enhanced",
+      "promptLength": 6,
+      "matches": [],
+      "elapsed": 7
+    },
+    {
+      "timestamp": 1763279353741,
+      "quality": 40,
+      "enhanced": true,
+      "reason": "enhanced",
+      "promptLength": 57,
+      "matches": [
+        {
+          "id": "api-integration",
+          "architecture": "API_CLIENT_WRAPPER",
+          "components": [
+            "http-client (requests library)",
+            "auth-handler (API keys, OAuth, etc)",
+            "response-parser (handle API formats)",
+            "cache-layer (optional, reduce API calls)"
+          ],
+          "translation": "Integração com API requer:\n  1. Cliente HTTP com autenticação\n  2. Parser de respostas\n  3. Error handling para status codes\n  4. Cache opcional para reduzir chamadas",
+          "questions": [
+            "API pública ou privada? (autenticação necessária?)",
+            "Rate limits da API? (quota por minuto/hora/dia)",
+            "Formato de resposta? (JSON, XML, outro)"
+          ]
+        }
+      ],
+      "elapsed": 11
+    },
+    {
+      "timestamp": 1763279353785,
+      "quality": 40,
+      "enhanced": true,
+      "reason": "enhanced",
+      "promptLength": 57,
+      "matches": [
+        {
+          "id": "api-integration",
+          "architecture": "API_CLIENT_WRAPPER",
+          "components": [
+            "http-client (requests library)",
+            "auth-handler (API keys, OAuth, etc)",
+            "response-parser (handle API formats)",
+            "cache-layer (optional, reduce API calls)"
+          ],
+          "translation": "Integração com API requer:\n  1. Cliente HTTP com autenticação\n  2. Parser de respostas\n  3. Error handling para status codes\n  4. Cache opcional para reduzir chamadas",
+          "questions": [
+            "API pública ou privada? (autenticação necessária?)",
+            "Rate limits da API? (quota por minuto/hora/dia)",
+            "Formato de resposta? (JSON, XML, outro)"
+          ]
+        }
+      ],
+      "elapsed": 13
+    },
+    {
+      "timestamp": 1763279353832,
+      "quality": 40,
+      "enhanced": true,
+      "reason": "enhanced",
+      "promptLength": 57,
+      "matches": [
+        {
+          "id": "api-integration",
+          "architecture": "API_CLIENT_WRAPPER",
+          "components": [
+            "http-client (requests library)",
+            "auth-handler (API keys, OAuth, etc)",
+            "response-parser (handle API formats)",
+            "cache-layer (optional, reduce API calls)"
+          ],
+          "translation": "Integração com API requer:\n  1. Cliente HTTP com autenticação\n  2. Parser de respostas\n  3. Error handling para status codes\n  4. Cache opcional para reduzir chamadas",
+          "questions": [
+            "API pública ou privada? (autenticação necessária?)",
+            "Rate limits da API? (quota por minuto/hora/dia)",
+            "Formato de resposta? (JSON, XML, outro)"
+          ]
+        }
+      ],
+      "elapsed": 14
+    },
+    {
+      "timestamp": 1763279353910,
+      "quality": 40,
+      "enhanced": true,
+      "reason": "enhanced",
+      "promptLength": 57,
+      "matches": [
+        {
+          "id": "api-integration",
+          "architecture": "API_CLIENT_WRAPPER",
+          "components": [
+            "http-client (requests library)",
+            "auth-handler (API keys, OAuth, etc)",
+            "response-parser (handle API formats)",
+            "cache-layer (optional, reduce API calls)"
+          ],
+          "translation": "Integração com API requer:\n  1. Cliente HTTP com autenticação\n  2. Parser de respostas\n  3. Error handling para status codes\n  4. Cache opcional para reduzir chamadas",
+          "questions": [
+            "API pública ou privada? (autenticação necessária?)",
+            "Rate limits da API? (quota por minuto/hora/dia)",
+            "Formato de resposta? (JSON, XML, outro)"
+          ]
+        }
+      ],
+      "elapsed": 24
+    },
+    {
+      "timestamp": 1763279353973,
+      "quality": 40,
+      "enhanced": true,
+      "reason": "enhanced",
+      "promptLength": 57,
+      "matches": [
+        {
+          "id": "api-integration",
+          "architecture": "API_CLIENT_WRAPPER",
+          "components": [
+            "http-client (requests library)",
+            "auth-handler (API keys, OAuth, etc)",
+            "response-parser (handle API formats)",
+            "cache-layer (optional, reduce API calls)"
+          ],
+          "translation": "Integração com API requer:\n  1. Cliente HTTP com autenticação\n  2. Parser de respostas\n  3. Error handling para status codes\n  4. Cache opcional para reduzir chamadas",
+          "questions": [
+            "API pública ou privada? (autenticação necessária?)",
+            "Rate limits da API? (quota por minuto/hora/dia)",
+            "Formato de resposta? (JSON, XML, outro)"
+          ]
+        }
+      ],
+      "elapsed": 15
+    },
+    {
+      "timestamp": 1763279938385,
+      "quality": 34,
+      "enhanced": false,
+      "reason": "clear-prompt",
+      "promptLength": 41
+    },
+    {
+      "timestamp": 1763279938554,
+      "quality": 12,
+      "enhanced": true,
+      "reason": "enhanced",
+      "promptLength": 12,
+      "matches": [],
+      "elapsed": 14
+    },
+    {
+      "timestamp": 1763279938666,
+      "quality": 26,
+      "enhanced": true,
+      "reason": "enhanced",
+      "promptLength": 16,
+      "matches": [],
+      "elapsed": 10
+    },
+    {
+      "timestamp": 1763279945672,
+      "quality": 20,
+      "enhanced": true,
+      "reason": "enhanced",
+      "promptLength": 31,
+      "matches": [
+        {
+          "id": "mass-data-collection",
+          "architecture": "API_SCRAPING_STORAGE",
+          "components": [
+            "api-client (with retry logic)",
+            "rate-limiter (respect API quotas)",
+            "data-parser (normalize formats)",
+            "storage-layer (scalable persistence)",
+            "error-handler (resume on failure)"
+          ],
+          "translation": "Sistema de coleta em massa requer:\n  1. Cliente API com rate limiting e retry\n  2. Parser de dados para normalização\n  3. Storage escalável (considere chunking para grandes volumes)\n  4. Error handling robusto para retomar de falhas",
+          "questions": [
+            "Qual a fonte de dados? (API REST, scraping HTML, arquivos, outro)",
+            "Volume estimado? (centenas, milhares, milhões)",
+            "Formato de saída? (JSON, CSV, banco de dados)"
+          ]
+        }
+      ],
+      "elapsed": 8
+    },
+    {
+      "timestamp": 1763349519741,
+      "quality": 30,
+      "enhanced": false,
+      "reason": "clear-prompt",
+      "promptLength": 24
+    }
+  ]
+}

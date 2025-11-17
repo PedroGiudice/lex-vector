@@ -1,0 +1,79 @@
+{
+  "aesthetic-enforcer": {
+    "status": "error",
+    "timestamp": 1763273508769,
+    "lastRun": "2025-11-16T06:11:48.769Z",
+    "exitCode": 1,
+    "error": "node:internal/modules/cjs/loader:1424\n  throw err;\n  ^\n\nError: Cannot find module '/home/cmr-auto/claude-work/repos/Claude-Code-Projetos/.claude/hooks/aesthetic-enforcer.js'\n    at Module._resolveFilename (node:internal/modules/cjs/loader:1421:15)\n    at defaultResolveImpl (node:internal/modules/cjs/loader:1059:19)\n    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1064:22)\n    at Module._load (node:internal/modules/cjs/loader:1227:37)\n    at TracingChannel.traceSync (node:diagnostics_channel:328:14)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:245:24)\n    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)\n    at node:internal/main/run_main_module:33:47 {\n  code: 'MODULE_NOT_FOUND',\n  requireStack: []\n}\n\nNode.js v24.11.1"
+  },
+  "git-status-watcher": {
+    "status": "error",
+    "timestamp": 1763273508747,
+    "lastRun": "2025-11-16T06:11:48.747Z",
+    "exitCode": 1,
+    "error": "node:internal/modules/cjs/loader:1424\n  throw err;\n  ^\n\nError: Cannot find module '/home/cmr-auto/claude-work/repos/Claude-Code-Projetos/.claude/hooks/git-status-watcher.js'\n    at Module._resolveFilename (node:internal/modules/cjs/loader:1421:15)\n    at defaultResolveImpl (node:internal/modules/cjs/loader:1059:19)\n    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1064:22)\n    at Module._load (node:internal/modules/cjs/loader:1227:37)\n    at TracingChannel.traceSync (node:diagnostics_channel:328:14)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:245:24)\n    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)\n    at node:internal/main/run_main_module:33:47 {\n  code: 'MODULE_NOT_FOUND',\n  requireStack: []\n}\n\nNode.js v24.11.1"
+  },
+  "data-layer-validator": {
+    "status": "error",
+    "timestamp": 1763273508810,
+    "lastRun": "2025-11-16T06:11:48.810Z",
+    "exitCode": 1,
+    "error": "node:internal/modules/cjs/loader:1424\n  throw err;\n  ^\n\nError: Cannot find module '/home/cmr-auto/claude-work/repos/Claude-Code-Projetos/.claude/hooks/data-layer-validator.js'\n    at Module._resolveFilename (node:internal/modules/cjs/loader:1421:15)\n    at defaultResolveImpl (node:internal/modules/cjs/loader:1059:19)\n    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1064:22)\n    at Module._load (node:internal/modules/cjs/loader:1227:37)\n    at TracingChannel.traceSync (node:diagnostics_channel:328:14)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:245:24)\n    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)\n    at node:internal/main/run_main_module:33:47 {\n  code: 'MODULE_NOT_FOUND',\n  requireStack: []\n}\n\nNode.js v24.11.1"
+  },
+  "corporate-detector": {
+    "status": "error",
+    "timestamp": 1763273508669,
+    "lastRun": "2025-11-16T06:11:48.669Z",
+    "exitCode": 1,
+    "error": "node:internal/modules/cjs/loader:1424\n  throw err;\n  ^\n\nError: Cannot find module '/home/cmr-auto/claude-work/repos/Claude-Code-Projetos/.claude/hooks/corporate-detector.js'\n    at Module._resolveFilename (node:internal/modules/cjs/loader:1421:15)\n    at defaultResolveImpl (node:internal/modules/cjs/loader:1059:19)\n    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1064:22)\n    at Module._load (node:internal/modules/cjs/loader:1227:37)\n    at TracingChannel.traceSync (node:diagnostics_channel:328:14)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:245:24)\n    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)\n    at node:internal/main/run_main_module:33:47 {\n  code: 'MODULE_NOT_FOUND',\n  requireStack: []\n}\n\nNode.js v24.11.1"
+  },
+  "dependency-drift-checker": {
+    "status": "error",
+    "timestamp": 1763273508719,
+    "lastRun": "2025-11-16T06:11:48.719Z",
+    "exitCode": 1,
+    "error": "node:internal/modules/cjs/loader:1424\n  throw err;\n  ^\n\nError: Cannot find module '/home/cmr-auto/claude-work/repos/Claude-Code-Projetos/.claude/hooks/dependency-drift-checker.js'\n    at Module._resolveFilename (node:internal/modules/cjs/loader:1421:15)\n    at defaultResolveImpl (node:internal/modules/cjs/loader:1059:19)\n    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1064:22)\n    at Module._load (node:internal/modules/cjs/loader:1227:37)\n    at TracingChannel.traceSync (node:diagnostics_channel:328:14)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:245:24)\n    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)\n    at node:internal/main/run_main_module:33:47 {\n  code: 'MODULE_NOT_FOUND',\n  requireStack: []\n}\n\nNode.js v24.11.1"
+  },
+  "invoke-legal-braniac-hybrid": {
+    "status": "error",
+    "timestamp": 1763273508791,
+    "lastRun": "2025-11-16T06:11:48.791Z",
+    "exitCode": 1,
+    "error": "node:internal/modules/cjs/loader:1424\n  throw err;\n  ^\n\nError: Cannot find module '/home/cmr-auto/claude-work/repos/Claude-Code-Projetos/.claude/hooks/invoke-legal-braniac-hybrid.js'\n    at Module._resolveFilename (node:internal/modules/cjs/loader:1421:15)\n    at defaultResolveImpl (node:internal/modules/cjs/loader:1059:19)\n    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1064:22)\n    at Module._load (node:internal/modules/cjs/loader:1227:37)\n    at TracingChannel.traceSync (node:diagnostics_channel:328:14)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:245:24)\n    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)\n    at node:internal/main/run_main_module:33:47 {\n  code: 'MODULE_NOT_FOUND',\n  requireStack: []\n}\n\nNode.js v24.11.1"
+  },
+  "session-context-hybrid": {
+    "status": "error",
+    "timestamp": 1763273508827,
+    "lastRun": "2025-11-16T06:11:48.827Z",
+    "exitCode": 1,
+    "error": "node:internal/modules/cjs/loader:1424\n  throw err;\n  ^\n\nError: Cannot find module '/home/cmr-auto/claude-work/repos/Claude-Code-Projetos/.claude/hooks/session-context-hybrid.js'\n    at Module._resolveFilename (node:internal/modules/cjs/loader:1421:15)\n    at defaultResolveImpl (node:internal/modules/cjs/loader:1059:19)\n    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1064:22)\n    at Module._load (node:internal/modules/cjs/loader:1227:37)\n    at TracingChannel.traceSync (node:diagnostics_channel:328:14)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:245:24)\n    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)\n    at node:internal/main/run_main_module:33:47 {\n  code: 'MODULE_NOT_FOUND',\n  requireStack: []\n}\n\nNode.js v24.11.1"
+  },
+  "superpowers-activator": {
+    "status": "error",
+    "timestamp": 1763273508840,
+    "lastRun": "2025-11-16T06:11:48.840Z",
+    "exitCode": 1,
+    "error": "node:internal/modules/cjs/loader:1424\n  throw err;\n  ^\n\nError: Cannot find module '/home/cmr-auto/claude-work/repos/Claude-Code-Projetos/.claude/hooks/superpowers-activator.js'\n    at Module._resolveFilename (node:internal/modules/cjs/loader:1421:15)\n    at defaultResolveImpl (node:internal/modules/cjs/loader:1059:19)\n    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1064:22)\n    at Module._load (node:internal/modules/cjs/loader:1227:37)\n    at TracingChannel.traceSync (node:diagnostics_channel:328:14)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:245:24)\n    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)\n    at node:internal/main/run_main_module:33:47 {\n  code: 'MODULE_NOT_FOUND',\n  requireStack: []\n}\n\nNode.js v24.11.1"
+  },
+  "venv-check": {
+    "status": "error",
+    "timestamp": 1763273508849,
+    "lastRun": "2025-11-16T06:11:48.849Z",
+    "exitCode": 1,
+    "error": "node:internal/modules/cjs/loader:1424\n  throw err;\n  ^\n\nError: Cannot find module '/home/cmr-auto/claude-work/repos/Claude-Code-Projetos/.claude/hooks/venv-check.js'\n    at Module._resolveFilename (node:internal/modules/cjs/loader:1421:15)\n    at defaultResolveImpl (node:internal/modules/cjs/loader:1059:19)\n    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1064:22)\n    at Module._load (node:internal/modules/cjs/loader:1227:37)\n    at TracingChannel.traceSync (node:diagnostics_channel:328:14)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:245:24)\n    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)\n    at node:internal/main/run_main_module:33:47 {\n  code: 'MODULE_NOT_FOUND',\n  requireStack: []\n}\n\nNode.js v24.11.1"
+  },
+  "context-collector": {
+    "status": "success",
+    "timestamp": 1763350394459,
+    "lastRun": "2025-11-17T03:33:14.459Z",
+    "exitCode": 0,
+    "output": "{\"continue\":true,\"systemMessage\":\"⚠️  VALIDATIONS:\\n⚠️  RULE_006: venv não ativo! Ative com: source .venv/bin/activate\"}\n"
+  },
+  "prompt-enhancer": {
+    "status": "success",
+    "timestamp": 1763350394384,
+    "lastRun": "2025-11-17T03:33:14.384Z",
+    "exitCode": 0,
+    "output": "{\"continue\":true,\"systemMessage\":\"\"}\n"
+  }
+}

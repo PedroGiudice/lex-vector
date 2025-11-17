@@ -5,9 +5,9 @@
 
   "statusLine": {
     "type": "command",
-    "command": "node .claude/statusline/unified-statusline.js",
+    "command": "node .claude/statusline/enhanced-statusline.js",
     "padding": 0,
-    "_note": "Unified statusline v2.0 - professional design + VibbinLogging integration + responsive layout"
+    "_note": "Enhanced statusline v3.0 - vibe-log native (Gordon/coach) + project customizations (legal-braniac, agentes, skills, hooks, venv, git)"
   },
 
   "hooks": {
