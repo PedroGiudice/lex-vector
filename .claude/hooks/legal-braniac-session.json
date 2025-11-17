@@ -1,8 +1,8 @@
 {
-  "sessionId": "2d037519-bc8e-4eed-8152-04c523c366b3",
-  "sessionStart": 1763355207878,
-  "startTime": 1763355207878,
-  "lastUpdate": 1763355207878,
+  "sessionId": "7c66bbe7-5e9d-4b5a-b249-d3000ff0a0be",
+  "sessionStart": 1763378888510,
+  "startTime": 1763378888510,
+  "lastUpdate": 1763378888510,
   "agents": {
     "available": [
       "analise-dados-legal",
@@ -241,8 +241,8 @@
         "PreCompact",
         "SessionEnd"
       ],
-      "command": "npx vibe-log-cli send --silent --background --hook-trigger=sessionstart --hook-version=1.0.0 --claude-project-dir=\"$CLAUDE_PROJECT_DIR\"",
-      "note": "Vibe-log: capture session on startup"
+      "command": "npx vibe-log-cli send --silent --hook-trigger=sessionstart --hook-version=1.0.0",
+      "note": "Vibe-log: capture session on startup (auto-detect project dir, no background mode)"
     },
     "prompt-enhancer": {
       "triggers": [
