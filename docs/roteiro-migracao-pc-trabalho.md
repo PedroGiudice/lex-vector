@@ -13,21 +13,58 @@
 - Windows 10 build 19041+ ou Windows 11
 - PowerShell 7+ com privilégios de Administrador
 - 8GB RAM mínimo (recomendado: 16GB)
-- 20GB espaço livre em disco
-- Acesso à internet
+- 20GB espaço livre em disco (C:\)
+- **Conexão internet estável** (download ~2-3GB durante setup)
+- Conta GitHub configurada (HTTPS ou SSH)
+
+**Validação de espaço em disco:**
+```powershell
+# PowerShell - Verificar espaço livre
+$disk = Get-PSDrive C
+$freeGB = [math]::Round($disk.Free / 1GB, 2)
+Write-Host "Espaço livre em C:\: $freeGB GB"
+
+if ($freeGB -lt 20) {
+    Write-Host "⚠️  Espaço insuficiente! Mínimo: 20GB" -ForegroundColor Red
+    exit 1
+} else {
+    Write-Host "✓ Espaço suficiente" -ForegroundColor Green
+}
+```
 
 ---
 
 ## Método 1: Instalação Automatizada (Recomendado)
 
-### Passo 1: Executar Script PowerShell
+### Passo 1: Baixar e Executar Script PowerShell
 
+**⚠️ Importante:** O script está no repositório, então precisamos baixá-lo primeiro.
+
+**Opção A: Clone temporário (recomendado)**
 ```powershell
 # PowerShell como Administrador
-cd C:\claude-work\repos\Claude-Code-Projetos
+cd $env:TEMP
+git clone https://github.com/PedroGiudice/Claude-Code-Projetos.git temp-setup
+cd temp-setup
 
-# Executar script de setup (já existe no repo)
+# Executar script de setup
 .\setup-claude-code-wsl.ps1
+
+# Limpar após instalação (opcional - pode deixar para referência)
+# cd ..
+# Remove-Item -Recurse -Force temp-setup
+```
+
+**Opção B: Download direto**
+```powershell
+# PowerShell como Administrador
+# Baixar apenas o script
+$scriptUrl = "https://raw.githubusercontent.com/PedroGiudice/Claude-Code-Projetos/main/setup-claude-code-wsl.ps1"
+$scriptPath = "$env:TEMP\setup-claude-code-wsl.ps1"
+Invoke-WebRequest -Uri $scriptUrl -OutFile $scriptPath
+
+# Executar
+& $scriptPath
 ```
 
 **O que o script faz:**
@@ -40,6 +77,11 @@ cd C:\claude-work\repos\Claude-Code-Projetos
 7. Adiciona exclusão Windows Defender
 
 **Duração:** ~30-40 minutos
+
+**Notas sobre o script:**
+- Se já tiver Ubuntu 24.04 instalado, o script fará backup automático
+- Use flag `-SkipCleanup` para preservar instalação existente
+- Use flag `-SkipBackup` para pular backup (NÃO RECOMENDADO)
 
 ### Passo 2: Clonar Repositório no WSL
 
@@ -62,21 +104,29 @@ cd Claude-Code-Projetos
 cd ~/claude-work/repos/Claude-Code-Projetos
 
 # Criar venvs para todos os agentes
-for agente in agentes/djen-tracker agentes/legal-articles-finder agentes/legal-lens agentes/legal-rag agentes/oab-watcher; do
-    echo "Configurando $agente..."
-    cd "$agente"
+for agente in djen-tracker legal-articles-finder legal-lens legal-rag oab-watcher; do
+    echo "Configurando agentes/$agente..."
 
-    # Criar venv
-    python3 -m venv .venv
+    if [ -d "agentes/$agente" ]; then
+        pushd "agentes/$agente" > /dev/null  # Salva diretório atual
 
-    # Ativar e instalar deps
-    source .venv/bin/activate
-    pip install --upgrade pip
-    [ -f requirements.txt ] && pip install -r requirements.txt
-    deactivate
+        # Criar venv
+        python3 -m venv .venv
 
-    cd ../..
+        # Ativar e instalar deps
+        source .venv/bin/activate
+        pip install --upgrade pip -q
+        [ -f requirements.txt ] && pip install -r requirements.txt -q
+        deactivate
+
+        popd > /dev/null  # Volta ao diretório salvo
+        echo "  ✓ agentes/$agente configurado"
+    else
+        echo "  ⚠️  Diretório não encontrado: agentes/$agente"
+    fi
 done
+
+echo "✓ Todos os venvs configurados"
 ```
 
 **Duração:** ~10-15 minutos
@@ -115,12 +165,80 @@ git config --global user.email "seu@email.com"
 # Configurar credential helper (evita pedir senha sempre)
 git config --global credential.helper store
 
-# OU configurar SSH keys (recomendado)
-ssh-keygen -t ed25519 -C "seu@email.com"
+# OU configurar SSH keys (recomendado - mais seguro)
+echo "Gerando SSH key..."
+ssh-keygen -t ed25519 -C "seu@email.com" -f ~/.ssh/id_ed25519 -N ""
+
+echo "Adicionando ao ssh-agent..."
 eval "$(ssh-agent -s)"
 ssh-add ~/.ssh/id_ed25519
-cat ~/.ssh/id_ed25519.pub  # Adicionar no GitHub
+
+echo -e "\n📋 Copie esta chave pública e adicione no GitHub:"
+echo "   GitHub > Settings > SSH and GPG keys > New SSH key"
+echo ""
+cat ~/.ssh/id_ed25519.pub
+echo ""
+
+read -p "Pressione Enter APÓS adicionar a chave no GitHub..."
+
+echo "Testando conexão SSH..."
+if ssh -T git@github.com 2>&1 | grep -q "successfully authenticated"; then
+    echo "✓ SSH configurado corretamente"
+else
+    echo "⚠️  Falha na autenticação SSH. Verifique:"
+    echo "   1. Chave foi adicionada no GitHub?"
+    echo "   2. Chave pública copiada corretamente?"
+fi
 ```
+
+### Passo 6.5: (Opcional) PowerShell Profile - Comandos Rápidos
+
+Este projeto inclui um PowerShell profile customizado que facilita muito o trabalho com WSL:
+
+**Funcionalidades:**
+- `scc` - Start Claude Code no projeto (já abre no diretório correto)
+- `gcp` - Go to Claude Project (abre bash WSL no projeto)
+- `gsync` - Git sync (pull + status)
+- `cstatus` - Check Claude Code installation
+- `claude <args>` - Roda Claude Code sem prefixo `wsl`
+
+**Instalação:**
+```powershell
+# PowerShell (Windows)
+cd C:\clone-temporario-ou-permanente\Claude-Code-Projetos
+
+# Verificar se profile já existe
+if (Test-Path $PROFILE) {
+    Write-Host "⚠️  Profile já existe. Fazer backup:" -ForegroundColor Yellow
+    Copy-Item $PROFILE "$PROFILE.backup.$(Get-Date -Format 'yyyyMMdd-HHmmss')"
+}
+
+# Criar diretório se não existir
+New-Item -ItemType Directory -Force -Path (Split-Path $PROFILE)
+
+# Copiar profile
+Copy-Item .\powershell-profile.ps1 $PROFILE -Force
+
+# ⚠️  IMPORTANTE: Editar $PROFILE e alterar o username WSL
+notepad $PROFILE
+# Linha 39: Trocar "cmr-auto" pelo seu username WSL (encontre com: wsl -- whoami)
+
+# Recarregar profile
+. $PROFILE
+
+# Verificar instalação
+Get-Alias scc  # Deve mostrar: scc -> Start-Claude
+```
+
+**Configuração ExecutionPolicy (se necessário):**
+```powershell
+# Se der erro "scripts desabilitados"
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+```
+
+**Detalhes:** Ver `INSTALL_PROFILE.md` no repositório.
+
+---
 
 ### Passo 7: Validação Final
 
@@ -151,7 +269,7 @@ echo "7. npm packages:"
 ls mcp-servers/djen-mcp-server/node_modules/ | wc -l  # ~340
 
 echo "8. Hooks:"
-node .claude/hooks/invoke-legal-braniac-hybrid.js | jq .continue  # true
+node .claude/hooks/invoke-legal-braniac-hybrid.js | jq -r '.continue'  # true
 ```
 
 **✅ Se todos os checks passarem: Setup completo!**
@@ -181,19 +299,20 @@ Após reinício, o Ubuntu vai abrir automaticamente:
 ```bash
 # Dentro do WSL
 sudo apt update && sudo apt upgrade -y
-sudo apt install -y build-essential curl wget git vim htop tree python3 python3-pip python3-venv python3-dev
+sudo apt install -y build-essential curl wget git vim htop tree ripgrep jq zip python3 python3-pip python3-venv python3-dev
 ```
 
 #### 1.3 Instalar Node.js via nvm
 
 ```bash
-# Instalar nvm
-curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+# Instalar nvm (versão mais recente)
+# ⚠️  Sempre use a versão mais recente de https://github.com/nvm-sh/nvm/releases
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
 
 # Recarregar shell
 source ~/.bashrc
 
-# Instalar Node.js LTS
+# Instalar Node.js v24 (mesma versão do PC casa para compatibilidade)
 nvm install 24
 nvm alias default 24
 nvm use 24
@@ -237,18 +356,34 @@ nestedVirtualization=false
 Salvar e reiniciar WSL:
 ```powershell
 wsl --shutdown
-# Aguardar 10 segundos
+Start-Sleep -Seconds 10
 wsl
+
+# Validar configuração dentro do WSL
+wsl bash -c "free -h | grep Mem"  # Deve mostrar ~4GB total
+wsl bash -c "nproc"                # Deve mostrar 2
 ```
 
 #### 1.6 Adicionar Exclusão Windows Defender
 
 ```powershell
 # PowerShell como Administrador
-Add-MpPreference -ExclusionPath "$env:USERPROFILE\AppData\Local\Packages\CanonicalGroupLimited.Ubuntu24.04LTS_79rhkp1fndgsc"
 
-# Verificar
-Get-MpPreference | Select-Object -ExpandProperty ExclusionPath
+# Encontrar path automaticamente (sufixo pode variar)
+$ubuntuPath = Get-ChildItem "$env:USERPROFILE\AppData\Local\Packages\" -Directory |
+    Where-Object { $_.Name -like "CanonicalGroupLimited.Ubuntu24.04LTS_*" } |
+    Select-Object -First 1 -ExpandProperty FullName
+
+if ($ubuntuPath) {
+    Add-MpPreference -ExclusionPath $ubuntuPath
+    Write-Host "✓ Exclusão adicionada: $ubuntuPath" -ForegroundColor Green
+} else {
+    Write-Host "⚠️  Ubuntu 24.04 LTS não encontrado" -ForegroundColor Yellow
+    Write-Host "   Instale Ubuntu primeiro, depois execute este comando" -ForegroundColor Yellow
+}
+
+# Verificar exclusões
+Get-MpPreference | Select-Object -ExpandProperty ExclusionPath | Where-Object { $_ -like "*Ubuntu*" }
 ```
 
 ### Sprint 2: Projeto e Dependencies
@@ -295,6 +430,21 @@ git pull
 
 ```powershell
 # PowerShell como Admin
+
+# Passo 1: Tentar reiniciar (SEMPRE PRIMEIRO)
+wsl --shutdown
+Start-Sleep -Seconds 10
+wsl
+
+# Passo 2: Se ainda falhar, verificar status
+wsl --status
+wsl --list --verbose
+
+# Passo 3: Reparar instalação (se possível)
+wsl --update
+
+# Passo 4: ÚLTIMO RECURSO - Desregistrar e reinstalar
+# ⚠️  ATENÇÃO: Isso apaga TODOS os dados do WSL!
 wsl --shutdown
 wsl --unregister Ubuntu-24.04
 wsl --install -d Ubuntu-24.04
