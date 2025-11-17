@@ -74,7 +74,7 @@ function getLegalBraniacStatus() {
   try {
     const projectDir = process.env.CLAUDE_PROJECT_DIR || process.cwd();
     const sessionFile = path.join(projectDir, '.claude', 'hooks', 'legal-braniac-session.json');
-    const statusFile = path.join(projectDir, '.claude', 'statusline-deprecated-backup', 'hooks-status.json');
+    const statusFile = path.join(projectDir, '.claude', 'statusline', 'hooks-status.json');
 
     let status = '○'; // Default: inactive
     let lastUsed = '';
