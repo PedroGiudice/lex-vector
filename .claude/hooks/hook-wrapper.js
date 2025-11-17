@@ -17,8 +17,8 @@ const { spawn } = require('child_process');
 const fs = require('fs').promises;
 const path = require('path');
 
-// Import last-used tracker
-const lastUsedTracker = require('../statusline/lib/last-used-tracker.js');
+// Import last-used tracker (moved to deprecated backup)
+const lastUsedTracker = require('../statusline-deprecated-backup/lib/last-used-tracker.js');
 
 /**
  * Main entry point
