@@ -27,8 +27,8 @@
           },
           {
             "type": "command",
-            "command": "npx vibe-log-cli send --silent --background --hook-trigger=sessionstart --hook-version=1.0.0 --claude-project-dir=\"$CLAUDE_PROJECT_DIR\"",
-            "_note": "Vibe-log: capture session on startup"
+            "command": "npx vibe-log-cli send --silent --hook-trigger=sessionstart --hook-version=1.0.0",
+            "_note": "Vibe-log: capture session on startup (auto-detect project dir, no background mode)"
           }
         ]
       }
@@ -39,8 +39,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "npx vibe-log-cli send --silent --background --hook-trigger=precompact --hook-version=1.0.0 --claude-project-dir=\"$CLAUDE_PROJECT_DIR\"",
-            "_note": "Vibe-log: capture full session before compression"
+            "command": "npx vibe-log-cli send --silent --hook-trigger=precompact --hook-version=1.0.0",
+            "_note": "Vibe-log: capture full session before compression (auto-detect project dir, no background mode)"
           }
         ]
       }
@@ -51,8 +51,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "npx vibe-log-cli send --silent --background --hook-trigger=sessionend --hook-version=1.0.0 --claude-project-dir=\"$CLAUDE_PROJECT_DIR\"",
-            "_note": "Vibe-log: capture final session state"
+            "command": "npx vibe-log-cli send --silent --hook-trigger=sessionend --hook-version=1.0.0",
+            "_note": "Vibe-log: capture final session state (auto-detect project dir, no background mode)"
           }
         ]
       }

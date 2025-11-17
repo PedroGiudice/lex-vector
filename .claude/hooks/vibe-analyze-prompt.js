@@ -24,7 +24,7 @@ const fs = require('fs');
 
 // Configuration
 const CONFIG = {
-  CLI_PATH: path.join(__dirname, '../../VibbinLoggin/vibe-log-cli/dist/index.js'),
+  USE_NPX: true, // Use npx instead of hardcoded path
   ANALYZED_PROMPTS_DIR: path.join(process.env.HOME, '.vibe-log/analyzed-prompts'),
   MAX_EXECUTION_TIME_MS: 15000, // 15s timeout for background analysis
   DEBUG: process.env.DEBUG_GORDON === 'true'
@@ -116,9 +116,9 @@ function spawnAnalysis(claudeData) {
       transcript_path: claudeData.transcriptPath
     });
 
-    // Spawn detached process
-    const child = spawn('node', [
-      CONFIG.CLI_PATH,
+    // Spawn detached process using npx
+    const child = spawn('npx', [
+      'vibe-log-cli',
       'analyze-prompt',
       '--silent',
       '--stdin'
