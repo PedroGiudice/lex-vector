@@ -162,6 +162,39 @@ function getSessionDuration() {
 }
 
 /**
+ * Get real-time tracking data from simple_tracker.py
+ */
+function getTrackerData() {
+  try {
+    const projectDir = process.env.CLAUDE_PROJECT_DIR || process.cwd();
+    const trackerPath = path.join(projectDir, '.claude', 'monitoring', 'simple_tracker.py');
+
+    if (fs.existsSync(trackerPath)) {
+      const output = execSync(`${trackerPath} statusline`, {
+        encoding: 'utf8',
+        timeout: 500,
+        stdio: ['pipe', 'pipe', 'pipe']
+      }).trim();
+
+      // Parse output: "🤖 0/0 │ ⚡ 0 │ 🛠️ -"
+      const match = output.match(/🤖 (\d+)\/(\d+) │ ⚡ (\d+) │ 🛠️ (.+)/);
+      if (match) {
+        return {
+          activeAgents: parseInt(match[1]),
+          totalAgents: parseInt(match[2]),
+          hooksRecent: parseInt(match[3]),
+          skillsStr: match[4]
+        };
+      }
+    }
+  } catch (error) {
+    // Fall through
+  }
+
+  return null;
+}
+
+/**
  * Get counts (agents, skills, hooks) with activity tracking
  */
 function getCounts() {
@@ -177,11 +210,25 @@ function getCounts() {
     let skillsActive = false;
     let hooksActive = false;
 
+    // Try getting real-time data from tracker first
+    const trackerData = getTrackerData();
+    if (trackerData && trackerData.totalAgents > 0) {
+      agentsCount = trackerData.totalAgents;
+      agentsActive = trackerData.activeAgents > 0;
+      skillsActive = trackerData.skillsStr !== '-';
+      hooksActive = trackerData.hooksRecent > 0;
+    }
+
     if (fs.existsSync(sessionFile)) {
       const data = JSON.parse(fs.readFileSync(sessionFile, 'utf8'));
 
-      agentsCount = data.agents?.available?.length || 0;
-      skillsCount = data.skills?.available?.length || 0;
+      // Use legal-braniac counts if tracker has no data
+      if (agentsCount === 0) {
+        agentsCount = data.agents?.available?.length || 0;
+      }
+      if (skillsCount === 0) {
+        skillsCount = data.skills?.available?.length || 0;
+      }
       hooksCount = Object.keys(data.hooks || {}).length || 0;
     }
 
