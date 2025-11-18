@@ -39,6 +39,11 @@ pytest tests/
   - Prompt engineering com few-shot examples
   - JSON parsing com validação Pydantic
   - Extração de seções com fuzzy matching
-- 🚧 Fase 2 - Milestone 2: Learning System (próximo)
-- ⏸️ Fase 2 - Milestone 3: Self-Improvement
+- ✅ **Fase 2 - Milestone 2: Learning System (COMPLETO)**
+  - Pattern extraction de documentos validados
+  - Few-shot manager com auto-seleção de exemplos
+  - Metrics tracking (precision/recall/F1)
+  - Storage JSON persistente
+  - Performance trends e auto-decisão de melhorias
+- 🚧 Fase 2 - Milestone 3: Self-Improvement (próximo)
 - ⏸️ Fase 2 - Milestone 4: End-to-End Testing
