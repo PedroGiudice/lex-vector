@@ -592,3 +592,5 @@ node .claude/hooks/session-context-hybrid.js
 - add to memory
 - add
 - add
+- add to memory
+- add
