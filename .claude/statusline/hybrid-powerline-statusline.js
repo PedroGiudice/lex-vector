@@ -234,10 +234,10 @@ function getGordon() {
  * Get message based on score (Gordon personality)
  */
 function getScoreMessage(score) {
-  if (score >= 81) return '🔥 Excellent';
-  if (score >= 61) return '✓ Good';
-  if (score >= 41) return '~ Fair';
-  return '⚠ Needs work';
+  if (score >= 81) return 'Excellent';
+  if (score >= 61) return 'Good';
+  if (score >= 41) return 'Fair';
+  return 'Needs work';
 }
 
 /**
@@ -363,7 +363,7 @@ function layoutCompact() {
   const stats = getStats();
 
   const seg1 = segment(
-    `🧠 ${gordon}`,
+    `Gordon: ${gordon}`,
     powerline.bg.gordon,
     powerline.fg.white,
     powerline.bg.braniac
@@ -384,7 +384,7 @@ function layoutCompact() {
   );
 
   const seg4 = segment(
-    `🤖 ${stats.agents} ⚡ ${stats.skills} 🪝 ${stats.hooks} │ venv ${stats.venv} │ 🌿 ${stats.git}`,
+    `${stats.agents}a ${stats.skills}s ${stats.hooks}h │ venv ${stats.venv} │ git ${stats.git}`,
     powerline.bg.stats,
     powerline.fg.white,
     null
@@ -404,7 +404,7 @@ function layoutComfortable() {
   const stats = getStats();
 
   const seg1 = segment(
-    `🧠 Gordon: ${gordon}`,
+    `Gordon: ${gordon}`,
     powerline.bg.gordon,
     powerline.fg.white,
     powerline.bg.braniac
@@ -425,7 +425,7 @@ function layoutComfortable() {
   );
 
   const seg4 = segment(
-    `🤖 ${stats.agents} agents │ ⚡ ${stats.skills} skills │ 🪝 ${stats.hooks} hooks │ 🐍 venv ${stats.venv} │ 🌿 ${stats.git}`,
+    `${stats.agents} agents │ ${stats.skills} skills │ ${stats.hooks} hooks │ venv ${stats.venv} │ git ${stats.git}`,
     powerline.bg.stats,
     powerline.fg.white,
     null
@@ -455,7 +455,7 @@ function layoutMinimal() {
   const stats = getStats();
 
   const seg1 = segment(
-    `🧠 ${session}`,
+    `${session}`,
     powerline.bg.gordon,
     powerline.fg.white,
     powerline.bg.stats
