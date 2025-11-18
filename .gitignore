@@ -175,3 +175,10 @@ VibbinLoggin/**/package-lock.json
 VibbinLoggin/**/*.log
 /vibe-log-cli/
 Captura de tela*.png
+
+# Monitoring system
+.claude/monitoring/tracking.db
+.claude/monitoring/logs/
+
+# Statusline cache (performance optimization)
+.claude/cache/

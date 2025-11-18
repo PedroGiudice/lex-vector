@@ -65,12 +65,32 @@
             "_note": "Vibe-log: capture final session state (auto-detect project dir, no background mode)"
           }
         ]
+      },
+      {
+        "_comment": "Multi-Agent Monitoring: cleanup old tracking data",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/monitoring/simple_tracker.py cleanup 7",
+            "_note": "Remove tracking data older than 7 days"
+          }
+        ]
       }
     ],
     "UserPromptSubmit": [
       {
-        "_comment": "Hook chain: prompt-enhancer → context-collector → vibe-analyze-prompt (Gordon AI Coach)",
+        "_comment": "Hook chain: prompt-enhancer → context-collector → vibe-analyze-prompt (Gordon AI Coach) + monitoring",
         "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/monitoring/hooks/log_hook.sh UserPromptSubmit",
+            "_note": "Multi-Agent Monitoring: Track hook execution"
+          },
+          {
+            "type": "command",
+            "command": ".claude/monitoring/hooks/detect_agents.sh",
+            "_note": "Multi-Agent Monitoring: Detect agent spawning patterns"
+          },
           {
             "type": "command",
             "command": "node .claude/hooks/hook-wrapper.js .claude/hooks/prompt-enhancer.js",
@@ -85,6 +105,11 @@
             "type": "command",
             "command": "node .claude/hooks/hook-wrapper.js .claude/hooks/vibe-analyze-prompt.js",
             "_note": "Gordon AI Coach: Real-time prompt quality analysis via Claude SDK (background, non-blocking) [WRAPPED]"
+          },
+          {
+            "type": "command",
+            "command": ".claude/monitoring/hooks/detect_skills.sh",
+            "_note": "Multi-Agent Monitoring: Detect skill usage patterns"
           }
         ]
       }
