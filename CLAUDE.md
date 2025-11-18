@@ -580,18 +580,102 @@ node .claude/hooks/session-context-hybrid.js
 
 ---
 
-**Last updated:** 2025-11-15
+---
+
+## vibe-log Gordon Co-pilot Integration
+
+**Status**: ✅ Installed and tested (2025-11-18)
+**Personality**: Gordon (tough love, business-focused)
+
+### Architecture
+
+**Prompt Analysis Flow**:
+```
+User prompt → UserPromptSubmit hook → vibe-analyze-prompt.js
+           → npx vibe-log-cli analyze-prompt --stdin
+           → Claude SDK analysis (local)
+           → ~/.vibe-log/analyzed-prompts/{sessionId}.json
+```
+
+**Analysis Output Format**:
+```json
+{
+  "score": 0-100,
+  "quality": "excellent|good|fair|poor",
+  "suggestion": "Gordon's feedback",
+  "actionableSteps": "Specific improvements",
+  "contextualEmoji": "🎯",
+  "timestamp": "ISO 8601",
+  "sessionId": "uuid",
+  "originalPrompt": "user's prompt"
+}
+```
+
+### Installation
+
+```bash
+npx vibe-log-cli
+# Select: "Status Line - Strategic Co-pilot"
+# Choose personality: Gordon
+# Enable usage metrics: Yes (powered by ccusage)
+```
+
+**What gets installed**:
+- ✅ Hook: `npx vibe-log-cli analyze-prompt` (via UserPromptSubmit)
+- ✅ Analysis engine: Local Claude SDK
+- ✅ Storage: `~/.vibe-log/analyzed-prompts/`
+- ⚠️ Statusline: Requires **disabling** existing statusline in `.claude/settings.json`
+
+### Critical Discovery
+
+**Problem**: vibe-log statusline does NOT auto-activate when existing statusline is configured.
+
+**Solution**: Temporarily disable statusline in settings.json:
+```json
+"_statusLine_DISABLED_FOR_VIBE_LOG": {
+  "_comment": "Renamed to test vibe-log Gordon Co-pilot",
+  // ... original config
+}
+```
+
+**Restore**: Rename back to `"statusLine"` to revert.
+
+### Files
+
+- **Backups**: `.claude/settings.json.backup`, `BACKUP_INFO.md`
+- **Analyses**: `~/.vibe-log/analyzed-prompts/{sessionId}.json`
+- **Debug logs**: `~/.vibe-log/hook-debug.log`, `statusline-debug.log`
+
+### Performance
+
+- **Analysis time**: <2s (background, non-blocking)
+- **Storage**: ~5KB per analysis
+- **Impact**: Minimal (spawns detached process)
+
+### Examples
+
+**Good prompt** (score 85+):
+```
+"Implement user authentication with JWT tokens in the auth/ directory.
+Use bcrypt for password hashing. Include login, register, and logout endpoints."
+```
+
+**Poor prompt** (score <40):
+```
+"teste"
+→ Gordon: "Your message is just one word - we need to understand what you're building."
+```
+
+### Integration with Legal-Braniac
+
+**Current state**:
+- vibe-log Gordon: Prompt quality analysis
+- Legal-Braniac: Agent/skill orchestration
+
+**Future**: Merge both in unified statusline (see Claude Code Web prompt below).
+
+---
+
+**Last updated:** 2025-11-18
 **Maintained by:** PedroGiudice
 **For Claude Code instances operating in:** `~/claude-work/repos/Claude-Code-Projetos` (WSL2)
-- add to memory
-- add
-- add to session-context and episodic-memory
-- add executive summary of key findings
-- add
-- add
-- add to memory
-- add
-- add
-- add to memory
-- add
-- add
