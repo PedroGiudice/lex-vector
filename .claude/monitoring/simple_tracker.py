@@ -21,8 +21,8 @@ def get_safe_project_dir():
 
     # Define allowed root directories
     allowed_roots = [
-        Path.home() / "Claude-Code-Projetos",
-        Path("/home/user/Claude-Code-Projetos")
+        Path.home() / "claude-work" / "repos" / "Claude-Code-Projetos",  # WSL2 structure
+        Path.home() / "Claude-Code-Projetos",  # Legacy structure
     ]
 
     # Check if project_dir is within allowed roots
@@ -33,8 +33,8 @@ def get_safe_project_dir():
         except ValueError:
             continue
 
-    # Fallback to default if not within allowed roots
-    return Path("/home/user/Claude-Code-Projetos")
+    # Fallback to current directory if not within allowed roots
+    return Path.cwd()
 
 # Dynamic path with path traversal protection
 PROJECT_DIR = get_safe_project_dir()
