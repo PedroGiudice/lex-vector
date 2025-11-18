@@ -1,7 +1,12 @@
 #!/bin/bash
 
+# Get script directory dynamically
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+TRACKER="${SCRIPT_DIR}/../simple_tracker.py"
+
 INPUT=$(cat)
-SESSION_ID=$(echo "$INPUT" | jq -r '.session_id // "unknown"')
+# Sanitize SESSION_ID - remove all chars except alphanumeric, underscore, hyphen
+SESSION_ID=$(echo "$INPUT" | jq -r '.session_id // "unknown"' | tr -cd 'a-zA-Z0-9_-')
 TRANSCRIPT=$(echo "$INPUT" | jq -r '.transcript_path // ""')
 
 [ -z "$TRANSCRIPT" ] || [ "$TRANSCRIPT" = "null" ] && echo "$INPUT" && exit 0
@@ -25,7 +30,7 @@ declare -A SKILLS=(
 for SKILL in "${!SKILLS[@]}"; do
     PATTERN="${SKILLS[$SKILL]}"
     if echo "$RECENT" | grep -qiE "$PATTERN"; then
-        /home/user/Claude-Code-Projetos/.claude/monitoring/simple_tracker.py skill "$SKILL" "$SESSION_ID" 2>/dev/null || true
+        "$TRACKER" skill "$SKILL" "$SESSION_ID" 2>/dev/null || true
     fi
 done
 

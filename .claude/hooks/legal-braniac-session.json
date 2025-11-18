@@ -1,8 +1,8 @@
 {
-  "sessionId": "4709dc8d-ebc4-445e-9e7f-5e41a326393e",
-  "sessionStart": 1763428876686,
-  "startTime": 1763428876686,
-  "lastUpdate": 1763428876686,
+  "sessionId": "0b75f0f9-78f9-4f92-a611-55965aaa2480",
+  "sessionStart": 1763436179778,
+  "startTime": 1763436179778,
+  "lastUpdate": 1763436179778,
   "agents": {
     "available": [
       "analise-dados-legal",
@@ -256,6 +256,20 @@
       "command": "node .claude/hooks/session-end-git-safety.js",
       "note": "Auto-saves uncommitted changes to timestamped branch if session > 2.5h"
     },
+    "log_hook": {
+      "triggers": [
+        "UserPromptSubmit"
+      ],
+      "command": ".claude/monitoring/hooks/log_hook.sh UserPromptSubmit",
+      "note": "Multi-Agent Monitoring: Track hook execution"
+    },
+    "detect_agents": {
+      "triggers": [
+        "UserPromptSubmit"
+      ],
+      "command": ".claude/monitoring/hooks/detect_agents.sh",
+      "note": "Multi-Agent Monitoring: Detect agent spawning patterns"
+    },
     "prompt-enhancer": {
       "triggers": [
         "UserPromptSubmit"
@@ -276,6 +290,13 @@
       ],
       "command": "node .claude/hooks/hook-wrapper.js .claude/hooks/vibe-analyze-prompt.js",
       "note": "Gordon AI Coach: Real-time prompt quality analysis via Claude SDK (background, non-blocking) [WRAPPED]"
+    },
+    "detect_skills": {
+      "triggers": [
+        "UserPromptSubmit"
+      ],
+      "command": ".claude/monitoring/hooks/detect_skills.sh",
+      "note": "Multi-Agent Monitoring: Detect skill usage patterns"
     }
   },
   "validations": {

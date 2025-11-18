@@ -7,17 +7,59 @@ Monitora: agentes, hooks, skills
 import json
 import sqlite3
 import sys
+import os
 from datetime import datetime
 from pathlib import Path
 import re
 
-DB_PATH = Path.home() / "Claude-Code-Projetos" / ".claude" / "monitoring" / "tracking.db"
+def get_safe_project_dir():
+    """
+    Get project directory with path traversal protection.
+    Only allows directories within Claude-Code-Projetos.
+    """
+    project_dir = Path(os.getenv('CLAUDE_PROJECT_DIR', os.getcwd())).resolve()
+
+    # Define allowed root directories
+    allowed_roots = [
+        Path.home() / "Claude-Code-Projetos",
+        Path("/home/user/Claude-Code-Projetos")
+    ]
+
+    # Check if project_dir is within allowed roots
+    for allowed_root in allowed_roots:
+        try:
+            project_dir.relative_to(allowed_root)
+            return project_dir
+        except ValueError:
+            continue
+
+    # Fallback to default if not within allowed roots
+    return Path("/home/user/Claude-Code-Projetos")
+
+# Dynamic path with path traversal protection
+PROJECT_DIR = get_safe_project_dir()
+DB_PATH = PROJECT_DIR / ".claude" / "monitoring" / "tracking.db"
 
 class SimpleTracker:
     def __init__(self):
         DB_PATH.parent.mkdir(parents=True, exist_ok=True)
-        self.conn = sqlite3.connect(str(DB_PATH))
+        self.conn = sqlite3.connect(
+            str(DB_PATH),
+            timeout=10.0,  # Wait up to 10s for database lock
+            isolation_level='DEFERRED'  # Better concurrency
+        )
+        # Enable WAL mode for concurrent reads/writes
+        self.conn.execute("PRAGMA journal_mode=WAL")
         self.init_db()
+
+    def __enter__(self):
+        """Context manager entry"""
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Context manager exit - ensures connection is always closed"""
+        self.close()
+        return False  # Don't suppress exceptions
 
     def init_db(self):
         # Tabela unificada
@@ -88,77 +130,67 @@ class SimpleTracker:
 # === CLI Commands ===
 
 def cmd_agent(args):
-    tracker = SimpleTracker()
-    name, status, session = args[0], args[1], args[2]
-    tracker.track_agent(name, status, session)
-    tracker.close()
-    print(f"✓ Agent tracked: {name} ({status})")
+    with SimpleTracker() as tracker:
+        name, status, session = args[0], args[1], args[2]
+        tracker.track_agent(name, status, session)
+        print(f"✓ Agent tracked: {name} ({status})")
 
 def cmd_hook(args):
-    tracker = SimpleTracker()
-    name, session = args[0], args[1]
-    tracker.track_hook(name, session)
-    tracker.close()
-    print(f"✓ Hook tracked: {name}")
+    with SimpleTracker() as tracker:
+        name, session = args[0], args[1]
+        tracker.track_hook(name, session)
+        print(f"✓ Hook tracked: {name}")
 
 def cmd_skill(args):
-    tracker = SimpleTracker()
-    name, session = args[0], args[1]
-    tracker.track_skill(name, session)
-    tracker.close()
-    print(f"✓ Skill tracked: {name}")
+    with SimpleTracker() as tracker:
+        name, session = args[0], args[1]
+        tracker.track_skill(name, session)
+        print(f"✓ Skill tracked: {name}")
 
 def cmd_status(args):
-    tracker = SimpleTracker()
+    with SimpleTracker() as tracker:
+        print("📊 Status (last 5 minutes)\n")
 
-    print("📊 Status (last 5 minutes)\n")
+        # Agentes
+        agents = tracker.get_recent('agent', 5)
+        print(f"🤖 Agents ({len(agents)})")
+        for a in agents:
+            print(f"  • {a['name']:<20} {a['status']:<10} ({a['count']}x)")
 
-    # Agentes
-    agents = tracker.get_recent('agent', 5)
-    print(f"🤖 Agents ({len(agents)})")
-    for a in agents:
-        print(f"  • {a['name']:<20} {a['status']:<10} ({a['count']}x)")
+        # Hooks
+        hooks = tracker.get_recent('hook', 5)
+        print(f"\n⚡ Hooks ({len(hooks)})")
+        for h in hooks:
+            print(f"  • {h['name']:<20} ({h['count']}x)")
 
-    # Hooks
-    hooks = tracker.get_recent('hook', 5)
-    print(f"\n⚡ Hooks ({len(hooks)})")
-    for h in hooks:
-        print(f"  • {h['name']:<20} ({h['count']}x)")
-
-    # Skills
-    skills = tracker.get_recent('skill', 5)
-    print(f"\n🛠️  Skills ({len(skills)})")
-    for s in skills:
-        print(f"  • {s['name']:<20} ({s['count']}x)")
-
-    tracker.close()
+        # Skills
+        skills = tracker.get_recent('skill', 5)
+        print(f"\n🛠️  Skills ({len(skills)})")
+        for s in skills:
+            print(f"  • {s['name']:<20} ({s['count']}x)")
 
 def cmd_statusline(args):
     """Gera output para statusline"""
-    tracker = SimpleTracker()
+    with SimpleTracker() as tracker:
+        agents = tracker.get_recent('agent', 2)
+        active_agents = [a for a in agents if a['status'] == 'active']
 
-    agents = tracker.get_recent('agent', 2)
-    active_agents = [a for a in agents if a['status'] == 'active']
+        hooks = tracker.get_recent('hook', 1)
+        skills = tracker.get_recent('skill', 2)
 
-    hooks = tracker.get_recent('hook', 1)
-    skills = tracker.get_recent('skill', 2)
+        # Formato compacto
+        agent_str = f"{len(active_agents)}/{len(agents)}" if agents else "0/0"
+        hook_str = f"{len(hooks)}" if hooks else "0"
+        skill_names = [s['name'] for s in skills[:3]]
+        skill_str = ", ".join(skill_names) if skill_names else "-"
 
-    # Formato compacto
-    agent_str = f"{len(active_agents)}/{len(agents)}" if agents else "0/0"
-    hook_str = f"{len(hooks)}" if hooks else "0"
-    skill_names = [s['name'] for s in skills[:3]]
-    skill_str = ", ".join(skill_names) if skill_names else "-"
-
-    print(f"🤖 {agent_str} │ ⚡ {hook_str} │ 🛠️ {skill_str}")
-
-    tracker.close()
+        print(f"🤖 {agent_str} │ ⚡ {hook_str} │ 🛠️ {skill_str}")
 
 def cmd_cleanup(args):
-    tracker = SimpleTracker()
-    days = int(args[0]) if args else 7
-    tracker.cleanup_old(days)
-    tracker.close()
-    print(f"✓ Cleaned up events older than {days} days")
+    with SimpleTracker() as tracker:
+        days = int(args[0]) if args else 7
+        tracker.cleanup_old(days)
+        print(f"✓ Cleaned up events older than {days} days")
 
 
 # === Main ===
