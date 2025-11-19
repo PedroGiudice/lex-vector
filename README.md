@@ -374,6 +374,34 @@ Este projeto está migrando para WSL2. Status atual:
 📋 **Histórico:** `CHANGELOG.md`
 🗺️ **Plano completo:** `docs/plano-migracao-wsl2.md` (6 sprints)
 
+## ⚙️ Claude Code Configuration
+
+### Append Prompt (`.config/append-prompt.txt`)
+
+Este projeto inclui uma configuração de **append-prompt** que modifica o comportamento do Claude Code durante todas as sessões.
+
+**O que faz:**
+- Define Claude Code como **DEVELOPER** trabalhando com **PRODUCT MANAGER** (usuário)
+- Estabelece protocolo de **validação técnica** antes de implementações
+- Requer **research-first** (pesquisa antes de assumir)
+- Promove **análise crítica** em vez de validação acrítica
+- Implementa **reality filter** para prevenir trabalho desperdiçado
+
+**Quando é aplicado:**
+- Automaticamente em TODAS as sessões do Claude Code neste projeto
+- Via mecanismo de append-prompt do Claude Code
+- Sobrescreve comportamento padrão do Claude
+
+**Por que está no Git:**
+- ✅ É configuração **do projeto**, não do usuário
+- ✅ Deve ser **consistente entre máquinas**
+- ✅ Define "contrato de trabalho" entre PM e Developer
+- ✅ Previne regressões de comportamento
+
+**Localização:** `.config/append-prompt.txt`
+
+**IMPORTANTE:** NÃO adicionar ao `.gitignore` - este arquivo deve ser versionado.
+
 ## Documentação Adicional
 
 - **`.claude/LEGAL_BRANIAC_GUIDE.md`** - 📖 Guia completo do orquestrador (exemplos, troubleshooting)
