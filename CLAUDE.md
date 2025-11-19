@@ -672,11 +672,112 @@ Use bcrypt for password hashing. Include login, register, and logout endpoints."
 - vibe-log Gordon: Prompt quality analysis
 - Legal-Braniac: Agent/skill orchestration
 
-**Future**: Merge both in unified statusline (see Claude Code Web prompt below).
+**Decision**: Keep SEPARATE (see "Rejected Architectural Decisions" below).
 
 ---
 
-**Last updated:** 2025-11-18
+## Rejected Architectural Decisions
+
+### ❌ Unified Statusline (Gordon + Legal-Braniac)
+
+**Date:** 2025-11-19
+**Status:** REJECTED - "Enxugando Gelo"
+
+#### What Was Proposed
+
+Criar statusline unificada combinando:
+1. **vibe-log Gordon Co-pilot** - Análise de qualidade de prompts (score, suggestion)
+2. **Legal-Braniac tracking** - Contagem de agentes/skills/hooks
+3. **Powerline visual design** - Design profissional com arrows ANSI 256
+
+**Formato proposto:**
+```
+🎯 Gordon: 85/100 - Clear prompt │ Legal-Braniac ● │ 7ag 34sk 6h │ git main* │ venv ●
+```
+
+#### Why It Seemed Like a Good Idea
+
+- ✅ Informação útil em tempo real
+- ✅ Design visual profissional
+- ✅ "Melhor dos dois mundos" (Gordon + Braniac)
+- ✅ Tecnicamente viável (~130-150 linhas código)
+
+#### Why It Was Actually "Enxugar Gelo"
+
+**1. Duplicação de Informação**
+- Gordon analysis: Já disponível via vibe-log terminal output
+- Legal-Braniac status: Já disponível via logs/session files
+- **Benefício:** Ver em formato "mais bonito"
+- **Custo:** 130-150 linhas código + manutenção contínua
+
+**2. Dependência de Sistemas Externos**
+- **vibe-log:** Sistema externo - se mudar estrutura JSON, quebra
+- **sessionId matching:** Frágil - se sessionIds divergirem, falha silenciosamente
+- **Comparação:** "Construir ponte entre duas ilhas que estão se movendo"
+
+**3. ROI Negativo**
+```
+Ganho:  Ver info na statusline (visual)
+Custo:  - 130-150 linhas código
+        - Manutenção contínua
+        - Ponto de falha adicional
+        - Acoplamento a sistemas externos
+        - Debugging quando quebrar
+
+ROI: NEGATIVO
+```
+
+**4. Alternativas Mais Simples Existem**
+```bash
+# Aliases bash (30 segundos de setup)
+alias gordon='cat ~/.vibe-log/analyzed-prompts/$(cat .claude/hooks/legal-braniac-session.json | jq -r .sessionId).json | jq -r "Gordon: \(.score)/100 - \(.suggestion)"'
+
+alias braniac='test -f .claude/hooks/legal-braniac-session.json && echo "Braniac ●" || echo "Braniac ○"'
+```
+
+#### Key Lessons Learned
+
+**1. "Tecnicamente Viável" ≠ "Vale a Pena"**
+- Código pode ser simples (~100 linhas)
+- Mas manutenção + acoplamento + duplicação = enxugar gelo
+
+**2. Perguntar "Por Que Isso Não Existe Já?"**
+- Se vibe-log não tem plugin system, há razão
+- Se Legal-Braniac não tem statusline nativa, há razão
+- Tentar forçar integração = nadar contra a corrente
+
+**3. Informação Duplicada = Sinal de Problema**
+- Se informação JÁ existe em outro lugar
+- E você quer apenas "formato diferente"
+- Provavelmente é enxugar gelo
+
+**4. Questionar o Benefício Real**
+- "Mais bonito" não é benefício técnico
+- "Mais conveniente" raramente justifica manutenção contínua
+- "Gostaria de ter" ≠ "Necessário para produtividade"
+
+#### Decision
+
+**KEEP SEPARATE:**
+- ✅ CLI: vibe-log nativo (Gordon analysis)
+- ✅ Legal-Braniac: Logs/session files (quando necessário)
+- ✅ Aliases bash: Se precisar acesso rápido
+
+**RATIONALE:**
+- Zero código custom = zero manutenção
+- Informação já disponível = não duplicar
+- Sistemas independentes = menos acoplamento
+- Simplicidade > "visual bonito"
+
+#### References
+
+- Prompt detalhado: `.claude/statusline/CLAUDE-CODE-WEB-PROMPT.md` (780 linhas)
+- Análise técnica: Session 2025-11-19 (conversação completa)
+- Limitações Claude Code Web: `README.md` - "Limitações Conhecidas"
+
+---
+
+**Last updated:** 2025-11-19
 **Maintained by:** PedroGiudice
 **For Claude Code instances operating in:** `~/claude-work/repos/Claude-Code-Projetos` (WSL2)
 - add
