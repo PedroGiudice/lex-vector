@@ -343,7 +343,29 @@ Se você usa Claude Code com este projeto, instale manualmente em cada máquina:
 ### ✅ Claude Code Web (Linux)
 - **Status**: ✅ TOTALMENTE FUNCIONAL
 - **SessionStart hooks**: Ativos (auto-invocação Legal-Braniac)
-- **Restrições**: Nenhuma
+- **Restrições**: Ver limitações abaixo
+
+#### ⚠️ Limitações Conhecidas do Claude Code Web
+
+**1. Sem Statusline**
+- **Limitação**: Claude Code Web NÃO tem statusline (arquitetural, não técnica)
+- **Impacto**: Não é possível exibir informações customizadas em tempo real
+- **Workaround**: Informações disponíveis via hooks logs ou session files
+
+**2. Sem Acesso ao SDK Local**
+- **Limitação**: SDK do Claude Agent não disponível no ambiente web
+- **Impacto**: Ferramentas que dependem de análise local (vibe-log Gordon Co-pilot) NÃO funcionam
+- **Exemplo**: `vibe-log-cli analyze-prompt` requer Claude SDK local
+- **Workaround**: Use CLI para análise de prompts
+
+**3. Validações de Hooks Limitadas**
+- **Limitação**: Verificações de ambiente (paths, file system) podem falhar silenciosamente
+- **Impacto**: Hooks que fazem validações complexas podem não funcionar como esperado
+- **Workaround**: Mantenha hooks simples e com fallbacks robustos
+
+**Recomendação:**
+- ✅ Use **Claude Code Web** para desenvolvimento geral (hooks básicos funcionam)
+- ✅ Use **CLI (WSL2)** para features avançadas (statusline, vibe-log Gordon, análises complexas)
 
 ### ⚠️ Windows CLI (Casa/Pessoal)
 - **Status**: ✅ FUNCIONAL (invocação manual)
