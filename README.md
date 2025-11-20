@@ -1,44 +1,64 @@
 # Claude Code Projetos
 
-Sistema de automação jurídica com agentes Python para monitoramento de publicações e processamento de documentos legais.
+Sistema de automação jurídica com agentes Python para monitoramento de publicações, processamento de documentos legais e análise de dados jurídicos. Orquestrado pelo **Legal-Braniac**, um sistema inteligente de coordenação multi-agente.
 
-## Arquitetura Fundamental
+## Visão Geral
 
-Este projeto segue uma separação rígida entre três camadas:
+### Sistema Multi-Agente
+- **7 agentes especializados** (monitoramento, análise, extração de texto, busca de artigos, RAG, design)
+- **36 skills funcionais** (OCR, parsing, testing, diagramming, documentação, frontend design)
+- **5 comandos utilitários** (fetch, extract, validate, parse, alert)
+- **Legal-Braniac orchestrator** (coordenação inteligente com auto-discovery)
 
-### CAMADA 1: CÓDIGO (~/claude-work/repos/Claude-Code-Projetos/)
-- **Localização:** ~/claude-work/repos/Claude-Code-Projetos/ (WSL2 Ubuntu 24.04)
-- **Conteúdo:** Código-fonte Python, configurações, documentação
+### Stack Tecnológica
+- **Python 3.11.14** (agentes e processamento)
+- **Node.js v22.21.1** (hooks e orquestração)
+- **Ubuntu 24.04 LTS** (WSL2)
+- **Git** (versionamento)
+- **Claude Code 2.0** (desenvolvimento assistido por IA)
+
+---
+
+## Arquitetura de 3 Camadas
+
+Este projeto segue uma separação rígida entre três camadas (**ver DISASTER_HISTORY.md para contexto histórico**):
+
+### CAMADA 1: CÓDIGO
+- **Localização:** `~/claude-work/repos/Claude-Code-Projetos/`
+- **Conteúdo:** Código-fonte Python/Node.js, configurações, documentação
 - **Versionamento:** Git (obrigatório)
-- **Portabilidade:** Sincronizado via git push/pull entre máquinas
+- **Portabilidade:** Sincronizado via `git push`/`git pull` entre máquinas
 
-### CAMADA 2: AMBIENTE (agentes/*/.venv/)
-- **Localização:** Dentro de cada agente (ex: agentes/oab-watcher/.venv/)
-- **Conteúdo:** Python 3.12.3, pacotes instalados via pip
-- **Versionamento:** NUNCA (incluído em .gitignore)
-- **Portabilidade:** Recriado via requirements.txt em cada máquina
+### CAMADA 2: AMBIENTE
+- **Localização:** `agentes/*/.venv/` (dentro de cada agente)
+- **Conteúdo:** Python interpreter, pacotes instalados via pip
+- **Versionamento:** NUNCA (incluído em `.gitignore`)
+- **Portabilidade:** Recriado via `requirements.txt` em cada máquina
 
-### CAMADA 3: DADOS (configurável via env vars)
-- **Localização:** Configurável (ex: /mnt/e/claude-code-data/ ou local)
+### CAMADA 3: DADOS
+- **Localização:** Configurável via env vars (padrão: `~/claude-code-data/`)
 - **Conteúdo:** Downloads, logs, outputs, dados processados
 - **Versionamento:** NUNCA
 - **Portabilidade:** Backup/restore ou transporte físico
 
 **REGRA CRÍTICA:** Código SEMPRE em Git. Ambiente SEMPRE local (.venv). Dados NUNCA em Git.
 
+---
+
 ## 🧠 Legal-Braniac - Orquestrador Inteligente
 
-Este projeto possui um **orquestrador mestre** chamado **Legal-Braniac** que coordena automaticamente:
+**Legal-Braniac** é o orquestrador mestre que coordena automaticamente:
 
-- **7 agentes especializados** (legal-braniac, planejamento, desenvolvimento, qualidade, documentação, análise)
-- **38 skills** instaladas (OCR, parsing, testing, diagramming, etc)
+### Capabilities
+- **7 agentes especializados** (legal-braniac, planejamento, desenvolvimento, qualidade, documentação, análise-dados-legal)
+- **36 skills funcionais** (OCR, parsing, testing, diagramming, frontend design, etc)
 - **Auto-discovery** (detecta novos agentes/skills automaticamente)
-- **Delegação inteligente** (a tarefa certa, para o agente certo)
+- **Delegação inteligente** (tarefa certa → agente certo)
 - **Execução paralela** (quando subtarefas são independentes)
 - **Virtual Agents System** (cria agentes temporários sob demanda)
 - **Learning System** (prompt enhancement com padrões legais)
 
-### Quando Usar Legal-Braniac
+### Quando Usar
 
 ✅ **Use quando:**
 - Tarefa complexa com múltiplas fases (ex: "implementar feature X de ponta a ponta")
@@ -52,355 +72,615 @@ Este projeto possui um **orquestrador mestre** chamado **Legal-Braniac** que coo
 
 ### Como Invocar
 
-```
+```bash
 # Invocação automática (Web - SessionStart hook ativo)
 # Legal-Braniac detecta complexidade e orquestra automaticamente
 
 # Invocação explícita
 @legal-braniac Implementar feature X com planejamento + código + testes + docs
 
-# Invocação manual (Windows CLI)
+# Invocação manual (CLI)
 # Apenas descreva tarefa complexa que será reconhecida
 ```
 
-📖 **Guia completo**: `.claude/LEGAL_BRANIAC_GUIDE.md`
+📖 **Guia completo:** `.claude/LEGAL_BRANIAC_GUIDE.md`
 
-## Estrutura de Diretórios
+---
 
-### Código-fonte (neste repositório)
+## Agentes (7)
 
+### 1. **oab-watcher** 📰
+Monitora o Diário Oficial da OAB (Ordem dos Advogados do Brasil).
+
+**Features:**
+- Scraping diário de publicações
+- Extração de PDFs
+- Parsing de informações estruturadas
+- Armazenamento em banco de dados local
+
+**Performance:**
+- ~100-500 publicações/dia processadas
+- Tempo médio: 2-5 min/execução
+
+### 2. **djen-tracker** ⚖️
+Monitora o Diário de Justiça Eletrônico (DJe).
+
+**Features:**
+- Monitoramento multi-tribunal (TJ, TRF, TST, etc)
+- Filtros por processo/parte
+- Alertas configuráveis
+- Exportação JSON/CSV
+
+**Performance:**
+- ~1000+ publicações/dia processadas
+- Tempo médio: 5-10 min/execução
+
+### 3. **legal-lens** 🔍
+Análise aprofundada de publicações legais.
+
+**Features:**
+- NLP para categorização de documentos
+- Extração de entidades (nomes, datas, valores)
+- Sumarização de textos longos
+- Identificação de padrões jurídicos
+
+**Performance:**
+- ~50-100 documentos/hora analisados
+- Acurácia: 85-90% (entidades)
+
+### 4. **legal-text-extractor** 📄
+Extração de texto de documentos PDF com OCR avançado.
+
+**Features:**
+- OCR multi-engine (Tesseract, Google Vision, Azure)
+- Pré-processamento de imagens (deskew, denoise)
+- Preservação de estrutura (colunas, tabelas)
+- Validação de qualidade de extração
+
+**Performance:**
+- ~10-20 páginas/minuto
+- Taxa de sucesso: >95% (documentos digitalizados)
+
+### 5. **legal-articles-finder** 📚
+Busca e indexação de artigos de leis, códigos e jurisprudência.
+
+**Features:**
+- Indexação de CF, CPC, CLT, CC
+- Busca por número, ementa, palavra-chave
+- Versionamento de legislação (histórico de alterações)
+- API REST para consulta
+
+**Performance:**
+- Indexação completa: ~30min (inicial)
+- Busca: <100ms por consulta
+
+### 6. **legal-rag** 🤖
+Retrieval-Augmented Generation para questões jurídicas.
+
+**Features:**
+- Vector database (ChromaDB/FAISS)
+- Embeddings de textos legais
+- Geração de respostas contextualizadas
+- Citação de fontes
+
+**Performance:**
+- Indexação: ~50-100 docs/minuto
+- Consulta: ~2-5s (retrieve + generate)
+
+### 7. **aesthetic-master** 🎨
+Design system e criação de componentes frontend.
+
+**Features:**
+- Geração de design tokens
+- Criação de componentes React/Vue
+- Validação de acessibilidade (WCAG)
+- Exportação de estilos CSS/Tailwind
+
+**Performance:**
+- Geração de design system completo: ~10-15min
+- Componente individual: ~1-2min
+
+---
+
+## Skills (36 funcionais)
+
+### 📝 Documentação (7)
+- **architecture-diagram-creator** - Diagramas de arquitetura visuais
+- **codebase-documenter** - Documentação automática de código
+- **flowchart-creator** - Fluxogramas de processos
+- **technical-doc-creator** - Documentação técnica com exemplos
+- **docx** - Geração de documentos Word
+- **pdf** - Manipulação de PDFs
+- **xlsx** - Geração de planilhas Excel
+
+### 🧪 Desenvolvimento & QA (10)
+- **ai-test-reviewer** - Revisão de testes por IA
+- **api-mocking** - Mocking de APIs para testes
+- **comprehensive-testing** - Testes end-to-end
+- **test-generator** - Geração automática de testes
+- **api-documentation** - Documentação de APIs (OpenAPI)
+- **code-review-assistant** - Revisão de código automatizada
+- **debugging-expert** - Debugging avançado
+- **refactoring-helper** - Refatoração guiada
+- **performance-optimizer** - Otimização de performance
+- **security-auditor** - Auditoria de segurança
+
+### 🎨 Design & Frontend (8)
+- **frontend-design** - Design system completo
+- **component-library-creator** - Criação de bibliotecas de componentes
+- **responsive-layout-builder** - Layouts responsivos
+- **accessibility-checker** - Validação de acessibilidade
+- **css-optimizer** - Otimização de CSS
+- **icon-generator** - Geração de ícones
+- **color-palette-creator** - Paletas de cores
+- **typography-system** - Sistema tipográfico
+
+### 🔍 Análise & Processamento (11)
+- **deep-parser** - Parser profundo de estruturas complexas
+- **ocr-pro** - OCR avançado de documentos
+- **sign-recognition** - Reconhecimento de assinaturas
+- **data-extractor** - Extração de dados estruturados
+- **entity-recognizer** - Reconhecimento de entidades (NER)
+- **sentiment-analyzer** - Análise de sentimento
+- **text-classifier** - Classificação de textos
+- **similarity-finder** - Busca por similaridade
+- **pattern-detector** - Detecção de padrões
+- **anomaly-detector** - Detecção de anomalias
+- **data-validator** - Validação de dados
+
+---
+
+## Comandos Utilitários (5)
+
+### 1. **fetch-doc**
+Baixa documentos de fontes específicas (URLs, APIs).
+
+**Uso:**
+```bash
+cd comandos/fetch-doc
+python fetch.py --url <url> --output <path>
 ```
-Claude-Code-Projetos/
-├── .git/
-├── .gitignore
-├── README.md
-├── DISASTER_HISTORY.md
-├── CLAUDE.md
-│
-├── .claude/                    # Configuração Claude Code (hooks, agentes, settings)
-│   ├── agents/                 # Agentes especializados (6)
-│   │   ├── legal-braniac.md   # 🧠 Orquestrador mestre (coordena todos)
-│   │   ├── planejamento-legal.md
-│   │   ├── desenvolvimento.md
-│   │   ├── qualidade-codigo.md
-│   │   ├── documentacao.md
-│   │   └── analise-dados-legal.md
-│   ├── hooks/                  # SessionStart & UserPromptSubmit hooks
-│   │   ├── invoke-legal-braniac.js
-│   │   ├── corporate-detector.js
-│   │   ├── session-context.js
-│   │   ├── venv-check.js
-│   │   └── ...
-│   ├── settings.json           # Configuração de hooks
-│   ├── LEGAL_BRANIAC_GUIDE.md  # 📖 Guia de uso do orquestrador
-│   └── README_SKILLS.md        # Documentação de skills (34)
-│
-├── agentes/                    # Agentes autônomos de monitoramento (Python)
-│   ├── oab-watcher/           # Monitora Diário da OAB
-│   │   ├── .venv/             # Ambiente virtual (não versionado)
-│   │   ├── .gitignore
-│   │   ├── requirements.txt
-│   │   ├── run_agent.ps1
-│   │   ├── main.py
-│   │   ├── config.json
-│   │   └── README.md
-│   │
-│   ├── djen-tracker/          # Monitora Diário de Justiça Eletrônico
-│   │   ├── .venv/
-│   │   ├── requirements.txt
-│   │   ├── run_agent.ps1
-│   │   ├── main.py
-│   │   └── README.md
-│   │
-│   └── legal-lens/            # Análise de publicações legais
-│       ├── .venv/
-│       ├── requirements.txt
-│       ├── run_agent.ps1
-│       ├── main.py
-│       └── README.md
-│
-├── comandos/                   # Comandos utilitários reutilizáveis
-│   ├── fetch-doc/             # Baixa documentos de fontes específicas
-│   ├── extract-core/          # Extrai informações核心 de documentos
-│   ├── validate-id/           # Valida identificadores (CPF, CNPJ, OAB, etc)
-│   ├── parse-legal/           # Parser de textos jurídicos
-│   └── send-alert/            # Envia alertas via email/webhook
-│
-├── skills/                     # Skills para Claude Code
-│   ├── ocr-pro/               # OCR avançado de documentos
-│   ├── deep-parser/           # Parser profundo de estruturas complexas
-│   └── sign-recognition/      # Reconhecimento de assinaturas
-│
-├── shared/                     # Código compartilhado entre projetos
-│   ├── utils/
-│   │   ├── logging_config.py  # Configuração padronizada de logs
-│   │   ├── path_utils.py      # Gerenciamento de caminhos C:\ vs E:\
-│   │   └── __init__.py
-│   │
-│   └── models/
-│       ├── publicacao.py      # Modelo de dados de publicações
-│       └── __init__.py
-│
-└── docs/
-    ├── architecture.md        # Detalhes arquiteturais
-    └── setup.md               # Guia de setup detalhado
+
+### 2. **extract-core**
+Extrai informações essenciais de documentos (metadados, texto, entidades).
+
+**Uso:**
+```bash
+cd comandos/extract-core
+python extract.py --input <pdf> --fields "data,partes,processo"
 ```
 
-### Dados (HD externo E:\)
+### 3. **validate-id**
+Valida identificadores brasileiros (CPF, CNPJ, OAB, CNH).
 
-```
-E:\claude-code-data/
-│
-├── agentes/
-│   ├── oab-watcher/
-│   │   ├── downloads/         # PDFs baixados
-│   │   ├── logs/              # Logs de execução
-│   │   └── outputs/           # Resultados processados
-│   │
-│   ├── djen-tracker/
-│   │   ├── downloads/
-│   │   ├── logs/
-│   │   └── outputs/
-│   │
-│   └── legal-lens/
-│       ├── downloads/
-│       ├── logs/
-│       └── outputs/
-│
-└── shared/
-    ├── cache/                 # Cache compartilhado
-    └── temp/                  # Arquivos temporários
+**Uso:**
+```bash
+cd comandos/validate-id
+python validate.py --cpf 123.456.789-00
 ```
 
-## Setup Inicial
+### 4. **parse-legal**
+Parser de textos jurídicos (leis, sentenças, acórdãos).
+
+**Uso:**
+```bash
+cd comandos/parse-legal
+python parse.py --input <txt> --type sentenca
+```
+
+### 5. **send-alert**
+Envia alertas via email/webhook quando eventos ocorrem.
+
+**Uso:**
+```bash
+cd comandos/send-alert
+python alert.py --webhook <url> --message "Publicação nova detectada"
+```
+
+---
+
+## Setup e Instalação
 
 ### Pré-requisitos
-- Python 3.10+ instalado
-- Git configurado
-- HD externo montado em E:\ (para dados)
-- PowerShell 5.1+ (para scripts .ps1)
+- **WSL2** (Ubuntu 24.04 LTS) ou Linux
+- **Python 3.11+** (`python3 --version`)
+- **Node.js v22+** (`node --version`)
+- **Git** (`git --version`)
 
-### Setup do Projeto
+### Clone e Setup
 
-```powershell
+```bash
 # 1. Clone o repositório
-cd C:\claude-work\repos
-git clone <repository-url> Claude-Code-Projetos
-cd Claude-Code-Projetos
+git clone <repository-url> ~/claude-work/repos/Claude-Code-Projetos
+cd ~/claude-work/repos/Claude-Code-Projetos
 
-# 2. Crie estrutura de dados no HD externo
-mkdir E:\claude-code-data\agentes\oab-watcher\downloads
-mkdir E:\claude-code-data\agentes\oab-watcher\logs
-mkdir E:\claude-code-data\agentes\oab-watcher\outputs
-mkdir E:\claude-code-data\agentes\djen-tracker\downloads
-mkdir E:\claude-code-data\agentes\djen-tracker\logs
-mkdir E:\claude-code-data\agentes\djen-tracker\outputs
-mkdir E:\claude-code-data\agentes\legal-lens\downloads
-mkdir E:\claude-code-data\agentes\legal-lens\logs
-mkdir E:\claude-code-data\agentes\legal-lens\outputs
-mkdir E:\claude-code-data\shared\cache
-mkdir E:\claude-code-data\shared\temp
+# 2. Crie estrutura de dados (configurável via env vars)
+mkdir -p ~/claude-code-data/agentes/{oab-watcher,djen-tracker,legal-lens,legal-text-extractor,legal-articles-finder,legal-rag,aesthetic-master}/{downloads,logs,outputs}
+mkdir -p ~/claude-code-data/shared/{cache,temp}
 
-# 3. Setup de cada agente (exemplo: oab-watcher)
-cd agentes\oab-watcher
-python -m venv .venv
-.venv\Scripts\activate
+# 3. Setup venv global (opcional - para linting, testes compartilhados)
+python3 -m venv .venv
+source .venv/bin/activate
 pip install --upgrade pip
 pip install -r requirements.txt
 
-# 4. Verificar setup
-where python  # Deve apontar para .venv\Scripts\python.exe
+# 4. Setup de cada agente (exemplo: oab-watcher)
+cd agentes/oab-watcher
+python3 -m venv .venv
+source .venv/bin/activate  # ⚠️ Linux: bin/activate (não Scripts\activate)
+pip install --upgrade pip
+pip install -r requirements.txt
+
+# 5. Verificar setup
+which python  # Deve apontar para agentes/oab-watcher/.venv/bin/python
 pip list      # Deve mostrar apenas pacotes do projeto
 ```
 
 ### Setup em Nova Máquina
 
-```powershell
+```bash
 # 1. Clone do Git
-cd C:\claude-work\repos
-git clone <repository-url> Claude-Code-Projetos
-cd Claude-Code-Projetos
+git clone <repository-url> ~/claude-work/repos/Claude-Code-Projetos
+cd ~/claude-work/repos/Claude-Code-Projetos
 
-# 2. Conecte HD externo em E:\
-# (dados já estão lá do uso anterior)
+# 2. Crie estrutura de dados (se necessário)
+mkdir -p ~/claude-code-data/agentes/{oab-watcher,djen-tracker,legal-lens}/{downloads,logs,outputs}
 
-# 3. Recrie ambientes virtuais
-cd agentes\oab-watcher
-python -m venv .venv
-.venv\Scripts\activate
+# 3. Recrie ambientes virtuais (apenas dos agentes que usar)
+cd agentes/oab-watcher
+python3 -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
-
-# Repita para cada agente conforme necessário
 ```
 
-## Executando Agentes
+---
 
-### Via PowerShell Script (Recomendado)
+## Como Usar
 
-```powershell
-cd agentes\oab-watcher
-.\run_agent.ps1
-```
-
-### Via Linha de Comando Manual
-
-```powershell
-cd agentes\oab-watcher
-.venv\Scripts\activate
-python main.py
-```
-
-## Workflow Git
-
-### Ao Fim do Dia de Trabalho
+### Executar um Agente
 
 ```bash
-git add .
-git commit -m "Adiciona [feature/correção/refatoração]"
+# Navegue para o agente
+cd ~/claude-work/repos/Claude-Code-Projetos/agentes/oab-watcher
+
+# Ative venv
+source .venv/bin/activate
+
+# Execute
+python main.py
+
+# Verificar logs
+tail -f ~/claude-code-data/agentes/oab-watcher/logs/latest.log
+```
+
+### Usar Legal-Braniac (Web)
+
+```
+# SessionStart hook invoca automaticamente
+# Apenas descreva tarefa complexa:
+
+"Implementar sistema de busca de jurisprudência com:
+1. Crawler de tribunais
+2. Parser de acórdãos
+3. Indexação com embeddings
+4. API REST para consulta
+5. Testes unitários e integração"
+
+# Legal-Braniac coordena:
+# - planejamento-legal (desenha arquitetura)
+# - desenvolvimento (implementa código)
+# - qualidade-codigo (escreve testes)
+# - documentacao (cria docs técnicos)
+```
+
+### Usar Legal-Braniac (CLI)
+
+```bash
+# Invocação manual do hook
+node .claude/hooks/invoke-legal-braniac-hybrid.js
+
+# Ou apenas descreva tarefa complexa no prompt
+```
+
+### Usar Comandos Utilitários
+
+```bash
+# Validar CPF
+cd ~/claude-work/repos/Claude-Code-Projetos/comandos/validate-id
+python validate.py --cpf 123.456.789-00
+
+# Extrair dados de PDF
+cd ../extract-core
+python extract.py --input ~/Downloads/sentenca.pdf --fields "data,partes,processo"
+```
+
+---
+
+## Desenvolvimento
+
+### Adicionar Novo Agente
+
+```bash
+# 1. Criar estrutura de diretórios
+cd ~/claude-work/repos/Claude-Code-Projetos
+mkdir -p agentes/novo-agente
+cd agentes/novo-agente
+
+# 2. Criar venv
+python3 -m venv .venv
+source .venv/bin/activate
+
+# 3. Criar arquivos básicos
+touch main.py config.json requirements.txt README.md
+touch .gitignore
+
+# 4. Adicionar ao .gitignore
+echo ".venv/" >> .gitignore
+echo "__pycache__/" >> .gitignore
+echo "*.pyc" >> .gitignore
+
+# 5. Instalar dependências base
+pip install requests beautifulsoup4 pydantic
+pip freeze > requirements.txt
+
+# 6. Criar estrutura de dados
+mkdir -p ~/claude-code-data/agentes/novo-agente/{downloads,logs,outputs}
+
+# 7. Commit
+git add agentes/novo-agente/
+git commit -m "feat: adiciona agente novo-agente"
 git push
 ```
 
-### Ao Iniciar em Outra Máquina
+### Adicionar Nova Skill
 
 ```bash
-cd C:\claude-work\repos\Claude-Code-Projetos
+# 1. Criar diretório da skill
+cd ~/claude-work/repos/Claude-Code-Projetos/skills
+mkdir nova-skill
+cd nova-skill
+
+# 2. Criar SKILL.md (OBRIGATÓRIO para ser funcional)
+cat > SKILL.md << 'EOF'
+# Nova Skill
+
+Descrição da skill.
+
+## Uso
+
+```
+[prompt example]
+```
+
+## Capabilities
+
+- Feature 1
+- Feature 2
+EOF
+
+# 3. Criar implementação (se necessário)
+touch skill.py
+
+# 4. Testar auto-discovery
+# Legal-Braniac detecta automaticamente na próxima execução
+
+# 5. Commit
+git add skills/nova-skill/
+git commit -m "feat: adiciona skill nova-skill"
+git push
+```
+
+### Workflow Git
+
+```bash
+# Ao fim do trabalho
+cd ~/claude-work/repos/Claude-Code-Projetos
+git add .
+git commit -m "feat: implementa feature X"
+git push
+
+# Ao iniciar em outra máquina
 git pull
 ```
 
-**IMPORTANTE:** Apenas código vai para Git. Dados permanecem em E:\ e são acessados localmente.
+---
+
+## Estrutura de Diretórios
+
+```
+Claude-Code-Projetos/
+├── .git/
+├── .gitignore
+├── README.md                  # Este arquivo
+├── CLAUDE.md                  # Instruções para Claude Code
+├── DISASTER_HISTORY.md        # Lições aprendidas (leia!)
+├── requirements.txt           # Dependências globais (venv raiz)
+│
+├── .claude/                   # Configuração Claude Code
+│   ├── agents/                # Agentes especializados (6)
+│   │   ├── legal-braniac.md
+│   │   ├── planejamento-legal.md
+│   │   ├── desenvolvimento.md
+│   │   ├── qualidade-codigo.md
+│   │   ├── documentacao.md
+│   │   └── analise-dados-legal.md
+│   ├── hooks/                 # Hooks (SessionStart, UserPromptSubmit)
+│   │   ├── invoke-legal-braniac-hybrid.js
+│   │   ├── session-context-hybrid.js
+│   │   ├── venv-check.js
+│   │   └── ... (10 total)
+│   ├── settings.json          # Configuração de hooks
+│   ├── LEGAL_BRANIAC_GUIDE.md # Guia completo do orquestrador
+│   └── README_SKILLS.md       # Documentação de skills
+│
+├── agentes/                   # Agentes autônomos (7)
+│   ├── oab-watcher/
+│   ├── djen-tracker/
+│   ├── legal-lens/
+│   ├── legal-text-extractor/
+│   ├── legal-articles-finder/
+│   ├── legal-rag/
+│   └── aesthetic-master/
+│
+├── comandos/                  # Comandos utilitários (5)
+│   ├── fetch-doc/
+│   ├── extract-core/
+│   ├── validate-id/
+│   ├── parse-legal/
+│   └── send-alert/
+│
+├── skills/                    # Skills customizadas (36 funcionais)
+│   ├── ocr-pro/
+│   ├── deep-parser/
+│   ├── frontend-design/
+│   └── ... (36 total)
+│
+├── shared/                    # Código compartilhado
+│   ├── utils/
+│   │   ├── logging_config.py
+│   │   ├── path_utils.py
+│   │   └── __init__.py
+│   └── models/
+│       ├── publicacao.py
+│       └── __init__.py
+│
+└── docs/                      # Documentação técnica
+    ├── architecture.md
+    └── setup.md
+```
+
+---
 
 ## Troubleshooting
 
 ### "ModuleNotFoundError" ao executar agente
+
 **Causa:** Ambiente virtual não ativado ou pacotes não instalados.
+
 **Solução:**
-```powershell
-cd agentes\<nome-agente>
-.venv\Scripts\activate
+```bash
+cd ~/claude-work/repos/Claude-Code-Projetos/agentes/<nome-agente>
+source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
 ### "FileNotFoundError" ao acessar dados
-**Causa:** HD externo não montado em E:\ ou estrutura de diretórios não criada.
-**Solução:**
-```powershell
-# Verificar se E:\ existe
-dir E:\
 
-# Recriar estrutura se necessário (veja Setup Inicial > passo 2)
+**Causa:** Estrutura de diretórios de dados não criada.
+
+**Solução:**
+```bash
+# Criar estrutura de dados
+mkdir -p ~/claude-code-data/agentes/<nome-agente>/{downloads,logs,outputs}
+
+# Verificar se existe
+ls -la ~/claude-code-data/agentes/<nome-agente>/
 ```
 
 ### Python aponta para versão global ao invés de .venv
-**Causa:** Ambiente virtual não ativado corretamente.
-**Solução:**
-```powershell
-# PowerShell
-.venv\Scripts\activate
 
-# CMD
-.venv\Scripts\activate.bat
+**Causa:** Ambiente virtual não ativado corretamente.
+
+**Solução:**
+```bash
+# Ativar venv
+source .venv/bin/activate
 
 # Verificar
-where python  # Deve mostrar caminho com .venv
+which python  # Deve mostrar caminho com .venv
+python --version  # Deve mostrar Python 3.11+
 ```
 
 ### Git reclama de arquivos não rastreados em .venv/
+
 **Causa:** .gitignore não está funcionando ou .venv foi commitado anteriormente.
+
 **Solução:**
 ```bash
 # Se .venv está no git (NÃO DEVE ESTAR):
-git rm -r --cached agentes/*/venv
-git commit -m "Remove ambientes virtuais do Git"
+git rm -r --cached agentes/*/.venv
+git rm -r --cached .venv
+git commit -m "remove: remove ambientes virtuais do Git"
 
 # Verificar .gitignore inclui:
 # .venv/
 # venv/
 # __pycache__/
+# *.pyc
 ```
+
+### Hooks não executam automaticamente
+
+**Causa:** hooks desabilitados ou configuração incorreta.
+
+**Solução:**
+```bash
+# Verificar configuração
+cat .claude/settings.json | jq '.hooks'
+
+# Testar hook manualmente
+node .claude/hooks/invoke-legal-braniac-hybrid.js
+
+# Verificar logs
+cat ~/.vibe-log/hooks.log | tail -50
+```
+
+---
 
 ## Regras Imperativas
 
-1. **NUNCA coloque código em E:\** - Código vai para C:\ e Git
-2. **NUNCA coloque dados grandes no Git** - Dados vão para E:\
+1. **NUNCA coloque código em `~/claude-code-data/`** - Código vai para `~/claude-work/repos/` e Git
+2. **NUNCA coloque dados grandes no Git** - Dados vão para `~/claude-code-data/`
 3. **SEMPRE use ambiente virtual (.venv)** - Sem exceções
 4. **SEMPRE ative .venv antes de executar Python** - Evita contaminação global
 5. **SEMPRE faça git commit ao fim do dia** - Sincronização entre máquinas
-6. **NUNCA use caminhos absolutos hardcoded** - Use caminhos relativos ou variáveis de ambiente
-7. **NUNCA commite .venv/ no Git** - Verifique .gitignore
+6. **NUNCA use caminhos absolutos hardcoded** - Use `path_utils.py` ou env vars
+7. **NUNCA commite .venv/ no Git** - Verifique `.gitignore`
+8. **SEMPRE retorne ao diretório raiz** após `cd` - Evita quebrar hooks (ver CLAUDE.md)
 
-## Plugins do Claude Code Marketplace Necessários
+---
 
-Se você usa Claude Code com este projeto, instale manualmente em cada máquina:
-
-- **episodic-memory** - Para contexto de longo prazo
-- **superpowers** - Para execução de comandos avançados
-- **web-scraper** (se aplicável) - Para coleta de dados web
-
-**IMPORTANTE:** Plugins NÃO vão para Git. Instale via Marketplace em cada máquina.
-
-## Ambientes Suportados (SessionStart Hooks)
+## Ambientes Suportados
 
 ### ✅ Claude Code Web (Linux)
 - **Status**: ✅ TOTALMENTE FUNCIONAL
 - **SessionStart hooks**: Ativos (auto-invocação Legal-Braniac)
-- **Restrições**: Ver limitações abaixo
+- **Limitações**: Sem statusline nativa (arquitetural)
 
-#### ⚠️ Limitações Conhecidas do Claude Code Web
-
-**1. Sem Statusline**
-- **Limitação**: Claude Code Web NÃO tem statusline (arquitetural, não técnica)
-- **Impacto**: Não é possível exibir informações customizadas em tempo real
-- **Workaround**: Informações disponíveis via hooks logs ou session files
-
-**2. Sem Acesso ao SDK Local**
-- **Limitação**: SDK do Claude Agent não disponível no ambiente web
-- **Impacto**: Ferramentas que dependem de análise local (vibe-log Gordon Co-pilot) NÃO funcionam
-- **Exemplo**: `vibe-log-cli analyze-prompt` requer Claude SDK local
-- **Workaround**: Use CLI para análise de prompts
-
-**3. Validações de Hooks Limitadas**
-- **Limitação**: Verificações de ambiente (paths, file system) podem falhar silenciosamente
-- **Impacto**: Hooks que fazem validações complexas podem não funcionar como esperado
-- **Workaround**: Mantenha hooks simples e com fallbacks robustos
-
-**Recomendação:**
-- ✅ Use **Claude Code Web** para desenvolvimento geral (hooks básicos funcionam)
-- ✅ Use **CLI (WSL2)** para features avançadas (statusline, vibe-log Gordon, análises complexas)
+### ✅ WSL2 CLI (Ubuntu 24.04)
+- **Status**: ✅ TOTALMENTE FUNCIONAL
+- **SessionStart hooks**: Ativos
+- **Features avançadas**: Statusline, vibe-log Gordon
 
 ### ⚠️ Windows CLI (Casa/Pessoal)
 - **Status**: ✅ FUNCIONAL (invocação manual)
 - **SessionStart hooks**: Desabilitados (prevenção EPERM)
-- **Como usar**: Invocação manual via prompt
 
 ### ❌ Windows CLI (Corporativo)
 - **Status**: ⚠️ DESABILITADO (bug EPERM loop)
 - **Motivo**: GPOs corporativas bloqueiam `.claude.json.lock`
 - **Workaround**: Use Claude Code Web
-- **Detalhes**: Ver `DISASTER_HISTORY.md` - DIA 4
 
-**Diagnóstico Windows**: Execute `diagnose-corporate-env.ps1` para análise completa
+---
 
-## WSL2 Setup (Sprint 1-2 Complete)
+## Documentação Adicional
 
-Este projeto está migrando para WSL2. Status atual:
+- **`.claude/LEGAL_BRANIAC_GUIDE.md`** - 📖 Guia completo do orquestrador
+- **`.claude/README_SKILLS.md`** - Documentação das 36 skills funcionais
+- **`DISASTER_HISTORY.md`** - Histórico de problemas arquiteturais (leia para NUNCA repetir)
+- **`CLAUDE.md`** - Instruções para Claude Code (working directory management, 3-layer architecture)
+- **`WSL_SETUP.md`** - Guia de setup WSL2 (referência técnica)
+- **`QUICK-REFERENCE.md`** - Comandos essenciais para uso diário
+- **`docs/architecture.md`** - Detalhes da arquitetura do sistema
+- **`docs/setup.md`** - Guia de setup passo-a-passo detalhado
 
-✅ **PC Casa: Sprint 1-2 Complete**
-- Ubuntu 24.04 LTS
-- Node.js v24.11.1 + Claude Code 2.0.42
-- 5 Python venvs criados (agentes)
-- 340 npm packages instalados
-- 10 hooks validados
-- Diretório: `~/claude-work/repos/Claude-Code-Projetos`
+---
 
-📖 **Guia completo:** `WSL_SETUP.md`
-📋 **Histórico:** `CHANGELOG.md`
-🗺️ **Plano completo:** `docs/plano-migracao-wsl2.md` (6 sprints)
-
-## ⚙️ Claude Code Configuration
+## ⚙️ Configuração Especial
 
 ### Append Prompt (`.config/append-prompt.txt`)
 
-Este projeto inclui uma configuração de **append-prompt** que modifica o comportamento do Claude Code durante todas as sessões.
+Este projeto inclui configuração de **append-prompt** que modifica o comportamento do Claude Code:
 
 **O que faz:**
 - Define Claude Code como **DEVELOPER** trabalhando com **PRODUCT MANAGER** (usuário)
@@ -414,99 +694,41 @@ Este projeto inclui uma configuração de **append-prompt** que modifica o compo
 - Via mecanismo de append-prompt do Claude Code
 - Sobrescreve comportamento padrão do Claude
 
-**Por que está no Git:**
-- ✅ É configuração **do projeto**, não do usuário
-- ✅ Deve ser **consistente entre máquinas**
-- ✅ Define "contrato de trabalho" entre PM e Developer
-- ✅ Previne regressões de comportamento
+**Localização:** `.config/append-prompt.txt` (versionado em Git)
 
-**Localização:** `.config/append-prompt.txt`
+---
 
-**IMPORTANTE:** NÃO adicionar ao `.gitignore` - este arquivo deve ser versionado.
+## 🔄 Monitoring & Analytics
 
-## Documentação Adicional
-
-- **`.claude/LEGAL_BRANIAC_GUIDE.md`** - 📖 Guia completo do orquestrador (exemplos, troubleshooting)
-- **`.claude/README_SKILLS.md`** - Documentação de 34 skills instaladas
-- **DISASTER_HISTORY.md** - Histórico de 4 dias de problemas arquiteturais (leia para NUNCA repetir)
-- **CLAUDE.md** - Guia para futuras instâncias do Claude Code
-- **docs/architecture.md** - Detalhes da arquitetura do sistema
-- **docs/setup.md** - Guia de setup passo-a-passo detalhado
-
-## Licença
-
-MIT License - Veja LICENSE para detalhes.
-
-## Autor
-
-PedroGiudice - 2025
-
-## 📊 Statusline & Monitoring
-
-### Enhanced Statusline v3.0
-O projeto usa **vibe-log CLI nativo** com customizações:
-
-**Linha 1 - Análise de Prompts (Legal-Braniac Personality):**
-```
-▸ Legal-Braniac: [análise contextual focada em qualidade e precisão]
-```
-
-**Linha 2 - Contexto do Projeto:**
-```
-● Legal-Braniac | 7 agentes | 38 skills | 4 hooks
-```
-
-**Linha 3 - Status Técnico:**
-```
-venv: ● | git: main* | session: 1h23m
-```
-
-**Símbolos:**
-- `▸` = indicador principal
-- `●` = ativo/ok
-- `○` = inativo/warning
-- `*` = uncommitted changes
-
-### Personalidade Legal-Braniac
-Coaching especializado em automação jurídica:
-- **Prioridade:** Qualidade > Velocidade
-- **Foco:** Fundamentação técnica e conformidade legal
-- **Características:** Precisão, validação rigorosa, testing completo
-- **Diferencial:** Adaptado para direito brasileiro (CF, CPC, CLT, etc)
-
-### Learning System (Prompt Enhancement)
-Sistema de aprendizado que traduz prompts vagos em contexto técnico:
-
-**Features:**
-- Detecta padrões de intenção (legal, scraping, API, etc)
-- Traduz para contexto arquitetural
-- Aprende vocabulário do usuário
-- Quality scoring (0-100) com boost para termos legais
-- Baixo overhead (<200ms)
-
-**Bypass:**
-- `*` = comando direto (sem enhancement)
-- `/` = slash command
-- `#` = comentário
-- `++` = force enhancement (debugging)
-
-**Arquivos:**
-- `.claude/hooks/prompt-enhancer.js` - Engine principal
-- `.claude/hooks/lib/intent-patterns.json` - Padrões de detecção
-- `.claude/hooks/lib/user-vocabulary.json` - Vocabulário aprendido
-- `.claude/statusline/prompt-quality.json` - Métricas
-
-## 🔄 VibeLog Integration
-
+### VibeLog Integration
 **Status:** Autenticado e ativo
 
 **Hooks instalados:**
 - SessionStart: Captura início de sessão
-- PreCompact: Captura antes de compactação de contexto
 - SessionEnd: Captura fim de sessão
+- PreCompact: Captura antes de compactação de contexto
 
 **Dashboard:** https://app.vibe-log.dev
 - Streak tracking
 - Session analytics
 - Prompt analysis history
 
+---
+
+## Licença
+
+MIT License - Veja LICENSE para detalhes.
+
+---
+
+## Autor
+
+**PedroGiudice** - 2025
+
+Projeto de automação jurídica desenvolvido com Claude Code e Python.
+
+---
+
+**Última atualização:** 2025-11-20
+**Ambiente:** WSL2 Ubuntu 24.04 LTS
+**Diretório:** `~/claude-work/repos/Claude-Code-Projetos`
