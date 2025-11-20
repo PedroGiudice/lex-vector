@@ -1,0 +1,92 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "$comment": "Mapeamento declarativo de agentes → ferramentas disponíveis",
+  "version": "1.0.0",
+  "description": "Define quais tools cada subagente type tem acesso. Usado por PreToolUse hook para injetar instruções.",
+
+  "agents": {
+    "Plan": {
+      "tools": ["Glob", "Grep", "Read", "WebFetch", "WebSearch"],
+      "description": "Planning agent with web research capabilities",
+      "critical_instruction": "IMPORTANT: You have WebFetch and WebSearch tools available. When you need web data (documentation, API specs, examples), USE THEM DIRECTLY. DO NOT delegate web research to other agents."
+    },
+
+    "Explore": {
+      "tools": ["Glob", "Grep", "Read"],
+      "description": "Fast exploration agent for codebase navigation",
+      "critical_instruction": null
+    },
+
+    "general-purpose": {
+      "tools": ["*"],
+      "description": "Full-featured agent with all tools (default behavior)",
+      "critical_instruction": null
+    },
+
+    "desenvolvimento": {
+      "tools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
+      "description": "Development agent for code implementation",
+      "critical_instruction": null
+    },
+
+    "documentacao": {
+      "tools": ["Read", "Write", "Edit", "Glob", "Grep"],
+      "description": "Documentation agent (no Bash execution)",
+      "critical_instruction": null
+    },
+
+    "qualidade-codigo": {
+      "tools": ["Read", "Glob", "Grep", "Bash"],
+      "description": "Code quality agent (read-only + test execution)",
+      "critical_instruction": null
+    },
+
+    "legal-articles-finder": {
+      "tools": ["Read", "Glob", "Grep"],
+      "description": "Legal articles finder (read-only)",
+      "critical_instruction": null
+    },
+
+    "planejamento-legal": {
+      "tools": ["Read", "Glob", "Grep", "WebFetch", "WebSearch"],
+      "description": "Legal planning agent with web research",
+      "critical_instruction": "You have WebFetch and WebSearch available for researching Brazilian legal APIs and frameworks."
+    },
+
+    "analise-dados-legal": {
+      "tools": ["Read", "Glob", "Grep", "Bash"],
+      "description": "Legal data analysis agent",
+      "critical_instruction": null
+    },
+
+    "statusline-setup": {
+      "tools": ["Read", "Edit"],
+      "description": "Statusline configuration agent (limited scope)",
+      "critical_instruction": null
+    },
+
+    "claude-code-guide": {
+      "tools": ["Glob", "Grep", "Read", "WebFetch", "WebSearch"],
+      "description": "Claude Code documentation lookup agent",
+      "critical_instruction": "You MUST use WebFetch to access Claude Code official documentation at docs.claude.com when answering questions."
+    },
+
+    "vibe-log-session-analyzer": {
+      "tools": ["Read"],
+      "description": "Vibe-log session analyzer (read-only)",
+      "critical_instruction": null
+    },
+
+    "vibe-log-report-generator": {
+      "tools": ["Read", "Write"],
+      "description": "Vibe-log report generator",
+      "critical_instruction": null
+    }
+  },
+
+  "_notes": {
+    "toolsWildcard": "Use '*' to grant all available tools (inherits from main context)",
+    "criticalInstruction": "Injected at end of prompt when non-null - use for tool usage reminders",
+    "newAgents": "Add new agents here as they're created - hook will auto-detect"
+  }
+}
