@@ -90,8 +90,8 @@ async function legalBraniacDecide(context, sessionState) {
   // 1. VALIDATIONS
   decisions.validations = await runValidations(context, sessionState.validations);
 
-  // 2. SKILL DETECTION
-  decisions.skillActivation = detectSkill(context.prompt, sessionState.skills);
+  // 2. SKILL DETECTION (v2.0: detectSkill agora lê skill-rules.json diretamente)
+  decisions.skillActivation = detectSkill(context.prompt);
 
   // 3. AGENT ORCHESTRATION (só para prompts complexos)
   decisions.agentOrchestration = await orchestrateAgents(
@@ -121,13 +121,17 @@ function formatOutput(decisions) {
     messages.push(`⚠️  VALIDATIONS:\n${failureMessages}`);
   }
 
-  // Skill activation
-  if (decisions.skillActivation) {
-    const skill = decisions.skillActivation;
+  // Skill activation (v2.0: mostra top 5 skills detectadas)
+  if (decisions.skillActivation && decisions.skillActivation.topSkills && decisions.skillActivation.topSkills.length > 0) {
+    const detection = decisions.skillActivation;
+    const top5List = detection.topSkills
+      .map(s => `  - ${s.skillName} (${s.config.priority}) [score: ${s.finalScore}]`)
+      .join('\n');
+
     messages.push(
-      `✅ Skill: ${skill.name} ativada\n` +
-        `   Trigger: "${skill.trigger}"\n` +
-        `   Path: ${skill.path}`
+      `🎯 SKILLS DETECTADAS (${detection.totalMatched} matched de ${detection.totalConsidered}, showing top ${detection.topSkills.length}):\n` +
+      top5List + `\n\n` +
+      `💡 Consider using these skills for optimal response quality.`
     );
   }
 

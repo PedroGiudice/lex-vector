@@ -780,4 +780,3 @@ alias braniac='test -f .claude/hooks/legal-braniac-session.json && echo "Braniac
 **Last updated:** 2025-11-19
 **Maintained by:** PedroGiudice
 **For Claude Code instances operating in:** `~/claude-work/repos/Claude-Code-Projetos` (WSL2)
-- add
