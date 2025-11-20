@@ -113,6 +113,45 @@ When executing Bash commands that change directories:
 
 ---
 
+## Hook Validation Protocol
+
+**CRITICAL:** After impactful codebase changes (hooks, dependencies, configs), verify hook execution logs.
+
+### When to Validate
+
+- After modifying hook files (.claude/hooks/*)
+- After changing hook dependencies (node_modules, Python packages)
+- After updating settings.json hook configuration
+- After removing/renaming files referenced by hooks
+
+### Validation Checklist
+
+```bash
+# 1. Check hook execution logs
+tail -50 ~/.vibe-log/hooks.log  # Vibe-log hooks
+cat .claude/monitoring/logs/hooks.log  # Monitoring hooks
+cat .claude/hooks/lib/skill-tracking.log  # Skill detection
+
+# 2. Verify all hook files exist
+cat .claude/settings.json | jq -r '.hooks[][] | .hooks[] | .command'
+
+# 3. Test critical hooks manually
+python3 .claude/hooks/improve-prompt.py < test-input.json
+node .claude/hooks/context-collector.js
+
+# 4. Check system-reminders in next prompt
+# Look for "hook success" or "hook error" messages
+```
+
+### Red Flags
+
+- `MODULE_NOT_FOUND` errors → Missing dependency or wrong path
+- `Another hook execution is already in progress` → Vibe-log concurrency (benign)
+- `command not found` → Script not executable or missing shebang
+- Silent failures → Hook returns non-zero exit but marked as "Success"
+
+---
+
 ## Common Development Commands
 
 ### Setting Up a New Agent
