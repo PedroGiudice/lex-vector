@@ -203,13 +203,12 @@ python -m unittest      # Alternative test framework
 ### Git Workflow
 
 ```bash
-# End of work session
+# Standard workflow
+git pull  # Start of work session
+# ... make changes ...
 git add .
-git commit -m "Adiciona <feature/correção/refatoração>"
-git push
-
-# Start of work session on different machine
-git pull
+git commit -m "feat: adiciona <feature/correção/refatoração>"
+git push  # End of work session
 ```
 
 ### Adding New Dependencies
@@ -492,7 +491,7 @@ Example from disaster:
 
 ## Virtual Environment (venv) Requirements
 
-Virtual environments are **mandatory**, not optional. Historical evidence shows that global Python installations caused invisible version conflicts between machines.
+Virtual environments are **mandatory**, not optional. Historical evidence shows that global Python installations cause version conflicts and dependency contamination.
 
 ### Creation
 
@@ -537,50 +536,71 @@ python main.py
 
 ---
 
-## Cross-Machine Workflow
+## Non-Negotiable Git Discipline
 
-This project is designed to work seamlessly across multiple machines (e.g., work and home computers).
+This project requires strict Git workflow discipline to maintain code quality and enable reliable collaboration.
 
-### Machine A (Work)
+### Commit Frequently
 
-```powershell
-# Make changes
-cd C:\claude-work\repos\Claude-Code-Projetos
-# ... edit code ...
+**Rule:** Commit and push changes **at minimum** at the end of each work session. Ideally, commit after completing each logical unit of work.
 
-# Commit and push
+```bash
+# After completing a feature/fix
 git add .
-git commit -m "Implementa parser de publicações OAB"
+git commit -m "feat: implementa parser de publicações OAB"
 git push
+
+# Don't let uncommitted changes accumulate
+# If you have to stop work, commit what you have
 ```
 
-### Machine B (Home)
+**Why:**
+- Prevents loss of work
+- Creates clear development history
+- Enables easy rollback if needed
+- Keeps codebase synchronized
 
-```powershell
-# Pull latest changes
-cd C:\claude-work\repos\Claude-Code-Projetos
+### Branch Strategy for Complex Features
+
+**Rule:** Features that will take **more than 2 sprints** to complete MUST be developed in separate branches.
+
+```bash
+# Create feature branch
+git checkout -b feature/sistema-busca-jurisprudencia
+
+# Work on feature (multiple commits)
+git add .
+git commit -m "feat: adiciona crawler de tribunais"
+git push origin feature/sistema-busca-jurisprudencia
+
+# Continue working...
+git commit -m "feat: adiciona parser de acórdãos"
+git push
+
+# When feature is complete and tested
+git checkout main
 git pull
-
-# Environment is independent - recreate if needed
-cd agentes\oab-watcher
-python -m venv .venv  # Only if .venv doesn't exist
-.venv\Scripts\activate
-pip install -r requirements.txt
-
-# Execute
-python main.py
+git merge feature/sistema-busca-jurisprudencia
+git push
+git branch -d feature/sistema-busca-jurisprudencia
 ```
 
-### What Gets Synchronized
+**Why:**
+- Keeps `main` branch stable and deployable
+- Allows experimental work without breaking production
+- Enables parallel development of multiple features
+- Provides clear feature boundaries in history
 
-- ✅ **Via Git:** Source code (.py), configuration (config.json), documentation (.md), dependencies list (requirements.txt)
-- ❌ **NOT synchronized:** Virtual environments (.venv/), data files (E:\claude-code-data\), logs, downloads, outputs
+### What Gets Synchronized via Git
+
+- ✅ **Committed:** Source code (.py), configuration (config.json), documentation (.md), dependencies (requirements.txt)
+- ❌ **NOT committed:** Virtual environments (.venv/), data files, logs, downloads, outputs (all in .gitignore)
 
 ---
 
 ## Claude Code Marketplace Plugins
 
-If this project uses Claude Code plugins, they must be **installed manually on each machine** via the Marketplace.
+Project plugins must be installed via the Marketplace.
 
 **Required plugins:**
 - (List will be populated as plugins are adopted)
@@ -595,7 +615,7 @@ Before proposing or implementing any architectural change:
 
 1. **Read DISASTER_HISTORY.md** to understand what went wrong before
 2. **Validate against three-layer separation** (Code/Environment/Data)
-3. **Test on BOTH machines** (work and home) before considering it "done"
+3. **Test thoroughly** in clean environment (fresh clone + venv setup)
 4. **Document the decision** in this file (CLAUDE.md)
 5. **Update README.md** if user-facing
 
@@ -902,3 +922,4 @@ alias braniac='test -f .claude/hooks/legal-braniac-session.json && echo "Braniac
 **For Claude Code instances operating in:** `~/claude-work/repos/Claude-Code-Projetos` (WSL2)
 - add explíto e curto que podem aparecer mensagens de erro, mas que não são VERDADEIROS erros de hook.
 - add Desativei autocompact
+- add to all memoories

@@ -2,7 +2,10 @@
  * lib/agent-orchestrator.js - Orquestração de agentes
  *
  * Substitui: invoke-legal-braniac-hybrid.js (parte de delegação)
+ * Integração: Usa agent-tools-mapping.json para enriquecer sugestões
  */
+
+const { getAgentToolsSummary } = require('./agent-mapping-loader');
 
 async function orchestrateAgents(context, agentesConfig) {
   const prompt = context.prompt.toLowerCase();
@@ -72,10 +75,10 @@ async function orchestrateAgents(context, agentesConfig) {
 
 function formatOrchestrationPlan(subtasks) {
   return subtasks
-    .map(
-      (st, i) =>
-        `${i + 1}. [${st.agente}] ${st.name} → Skills: ${st.skills.join(', ')}`
-    )
+    .map((st, i) => {
+      const toolsSummary = getAgentToolsSummary(st.agente);
+      return `${i + 1}. [${st.agente}] ${st.name}\n   Skills: ${st.skills.join(', ')}\n   Tools: ${toolsSummary}`;
+    })
     .join('\n');
 }
 

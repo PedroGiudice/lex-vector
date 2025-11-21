@@ -67,6 +67,19 @@
         ]
       }
     ],
+    "PreToolUse": [
+      {
+        "_comment": "Inject tool availability into Task agent prompts (WebFetch, WebSearch, etc)",
+        "matcher": "Task",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node .claude/hooks/inject-tools-to-agents.js",
+            "_note": "Reads agent-tools-mapping.json and injects available tools instruction into agent prompt"
+          }
+        ]
+      }
+    ],
     "UserPromptSubmit": [
       {
         "_comment": "Hook chain: prompt-enhancer → context-collector → vibe-analyze-prompt (Gordon AI Coach) + monitoring",

@@ -1,0 +1,15 @@
+beautifulsoup4==4.12.2
+certifi==2025.11.12
+charset-normalizer==3.4.4
+idna==3.11
+lxml==4.9.3
+requests==2.31.0
+schedule==1.2.2
+soupsieve==2.8
+urllib3==2.5.0
+
+# RAG/Semantic Search dependencies
+transformers>=4.30.0
+torch>=2.0.0
+sentence-transformers>=2.2.0
+numpy>=1.24.0
