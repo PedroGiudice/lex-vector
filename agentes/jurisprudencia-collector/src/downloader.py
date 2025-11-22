@@ -61,8 +61,8 @@ class DJENDownloader:
     def __init__(
         self,
         data_root: Path,
-        requests_per_minute: int = 30,
-        delay_seconds: float = 2.0,
+        requests_per_minute: int = 280,
+        adaptive_rate_limit: bool = True,
         max_retries: int = 3
     ):
         """
@@ -71,11 +71,19 @@ class DJENDownloader:
         Args:
             data_root: Diretório raiz para armazenamento
             requests_per_minute: Limite de requisições por minuto
-            delay_seconds: Delay fixo entre requisições
+            adaptive_rate_limit: Habilitar rate limiting adaptativo com janela deslizante
             max_retries: Número máximo de tentativas em caso de falha
         """
         self.data_root = Path(data_root)
         self.max_retries = max_retries
+        self.adaptive_rate_limit = adaptive_rate_limit
+
+        # Rate limiting adaptativo - janela deslizante
+        # Buffer conservador: 12 req/5s (~57% do limite da API de 21 req/5s)
+        self.request_window_size = 12
+        self.request_window_duration = 5.0  # segundos
+        self.request_count = 0
+        self.window_start = time.time()
 
         # Criar diretórios
         self.downloads_dir = self.data_root / 'downloads'
@@ -85,10 +93,10 @@ class DJENDownloader:
         for directory in [self.downloads_dir, self.logs_dir, self.cache_dir]:
             directory.mkdir(parents=True, exist_ok=True)
 
-        # Rate limiter (reutilizando código de djen-tracker)
+        # Rate limiter (mantido para compatibilidade, mas não usado com adaptive_rate_limit=True)
         self.rate_limiter = RateLimiter(
             requests_per_minute=requests_per_minute,
-            delay_seconds=delay_seconds,
+            delay_seconds=0.21,  # Delay mínimo entre requests
             max_backoff_seconds=300,
             enable_backoff=True
         )
@@ -105,7 +113,13 @@ class DJENDownloader:
         self._load_hash_cache()
 
         logger.info(f"DJENDownloader inicializado: {self.data_root}")
-        logger.info(f"Rate limiting: {requests_per_minute} req/min, delay={delay_seconds}s")
+        if adaptive_rate_limit:
+            logger.info(
+                f"Rate limiting adaptativo: {self.request_window_size} req/"
+                f"{self.request_window_duration}s (janela deslizante)"
+            )
+        else:
+            logger.info(f"Rate limiting: {requests_per_minute} req/min")
 
     def _load_hash_cache(self):
         """Carrega cache de hashes de publicações já baixadas."""
@@ -145,6 +159,39 @@ class DJENDownloader:
         """
         return hashlib.sha256(texto.encode('utf-8')).hexdigest()
 
+    def _check_rate_limit(self):
+        """
+        Rate limiting adaptativo baseado em janela deslizante.
+
+        Controla requisições para evitar HTTP 429 da API:
+        - Limite: 12 requisições por janela de 5 segundos
+        - Buffer de segurança conservador: API permite ~21, usamos 12 (57% do limite)
+        - Pausa automática quando janela atinge limite
+        """
+        if not self.adaptive_rate_limit:
+            # Usar RateLimiter antigo se adaptive desabilitado
+            self.rate_limiter.wait()
+            return
+
+        self.request_count += 1
+
+        # Se atingir limite da janela (buffer de segurança)
+        if self.request_count >= self.request_window_size:
+            elapsed = time.time() - self.window_start
+
+            # Se janela ainda não expirou, pausar
+            if elapsed < self.request_window_duration:
+                sleep_time = self.request_window_duration - elapsed
+                logger.debug(
+                    f"Rate limit: pausando {sleep_time:.1f}s (window reset) - "
+                    f"{self.request_count} req em {elapsed:.1f}s"
+                )
+                time.sleep(sleep_time)
+
+            # Resetar janela
+            self.request_count = 0
+            self.window_start = time.time()
+
     def _fazer_requisicao(
         self,
         url: str,
@@ -152,7 +199,7 @@ class DJENDownloader:
         **kwargs
     ) -> requests.Response:
         """
-        Faz requisição HTTP com rate limiting e retry automático.
+        Faz requisição HTTP com rate limiting adaptativo e retry automático.
 
         Args:
             url: URL da requisição
@@ -167,8 +214,8 @@ class DJENDownloader:
         """
         for tentativa in range(1, self.max_retries + 1):
             try:
-                # Rate limiting
-                self.rate_limiter.wait()
+                # Rate limiting adaptativo ANTES do request
+                self._check_rate_limit()
 
                 # Fazer requisição
                 if method == 'GET':
@@ -178,13 +225,25 @@ class DJENDownloader:
                 else:
                     raise ValueError(f"Método HTTP não suportado: {method}")
 
-                # Registrar requisição
-                self.rate_limiter.record_request()
+                # Registrar requisição (para backward compatibility)
+                if not self.adaptive_rate_limit:
+                    self.rate_limiter.record_request()
 
-                # Tratar rate limiting (429)
+                # Tratar rate limiting (429) com retry
                 if response.status_code == 429:
-                    logger.warning(f"Rate limit (429) - Tentativa {tentativa}/{self.max_retries}")
-                    self.rate_limiter.trigger_backoff(429)
+                    retry_after = int(response.headers.get('Retry-After', 2))
+                    logger.warning(
+                        f"HTTP 429 (Rate Limit) - "
+                        f"Aguardando {retry_after}s antes de retry {tentativa}/{self.max_retries}"
+                    )
+                    time.sleep(retry_after)
+
+                    # Resetar janela de rate limit após 429
+                    if self.adaptive_rate_limit:
+                        self.request_count = 0
+                        self.window_start = time.time()
+                    else:
+                        self.rate_limiter.trigger_backoff(429)
 
                     if tentativa < self.max_retries:
                         continue
@@ -194,6 +253,17 @@ class DJENDownloader:
                 # Verificar status
                 response.raise_for_status()
                 return response
+
+            except requests.exceptions.Timeout:
+                if tentativa < self.max_retries:
+                    backoff = 2 ** tentativa  # Exponential: 1s, 2s, 4s
+                    logger.warning(
+                        f"Timeout - Retry {tentativa}/{self.max_retries} em {backoff}s"
+                    )
+                    time.sleep(backoff)
+                    continue
+                logger.error(f"Timeout após {self.max_retries} tentativas")
+                raise
 
             except requests.exceptions.RequestException as e:
                 logger.warning(f"Erro na requisição (tentativa {tentativa}/{self.max_retries}): {e}")

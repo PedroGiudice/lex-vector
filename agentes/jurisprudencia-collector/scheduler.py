@@ -123,6 +123,8 @@ def inserir_publicacao(conn: sqlite3.Connection, pub: Dict) -> bool:
     """
     Insere publicação no banco se não existir (via hash).
 
+    NOTA: Commit será feito em batch pela função chamadora.
+
     Args:
         conn: Conexão SQLite
         pub: Dicionário de publicação processada
@@ -158,12 +160,14 @@ def inserir_publicacao(conn: sqlite3.Connection, pub: Dict) -> bool:
             pub['relator'],
             pub['fonte']
         ))
-        conn.commit()
+        # Commit removido - será feito em batch
         return True
 
     except sqlite3.IntegrityError as e:
         # Hash já existe - duplicata
         logger.debug(f"Publicação duplicada: {pub['hash_conteudo'][:16]}... ({e})")
+        # Rollback apenas da transação duplicada
+        conn.rollback()
         return False
 
 
@@ -258,7 +262,7 @@ def processar_publicacoes(
     tipos_desejados: List[str] = ['Acórdão']
 ) -> Dict[str, int]:
     """
-    Processa publicações brutas e insere no banco.
+    Processa publicações brutas e insere no banco com batch commits.
 
     Args:
         conn: Conexão SQLite
@@ -279,6 +283,8 @@ def processar_publicacoes(
             - filtrados: Publicações filtradas por tipo
             - erros: Publicações com erro de processamento
     """
+    BATCH_SIZE = 100  # Commit a cada 100 publicações
+
     # Validar entrada: lista vazia filtra tudo
     if not tipos_desejados:
         logger.warning(
@@ -304,7 +310,7 @@ def processar_publicacoes(
         'erros': 0
     }
 
-    for pub_raw in publicacoes:
+    for i, pub_raw in enumerate(publicacoes, start=1):
         try:
             # Converter PublicacaoRaw para dict
             raw_dict = asdict(pub_raw)
@@ -340,9 +346,18 @@ def processar_publicacoes(
             else:
                 stats['duplicadas'] += 1
 
+            # Commit em batch
+            if i % BATCH_SIZE == 0:
+                conn.commit()
+                logger.debug(f"[{tribunal}] Batch commit: {i}/{len(publicacoes)} processadas")
+
         except Exception as e:
             logger.error(f"[{tribunal}] Erro ao processar publicação {pub_raw.id}: {e}")
             stats['erros'] += 1
+
+    # Commit final (publicações restantes)
+    conn.commit()
+    logger.debug(f"[{tribunal}] Commit final: {len(publicacoes)} publicações processadas")
 
     logger.info(
         f"[{tribunal}] Processamento concluído: "
@@ -356,6 +371,157 @@ def processar_publicacoes(
 # ==============================================================================
 # JOB DE DOWNLOAD
 # ==============================================================================
+
+def baixar_retroativo(
+    data_inicio: str,
+    data_fim: str,
+    tribunais: Optional[List[str]] = None,
+    tipos_desejados: Optional[List[str]] = None
+):
+    """
+    Baixa publicações de um intervalo de datas (download retroativo).
+
+    Args:
+        data_inicio: Data inicial no formato YYYY-MM-DD
+        data_fim: Data final no formato YYYY-MM-DD
+        tribunais: Lista de tribunais (default: TRIBUNAIS_PRIORITARIOS)
+        tipos_desejados: Lista de tipos a filtrar (default: ['Acórdão'])
+
+    Returns:
+        Dict com estatísticas do download retroativo
+    """
+    from datetime import datetime, timedelta
+
+    if tribunais is None:
+        tribunais = TRIBUNAIS_PRIORITARIOS
+
+    if tipos_desejados is None:
+        tipos_desejados = ['Acórdão']
+
+    logger.info("=" * 80)
+    logger.info("INICIANDO DOWNLOAD RETROATIVO")
+    logger.info("=" * 80)
+    logger.info(f"Período: {data_inicio} até {data_fim}")
+    logger.info(f"Tribunais: {len(tribunais)} ({', '.join(tribunais)})")
+    logger.info(f"Tipos: {', '.join(tipos_desejados)}")
+
+    # Converter strings para datetime
+    dt_inicio = datetime.strptime(data_inicio, '%Y-%m-%d')
+    dt_fim = datetime.strptime(data_fim, '%Y-%m-%d')
+
+    # Calcular total de dias
+    delta = dt_fim - dt_inicio
+    total_dias = delta.days + 1
+
+    logger.info(f"Total de dias a processar: {total_dias}")
+
+    # Inicializar downloader
+    downloader = DJENDownloader(
+        data_root=DATA_ROOT,
+        requests_per_minute=280,
+        adaptive_rate_limit=True,
+        max_retries=3
+    )
+
+    # Conectar banco
+    conn = inicializar_banco()
+
+    # Estatísticas globais
+    stats_globais = {
+        'total_dias': total_dias,
+        'total_tribunais': len(tribunais),
+        'total_novas': 0,
+        'total_duplicadas': 0,
+        'total_filtrados': 0,
+        'total_erros': 0,
+        'dias_processados': 0,
+        'inicio': datetime.now()
+    }
+
+    # Iterar por cada dia
+    data_atual = dt_inicio
+    while data_atual <= dt_fim:
+        data_str = data_atual.strftime('%Y-%m-%d')
+        stats_globais['dias_processados'] += 1
+
+        logger.info(f"\n{'=' * 80}")
+        logger.info(f"DIA {stats_globais['dias_processados']}/{total_dias}: {data_str}")
+        logger.info(f"{'=' * 80}")
+
+        # Processar cada tribunal para este dia
+        for tribunal in tribunais:
+            try:
+                logger.info(f"[{tribunal}] Baixando publicações de {data_str}...")
+
+                publicacoes = downloader.baixar_api(
+                    tribunal=tribunal,
+                    data=data_str,
+                    limit=100,
+                    max_pages=None  # Baixar todas as páginas
+                )
+
+                if publicacoes:
+                    logger.info(f"[{tribunal}] Baixadas: {len(publicacoes)} publicações")
+
+                    # Processar e inserir no banco (com filtro)
+                    stats_processamento = processar_publicacoes(
+                        conn,
+                        publicacoes,
+                        tribunal,
+                        tipos_desejados=tipos_desejados
+                    )
+
+                    # Atualizar estatísticas globais
+                    stats_globais['total_novas'] += stats_processamento['novas']
+                    stats_globais['total_duplicadas'] += stats_processamento['duplicadas']
+                    stats_globais['total_filtrados'] += stats_processamento['filtrados']
+                    stats_globais['total_erros'] += stats_processamento['erros']
+
+                    logger.info(
+                        f"[{tribunal}] {data_str}: "
+                        f"{stats_processamento['novas']} novas, "
+                        f"{stats_processamento['duplicadas']} duplicadas, "
+                        f"{stats_processamento['filtrados']} filtrados"
+                    )
+                else:
+                    logger.info(f"[{tribunal}] Nenhuma publicação encontrada para {data_str}")
+
+            except Exception as e:
+                logger.error(f"[{tribunal}] Erro ao processar {data_str}: {e}")
+                stats_globais['total_erros'] += 1
+
+        # Avançar para próximo dia
+        data_atual += timedelta(days=1)
+
+        # Mostrar progresso
+        progresso_pct = (stats_globais['dias_processados'] / total_dias) * 100
+        logger.info(
+            f"\n📊 PROGRESSO: {stats_globais['dias_processados']}/{total_dias} dias "
+            f"({progresso_pct:.1f}%) | "
+            f"{stats_globais['total_novas']} novas | "
+            f"{stats_globais['total_filtrados']} filtrados"
+        )
+
+    # Relatório final
+    stats_globais['fim'] = datetime.now()
+    tempo_total = (stats_globais['fim'] - stats_globais['inicio']).total_seconds()
+
+    logger.info("\n" + "=" * 80)
+    logger.info("DOWNLOAD RETROATIVO CONCLUÍDO")
+    logger.info("=" * 80)
+    logger.info(f"Período: {data_inicio} até {data_fim}")
+    logger.info(f"Dias processados: {stats_globais['dias_processados']}/{total_dias}")
+    logger.info(f"Publicações novas: {stats_globais['total_novas']}")
+    logger.info(f"Publicações duplicadas: {stats_globais['total_duplicadas']}")
+    logger.info(f"Publicações filtradas: {stats_globais['total_filtrados']}")
+    logger.info(f"Erros: {stats_globais['total_erros']}")
+    logger.info(f"Tempo total: {tempo_total:.1f}s ({tempo_total/60:.1f} min)")
+    logger.info("=" * 80)
+
+    conn.close()
+
+    return stats_globais
+
 
 def job_download_diario():
     """
@@ -379,8 +545,8 @@ def job_download_diario():
     # Inicializar downloader
     downloader = DJENDownloader(
         data_root=DATA_ROOT,
-        requests_per_minute=30,
-        delay_seconds=2.0,
+        requests_per_minute=280,
+        adaptive_rate_limit=True,
         max_retries=3
     )
 
@@ -416,7 +582,7 @@ def job_download_diario():
             )
 
             # Verificar se API retornou publicações suficientes
-            min_publicacoes_esperadas = 10
+            min_publicacoes_esperadas = 100  # Aumentado de 10 para 100 (Fase 2)
 
             if not publicacoes or len(publicacoes) < min_publicacoes_esperadas:
                 logger.warning(

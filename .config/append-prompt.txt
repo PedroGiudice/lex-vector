@@ -251,3 +251,12 @@ Proceed directly - orchestration/delegation has overhead
 ---
 
 **Last updated:** 2025-11-19 (v2.0 - Skill auto-detection active)
+
+---
+
+## API Development Guidelines
+
+**Before modifying API integration code** (e.g., `src/downloader.py`, API clients):
+1. Read `agentes/[project]/KNOWN_ISSUES_API_*.md` if exists
+2. Verify method signatures (don't assume parameters exist)
+3. Test with actual API responses (not assumptions)

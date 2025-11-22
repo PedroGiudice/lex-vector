@@ -7,6 +7,7 @@ requests==2.31.0
 schedule==1.2.2
 soupsieve==2.8
 urllib3==2.5.0
+rich>=13.0.0
 
 # RAG/Semantic Search dependencies
 transformers>=4.30.0
