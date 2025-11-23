@@ -1,4 +1,13 @@
 # INVESTIGATION REPORT: Sistema de Ativação de Skills e Agentes
+
+⚠️ **DEPRECATION NOTICE (2025-11-23)**:
+Este relatório contém modelo INCORRETO de "agent-skill binding" (skills pertencendo a agents específicos).
+**Correto**: Skills são portable expertise auto-injetadas via skill-content-injector.js (não pertencem a agents).
+**Research**: obra/superpowers, jefflester/supercharged, Anthropic official docs.
+Veja: Commit 457e003 para correção implementada.
+
+---
+
 **Data**: 2025-11-23
 **Investigador**: Claude Code (Plan Mode)
 **Referências**:

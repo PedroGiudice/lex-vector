@@ -33,36 +33,31 @@ async function orchestrateAgents(context, agentesConfig) {
   const subtasks = [];
 
   if (complexity === 'HIGH') {
+    // Skills são auto-injetadas via skill-content-injector.js (não pertencem a agents)
     subtasks.push({
       name: 'Planejamento & Arquitetura',
-      agente: 'planejamento-legal',
-      skills: ['architecture-diagram-creator', 'feature-planning']
+      agente: 'planejamento-legal'
     });
     subtasks.push({
       name: 'Implementação Core',
-      agente: 'desenvolvimento',
-      skills: ['code-execution', 'test-driven-development']
+      agente: 'desenvolvimento'
     });
     subtasks.push({
       name: 'Testes & Quality Assurance',
-      agente: 'qualidade-codigo',
-      skills: ['code-auditor', 'test-driven-development']
+      agente: 'qualidade-codigo'
     });
     subtasks.push({
       name: 'Documentação Técnica',
-      agente: 'documentacao',
-      skills: ['technical-doc-creator', 'flowchart-creator']
+      agente: 'documentacao'
     });
   } else if (complexity === 'MEDIUM') {
     subtasks.push({
       name: 'Implementação',
-      agente: 'desenvolvimento',
-      skills: ['code-execution']
+      agente: 'desenvolvimento'
     });
     subtasks.push({
       name: 'Code Review',
-      agente: 'qualidade-codigo',
-      skills: ['code-auditor']
+      agente: 'qualidade-codigo'
     });
   }
 
@@ -77,7 +72,9 @@ function formatOrchestrationPlan(subtasks) {
   return subtasks
     .map((st, i) => {
       const toolsSummary = getAgentToolsSummary(st.agente);
-      return `${i + 1}. [${st.agente}] ${st.name}\n   Skills: ${st.skills.join(', ')}\n   Tools: ${toolsSummary}`;
+      // Skills são auto-injetadas via skill-content-injector.js baseado no prompt
+      // Não há "skills pertencendo a agents" - modelo incorreto do projeto anterior
+      return `${i + 1}. [${st.agente}] ${st.name}\n   Tools: ${toolsSummary}`;
     })
     .join('\n');
 }
