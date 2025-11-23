@@ -19,10 +19,18 @@ const { enforceAesthetics } = require('./lib/aesthetic-enforcer');
 // CONTEXT COLLECTION
 // ============================================================================
 
-async function collectContext(projectDir) {
+async function collectContext(projectDir, stdinData = null) {
+  // Obter prompt com fallbacks (env var → stdin → vazio)
+  let prompt = process.env.CLAUDE_USER_PROMPT || '';
+
+  // BUG FIX #1: Fallback para stdin se CLAUDE_USER_PROMPT vazio
+  if (!prompt && stdinData?.userPrompt) {
+    prompt = stdinData.userPrompt;
+  }
+
   const context = {
     timestamp: Date.now(),
-    prompt: process.env.CLAUDE_USER_PROMPT || '',
+    prompt,
     projectDir,
     git: {
       modifiedFiles: [],
@@ -176,6 +184,18 @@ function formatOutput(decisions) {
 async function main() {
   const projectDir = process.env.CLAUDE_PROJECT_DIR || process.cwd();
 
+  // BUG FIX #1: Tentar ler stdin para fallback de prompt
+  let stdinData = null;
+  try {
+    const fs = require('fs');
+    const stdinBuffer = fs.readFileSync(0, 'utf-8');
+    if (stdinBuffer.trim()) {
+      stdinData = JSON.parse(stdinBuffer);
+    }
+  } catch (error) {
+    // Stdin vazio ou inválido - não é erro, apenas não há fallback
+  }
+
   try {
     // Carregar session state (criado por legal-braniac-loader.js)
     const sessionPath = path.join(projectDir, '.claude', 'hooks', 'legal-braniac-session.json');
@@ -195,8 +215,8 @@ async function main() {
       sessionState = JSON.parse(sessionContent);
     }
 
-    // Coletar contexto
-    const context = await collectContext(projectDir);
+    // Coletar contexto (com fallback stdin)
+    const context = await collectContext(projectDir, stdinData);
 
     // Legal-Braniac decide
     const decisions = await legalBraniacDecide(context, sessionState);
