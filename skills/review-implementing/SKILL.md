@@ -1,8 +1,7 @@
 ---
 name: review-implementing
 description: Process and implement code review feedback systematically. Use when user provides reviewer comments, PR feedback, code review notes, or asks to implement suggestions from reviews.
-triggers: ["review implementing", "implement", "review", "code review"]
----
+triggers: ["review implementing", "implement", "review", "code review"]---
 
 # Review Feedback Implementation
 

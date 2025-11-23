@@ -1,8 +1,7 @@
 ---
 name: technical-doc-creator
 description: Create HTML technical documentation with code blocks, API workflows, system architecture diagrams, and syntax highlighting. Use when users request technical documentation, API docs, API references, code examples, or developer documentation.
-triggers: ["technical doc creator", "create", "develop", "document", "architect", "api", "architecture"]
----
+triggers: ["technical doc creator", "create", "develop", "document", "architect", "api", "architecture"]---
 
 # Technical Documentation Creator
 

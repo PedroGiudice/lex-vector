@@ -1,8 +1,7 @@
 ---
 name: executing-plans
 description: Use when partner provides a complete implementation plan to execute in controlled batches with review checkpoints - loads plan, reviews critically, executes tasks in batches, reports for review between batches
-triggers: ["executing plans", "implement", "plan", "review"]
----
+triggers: ["executing plans", "implement", "plan", "review"]---
 
 # Executing Plans
 

@@ -2,8 +2,7 @@
 name: cli-design
 description: Create professional, beautiful command-line interfaces (CLI) and Terminal User Interfaces (TUI) in Python. Use this skill when building terminal applications, interactive menus, or command-line tools that need excellent UX and visual appeal.
 license: MIT
-triggers: ["cli design", "create", "build"]
----
+triggers: ["cli design", "create", "build"]---
 
 # CLI Design - Professional Terminal Interfaces
 

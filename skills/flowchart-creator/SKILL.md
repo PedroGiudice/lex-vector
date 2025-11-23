@@ -1,8 +1,7 @@
 ---
 name: flowchart-creator
 description: Create HTML flowcharts and process diagrams with decision trees, color-coded stages, arrows, and swimlanes. Use when users request flowcharts, process diagrams, workflow visualizations, or decision trees.
-triggers: ["flowchart creator", "create", "diagram", "flowchart"]
----
+triggers: ["flowchart creator", "create", "diagram", "flowchart"]---
 
 # Flowchart Creator
 

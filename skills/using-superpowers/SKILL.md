@@ -1,8 +1,7 @@
 ---
 name: using-superpowers
 description: Use when starting any conversation - establishes mandatory workflows for finding and using skills, including using Skill tool before announcing usage, following brainstorming before coding, and creating TodoWrite todos for checklists
-triggers: ["using superpowers", "write"]
----
+triggers: ["using superpowers", "write"]---
 
 <EXTREMELY-IMPORTANT>
 If you think there is even a 1% chance a skill might apply to what you are doing, you ABSOLUTELY MUST read the skill.

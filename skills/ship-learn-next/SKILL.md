@@ -4,8 +4,7 @@ description: Transform learning content (like YouTube transcripts, articles, tut
 allowed-tools:
   - Read
   - Write
-triggers: ["ship learn next", "implement", "plan"]
----
+triggers: ["ship learn next", "implement", "plan"]---
 
 # Ship-Learn-Next Action Planner
 

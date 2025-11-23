@@ -4,8 +4,7 @@ description: Extract clean article content from URLs (blog posts, articles, tuto
 allowed-tools:
   - Bash
   - Write
-triggers: ["article extractor"]
----
+triggers: ["article extractor"]---
 
 # Article Extractor
 

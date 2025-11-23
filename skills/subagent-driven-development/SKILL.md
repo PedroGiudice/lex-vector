@@ -1,8 +1,7 @@
 ---
 name: subagent-driven-development
 description: Use when executing implementation plans with independent tasks in the current session - dispatches fresh subagent for each task with code review between tasks, enabling fast iteration with quality gates
-triggers: ["subagent driven development", "implement", "plan", "review", "code review"]
----
+triggers: ["subagent driven development", "implement", "plan", "review", "code review"]---
 
 # Subagent-Driven Development
 

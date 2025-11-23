@@ -1,8 +1,7 @@
 ---
 name: project-bootstrapper
 description: Sets up new projects or improves existing projects with development best practices, tooling, documentation, and workflow automation. Use when user wants to start a new project, improve project structure, add development tooling, or establish professional workflows.
-triggers: ["project bootstrapper", "develop", "document", "documentation"]
----
+triggers: ["project bootstrapper", "develop", "document", "documentation"]---
 
 # Project Bootstrapper
 

@@ -1,8 +1,7 @@
 ---
 name: code-refactor
 description: Perform bulk code refactoring operations like renaming variables/functions across files, replacing patterns, and updating API calls. Use when users request renaming identifiers, replacing deprecated code patterns, updating method calls, or making consistent changes across multiple locations.
-triggers: ["code refactor", "refactor", "api", "refactoring"]
----
+triggers: ["code refactor", "refactor", "api", "refactoring"]---
 
 # Code Refactor
 

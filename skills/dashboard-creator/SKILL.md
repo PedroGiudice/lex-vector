@@ -1,8 +1,7 @@
 ---
 name: dashboard-creator
 description: Create HTML dashboards with KPI metric cards, bar/pie/line charts, progress indicators, and data visualizations. Use when users request dashboards, metrics displays, KPI visualizations, data charts, or monitoring interfaces.
-triggers: ["dashboard creator", "create", "monitor"]
----
+triggers: ["dashboard creator", "create", "monitor"]---
 
 # Dashboard Creator
 

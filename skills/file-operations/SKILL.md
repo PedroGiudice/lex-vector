@@ -1,8 +1,7 @@
 ---
 name: file-operations
 description: Analyze files and get detailed metadata including size, line counts, modification times, and content statistics. Use when users request file information, statistics, or analysis without modifying files.
-triggers: ["file operations", "analyze"]
----
+triggers: ["file operations", "analyze"]---
 
 # File Operations
 

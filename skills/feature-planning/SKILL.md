@@ -1,8 +1,7 @@
 ---
 name: feature-planning
 description: Break down feature requests into detailed, implementable plans with clear tasks. Use when user requests a new feature, enhancement, or complex change.
-triggers: ["feature planning", "implement", "plan"]
----
+triggers: ["feature planning", "implement", "plan"]---
 
 # Feature Planning
 

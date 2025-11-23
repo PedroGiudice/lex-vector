@@ -1,8 +1,7 @@
 ---
 name: systematic-debugging
 description: Use when encountering any bug, test failure, or unexpected behavior, before proposing fixes - four-phase framework (root cause investigation, pattern analysis, hypothesis testing, implementation) that ensures understanding before attempting solutions
-triggers: ["systematic debugging", "implement", "test", "fix"]
----
+triggers: ["systematic debugging", "implement", "test", "fix"]---
 
 # Systematic Debugging
 

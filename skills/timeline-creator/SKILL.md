@@ -1,8 +1,7 @@
 ---
 name: timeline-creator
 description: Create HTML timelines and project roadmaps with Gantt charts, milestones, phase groupings, and progress indicators. Use when users request timelines, roadmaps, Gantt charts, project schedules, or milestone visualizations.
-triggers: ["timeline creator", "create"]
----
+triggers: ["timeline creator", "create"]---
 
 # Timeline Creator
 

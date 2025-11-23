@@ -1,8 +1,7 @@
 ---
 name: writing-skills
 description: Use when creating new skills, editing existing skills, or verifying skills work before deployment - applies TDD to process documentation by testing with subagents before writing, iterating until bulletproof against rationalization
-triggers: ["writing skills", "test", "document", "deploy", "tdd", "documentation"]
----
+triggers: ["writing skills", "test", "document", "deploy", "tdd", "documentation"]---
 
 # Writing Skills
 
