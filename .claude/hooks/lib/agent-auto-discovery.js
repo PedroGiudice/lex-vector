@@ -63,7 +63,16 @@ function discoverAgents(projectDir = process.cwd()) {
   }
 
   const agentFiles = fs.readdirSync(agentsDir)
-    .filter(f => f.endsWith('.md') && f !== 'README.md')
+    .filter(f => {
+      // Must end with .md
+      if (!f.endsWith('.md')) return false;
+
+      // Exclude documentation files
+      if (f === 'README.md') return false;
+      if (f.match(/^[A-Z_]+.*\.md$/)) return false; // ALL_CAPS or UPPER_CASE docs
+
+      return true;
+    })
     .sort();
 
   const discovered = [];

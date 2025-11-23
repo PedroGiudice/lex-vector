@@ -3,7 +3,7 @@
   "$comment": "Mapeamento declarativo de agentes → ferramentas disponíveis (AUTO-GENERATED)",
   "version": "2.1.0",
   "description": "Auto-discovery system: agents são descobertos automaticamente de .claude/agents/*.md",
-  "generated_at": "2025-11-23T08:25:31.896Z",
+  "generated_at": "2025-11-23T08:37:21.211Z",
   "agents": {
     "Plan": {
       "tools": [
