@@ -1,0 +1,21 @@
+{
+  "mcpServers": {
+    "trello": {
+      "command": "uv",
+      "args": [
+        "--directory",
+        "/ABSOLUTE/PATH/TO/trello-mcp",
+        "run",
+        "python",
+        "-m",
+        "src.server"
+      ],
+      "env": {
+        "TRELLO_API_KEY": "your_api_key_here",
+        "TRELLO_API_TOKEN": "your_token_here",
+        "LOG_LEVEL": "INFO",
+        "RATE_LIMIT_PER_10_SECONDS": "90"
+      }
+    }
+  }
+}
