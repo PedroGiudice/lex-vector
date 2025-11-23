@@ -19,10 +19,18 @@ const { enforceAesthetics } = require('./lib/aesthetic-enforcer');
 // CONTEXT COLLECTION
 // ============================================================================
 
-async function collectContext(projectDir) {
+async function collectContext(projectDir, stdinData = null) {
+  // Obter prompt com fallbacks (env var → stdin → vazio)
+  let prompt = process.env.CLAUDE_USER_PROMPT || '';
+
+  // BUG FIX #1: Fallback para stdin se CLAUDE_USER_PROMPT vazio
+  if (!prompt && stdinData?.userPrompt) {
+    prompt = stdinData.userPrompt;
+  }
+
   const context = {
     timestamp: Date.now(),
-    prompt: process.env.CLAUDE_USER_PROMPT || '',
+    prompt,
     projectDir,
     git: {
       modifiedFiles: [],
@@ -122,30 +130,43 @@ function formatOutput(decisions) {
   }
 
   // Skill activation (v2.0: mostra top 5 skills detectadas)
-  if (decisions.skillActivation && decisions.skillActivation.topSkills && decisions.skillActivation.topSkills.length > 0) {
+  const hasSkills = decisions.skillActivation && decisions.skillActivation.topSkills && decisions.skillActivation.topSkills.length > 0;
+  const hasOrchestration = decisions.agentOrchestration && decisions.agentOrchestration.complexity !== 'LOW';
+
+  if (hasSkills) {
     const detection = decisions.skillActivation;
     const top5List = detection.topSkills
       .map(s => `  - ${s.skillName} (${s.config.priority}) [score: ${s.finalScore}]`)
       .join('\n');
 
+    // Mensagem integrada: skills + agents (se ambos presentes)
+    const skillNote = hasOrchestration
+      ? `\n📌 Nota: Skills são auto-injetadas no contexto. Agents delegados terão acesso automaticamente.`
+      : `\n💡 Skills estão disponíveis para uso imediato.`;
+
     messages.push(
-      `🎯 SKILLS DETECTADAS (${detection.totalMatched} matched de ${detection.totalConsidered}, showing top ${detection.topSkills.length}):\n` +
-      top5List + `\n\n` +
-      `💡 Consider using these skills for optimal response quality.`
+      `🎯 SKILLS AUTO-INJETADAS (top ${detection.topSkills.length} de ${detection.totalConsidered}):\n` +
+      top5List +
+      skillNote
     );
   }
 
-  // Agent orchestration
-  if (
-    decisions.agentOrchestration &&
-    decisions.agentOrchestration.complexity !== 'LOW'
-  ) {
+  // Agent orchestration (mensagem integrada com skills)
+  if (hasOrchestration) {
     const orch = decisions.agentOrchestration;
+    const directive = orch.complexity === 'HIGH'
+      ? '⚠️  ORQUESTRAÇÃO RECOMENDADA (Complexidade Alta)'
+      : '💡 Orquestração Sugerida (Manter Uniformidade)';
+
+    const skillIntegration = hasSkills
+      ? `\n✅ Skills detectadas acima estarão disponíveis para os agents delegados.`
+      : '';
+
     messages.push(
-      `🧠 LEGAL-BRANIAC - ORQUESTRAÇÃO DETECTADA:\n` +
-        `Complexidade: ${orch.complexity}\n` +
-        `Subtarefas: ${orch.subtasks.length}\n\n` +
-        `PLANO:\n${orch.plan}`
+      `🧠 LEGAL-BRANIAC - ${directive}\n\n` +
+        `Para manter qualidade e uniformidade do código, considere delegar:\n\n` +
+        `${orch.plan}${skillIntegration}\n\n` +
+        `Use: Task tool com subagent_type apropriado para cada subtarefa acima.`
     );
   }
 
@@ -176,6 +197,18 @@ function formatOutput(decisions) {
 async function main() {
   const projectDir = process.env.CLAUDE_PROJECT_DIR || process.cwd();
 
+  // BUG FIX #1: Tentar ler stdin para fallback de prompt
+  let stdinData = null;
+  try {
+    const fs = require('fs');
+    const stdinBuffer = fs.readFileSync(0, 'utf-8');
+    if (stdinBuffer.trim()) {
+      stdinData = JSON.parse(stdinBuffer);
+    }
+  } catch (error) {
+    // Stdin vazio ou inválido - não é erro, apenas não há fallback
+  }
+
   try {
     // Carregar session state (criado por legal-braniac-loader.js)
     const sessionPath = path.join(projectDir, '.claude', 'hooks', 'legal-braniac-session.json');
@@ -195,8 +228,8 @@ async function main() {
       sessionState = JSON.parse(sessionContent);
     }
 
-    // Coletar contexto
-    const context = await collectContext(projectDir);
+    // Coletar contexto (com fallback stdin)
+    const context = await collectContext(projectDir, stdinData);
 
     // Legal-Braniac decide
     const decisions = await legalBraniacDecide(context, sessionState);

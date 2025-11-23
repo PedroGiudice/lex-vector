@@ -184,6 +184,7 @@ Captura de tela*.png
 
 # Statusline cache (performance optimization)
 .claude/cache/
+.claude/hooks/lib/session-skills.json
 
 # Arquitetura híbrida STJ (índices SSD + dados HD)
 stj-indices/
