@@ -1,0 +1,1 @@
+# STJ Dados Abertos - Core modules

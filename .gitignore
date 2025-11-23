@@ -184,3 +184,9 @@ Captura de tela*.png
 
 # Statusline cache (performance optimization)
 .claude/cache/
+
+# Arquitetura híbrida STJ (índices SSD + dados HD)
+stj-indices/
+/mnt/d/juridico-data/
+~/stj-indices/
+agentes/stj-dados-abertos/data_local/

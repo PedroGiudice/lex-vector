@@ -924,3 +924,4 @@ alias braniac='test -f .claude/hooks/legal-braniac-session.json && echo "Braniac
 - add Desativei autocompact
 - add to all memoories
 - add focando em adicionar as implementações feitas, as descobertas e o que ainda falta do roadmap
+- add

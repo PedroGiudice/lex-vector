@@ -2,7 +2,7 @@
 
 **Propósito:** Documentar particularidades, armadilhas e erros conhecidos da API DJEN para evitar repetição de erros em desenvolvimento futuro.
 
-**Última atualização:** 2025-11-21
+**Última atualização:** 2025-11-22
 
 ---
 
@@ -330,6 +330,77 @@ logger.error(f"Timeout após 3 tentativas")
 
 ---
 
+## 11. Headers HTTP - Mínimos São Mais Rápidos ⚡
+
+### ✅ **DESCOBERTA (2025-11-22):**
+Headers mínimos resultam em **7% menos latência** (269ms vs 288ms default).
+
+### ❌ **ERRO COMUM:**
+```python
+# ❌ DESNECESSÁRIO - Headers verbosos aumentam latência
+headers = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0...) Chrome/120...',
+    'Accept': 'application/json',
+    'Accept-Encoding': 'gzip, deflate, br',
+    'Accept-Language': 'pt-BR,pt;q=0.9,en-US;q=0.8'
+}
+```
+
+### ✅ **CORRETO:**
+```python
+# ✅ CORRETO - Headers mínimos (mais rápido)
+headers = {
+    'Accept': 'application/json'
+}
+# Resultado: 269ms avg (vs 288ms default)
+```
+
+### 📝 **Explicação:**
+- Teste de 5 configurações (100 requisições)
+- **Minimal** venceu: 269ms avg (min 236ms, max 299ms)
+- Browser-like headers: 273-288ms avg
+- Ganho: **7% speedup** apenas removendo headers desnecessários
+
+**Fonte:** `tests/api/test_headers_impact.py`, `data/diagnostics/headers_impact.json`
+
+---
+
+## 12. Rate Limit Real - 198 req/min (não 144) 🚀
+
+### ✅ **DESCOBERTA CRÍTICA (2025-11-22):**
+Limite real da API = **20 req/window** → ~**198 req/min**
+
+### ⚠️ **IMPORTANTE:**
+Sistema atual usa **144 req/min**, mas pode subir para **180 req/min** com segurança.
+
+### 📊 **Evidências:**
+```
+HTTP 429 recebido após 58 requisições em 17.6s
+Taxa observada: 198 req/min
+Header: X-RateLimit-Limit: 20 (req por janela)
+Retry-After: 1s
+```
+
+### 💡 **Recomendação:**
+```python
+# Configuração ótima (margem de segurança 10%)
+downloader = DJENDownloader(
+    data_root=DATA_ROOT,
+    requests_per_minute=180,  # Era 144 (pode subir!)
+    adaptive_rate_limit=True,
+    max_retries=3
+)
+```
+
+### 📈 **Ganho Potencial:**
+- Taxa atual: 144 req/min
+- Taxa ótima: 180 req/min
+- **Speedup: 1.25x** (25% mais rápido)
+
+**Fonte:** `diagnostico_performance.py:290-330`, `DIAGNOSTICO_PERFORMANCE.md`
+
+---
+
 ## 📚 REFERÊNCIAS RÁPIDAS
 
 | Conceito | Arquivo | Linha |
@@ -351,6 +422,8 @@ logger.error(f"Timeout após 3 tentativas")
 | 2025-11-21 | #2 | Rate limiting janela deslizante |
 | 2025-11-21 | #3 | Problema N+1 batch commits |
 | 2025-11-21 | #4 | Normalização tipo case-insensitive |
+| 2025-11-22 | #5 | Headers mínimos são 7% mais rápidos |
+| 2025-11-22 | #6 | Rate limit real = 198 req/min (pode subir de 144→180) |
 
 ---
 
@@ -368,7 +441,7 @@ logger.error(f"Timeout após 3 tentativas")
 
 ---
 
-**Última revisão:** 2025-11-21
+**Última revisão:** 2025-11-22
 **Maintainer:** Development Team
 **Contato:** Ver CLAUDE.md
 
