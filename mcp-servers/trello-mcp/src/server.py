@@ -7,6 +7,7 @@ via the Model Context Protocol.
 CRITICAL: All logging goes to stderr. stdout is reserved for MCP protocol.
 """
 
+import re
 import sys
 import asyncio
 from typing import Any
@@ -32,6 +33,17 @@ from .trello_client import (
     TrelloAPIError,
     TrelloClient,
 )
+
+
+# ============================================================================
+# Helper Functions
+# ============================================================================
+
+def sanitize_error_message(error_msg: str) -> str:
+    """Remove credentials from error messages."""
+    error_msg = re.sub(r'key=[a-f0-9]+', 'key=***', error_msg, flags=re.IGNORECASE)
+    error_msg = re.sub(r'token=[a-f0-9]+', 'token=***', error_msg, flags=re.IGNORECASE)
+    return error_msg
 
 
 # ============================================================================
@@ -239,11 +251,12 @@ class TrelloMCPServer:
                     )
 
             except TrelloAuthError as e:
+                error_msg = sanitize_error_message(str(e))
                 return CallToolResult(
                     content=[
                         TextContent(
                             type="text",
-                            text=f"Authentication failed: {str(e)}\n\n"
+                            text=f"Authentication failed: {error_msg}\n\n"
                                  f"Please verify your TRELLO_API_KEY and TRELLO_API_TOKEN "
                                  f"in the .env file."
                         )
@@ -252,34 +265,37 @@ class TrelloMCPServer:
                 )
 
             except TrelloAPIError as e:
+                error_msg = sanitize_error_message(str(e))
                 return CallToolResult(
                     content=[
                         TextContent(
                             type="text",
-                            text=f"Trello API error: {str(e)}"
+                            text=f"Trello API error: {error_msg}"
                         )
                     ],
                     isError=True,
                 )
 
             except ValidationError as e:
+                error_msg = sanitize_error_message(str(e))
                 return CallToolResult(
                     content=[
                         TextContent(
                             type="text",
-                            text=f"Invalid input parameters:\n{e}"
+                            text=f"Invalid input parameters:\n{error_msg}"
                         )
                     ],
                     isError=True,
                 )
 
             except Exception as e:
-                print(f"[TrelloMCPServer] Unexpected error: {e}", file=sys.stderr)
+                error_msg = sanitize_error_message(str(e))
+                print(f"[TrelloMCPServer] Unexpected error: {error_msg}", file=sys.stderr)
                 return CallToolResult(
                     content=[
                         TextContent(
                             type="text",
-                            text=f"Unexpected error: {str(e)}"
+                            text=f"Unexpected error: {error_msg}"
                         )
                     ],
                     isError=True,

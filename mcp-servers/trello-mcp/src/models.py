@@ -5,6 +5,7 @@ All data structures are strictly validated to ensure type safety and prevent
 silent failures in the MCP protocol.
 """
 
+import asyncio
 from pydantic import BaseModel, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import Optional
@@ -65,6 +66,11 @@ class TrelloLabel(BaseModel):
     name: str
     color: str
 
+    model_config = {
+        "strict": True,
+        "extra": "forbid",
+    }
+
 
 class TrelloCard(BaseModel):
     """Trello card model with essential fields."""
@@ -76,7 +82,11 @@ class TrelloCard(BaseModel):
     labels: list[TrelloLabel] = []
     due: Optional[str] = None
 
-    model_config = {"populate_by_name": True}
+    model_config = {
+        "populate_by_name": True,
+        "strict": True,
+        "extra": "forbid",
+    }
 
 
 class TrelloList(BaseModel):
@@ -86,7 +96,11 @@ class TrelloList(BaseModel):
     closed: bool = False
     id_board: str = Field(..., alias="idBoard")
 
-    model_config = {"populate_by_name": True}
+    model_config = {
+        "populate_by_name": True,
+        "strict": True,
+        "extra": "forbid",
+    }
 
 
 class TrelloBoard(BaseModel):
@@ -101,6 +115,11 @@ class TrelloBoard(BaseModel):
     lists: list[TrelloList] = []
     cards: list[TrelloCard] = []
 
+    model_config = {
+        "strict": True,
+        "extra": "forbid",
+    }
+
 
 class BoardStructure(BaseModel):
     """
@@ -112,6 +131,11 @@ class BoardStructure(BaseModel):
     board: TrelloBoard
     lists: list[TrelloList]
     cards: list[TrelloCard]
+
+    model_config = {
+        "strict": True,
+        "extra": "forbid",
+    }
 
     def get_list_by_name(self, name: str) -> Optional[TrelloList]:
         """Find a list by name (case-insensitive)."""
@@ -179,20 +203,23 @@ class RateLimitState(BaseModel):
     window_start: float = Field(default_factory=lambda: 0.0)
     max_requests: int = 90
     window_seconds: int = 10
+    _lock: asyncio.Lock = Field(default_factory=asyncio.Lock, exclude=True)
 
-    def can_make_request(self, current_time: float) -> bool:
-        """Check if a request can be made within rate limits."""
-        # Reset window if expired
-        if current_time - self.window_start >= self.window_seconds:
-            self.requests_made = 0
-            self.window_start = current_time
+    async def can_make_request(self, current_time: float) -> bool:
+        """Thread-safe rate limit check."""
+        async with self._lock:
+            # Reset window if expired
+            if current_time - self.window_start >= self.window_seconds:
+                self.requests_made = 0
+                self.window_start = current_time
 
-        return self.requests_made < self.max_requests
+            return self.requests_made < self.max_requests
 
-    def record_request(self, current_time: float) -> None:
-        """Record a successful request."""
-        if current_time - self.window_start >= self.window_seconds:
-            self.requests_made = 1
-            self.window_start = current_time
-        else:
-            self.requests_made += 1
+    async def record_request(self, current_time: float) -> None:
+        """Thread-safe request recording."""
+        async with self._lock:
+            if current_time - self.window_start >= self.window_seconds:
+                self.requests_made = 1
+                self.window_start = current_time
+            else:
+                self.requests_made += 1

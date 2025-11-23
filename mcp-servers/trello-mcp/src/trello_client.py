@@ -5,6 +5,7 @@ This module implements production-grade error handling and follows Trello's
 rate limit best practices (100 req/10s per token).
 """
 
+import asyncio
 import sys
 import time
 from typing import Any, Optional
@@ -91,15 +92,20 @@ class TrelloClient:
             f"token={self.settings.trello_api_token}"
         )
 
-    def _should_retry(self, exception: Exception) -> bool:
-        """Determine if exception is retryable."""
+    @staticmethod
+    def _should_retry(exception: Exception) -> bool:
+        """Determine if exception is retryable (used by backoff decorator)."""
         if isinstance(exception, httpx.HTTPStatusError):
-            # Don't retry auth errors (401, 403)
-            if exception.response.status_code in {401, 403}:
+            status = exception.response.status_code
+            # Don't retry auth errors
+            if status in {401, 403}:
                 return False
-            # Retry rate limits (429) and server errors (5xx)
-            if exception.response.status_code in {429, 500, 502, 503, 504}:
+            # Retry rate limits and server errors
+            if status in {429, 500, 502, 503, 504}:
                 return True
+            # Don't retry other 4xx client errors
+            if 400 <= status < 500:
+                return False
         # Retry network errors
         if isinstance(exception, (httpx.ConnectError, httpx.TimeoutException)):
             return True
@@ -110,7 +116,7 @@ class TrelloClient:
         (httpx.HTTPStatusError, httpx.ConnectError, httpx.TimeoutException),
         max_tries=5,
         jitter=backoff.full_jitter,
-        giveup=lambda e: not TrelloClient._should_retry_static(e),
+        giveup=lambda e: not TrelloClient._should_retry(e),
     )
     async def _request(
         self,
@@ -139,7 +145,7 @@ class TrelloClient:
 
         # Proactive rate limit check
         current_time = time.time()
-        if not self.rate_limit.can_make_request(current_time):
+        if not await self.rate_limit.can_make_request(current_time):
             wait_time = self.rate_limit.window_seconds - (
                 current_time - self.rate_limit.window_start
             )
@@ -158,7 +164,7 @@ class TrelloClient:
             response.raise_for_status()
 
             # Record successful request for rate limiting
-            self.rate_limit.record_request(time.time())
+            await self.rate_limit.record_request(time.time())
 
             return response.json()
 
@@ -195,13 +201,6 @@ class TrelloClient:
         except httpx.RequestError as e:
             raise TrelloAPIError(f"Network error: {str(e)}") from e
 
-    @staticmethod
-    def _should_retry_static(exception: Exception) -> bool:
-        """Static version for backoff decorator."""
-        if isinstance(exception, httpx.HTTPStatusError):
-            return exception.response.status_code not in {401, 403}
-        return True
-
     # -------------------------------------------------------------------------
     # Public API Methods
     # -------------------------------------------------------------------------
@@ -223,10 +222,12 @@ class TrelloClient:
         """
         print(f"[TrelloClient] Fetching structure for board {board_id}", file=sys.stderr)
 
-        # Fetch board info, lists, and cards in parallel (optimized)
-        board_data = await self._request("GET", f"/boards/{board_id}")
-        lists_data = await self._request("GET", f"/boards/{board_id}/lists")
-        cards_data = await self._request("GET", f"/boards/{board_id}/cards")
+        # Fetch board info, lists, and cards in parallel (optimized with asyncio.gather)
+        board_data, lists_data, cards_data = await asyncio.gather(
+            self._request("GET", f"/boards/{board_id}"),
+            self._request("GET", f"/boards/{board_id}/lists"),
+            self._request("GET", f"/boards/{board_id}/cards"),
+        )
 
         try:
             board = TrelloBoard(**board_data)
