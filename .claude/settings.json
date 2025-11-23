@@ -29,8 +29,8 @@
           },
           {
             "type": "command",
-            "command": "npx vibe-log-cli send --silent --hook-trigger=sessionstart --hook-version=1.0.0",
-            "_note": "Vibe-log: capture session on startup (auto-detect project dir, no background mode)"
+            "command": ".claude/hooks/vibe-log-safe-wrapper.sh sessionstart",
+            "_note": "Vibe-log: capture session on startup (graceful skip if not authenticated - Claude Code Web compatible)"
           }
         ]
       }
@@ -51,8 +51,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "npx vibe-log-cli send --silent --hook-trigger=sessionend --hook-version=1.0.0",
-            "_note": "Vibe-log: capture final session state (auto-detect project dir, no background mode)"
+            "command": ".claude/hooks/vibe-log-safe-wrapper.sh sessionend",
+            "_note": "Vibe-log: capture final session state (graceful skip if not authenticated - Claude Code Web compatible)"
           }
         ]
       },
