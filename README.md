@@ -1021,3 +1021,4 @@ Projeto de automação jurídica desenvolvido com Claude Code e Python.
 **Última atualização:** 2025-11-20
 **Ambiente:** WSL2 Ubuntu 24.04 LTS
 **Diretório:** `~/claude-work/repos/Claude-Code-Projetos`
+# FLOWCHART-APP
