@@ -24,6 +24,7 @@ htmlcov/
 *.md
 *.json
 !README.md
+!ROADMAP.md
 !requirements.txt
 
 # PDFs de teste (grandes)
