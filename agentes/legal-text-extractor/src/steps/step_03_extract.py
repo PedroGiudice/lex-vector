@@ -26,15 +26,22 @@ Date: 2025-11-24
 
 import json
 import logging
+import sys
 from pathlib import Path
 from typing import Literal
+
+# Adiciona o diretório raiz ao PYTHONPATH quando executado como script
+if __name__ == "__main__":
+    project_root = Path(__file__).parent.parent.parent
+    sys.path.insert(0, str(project_root))
 
 import pdfplumber
 import pytesseract
 from PIL import Image
 
-from ..config import EXTRACT_CONFIG, ExtractConfig, PageType, get_images_dir, get_output_dir
-from ..core.cleaner import DocumentCleaner
+from src.config import EXTRACT_CONFIG, ExtractConfig, PageType, get_images_dir, get_output_dir
+from src.core.cleaner import DocumentCleaner
+from src.engines.cleaning_engine import get_cleaner
 
 # =============================================================================
 # LOGGING
@@ -79,10 +86,12 @@ class TextExtractor:
         """
         self.config = config
         self.cleaner = DocumentCleaner()
+        self.adaptive_cleaner = get_cleaner()  # New adaptive engine
         logger.info("TextExtractor inicializado")
         logger.info(f"  Tesseract lang: {config.tesseract_lang}")
         logger.info(f"  Tesseract PSM: {config.tesseract_psm}")
         logger.info(f"  Limpeza semântica: {'ativada' if config.apply_cleaning else 'desativada'}")
+        logger.info(f"  Adaptive Cleaning Engine: ativado")
 
     def extract(
         self, layout_path: Path, pdf_path: Path, images_dir: Path | None = None
@@ -264,10 +273,11 @@ class TextExtractor:
 
     def _clean_text(self, text: str) -> str:
         """
-        Aplica limpeza semântica via DocumentCleaner.
+        Aplica limpeza semântica via Adaptive CleanerEngine.
 
         Remove assinaturas digitais, certificações, cabeçalhos/rodapés
         usando padrões específicos de sistemas judiciais brasileiros.
+        Detecta automaticamente o sistema via fingerprints.
 
         Args:
             text: Texto cru extraído
@@ -285,23 +295,30 @@ class TextExtractor:
             return text
 
         try:
-            # Auto-detect sistema judicial ou usa manual
-            system = self.config.cleaning_system or "auto"
+            # Detects system via fingerprints and applies weighted rules
+            force_system = self.config.cleaning_system if self.config.cleaning_system != "auto" else None
 
-            result = self.cleaner.clean(text, system=system)
+            # Detect system first for logging
+            detection = self.adaptive_cleaner.detect_system(text)
 
-            # Log estatísticas
-            stats = result.stats
+            # Clean text
+            cleaned_text = self.adaptive_cleaner.clean(text, force_system=force_system)
+
+            # Log statistics
+            original_len = len(text)
+            final_len = len(cleaned_text)
+            reduction_pct = ((original_len - final_len) / original_len) * 100 if original_len > 0 else 0.0
+
             logger.debug(
-                f"Limpeza ({stats.system_name}): "
-                f"{stats.original_length} → {stats.final_length} chars "
-                f"(-{stats.reduction_pct:.1f}%)"
+                f"Adaptive Cleaning ({detection.system}, conf={detection.confidence:.2f}): "
+                f"{original_len} → {final_len} chars "
+                f"(-{reduction_pct:.1f}%)"
             )
 
-            return result.text
+            return cleaned_text
 
         except Exception as e:
-            logger.warning(f"Erro na limpeza semântica: {e}, usando texto original")
+            logger.warning(f"Erro na limpeza adaptativa: {e}, usando texto original")
             return text
 
     def _format_page(

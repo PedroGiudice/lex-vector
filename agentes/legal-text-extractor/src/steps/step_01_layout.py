@@ -214,8 +214,13 @@ class LayoutAnalyzer:
 
         # Detecta tarja se densidade > threshold
         if tarja_density >= self.config.tarja_density_threshold:
-            # Calcula x_cut (início da zona de tarja)
-            x_cut = page_width * (1 - self.config.tarja_zone_percent)
+            # Usa detecção adaptativa ou percentual fixo
+            if self.config.use_adaptive_cut:
+                # Encontra boundary real entre texto e tarja
+                x_cut = self._find_content_boundary(chars, page_width)
+            else:
+                # Fallback: corte percentual fixo (comportamento antigo)
+                x_cut = page_width * (1 - self.config.tarja_zone_percent)
             return True, x_cut
         else:
             return False, None
@@ -254,6 +259,59 @@ class LayoutAnalyzer:
             histogram[bin_idx] += 1
 
         return histogram
+
+    def _find_content_boundary(
+        self, chars: list, page_width: float
+    ) -> float:
+        """
+        Encontra onde o texto LEGÍTIMO termina (não incluindo tarja).
+
+        Usa detecção de gaps: procura espaços vazios significativos entre
+        o corpo do texto e a tarja lateral.
+
+        Algoritmo:
+        1. Coleta posições x1 (fim) de todos os caracteres
+        2. Agrupa por proximidade
+        3. Encontra gap significativo na zona de tarja
+        4. Retorna boundary = posição antes do gap
+
+        Args:
+            chars: Lista de char objects do pdfplumber
+            page_width: Largura total da página em pontos
+
+        Returns:
+            Posição X onde o conteúdo legítimo termina
+        """
+        if not chars:
+            return page_width
+
+        # Coleta posições x1 (fim do caractere) - onde o texto realmente termina
+        x_ends = sorted([c["x1"] for c in chars])
+
+        if not x_ends:
+            return page_width
+
+        # Zona onde procurar gaps (últimos X% da página)
+        gap_search_start = page_width * (1 - self.config.gap_search_zone_percent)
+
+        # Procura gaps significativos na zona de tarja
+        best_boundary = max(x_ends)  # fallback: maior x1
+
+        for i in range(len(x_ends) - 1):
+            current_x = x_ends[i]
+            next_x = x_ends[i + 1]
+            gap = next_x - current_x
+
+            # Se encontramos um gap significativo na zona de busca
+            if (
+                gap >= self.config.content_gap_threshold
+                and current_x >= gap_search_start
+            ):
+                # Este é provavelmente o fim do conteúdo legítimo
+                best_boundary = current_x
+                break
+
+        return best_boundary
 
     def save(self, layout: dict, output_path: Path) -> None:
         """

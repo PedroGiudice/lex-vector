@@ -16,8 +16,14 @@ Output: Imagens limpas em outputs/{doc_id}/images/page_XXX.png
 
 import json
 import logging
+import sys
 from pathlib import Path
 from typing import NamedTuple
+
+# Adiciona o diretório raiz ao PYTHONPATH quando executado como script
+if __name__ == "__main__":
+    project_root = Path(__file__).parent.parent.parent
+    sys.path.insert(0, str(project_root))
 
 import cv2
 import numpy as np

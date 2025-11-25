@@ -51,6 +51,17 @@ class LayoutConfig:
     # Bins para histograma de densidade no eixo X
     histogram_bins: int = 100
 
+    # --- DETECÇÃO ADAPTATIVA DE BOUNDARY ---
+    # Gap mínimo (em pontos) para considerar separação entre texto e tarja
+    content_gap_threshold: float = 30.0
+
+    # Usa detecção adaptativa (True) ou corte percentual fixo (False)
+    use_adaptive_cut: bool = True
+
+    # Zona onde procurar gaps (últimos X% da largura)
+    # Se gap encontrado nessa zona, assume que é separação texto/tarja
+    gap_search_zone_percent: float = 0.30  # últimos 30%
+
 
 LAYOUT_CONFIG = LayoutConfig()
 
