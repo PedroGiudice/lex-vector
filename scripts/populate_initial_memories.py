@@ -286,7 +286,137 @@ python caderno_filter.py \\
     ))
 
     # ========================================================================
-    # ESTATÍSTICAS
+    # LEGAL-TEXT-EXTRACTOR (2025-11-25)
+    # ========================================================================
+
+    print("7. Projeto: Legal-Text-Extractor Pipeline Completa")
+    memory.store(MemoryUnit(
+        type=MemoryType.PROJECT_CONTEXT.value,
+        title="Legal-Text-Extractor: Pipeline de 4 Estagios",
+        content="""Pipeline algoritmica para extracao de texto de PDFs juridicos:
+
+**Estagios:**
+1. Cartografo (step_01_layout.py) - Detecta sistema judicial, mapeia layout
+2. Saneador (step_02_vision.py) - Pre-processa imagens para OCR
+3. Extrator (step_03_extract.py) - Extrai texto com bbox filtering
+4. Bibliotecario (step_04_classify.py) - Classifica pecas processuais
+
+**Categorias de pecas:** 12 tipos
+- peticao_inicial, contestacao, replica, impugnacao
+- sentenca, decisao_interlocutoria, despacho
+- acordao, embargos_declaracao, recurso
+- ata_audiencia, certidao
+
+**Arquivos principais:**
+- src/steps/step_04_classify.py
+- src/core/intelligence/definitions.py (taxonomia)
+- src/core/intelligence/segmenter.py
+
+**Status:** Completo (Fase 3)
+""",
+        tags=["legal-text-extractor", "pipeline", "ocr", "classificacao", "taxonomia"],
+        context={"completed_date": "2025-11-25", "stages": 4, "categories": 12}
+    ))
+
+    print("8. Solucao: Boundary Detection Conservador")
+    memory.store(MemoryUnit(
+        type=MemoryType.SOLUTION_PATTERN.value,
+        title="Boundary Detection: Separacao de documentos genericos",
+        content="""Detector conservador de limites entre documentos:
+
+**Problema:** Secoes ANEXOS agrupavam todos documentos como bloco unico.
+
+**Solucao:** Detector com principios de seguranca:
+- min_confidence = 0.8 (so separa quando muito confiante)
+- Boundary = INICIO do proximo documento (nunca fim do atual)
+- Na duvida, NAO separa (falso negativo > falso positivo)
+
+**Patterns detectados:**
+- Procuracoes (PROCURACAO AD JUDICIA)
+- Contratos (CONTRATO DE PRESTACAO DE SERVICOS)
+- Notas Fiscais (DANFE, NF-E)
+- Comprovantes (COMPROVANTE DE PAGAMENTO)
+- Documentos numerados (DOC. 1, ANEXO I)
+
+**Configuracoes adaptaveis:**
+- FORMAL (margens largas) - min_confidence=0.75
+- COMPACT (margens estreitas) - min_confidence=0.85
+- UNKNOWN (padrao) - min_confidence=0.80
+
+**Arquivos:**
+- src/core/intelligence/boundary_config.py (~340 linhas)
+- src/core/intelligence/boundary_detector.py (~280 linhas)
+
+**Testes:** 27 testes em tests/test_boundary_detection.py
+""",
+        tags=["boundary-detection", "anexos", "segmentacao", "conservador", "legal-text-extractor"],
+        context={"completed_date": "2025-11-25", "test_count": 27}
+    ))
+
+    print("9. Decisao: System-Aware vs System-Agnostic")
+    memory.store(MemoryUnit(
+        type=MemoryType.ARCHITECTURAL_DECISION.value,
+        title="Separacao System-Aware vs System-Agnostic",
+        content="""Decisao arquitetural critica para invariancia:
+
+**Regra:** Steps 1-2 conhecem sistema judicial, Steps 3-4 NAO.
+
+**Implicacao:**
+- validation_artifacts.json NUNCA deve ser importado em step_03/step_04
+- Artefatos de sistema sao removidos no Step 2
+- Steps 3-4 trabalham com texto "puro"
+
+**Por que?**
+Mesma peticao em PJe/ESAJ/EPROC deve produzir classificacao IDENTICA.
+Se step_04 conhecesse o sistema, poderia ter vieses diferentes.
+
+**Arquivos:**
+- src/schemas/validation_artifacts.json (57 patterns)
+- docs/SEMANTIC_IDENTITY.md
+
+**Testes:** 11 testes em tests/test_invariance.py
+""",
+        tags=["arquitetura", "invariancia", "system-aware", "legal-text-extractor"],
+        context={"decided_date": "2025-11-25"}
+    ))
+
+    print("10. Resultado: Testes Legal-Text-Extractor")
+    memory.store(MemoryUnit(
+        type=MemoryType.TEST_RESULTS.value,
+        title="Resultados de Testes (2025-11-25)",
+        content="""Resultados da suite de testes:
+
+tests/test_boundary_detection.py: 27 passed
+tests/test_invariance.py: 11 passed
+tests/test_detector.py: 11 passed
+tests/test_cleaner.py: 3 passed
+----------------------------------------
+Total: 52 passed
+
+**Cobertura por modulo:**
+| Modulo | Testes |
+|--------|--------|
+| boundary_config | 8 |
+| boundary_detector | 7 |
+| preservacao | 4 |
+| edge_cases | 5 |
+| invariancia | 7 |
+
+**Comando:**
+cd agentes/legal-text-extractor
+source .venv/bin/activate
+python -m pytest tests/test_boundary_detection.py tests/test_invariance.py -v
+
+**Bugs corrigidos:**
+1. Pattern Resolucao 552/11 nao casava -> Adicionado 'o' para "no"
+2. get_taxonomy nao exportado -> Adicionado ao __init__.py
+""",
+        tags=["testes", "pytest", "legal-text-extractor", "resultados"],
+        context={"test_date": "2025-11-25", "passed": 52, "failed": 0}
+    ))
+
+    # ========================================================================
+    # ESTATISTICAS
     # ========================================================================
 
     print("\n" + "="*60)

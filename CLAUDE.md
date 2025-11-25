@@ -929,3 +929,4 @@ alias braniac='test -f .claude/hooks/legal-braniac-session.json && echo "Braniac
 - add
 - add
 - add
+- Use descriptive names and be thorough documenting test, results and next steps
