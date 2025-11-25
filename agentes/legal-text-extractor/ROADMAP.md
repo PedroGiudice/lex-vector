@@ -1,27 +1,28 @@
 # Roadmap - Legal Text Extractor
 
-## Arquitetura Atual (Fase 2)
+## Arquitetura Atual (Fase 3) - COMPLETA
 
-Pipeline de 3 estágios algorítmicos:
+Pipeline de 4 estagios algoritmicos:
 
 ```
-PDF → [Cartógrafo] → [Saneador] → [Extrator] → final.md
-       step_01       step_02       step_03
+PDF → [Cartografo] → [Saneador] → [Extrator] → [Bibliotecario] → structure.json
+       step_01       step_02       step_03       step_04
 ```
 
-| Estágio | Nome | Script | Função |
+| Estagio | Nome | Script | Funcao |
 |---------|------|--------|--------|
-| 1 | Cartógrafo | `step_01_layout.py` | Detecta sistema judicial, mapeia layout |
-| 2 | Saneador | `step_02_vision.py` | Pré-processa imagens para OCR |
+| 1 | Cartografo | `step_01_layout.py` | Detecta sistema judicial, mapeia layout |
+| 2 | Saneador | `step_02_vision.py` | Pre-processa imagens para OCR |
 | 3 | Extrator | `step_03_extract.py` | Extrai texto com bbox filtering |
+| 4 | Bibliotecario | `step_04_classify.py` | Classifica pecas processuais |
 
-**Status:** ✅ Completo (8 testes de integração passando)
+**Status:** ✅ Completo (4 estagios implementados e testados)
 
 ---
 
-## Arquitetura Proposta (Fase 3)
+## Detalhes do Bibliotecario (Step 04)
 
-Adicionaremos um quarto estágio à pipeline:
+Quarto estagio da pipeline:
 
 ```
 PDF → [Cartógrafo] → [Saneador] → [Extrator] → [Bibliotecário] → structure.json
@@ -80,12 +81,19 @@ PDF → [Cartógrafo] → [Saneador] → [Extrator] → [Bibliotecário] → str
 
 ## Backlog
 
-### Fase 3.1: Implementação do Bibliotecário
-- [ ] Criar `step_04_classify.py`
-- [ ] Portar regex de identificação de peças do JS
-- [ ] Implementar segmentação por cabeçalhos
-- [ ] Gerar `structure.json` com metadados
-- [ ] Testes unitários para cada tipo de peça
+### Fase 3.1: Implementacao do Bibliotecario - COMPLETO
+- [x] Criar `step_04_classify.py`
+- [x] Portar regex de identificacao de pecas do JS
+- [x] Implementar segmentacao por cabecalhos
+- [x] Gerar `semantic_structure.json` com metadados
+- [x] Gerar `final_tagged.md` com tags semanticas
+- [ ] Testes unitarios para cada tipo de peca
+
+**Implementado em 2025-11-25:**
+- 12 categorias de pecas processuais
+- Limpeza avancada de texto (15 regras regex)
+- Taxonomia JSON com sinonimos e patterns
+- CLI typer com comandos `classify` e `validate-taxonomy`
 
 ### Fase 3.2: Refinamentos do ImageCleaner
 - [ ] Adicionar suporte a documentos com múltiplas colunas

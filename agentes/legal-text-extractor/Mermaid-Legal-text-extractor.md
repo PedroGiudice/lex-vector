@@ -39,10 +39,13 @@ graph LR
     32["Output final.md"]:::script
     33["BIBLIOTECÁRIO - Classificador"]:::script
     34["Leitura final.md"]:::script
-    35["Regex Cabeçalhos Jurídicos"]:::script
-    36["Segmentação por Peças"]:::script
-    37["Output structure.json"]:::script
-    38(["Fim"]):::end
+    35["Taxonomia Legal (12 categorias)"]:::script
+    36["Segmentação por Peças (janela adaptativa)"]:::script
+    37{"Seção ANEXOS?"}:::decision
+    38["Boundary Detector (conservador)"]:::script
+    39["Refinamento Subsecões"]:::script
+    40["Output structure.json + final_tagged.md"]:::script
+    41(["Fim"]):::end
 
     1 -->|next| 2
     2 -->|next| 3
@@ -84,4 +87,8 @@ graph LR
     34 -->|next| 35
     35 -->|next| 36
     36 -->|next| 37
-    37 -->|finish| 38
+    37 -->|Sim| 38
+    37 -->|Não| 40
+    38 -->|next| 39
+    39 -->|next| 40
+    40 -->|finish| 41
