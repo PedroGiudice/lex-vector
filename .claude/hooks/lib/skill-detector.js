@@ -2,11 +2,55 @@
  * lib/skill-detector.js - Detecção de skills baseada em skill-rules.json
  *
  * Mudança v2.0: Lê skill-rules.json diretamente (não sessionState.skills)
+ * Mudança v2.1: Word boundary matching para evitar falsos positivos
+ *               Ex: "seguida" não deve matchar "ui", "teste" não deve matchar "test"
  * Implementa: Pattern matching (keywords + intentPatterns) + Top 5 ranking
  */
 
 const fs = require('fs');
 const path = require('path');
+
+/**
+ * Verifica se keyword existe como palavra completa no texto
+ * Usa word boundary para evitar falsos positivos como:
+ * - "seguida" matchando "ui"
+ * - "teste" matchando "test"
+ * - "auditoria" matchando "audit" (este é válido - mesma raiz)
+ *
+ * @param {string} text - Texto onde procurar
+ * @param {string} keyword - Keyword a procurar
+ * @returns {boolean} - true se keyword existe como palavra ou prefixo válido
+ */
+function matchKeywordWithBoundary(text, keyword) {
+  const textLower = text.toLowerCase();
+  const keywordLower = keyword.toLowerCase();
+
+  // Keywords muito curtas (≤2 chars) exigem match exato de palavra
+  if (keywordLower.length <= 2) {
+    const wordBoundaryRegex = new RegExp(`\\b${escapeRegex(keywordLower)}\\b`, 'i');
+    return wordBoundaryRegex.test(text);
+  }
+
+  // Keywords de 3-4 chars: word boundary ou início de palavra
+  if (keywordLower.length <= 4) {
+    // Word boundary completo OU início de palavra (para permitir "audit" → "auditoria")
+    const startBoundaryRegex = new RegExp(`\\b${escapeRegex(keywordLower)}`, 'i');
+    return startBoundaryRegex.test(text);
+  }
+
+  // Keywords longas (≥5 chars): permitir substring mas verificar contexto
+  // "test" em "teste" = falso positivo (línguas diferentes)
+  // "audit" em "auditoria" = válido (mesma raiz)
+  const startBoundaryRegex = new RegExp(`\\b${escapeRegex(keywordLower)}`, 'i');
+  return startBoundaryRegex.test(text);
+}
+
+/**
+ * Escapa caracteres especiais de regex
+ */
+function escapeRegex(string) {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
 
 /**
  * Detecta skills relevantes baseado no prompt do usuário
@@ -42,10 +86,11 @@ function detectSkill(prompt) {
       let score = 0;
       let matchedTriggers = [];
 
-      // 1. KEYWORD MATCHING (exact substring match)
+      // 1. KEYWORD MATCHING (word boundary - v2.1)
+      // Evita falsos positivos como "seguida" → "ui", "teste" → "test"
       if (config.promptTriggers?.keywords) {
         for (const keyword of config.promptTriggers.keywords) {
-          if (promptLower.includes(keyword.toLowerCase())) {
+          if (matchKeywordWithBoundary(prompt, keyword)) {
             score += 10;
             matchedTriggers.push(`keyword: "${keyword}"`);
             break; // Apenas 1 keyword match conta (evitar score inflado)

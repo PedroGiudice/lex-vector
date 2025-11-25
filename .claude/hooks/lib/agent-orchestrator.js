@@ -1,16 +1,82 @@
 /**
- * lib/agent-orchestrator.js - Orquestração de agentes (v3.0 - Whitelist Invertida)
+ * lib/agent-orchestrator.js - Orquestração de agentes (v3.1 - Agent-Aware)
  *
- * FILOSOFIA: "Guilty Until Proven Innocent"
- * - DEFAULT = MEDIUM (sempre orquestra)
- * - LOW = Apenas tarefas ABSOLUTAMENTE triviais (whitelist restrita)
- * - HIGH = Tarefas complexas conhecidas
+ * MUDANÇA v3.1: Detecta keywords para sugerir agentes ESPECÍFICOS
+ * - Refatoração → code-refactor-master
+ * - Planejamento → planejamento-legal ou plan-reviewer
+ * - Documentação → documentation-architect
+ * - Debugging → auto-error-resolver
+ * - etc.
  *
- * Justificativa: Usuário com pouco conhecimento técnico precisa de safety net
- * robusto para evitar "loose ends" (pontas soltas).
+ * FILOSOFIA: "Right Agent for the Right Task"
+ * - Mapeia keywords para agentes especializados
+ * - Fallback para desenvolvimento apenas quando não há match específico
  */
 
 const { getAgentToolsSummary } = require('./agent-mapping-loader');
+
+// ============================================================================
+// MAPEAMENTO: Keywords → Agentes Específicos
+// ============================================================================
+const AGENT_KEYWORDS = {
+  'code-refactor-master': [
+    'refactor', 'refatorar', 'refatoração', 'reorganizar', 'reorganize',
+    'reestruturar', 'restructure', 'quebrar em', 'break down', 'split',
+    'extrair componente', 'extract component', 'modularizar', 'modularize'
+  ],
+  'planejamento-legal': [
+    'planejar', 'plan', 'arquitetura', 'architecture', 'design',
+    'projetar', 'estruturar', 'roadmap'
+  ],
+  'plan-reviewer': [
+    'revisar plano', 'review plan', 'validar plano', 'validate plan',
+    'aprovar plano', 'approve plan'
+  ],
+  'documentation-architect': [
+    'documentar', 'document', 'documentação', 'documentation',
+    'readme', 'wiki', 'api docs'
+  ],
+  'qualidade-codigo': [
+    'code review', 'revisão de código', 'auditoria', 'audit',
+    'qualidade', 'quality', 'security review', 'vulnerabilidade'
+  ],
+  'auto-error-resolver': [
+    'erro', 'error', 'bug', 'fix', 'corrigir', 'resolver',
+    'typescript error', 'compilation error'
+  ],
+  'web-research-specialist': [
+    'pesquisar', 'research', 'buscar informação', 'search for',
+    'investigar', 'investigate'
+  ],
+  'frontend-error-fixer': [
+    'frontend error', 'react error', 'build error', 'bundle error',
+    'erro de frontend', 'erro react'
+  ]
+};
+
+/**
+ * Detecta qual agente específico deve ser sugerido baseado no prompt
+ * @returns {string|null} Nome do agente ou null se não encontrar match
+ */
+function detectSpecificAgent(prompt) {
+  const promptLower = prompt.toLowerCase();
+
+  for (const [agent, keywords] of Object.entries(AGENT_KEYWORDS)) {
+    for (const keyword of keywords) {
+      // Word boundary para keywords curtas, substring para longas
+      if (keyword.length <= 4) {
+        const regex = new RegExp(`\\b${keyword}\\b`, 'i');
+        if (regex.test(prompt)) {
+          return agent;
+        }
+      } else if (promptLower.includes(keyword.toLowerCase())) {
+        return agent;
+      }
+    }
+  }
+
+  return null;
+}
 
 async function orchestrateAgents(context, agentesConfig) {
   const prompt = context.prompt.toLowerCase();
@@ -102,7 +168,12 @@ async function orchestrateAgents(context, agentesConfig) {
   }
 
   // ============================================================================
-  // DECOMPOSIÇÃO BASEADA EM COMPLEXIDADE
+  // DETECÇÃO DE AGENTE ESPECÍFICO (v3.1)
+  // ============================================================================
+  const specificAgent = detectSpecificAgent(context.prompt);
+
+  // ============================================================================
+  // DECOMPOSIÇÃO BASEADA EM COMPLEXIDADE + AGENTE ESPECÍFICO
   // ============================================================================
   const subtasks = [];
 
@@ -114,7 +185,7 @@ async function orchestrateAgents(context, agentesConfig) {
     });
     subtasks.push({
       name: 'Implementação Core',
-      agente: 'desenvolvimento'
+      agente: specificAgent || 'desenvolvimento'  // Usa agente específico se detectado
     });
     subtasks.push({
       name: 'Testes & Quality Assurance',
@@ -125,22 +196,56 @@ async function orchestrateAgents(context, agentesConfig) {
       agente: 'documentacao'
     });
   } else if (complexity === 'MEDIUM') {
-    // Tarefas médias: implementação + code review
-    subtasks.push({
-      name: 'Implementação',
-      agente: 'desenvolvimento'
-    });
-    subtasks.push({
-      name: 'Code Review',
-      agente: 'qualidade-codigo'
-    });
+    // MUDANÇA v3.1: Se detectou agente específico, usa ELE como principal
+    if (specificAgent) {
+      subtasks.push({
+        name: getAgentTaskName(specificAgent),
+        agente: specificAgent
+      });
+      // Adiciona code review apenas se não for já um agente de qualidade
+      if (specificAgent !== 'qualidade-codigo') {
+        subtasks.push({
+          name: 'Code Review',
+          agente: 'qualidade-codigo'
+        });
+      }
+    } else {
+      // Fallback: comportamento original
+      subtasks.push({
+        name: 'Implementação',
+        agente: 'desenvolvimento'
+      });
+      subtasks.push({
+        name: 'Code Review',
+        agente: 'qualidade-codigo'
+      });
+    }
   }
 
   return {
     complexity,
+    specificAgent,  // Incluir no retorno para debug
     subtasks,
     plan: formatOrchestrationPlan(subtasks)
   };
+}
+
+/**
+ * Retorna nome da tarefa baseado no agente
+ */
+function getAgentTaskName(agent) {
+  const taskNames = {
+    'code-refactor-master': 'Refatoração de Código',
+    'planejamento-legal': 'Planejamento & Arquitetura',
+    'plan-reviewer': 'Revisão de Plano',
+    'documentation-architect': 'Documentação',
+    'qualidade-codigo': 'Auditoria & Code Review',
+    'auto-error-resolver': 'Resolução de Erros',
+    'web-research-specialist': 'Pesquisa',
+    'frontend-error-fixer': 'Correção de Erros Frontend',
+    'desenvolvimento': 'Implementação'
+  };
+  return taskNames[agent] || 'Execução';
 }
 
 function formatOrchestrationPlan(subtasks) {

@@ -20,12 +20,27 @@ const { enforceAesthetics } = require('./lib/aesthetic-enforcer');
 // ============================================================================
 
 async function collectContext(projectDir, stdinData = null) {
-  // Obter prompt com fallbacks (env var → stdin → vazio)
-  let prompt = process.env.CLAUDE_USER_PROMPT || '';
+  // Obter prompt com fallbacks robustos (stdin JSON → env var → vazio)
+  // CRITICAL FIX: Claude Code envia prompt via stdin JSON, não env var
+  let prompt = '';
 
-  // BUG FIX #1: Fallback para stdin se CLAUDE_USER_PROMPT vazio
-  if (!prompt && stdinData?.userPrompt) {
-    prompt = stdinData.userPrompt;
+  // Fonte 1: stdin JSON (fonte primária - Claude Code padrão)
+  if (stdinData) {
+    prompt = stdinData.prompt ||           // Campo padrão Claude Code
+             stdinData.userPrompt ||       // Campo alternativo
+             stdinData.message ||          // Outro formato possível
+             stdinData.input ||            // Fallback genérico
+             '';
+  }
+
+  // Fonte 2: env var (fallback - pode não estar disponível)
+  if (!prompt) {
+    prompt = process.env.CLAUDE_USER_PROMPT || '';
+  }
+
+  // DEBUG: Log para troubleshooting (remover após validação)
+  if (!prompt) {
+    console.error('[WARN] Prompt vazio - stdin keys:', stdinData ? Object.keys(stdinData) : 'null');
   }
 
   const context = {
@@ -197,16 +212,18 @@ function formatOutput(decisions) {
 async function main() {
   const projectDir = process.env.CLAUDE_PROJECT_DIR || process.cwd();
 
-  // BUG FIX #1: Tentar ler stdin para fallback de prompt
+  // Ler stdin JSON (fonte primária do prompt no Claude Code)
   let stdinData = null;
   try {
     const fs = require('fs');
     const stdinBuffer = fs.readFileSync(0, 'utf-8');
     if (stdinBuffer.trim()) {
       stdinData = JSON.parse(stdinBuffer);
+      // DEBUG: Log keys recebidas para troubleshooting
+      console.error('[DEBUG] stdin keys:', Object.keys(stdinData).join(', '));
     }
   } catch (error) {
-    // Stdin vazio ou inválido - não é erro, apenas não há fallback
+    console.error('[DEBUG] stdin read error:', error.message);
   }
 
   try {
