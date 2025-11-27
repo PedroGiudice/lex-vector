@@ -4,18 +4,18 @@
 $panel-bg: $panel;
 $panel-header: $surface;
 $panel-border: $primary;
-$stage-pending: #6272a4;
+$stage-pending: $text-muted;
 $stage-active: $primary;
 $stage-complete: $success;
 $stage-error: $error;
 $confidence-high: $success;
 $confidence-medium: $warning;
 $confidence-low: $error;
-$text-muted: #6272a4;
 
 /* NOTE: Additional variables are supplied by the Python Theme object defined in themes/*.py
    Textual built-in variables: $primary, $secondary, $accent, $foreground, $background,
-   $surface, $panel, $success, $warning, $error
+   $surface, $panel, $success, $warning, $error, $text, $text-muted, $text-disabled,
+   $border, $border-blurred, and many others (see Guia-completo-de-CSS-TCSS-Textual-0.80.0.md)
 */
 
 /* Reset and base styles */
