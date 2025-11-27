@@ -1041,6 +1041,44 @@ gemini "Liste melhorias" --output-format json
 
 ---
 
+## Custom Agents - Descoberta e Registro (2025-11-27)
+
+### CRÍTICO: Agentes só ficam disponíveis após reiniciar sessão
+
+O Claude Code descobre agentes automaticamente dos arquivos `.md` em:
+- `.claude/agents/` (project-level)
+- `~/.claude/agents/` (user-level global)
+
+**PORÉM**: A descoberta acontece **NO INÍCIO DA SESSÃO**.
+
+Se você criar um agente DURANTE a sessão, ele **NÃO estará disponível** até reiniciar o Claude Code.
+
+### Sintoma
+```
+Task(subagent_type='meu-novo-agente')
+# Erro: "Agent type 'meu-novo-agente' not found"
+```
+
+### Solução
+1. Criar o arquivo `.claude/agents/meu-novo-agente.md`
+2. **Reiniciar a sessão do Claude Code** (fechar e abrir novamente)
+3. O agente estará disponível
+
+### Verificação
+Para confirmar quais agentes estão disponíveis na sessão atual, a lista aparece na mensagem de erro quando um agente não é encontrado.
+
+### Arquivos Relevantes
+- `.claude/hooks/lib/agent-auto-discovery.js` - Script de auto-discovery (para Legal-Braniac)
+- `.claude/hooks/agent-tools-mapping.json` - Mapeamento gerado (orquestração interna)
+
+### Agente TUI-Master
+Criado agente especialista em Textual TUI:
+- **Arquivo:** `.claude/agents/tui-master.md` (666 linhas)
+- **Global:** `~/.claude/agents/tui-master.md`
+- **Uso:** `Task(subagent_type='tui-master', prompt='...')` (após reiniciar sessão)
+
+---
+
 **Last updated:** 2025-11-27
 **Maintained by:** PedroGiudice
 **For Claude Code instances operating in:** `~/claude-work/repos/Claude-Code-Projetos` (WSL2)

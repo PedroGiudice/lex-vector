@@ -126,14 +126,15 @@ function inferToolsFromContent(content, agentName) {
     'legal-text-extractor': ['Read', 'Glob', 'Grep'],
     'code-refactor-master': ['*'],
     'frontend-error-fixer': ['*'],
-    'auto-error-resolver': ['Read', 'Write', 'Edit', 'Bash'],
+    'auto-error-resolver': ['Read', 'Write', 'Edit', 'MultiEdit', 'Bash'],
     'auth-route-debugger': ['Read', 'Glob', 'Grep', 'Bash', 'WebFetch', 'WebSearch'],
     'auth-route-tester': ['Read', 'Glob', 'Grep', 'Bash'],
     'web-research-specialist': ['WebFetch', 'WebSearch', 'Read', 'Glob', 'Grep'],
     'plan-reviewer': ['Read', 'Glob', 'Grep', 'WebFetch', 'WebSearch'],
     'refactor-planner': ['Read', 'Glob', 'Grep'],
     'code-architecture-reviewer': ['Read', 'Glob', 'Grep', 'Edit'],
-    'documentation-architect': ['Read', 'Write', 'Glob', 'Grep']
+    'documentation-architect': ['Read', 'Write', 'Glob', 'Grep'],
+    'tui-master': ['Read', 'Write', 'Edit', 'MultiEdit', 'Bash', 'Grep', 'Glob']
   };
 
   if (exactMatches[agentName]) {

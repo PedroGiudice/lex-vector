@@ -19,5 +19,46 @@
       "date": "2025-11-27"
     },
     "created_at": "2025-11-27T10:07:08.740651"
+  },
+  {
+    "id": "b7f3c891-4d2e-4a8f-9c1b-d8e6f2a3b5c7",
+    "type": "architectural_decision",
+    "title": "Claude Code Custom Agents - Descoberta e Registro",
+    "content": "## Descoberta Crítica: Como Agentes Customizados Funcionam no Claude Code\n\n### Problema Encontrado\nCriamos agente `tui-master.md` em `.claude/agents/` mas ao usar `Task(subagent_type='tui-master')` recebeu erro \"Agent type 'tui-master' not found\".\n\n### Investigação\n1. Comparamos lista de arquivos `.md` em `.claude/agents/` com lista de `subagent_type` disponíveis\n2. Descobrimos que TODOS os agentes que existiam ANTES da sessão estão disponíveis\n3. Agentes criados DURANTE a sessão NÃO aparecem na lista\n\n### Root Cause\nO Claude Code descobre agentes automaticamente dos arquivos `.md` em:\n- `.claude/agents/` (project-level)\n- `~/.claude/agents/` (user-level global)\n\n**PORÉM**: A descoberta acontece NO INÍCIO DA SESSÃO. Agentes criados durante a sessão só ficam disponíveis após reiniciar o Claude Code.\n\n### Solução\n**Reiniciar a sessão do Claude Code** após criar novos agentes para que sejam detectados.\n\n### Arquivos Relevantes\n- `.claude/hooks/lib/agent-auto-discovery.js` - Script de auto-discovery\n- `.claude/hooks/agent-tools-mapping.json` - Mapeamento gerado (usado pelo Legal-Braniac)\n\n### Lições\n1. Agentes em `.claude/agents/*.md` SÃO detectados automaticamente\n2. A detecção acontece no INÍCIO da sessão, não em tempo real\n3. O mapeamento local (`agent-tools-mapping.json`) é para orquestração interna (Legal-Braniac)\n4. A lista de `subagent_type` da ferramenta Task vem da descoberta automática do Claude Code\n5. Para usar um novo agente: criar arquivo → reiniciar sessão",
+    "tags": [
+      "claude-code",
+      "agents",
+      "subagent",
+      "task-tool",
+      "auto-discovery",
+      "architectural-decision"
+    ],
+    "context": {
+      "agent_created": "tui-master",
+      "location": ".claude/agents/tui-master.md",
+      "global_location": "~/.claude/agents/",
+      "date": "2025-11-27"
+    },
+    "created_at": "2025-11-27T19:50:00.000000"
+  },
+  {
+    "id": "c8e4d902-5f3a-4b9e-0d2c-e9f7g3b4c6d8",
+    "type": "solution_pattern",
+    "title": "TUI-Master Agent - Especialista Textual TUI",
+    "content": "## Agente Criado: tui-master\n\n### Propósito\nEspecialista em desenvolvimento de TUIs com framework Textual (Python). Conhecimento profundo de:\n- TCSS (Textual CSS) vs Web CSS\n- Sistema de temas (11 cores base)\n- DEFAULT_CSS precedence\n- Widgets e layouts\n- textual-dev tools\n\n### Localização\n- Project: `.claude/agents/tui-master.md`\n- Global: `~/.claude/agents/tui-master.md` (copiado)\n\n### Conteúdo Principal\n- 666 linhas de documentação\n- Seções: TCSS vs Web CSS, Theme System, CSS Precedence, Layout Patterns, Widget Styling, Advanced Patterns (TabbedContent, Modal, Toast), Rich Integration\n- Exemplos validados contra docs oficiais\n- Referências a showcase apps (Harlequin, Posting, Dolphie)\n\n### Como Usar\nApós reiniciar sessão:\n```\nTask(subagent_type='tui-master', prompt='...')\n```\n\n### Atualização do Auto-Discovery\nAdicionado `tui-master` ao `exactMatches` em `agent-auto-discovery.js` com tools:\n- Read, Write, Edit, MultiEdit, Bash, Grep, Glob",
+    "tags": [
+      "tui-master",
+      "textual",
+      "agent",
+      "tcss",
+      "tui-development"
+    ],
+    "context": {
+      "file": ".claude/agents/tui-master.md",
+      "lines": 666,
+      "tools": ["Read", "Write", "Edit", "MultiEdit", "Bash", "Grep", "Glob"],
+      "date": "2025-11-27"
+    },
+    "created_at": "2025-11-27T19:50:00.000000"
   }
 ]
