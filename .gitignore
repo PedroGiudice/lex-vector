@@ -198,3 +198,9 @@ agentes/stj-dados-abertos/data_local/
 # Gemini CLI context files (large, auto-generated)
 gemini_context.txt
 *_context.txt
+
+# Zone Identifier (Windows artifact)
+*:Zone.Identifier
+
+# PDFs case-insensitive
+*.PDF

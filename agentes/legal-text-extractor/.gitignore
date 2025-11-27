@@ -30,3 +30,6 @@ htmlcov/
 
 # PDFs de teste (grandes)
 test-documents/*.pdf
+
+# Allow Research docs
+!Research/*.txt

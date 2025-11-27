@@ -1,0 +1,780 @@
+Excelentes perguntas. Vou responder cada uma e depois estruturar o template completo.
+
+---
+
+## 1. Temas Programáticos - Como Funciona
+
+Sim, você pode usar temas prontos. O Textual oferece duas formas:
+
+**A) Temas Built-in do Textual:**
+```python
+# Temas disponíveis nativamente
+self.theme = "textual-dark"   # Padrão escuro
+self.theme = "textual-light"  # Padrão claro
+self.theme = "nord"           # Nord palette
+self.theme = "gruvbox"        # Gruvbox palette
+self.theme = "dracula"        # Dracula palette
+self.theme = "monokai"        # Monokai palette
+self.theme = "tokyo-night"    # Tokyo Night
+self.theme = "catppuccin-mocha"  # Catppuccin
+```
+
+**B) Criar tema customizado baseado em existente:**
+```python
+from textual.theme import Theme
+
+# Pegar tema existente e modificar
+my_theme = Theme(
+    name="vibe-neon",
+    primary="#00f3ff",      # Cyan neon
+    secondary="#ff00ff",    # Magenta
+    accent="#00ff41",       # Verde matrix
+    # ... herda o resto
+)
+```
+
+Vou pesquisar os melhores temas visuais disponíveis:Vou buscar a documentação específica sobre temas:Agora tenho todas as informações necessárias. Vou responder suas perguntas e depois estruturar o template completo.
+
+---
+
+## Respostas às Suas Perguntas
+
+### 1. Temas Prontos - Como "Pegar Emprestado"
+
+Sim! O Textual tem temas built-in que você pode usar diretamente:
+
+```python
+# Basta definir o nome do tema
+self.theme = "dracula"  # Pronto! Interface toda muda
+```
+
+**5 Temas Excelentes para Base (ordenados por relevância para estética VIBE):**
+
+| # | Tema | Estética | Por que é bom |
+|---|------|----------|---------------|
+| 1 | **dracula** | Cyberpunk/Neon | Cores vibrantes (cyan, magenta, verde), fundo escuro #282a36, contraste alto - **perfeito para VIBE-LOG** |
+| 2 | **tokyo-night** | Futurista/Neon | Azuis e roxos neon, minimalista mas impactante |
+| 3 | **catppuccin-mocha** | Suave/Elegante | Paleta pastéis sofisticada, menos "gritante" mas muito bonito |
+| 4 | **nord** | Frio/Ártico | Azuis gelados, muito legível, profissional |
+| 5 | **gruvbox** | Retro/Quente | Tons terrosos, ótimo contraste, clássico |
+
+**Cores do Dracula (ideal para VIBE-LOG):**
+```python
+# Paleta Dracula - perfeita para estética cyberpunk
+background = "#282a36"  # Void black
+foreground = "#f8f8f2"  # Texto claro
+selection = "#44475a"   # Seleção
+comment = "#6272a4"     # Muted
+cyan = "#8be9fd"        # NEON CYAN
+green = "#50fa7b"       # NEON GREEN
+orange = "#ffb86c"      # Warning
+pink = "#ff79c6"        # NEON PINK/MAGENTA
+purple = "#bd93f9"      # Accent
+red = "#ff5555"         # Error
+yellow = "#f1fa8c"      # Highlight
+```
+
+**Estratégia recomendada**: Usar Dracula como base e sobrescrever apenas o que precisar para intensificar o efeito neon.
+
+---
+
+### 2. Backend Separado - Precisa de WebSocket?
+
+**Resposta curta**: Depende do nível de separação que você quer.
+
+**Opção A: Workers do Textual (Recomendado para seu caso)**
+```
+┌─────────────────────────────────────────────┐
+│              Mesmo Processo Python          │
+│  ┌─────────────┐      ┌─────────────────┐  │
+│  │  TUI Thread │ ←──→ │  Worker Thread  │  │
+│  │  (render)   │ msgs │  (extração)     │  │
+│  └─────────────┘      └─────────────────┘  │
+└─────────────────────────────────────────────┘
+```
+- Comunicação via `Messages` (nativo do Textual)
+- UI nunca trava (worker roda em thread separada)
+- Estado isolado (worker não acessa UI diretamente)
+- **Sem dependência externa** (sem WebSocket, sem FastAPI)
+
+**Opção B: Processos Separados (WebSocket/IPC)**
+```
+┌─────────────────┐      ┌─────────────────┐
+│  TUI Process    │ ←──→ │ Backend Process │
+│  (textual app)  │  WS  │ (FastAPI server)│
+└─────────────────┘      └─────────────────┘
+```
+- **Vantagens**: Deploy independente, pode rodar backend em servidor remoto, escala horizontal
+- **Desvantagens**: Complexidade (2 processos, WebSocket, serialização JSON), mais pontos de falha
+
+**Minha recomendação**: Para o legal-text-extractor, Workers são suficientes e muito mais simples. A separação lógica (TUI vs Engine) pode existir no código sem separação física de processos.
+
+**MAS** se você quer "future-proofing" para eventualmente:
+- Rodar extração em servidor remoto
+- Processar múltiplos PDFs em paralelo em máquinas diferentes
+- Ter uma API REST para o extrator
+
+Então vale a pena já estruturar com interface de comunicação abstrata (que pode ser WebSocket OU mensagens locais).
+
+**Vou incluir ambas as opções no template.**
+
+---
+
+### 3. Template First - Concordo 100%
+
+Criar template genérico e depois especializar é a abordagem correta. Menos retrabalho, mais reutilização.
+
+---
+
+## Estrutura Completa do TUI Template
+
+Vou estruturar um template "maximalista" que inclui TUDO. Você remove o que não precisar.
+
+```
+tui-template/
+├── pyproject.toml                    # Configuração do projeto (Poetry/Hatch)
+├── README.md                         # Documentação do template
+├── CHANGELOG.md                      # Histórico de versões
+├── .gitignore                        # Ignores padrão Python + outputs
+│
+├── src/
+│   └── tui_app/                      # Pacote principal (renomear conforme projeto)
+│       ├── __init__.py               # Versão, metadata
+│       ├── __main__.py               # Entry point: python -m tui_app
+│       ├── app.py                    # Classe App principal
+│       ├── config.py                 # Configurações (paths, constantes)
+│       │
+│       ├── screens/                  # Telas da aplicação
+│       │   ├── __init__.py
+│       │   ├── main_screen.py        # Tela principal (dashboard)
+│       │   ├── log_screen.py         # Tela de logs fullscreen
+│       │   ├── settings_screen.py    # Tela de configurações
+│       │   └── help_screen.py        # Tela de ajuda/keybindings
+│       │
+│       ├── widgets/                  # Widgets customizados
+│       │   ├── __init__.py
+│       │   ├── header.py             # Header customizado (logo ASCII)
+│       │   ├── sidebar.py            # Menu lateral navegável
+│       │   ├── log_panel.py          # RichLog estilizado com filtros
+│       │   ├── progress_panel.py     # Multi-progress com estágios
+│       │   ├── status_bar.py         # Barra de status (CPU, RAM, tempo)
+│       │   ├── file_browser.py       # DirectoryTree + filtro por extensão
+│       │   ├── result_viewer.py      # Markdown viewer para outputs
+│       │   └── sparkline_panel.py    # Mini-gráficos de métricas
+│       │
+│       ├── components/               # Componentes compostos (compound widgets)
+│       │   ├── __init__.py
+│       │   ├── pipeline_tracker.py   # Tracker visual de pipeline
+│       │   └── action_bar.py         # Barra de ações contextuais
+│       │
+│       ├── themes/                   # Sistema de temas
+│       │   ├── __init__.py           # Exporta todos os temas
+│       │   ├── base.py               # Classe ThemeBase abstrata
+│       │   ├── vibe_neon.py          # Tema cyberpunk (baseado em Dracula)
+│       │   ├── vibe_matrix.py        # Tema Matrix (verde sobre preto)
+│       │   ├── vibe_synthwave.py     # Tema Synthwave (rosa/roxo)
+│       │   ├── minimal_dark.py       # Tema minimalista escuro
+│       │   └── minimal_light.py      # Tema minimalista claro
+│       │
+│       ├── styles/                   # CSS externo
+│       │   ├── base.tcss             # Variáveis globais e reset
+│       │   ├── layout.tcss           # Grid, containers, dock
+│       │   ├── widgets.tcss          # Estilos dos widgets custom
+│       │   ├── animations.tcss       # Spinners, transições
+│       │   └── themes/               # CSS por tema
+│       │       ├── vibe_neon.tcss
+│       │       ├── vibe_matrix.tcss
+│       │       ├── vibe_synthwave.tcss
+│       │       ├── minimal_dark.tcss
+│       │       └── minimal_light.tcss
+│       │
+│       ├── workers/                  # Workers para tarefas assíncronas
+│       │   ├── __init__.py
+│       │   ├── base_worker.py        # Classe base para workers
+│       │   └── pipeline_worker.py    # Worker genérico de pipeline
+│       │
+│       ├── messages/                 # Custom messages (eventos)
+│       │   ├── __init__.py
+│       │   ├── pipeline_messages.py  # StepStarted, StepCompleted, etc.
+│       │   └── system_messages.py    # LogMessage, ErrorMessage, etc.
+│       │
+│       ├── models/                   # Modelos de dados (Pydantic)
+│       │   ├── __init__.py
+│       │   ├── pipeline.py           # PipelineConfig, StepResult
+│       │   ├── log_entry.py          # LogEntry, LogLevel
+│       │   └── settings.py           # AppSettings (persistência)
+│       │
+│       ├── services/                 # Serviços/lógica de negócio
+│       │   ├── __init__.py
+│       │   ├── pipeline_service.py   # Interface abstrata para pipelines
+│       │   └── settings_service.py   # Load/save de configurações
+│       │
+│       ├── adapters/                 # Adaptadores de comunicação
+│       │   ├── __init__.py
+│       │   ├── local_adapter.py      # Comunicação via Workers (local)
+│       │   └── websocket_adapter.py  # Comunicação via WebSocket (remoto)
+│       │
+│       └── utils/                    # Utilitários
+│           ├── __init__.py
+│           ├── ascii_art.py          # Logos e banners ASCII
+│           ├── formatting.py         # Formatação de tempo, bytes, etc.
+│           └── validators.py         # Validação de inputs
+│
+├── assets/                           # Recursos estáticos
+│   ├── fonts/                        # Nerd Fonts (referência)
+│   │   └── README.md                 # Instruções de instalação
+│   └── logos/                        # Logos ASCII
+│       ├── logo_small.txt
+│       └── logo_large.txt
+│
+├── tests/                            # Testes
+│   ├── __init__.py
+│   ├── conftest.py                   # Fixtures do pytest
+│   ├── test_app.py                   # Testes da App
+│   ├── test_widgets/                 # Testes de widgets
+│   └── test_workers/                 # Testes de workers
+│
+├── scripts/                          # Scripts auxiliares
+│   ├── run_dev.sh                    # Roda em modo dev (--dev)
+│   ├── run_prod.sh                   # Roda em modo produção
+│   └── generate_logo.py              # Gera ASCII art do logo
+│
+└── docs/                             # Documentação
+    ├── getting_started.md
+    ├── customization.md
+    └── architecture.md
+```
+
+---
+
+## Conteúdo dos Arquivos Principais
+
+### `pyproject.toml`
+```toml
+[project]
+name = "tui-template"
+version = "0.1.0"
+description = "Template para TUIs com Textual"
+requires-python = ">=3.11"
+dependencies = [
+    "textual>=0.80.0",
+    "rich>=13.0.0",
+    "pydantic>=2.0.0",
+    "pydantic-settings>=2.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "textual-dev>=1.0.0",
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
+]
+websocket = [
+    "websockets>=12.0",
+    "httpx>=0.27.0",
+]
+
+[project.scripts]
+tui-app = "tui_app.__main__:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/tui_app"]
+```
+
+### `src/tui_app/__main__.py`
+```python
+"""Entry point: python -m tui_app"""
+from tui_app.app import TUIApp
+
+def main():
+    app = TUIApp()
+    app.run()
+
+if __name__ == "__main__":
+    main()
+```
+
+### `src/tui_app/app.py`
+```python
+"""Aplicação TUI principal."""
+from textual.app import App, ComposeResult
+from textual.binding import Binding
+
+from tui_app.screens.main_screen import MainScreen
+from tui_app.themes import VIBE_NEON_THEME
+
+class TUIApp(App):
+    """Aplicação TUI Template."""
+    
+    TITLE = "TUI Template"
+    SUB_TITLE = "v0.1.0"
+    
+    CSS_PATH = [
+        "styles/base.tcss",
+        "styles/layout.tcss",
+        "styles/widgets.tcss",
+    ]
+    
+    BINDINGS = [
+        Binding("q", "quit", "Sair", show=True),
+        Binding("d", "toggle_dark", "Tema", show=True),
+        Binding("?", "show_help", "Ajuda", show=True),
+        Binding("ctrl+p", "command_palette", "Comandos", show=False),
+    ]
+    
+    SCREENS = {
+        "main": MainScreen,
+    }
+    
+    def on_mount(self) -> None:
+        """Configuração inicial."""
+        self.register_theme(VIBE_NEON_THEME)
+        self.theme = "vibe-neon"
+        self.push_screen("main")
+    
+    def action_toggle_dark(self) -> None:
+        """Alterna entre tema claro e escuro."""
+        self.theme = "textual-light" if self.dark else "vibe-neon"
+```
+
+### `src/tui_app/themes/vibe_neon.py`
+```python
+"""Tema VIBE Neon - Cyberpunk/Dracula inspired."""
+from textual.theme import Theme
+
+VIBE_NEON_THEME = Theme(
+    name="vibe-neon",
+    primary="#8be9fd",      # Cyan neon (Dracula cyan)
+    secondary="#bd93f9",    # Purple (Dracula purple)
+    accent="#ff79c6",       # Pink/Magenta neon (Dracula pink)
+    foreground="#f8f8f2",   # Texto claro
+    background="#0d0d0d",   # Void black (mais escuro que Dracula)
+    surface="#1a1a2e",      # Surface escura com tom azulado
+    panel="#16213e",        # Painel com profundidade
+    success="#50fa7b",      # Verde neon (Dracula green)
+    warning="#ffb86c",      # Laranja (Dracula orange)
+    error="#ff5555",        # Vermelho (Dracula red)
+    dark=True,
+    variables={
+        # Cursor
+        "block-cursor-background": "#ff79c6",
+        "block-cursor-foreground": "#0d0d0d",
+        "block-cursor-text-style": "bold",
+        
+        # Borders
+        "border": "#8be9fd",
+        "border-blurred": "#44475a",
+        
+        # Footer
+        "footer-key-foreground": "#50fa7b",
+        "footer-description-foreground": "#f8f8f2",
+        "footer-background": "#1a1a2e",
+        
+        # Scrollbar
+        "scrollbar": "#44475a",
+        "scrollbar-hover": "#6272a4",
+        "scrollbar-active": "#8be9fd",
+        
+        # Input
+        "input-selection-background": "#44475a",
+    },
+)
+```
+
+### `src/tui_app/styles/base.tcss`
+```css
+/* ============================================
+   BASE STYLES - Variáveis Globais
+   ============================================ */
+
+/* Cores Neon (sobrescrevem tema se necessário) */
+$neon-cyan: #8be9fd;
+$neon-magenta: #ff79c6;
+$neon-green: #50fa7b;
+$neon-yellow: #f1fa8c;
+$neon-orange: #ffb86c;
+$neon-red: #ff5555;
+$neon-purple: #bd93f9;
+
+/* Backgrounds */
+$void-bg: #0d0d0d;
+$surface-bg: #1a1a2e;
+$panel-bg: #16213e;
+$elevated-bg: #1f2937;
+
+/* Bordas com glow */
+$border-glow: $neon-cyan;
+$border-muted: #44475a;
+
+/* Tipografia */
+$text-primary: #f8f8f2;
+$text-muted: #6272a4;
+$text-disabled: #44475a;
+
+/* ============================================
+   RESET & DEFAULTS
+   ============================================ */
+
+Screen {
+    background: $background;
+}
+
+/* Scrollbars globais */
+* {
+    scrollbar-background: $background-darken-1;
+    scrollbar-color: $panel;
+    scrollbar-color-hover: $primary;
+    scrollbar-color-active: $accent;
+}
+```
+
+### `src/tui_app/widgets/log_panel.py`
+```python
+"""Widget de log estilizado com filtros e virtualização."""
+from textual.widgets import RichLog
+from textual.reactive import reactive
+
+class LogPanel(RichLog):
+    """RichLog customizado com suporte a níveis e filtros."""
+    
+    DEFAULT_CSS = """
+    LogPanel {
+        border: heavy $border;
+        border-title-color: $accent;
+        background: $surface;
+        padding: 0 1;
+    }
+    
+    LogPanel:focus {
+        border: heavy $accent;
+    }
+    """
+    
+    COMPONENT_CLASSES = {
+        "log-panel--info",
+        "log-panel--warning", 
+        "log-panel--error",
+        "log-panel--success",
+        "log-panel--debug",
+    }
+    
+    show_debug: reactive[bool] = reactive(False)
+    show_info: reactive[bool] = reactive(True)
+    show_warning: reactive[bool] = reactive(True)
+    show_error: reactive[bool] = reactive(True)
+    
+    def __init__(
+        self,
+        *,
+        max_lines: int = 10000,
+        highlight: bool = True,
+        markup: bool = True,
+        name: str | None = None,
+        id: str | None = None,
+        classes: str | None = None,
+    ) -> None:
+        super().__init__(
+            max_lines=max_lines,
+            highlight=highlight,
+            markup=markup,
+            name=name,
+            id=id,
+            classes=classes,
+        )
+        self.border_title = "Logs"
+    
+    def log_info(self, message: str) -> None:
+        """Log de informação."""
+        if self.show_info:
+            self.write(f"[cyan]INFO[/] {message}")
+    
+    def log_warning(self, message: str) -> None:
+        """Log de aviso."""
+        if self.show_warning:
+            self.write(f"[yellow]WARN[/] {message}")
+    
+    def log_error(self, message: str) -> None:
+        """Log de erro."""
+        if self.show_error:
+            self.write(f"[red bold]ERROR[/] {message}")
+    
+    def log_success(self, message: str) -> None:
+        """Log de sucesso."""
+        self.write(f"[green]OK[/] {message}")
+    
+    def log_debug(self, message: str) -> None:
+        """Log de debug."""
+        if self.show_debug:
+            self.write(f"[dim]DEBUG[/] {message}")
+```
+
+### `src/tui_app/widgets/progress_panel.py`
+```python
+"""Widget de progresso multi-estágio para pipelines."""
+from textual.app import ComposeResult
+from textual.containers import Vertical
+from textual.widgets import Static, ProgressBar
+from textual.reactive import reactive
+
+class StageProgress(Static):
+    """Progresso de um estágio individual."""
+    
+    DEFAULT_CSS = """
+    StageProgress {
+        height: 3;
+        padding: 0 1;
+    }
+    
+    StageProgress ProgressBar {
+        width: 100%;
+    }
+    
+    StageProgress .stage-label {
+        text-style: bold;
+    }
+    
+    StageProgress.running .stage-label {
+        color: $accent;
+    }
+    
+    StageProgress.completed .stage-label {
+        color: $success;
+    }
+    
+    StageProgress.error .stage-label {
+        color: $error;
+    }
+    """
+    
+    progress: reactive[float] = reactive(0.0)
+    status: reactive[str] = reactive("pending")  # pending, running, completed, error
+    
+    def __init__(
+        self,
+        label: str,
+        *,
+        name: str | None = None,
+        id: str | None = None,
+    ) -> None:
+        super().__init__(name=name, id=id)
+        self.label = label
+    
+    def compose(self) -> ComposeResult:
+        yield Static(self.label, classes="stage-label")
+        yield ProgressBar(total=100, show_eta=False)
+    
+    def watch_progress(self, value: float) -> None:
+        """Atualiza barra de progresso."""
+        bar = self.query_one(ProgressBar)
+        bar.update(progress=value)
+    
+    def watch_status(self, value: str) -> None:
+        """Atualiza classe CSS baseado no status."""
+        self.remove_class("pending", "running", "completed", "error")
+        self.add_class(value)
+
+
+class PipelineProgress(Vertical):
+    """Tracker visual de pipeline com múltiplos estágios."""
+    
+    DEFAULT_CSS = """
+    PipelineProgress {
+        border: heavy $border;
+        border-title-color: $primary;
+        background: $surface;
+        height: auto;
+        padding: 1;
+    }
+    """
+    
+    def __init__(
+        self,
+        stages: list[str],
+        *,
+        name: str | None = None,
+        id: str | None = None,
+    ) -> None:
+        super().__init__(name=name, id=id)
+        self.stages = stages
+        self.border_title = "Pipeline"
+    
+    def compose(self) -> ComposeResult:
+        for i, stage in enumerate(self.stages, 1):
+            yield StageProgress(f"{i}. {stage}", id=f"stage-{i}")
+    
+    def start_stage(self, stage_num: int) -> None:
+        """Marca estágio como em execução."""
+        stage = self.query_one(f"#stage-{stage_num}", StageProgress)
+        stage.status = "running"
+    
+    def update_stage(self, stage_num: int, progress: float) -> None:
+        """Atualiza progresso do estágio."""
+        stage = self.query_one(f"#stage-{stage_num}", StageProgress)
+        stage.progress = progress
+    
+    def complete_stage(self, stage_num: int) -> None:
+        """Marca estágio como completo."""
+        stage = self.query_one(f"#stage-{stage_num}", StageProgress)
+        stage.progress = 100
+        stage.status = "completed"
+    
+    def error_stage(self, stage_num: int) -> None:
+        """Marca estágio com erro."""
+        stage = self.query_one(f"#stage-{stage_num}", StageProgress)
+        stage.status = "error"
+```
+
+### `src/tui_app/messages/pipeline_messages.py`
+```python
+"""Mensagens para comunicação de pipeline."""
+from dataclasses import dataclass
+from textual.message import Message
+
+@dataclass
+class StepStarted(Message):
+    """Emitida quando um estágio inicia."""
+    step: int
+    name: str
+
+@dataclass
+class StepProgress(Message):
+    """Emitida para atualizar progresso."""
+    step: int
+    progress: float  # 0.0 a 100.0
+    message: str | None = None
+
+@dataclass
+class StepCompleted(Message):
+    """Emitida quando um estágio completa."""
+    step: int
+    result: dict | None = None
+
+@dataclass
+class StepError(Message):
+    """Emitida quando um estágio falha."""
+    step: int
+    error: str
+    traceback: str | None = None
+
+@dataclass
+class PipelineStarted(Message):
+    """Emitida quando pipeline inicia."""
+    total_steps: int
+
+@dataclass
+class PipelineCompleted(Message):
+    """Emitida quando pipeline completa."""
+    results: dict
+
+@dataclass
+class PipelineAborted(Message):
+    """Emitida quando pipeline é abortada."""
+    reason: str
+```
+
+### `src/tui_app/workers/pipeline_worker.py`
+```python
+"""Worker genérico para execução de pipelines."""
+from typing import Callable, Any
+from textual.worker import Worker, work
+from textual.app import App
+
+from tui_app.messages.pipeline_messages import (
+    PipelineStarted,
+    StepStarted,
+    StepProgress,
+    StepCompleted,
+    StepError,
+    PipelineCompleted,
+    PipelineAborted,
+)
+
+class PipelineWorker:
+    """Executor de pipelines em worker thread."""
+    
+    def __init__(self, app: App):
+        self.app = app
+        self._cancelled = False
+    
+    def cancel(self) -> None:
+        """Cancela execução."""
+        self._cancelled = True
+    
+    @work(exclusive=True, thread=True)
+    async def run(
+        self,
+        steps: list[tuple[str, Callable[..., Any]]],
+        context: dict | None = None,
+    ) -> dict:
+        """
+        Executa pipeline de steps.
+        
+        Args:
+            steps: Lista de (nome, função) para executar
+            context: Contexto inicial passado entre steps
+        
+        Returns:
+            Resultados consolidados de todos os steps
+        """
+        context = context or {}
+        results = {}
+        
+        self.app.post_message(PipelineStarted(total_steps=len(steps)))
+        
+        for i, (name, step_fn) in enumerate(steps, 1):
+            if self._cancelled:
+                self.app.post_message(PipelineAborted(reason="Cancelado pelo usuário"))
+                return results
+            
+            self.app.post_message(StepStarted(step=i, name=name))
+            
+            try:
+                # Executa step com callback de progresso
+                def progress_callback(pct: float, msg: str = None):
+                    self.app.post_message(StepProgress(step=i, progress=pct, message=msg))
+                
+                result = step_fn(context, progress_callback)
+                results[name] = result
+                context.update(result if isinstance(result, dict) else {})
+                
+                self.app.post_message(StepCompleted(step=i, result=result))
+                
+            except Exception as e:
+                import traceback
+                self.app.post_message(StepError(
+                    step=i,
+                    error=str(e),
+                    traceback=traceback.format_exc()
+                ))
+                self.app.post_message(PipelineAborted(reason=f"Erro no step {i}"))
+                return results
+        
+        self.app.post_message(PipelineCompleted(results=results))
+        return results
+```
+
+---
+
+## Resumo da Estrutura
+
+**O template inclui:**
+
+| Categoria | Componentes |
+|-----------|-------------|
+| **Screens** | MainScreen, LogScreen, SettingsScreen, HelpScreen |
+| **Widgets** | Header, Sidebar, LogPanel, ProgressPanel, StatusBar, FileBrowser, ResultViewer, Sparkline |
+| **Temas** | vibe-neon, vibe-matrix, vibe-synthwave, minimal-dark, minimal-light |
+| **Workers** | BaseWorker, PipelineWorker |
+| **Messages** | Pipeline events, System events |
+| **Adapters** | LocalAdapter (Workers), WebSocketAdapter (futuro) |
+| **Models** | PipelineConfig, LogEntry, AppSettings |
+| **Utils** | ASCII art, formatting, validators |
+
+**Esse template é "maximalista"** - você remove o que não precisar. Para o legal-text-extractor, provavelmente vai usar:
+- MainScreen
+- LogPanel, ProgressPanel, FileBrowser
+- PipelineWorker com os 4 steps
+- Tema vibe-neon
+- Messages de pipeline
+
+Quer que eu continue detalhando mais arquivos específicos, ou essa estrutura já é suficiente para você decidir os próximos passos?
