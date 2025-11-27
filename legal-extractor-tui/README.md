@@ -14,19 +14,31 @@ Terminal User Interface (TUI) for Brazilian Legal Document Text Extraction.
 ## Installation
 
 ```bash
+# Create and activate virtual environment (required on Ubuntu 24.04+)
+cd legal-extractor-tui
+python3 -m venv .venv
+source .venv/bin/activate
+
+# Install package
 pip install -e ".[dev]"
 ```
 
 ## Usage
 
 ```bash
-legal-extractor-tui
-```
+# Always activate venv first
+source .venv/bin/activate
 
-Or run directly with Python:
-
-```bash
+# Run with default theme (neon)
 python -m legal_extractor_tui
+
+# Run with specific theme
+python -m legal_extractor_tui --theme matrix
+
+# Run with a PDF file
+python -m legal_extractor_tui documento.pdf
+
+# Available themes: neon, matrix, synthwave, dark, light
 ```
 
 ## Requirements
@@ -38,22 +50,21 @@ python -m legal_extractor_tui
 
 ## Development
 
-Install with development dependencies:
-
 ```bash
+# Setup (one-time)
+cd legal-extractor-tui
+python3 -m venv .venv
+source .venv/bin/activate
 pip install -e ".[dev]"
-```
 
-Run tests:
-
-```bash
+# Run tests
 pytest
-```
 
-Run linter:
+# Type checking
+mypy src/
 
-```bash
-ruff check .
+# Linting
+ruff check src/
 ```
 
 ## License
