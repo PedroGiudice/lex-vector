@@ -32,6 +32,15 @@ dependencies = [
     "pdfplumber>=0.11.0",
     "pillow>=10.0.0",
     "anthropic>=0.73.0",
+    "tenacity>=9.0.0",
+    "pyyaml>=6.0.0",
+    # Vision pipeline (step_02)
+    "pdf2image>=1.16.0",
+    "opencv-python-headless>=4.8.0",
+    "numpy>=1.24.0",
+    "pytesseract>=0.3.10",
+    "reportlab>=4.0.0",
+    "typer>=0.9.0",
 ]
 
 [project.optional-dependencies]
