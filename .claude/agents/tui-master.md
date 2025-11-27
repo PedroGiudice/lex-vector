@@ -373,14 +373,236 @@ Screen { background: $background; }
 
 ---
 
-## Reference Projects
+## Reference Projects (Detailed)
 
-Study these for best practices:
+Study these for specific patterns:
 
-- **Harlequin** (3,500+ stars) - SQL IDE with complex multi-panel layout
-- **Posting** (5,000+ stars) - HTTP client with 9+ themes
-- **Toolong** (3,600+ stars) - Log viewer with performance optimization
-- **Elia** (1,800+ stars) - LLM client with streaming and Markdown
+| Project | Stars | Learn From |
+|---------|-------|------------|
+| **Harlequin** | 3,500+ | Multi-panel SQL IDE, plugin architecture, Tree-Sitter highlighting |
+| **Posting** | 5,000+ | 9+ themes with Pydantic models, YAML theme files, spacing modes |
+| **Dolphie** | 3,500+ | Real-time MySQL monitor, sparkline graphs, multi-tab connections |
+| **Toolong** | 3,600+ | Log viewer, large file performance, live tailing |
+| **Memray** | 13,000+ | Bloomberg memory profiler, tree reporters, enterprise-grade |
+| **Elia** | 1,800+ | LLM client, streaming responses, Markdown rendering |
+| **Frogmouth** | 2,400+ | Markdown browser, back/forward navigation, bookmarks |
+| **Trogon** | 2,470+ | Auto-TUI from Click/Typer (for new CLI projects only) |
+
+---
+
+## Project Scaffolding with Hatch
+
+### Quick Start
+
+```bash
+hatch new "my-textual-app"
+cd my-textual-app
+pip install -e .
+textual run --dev src/my_textual_app/app.py
+```
+
+### Recommended Structure (from textual-calculator-hatch)
+
+```
+my-textual-app/
+├── LICENSE.txt
+├── README.md
+├── pyproject.toml
+├── src/
+│   └── my_textual_app/      # Underscore, not hyphen
+│       ├── __about__.py     # Version management
+│       ├── __init__.py
+│       ├── __main__.py
+│       ├── app.py
+│       └── app.tcss
+└── tests/
+    └── __init__.py
+```
+
+### Entry Points in pyproject.toml
+
+```toml
+[project.scripts]
+my-app = "my_textual_app.entry_points:main"
+
+[project]
+dependencies = ["textual>=6.0.0"]
+```
+
+```python
+# src/my_textual_app/entry_points.py
+from my_textual_app.app import MyApp
+
+def main():
+    app = MyApp()
+    app.run()
+```
+
+---
+
+## Third-Party Widget Ecosystem
+
+Extend Textual with community packages:
+
+| Package | Purpose | When to Use |
+|---------|---------|-------------|
+| **textual-fastdatatable** | Arrow/Parquet backend | Tables with 100K+ rows |
+| **textology** | Dash-like callbacks, MultiSelect | Reactive data patterns |
+| **textual-autocomplete** | Input autocompletion | Search fields, command palettes |
+| **textual-plotext** | Terminal graphing | Data visualization |
+| **textual-fspicker** | File/directory picker modals | File selection dialogs |
+| **textual-window** | Floating, draggable windows | MDI-style applications |
+| **textual-image** | TGP/Sixel image display | Image previews |
+| **zandev-textual-widgets** | MenuBar, context menus | Desktop-like UI |
+
+**Resource:** [transcendent-textual](https://github.com/davep/transcendent-textual) - most comprehensive catalog.
+
+---
+
+## textual-dev Development Tools
+
+```bash
+# Terminal 1: Debug console (flags: -v verbose, -x exclude)
+textual console
+
+# Terminal 2: App with hot-reload CSS
+textual run --dev my_app.py
+
+# Browser-based testing (multiple instances)
+textual serve my_app.py --port 7342
+
+# Preview all theme colors
+textual run -c textual colors
+```
+
+---
+
+## Advanced Patterns
+
+### TabbedContent
+
+```python
+from textual.app import ComposeResult
+from textual.widgets import TabbedContent, TabPane
+
+def compose(self) -> ComposeResult:
+    with TabbedContent(initial="dashboard"):
+        with TabPane("Dashboard", id="dashboard"):
+            yield DashboardContent()
+        with TabPane("Settings", id="settings"):
+            yield SettingsForm()
+
+def action_show_tab(self, tab: str) -> None:
+    """Switch tabs programmatically."""
+    self.query_one(TabbedContent).active = tab
+```
+
+### Modal Dialogs
+
+```python
+from textual.screen import ModalScreen
+from textual.containers import Grid
+from textual.widgets import Button, Label
+
+class ConfirmDialog(ModalScreen[bool]):
+    """Modal that returns True/False."""
+
+    def compose(self) -> ComposeResult:
+        yield Grid(
+            Label("Delete this item?", id="question"),
+            Button("Confirm", variant="error", id="confirm"),
+            Button("Cancel", variant="primary", id="cancel"),
+            id="dialog",
+        )
+
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        self.dismiss(event.button.id == "confirm")
+
+# Usage with callback (synchronous)
+def handle_result(result: bool | None) -> None:
+    if result:
+        self.do_delete()
+
+self.push_screen(ConfirmDialog(), handle_result)
+
+# Usage with await (requires @work decorator)
+from textual import work
+
+@work
+async def confirm_delete(self) -> None:
+    result = await self.push_screen_wait(ConfirmDialog())
+    if result:
+        self.do_delete()
+```
+
+### Toast Notifications
+
+```python
+# Severities: 'information' (default), 'warning', 'error'
+self.notify("File saved!", title="Success")
+self.notify("Error occurred", title="Error", severity="error", timeout=10)
+self.notify("Check this", severity="warning", timeout=None)  # Persistent
+```
+
+### Responsive Design
+
+```python
+from textual.events import Resize
+
+def on_resize(self, event: Resize) -> None:
+    """Hide sidebar on narrow terminals."""
+    sidebar = self.query_one("#sidebar")
+    sidebar.display = self.size.width >= 60
+```
+
+---
+
+## Rich Integration
+
+Use Rich for advanced text styling in widgets:
+
+```python
+from rich.text import Text
+
+# Styled DataTable cells
+status = Text("✓", style="bold green", justify="center")
+table.add_row(status, "Contract.pdf")
+
+# Multiple styles in one cell
+filename = Text()
+filename.append("document", style="bold")
+filename.append(".pdf", style="dim")
+table.add_row(filename)
+```
+
+### Markdown in Widgets
+
+```python
+from textual.widgets import Markdown
+
+def compose(self) -> ComposeResult:
+    yield Markdown("# Title\n**Bold** and *italic* text")
+```
+
+---
+
+## Community Resources
+
+- **[transcendent-textual](https://github.com/davep/transcendent-textual)** - Most comprehensive widget/app catalog
+- **[awesome-textualize-projects](https://github.com/oleksis/awesome-textualize-projects)** - Curated list
+- **[awesome-textual](https://github.com/Kludex/awesome-textual)** - Community resources
+
+---
+
+## Official Documentation
+
+- [CSS Guide](https://textual.textualize.io/guide/CSS/)
+- [Theme/Design System](https://textual.textualize.io/guide/design/)
+- [Layout Guide](https://textual.textualize.io/guide/layout/)
+- [Animation](https://textual.textualize.io/guide/animation/)
+- [Widget Gallery](https://textual.textualize.io/widget_gallery/)
+- [Screens/Modals](https://textual.textualize.io/guide/screens/)
+- [Package with Hatch](https://textual.textualize.io/how-to/package-with-hatch/)
 
 ---
 
