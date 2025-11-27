@@ -4,15 +4,50 @@ from textual.theme import Theme
 
 VIBE_MATRIX_THEME = Theme(
     name="vibe-matrix",
-    primary="#00ff41",  # Matrix green
-    secondary="#008f11",  # Dark green
-    accent="#00ff41",  # Bright green
-    foreground="#00ff41",  # Green text
-    background="#000000",  # Pure black
-    surface="#0a0e0a",  # Very dark green-tinted
-    panel="#0d120d",  # Darker green-tinted panel
-    success="#00ff41",  # Matrix green
-    warning="#ffff00",  # Yellow warning
-    error="#ff0000",  # Red error
+    primary="#00ff41",
+    secondary="#008f11",
+    accent="#00ff41",
+    foreground="#00ff41",
+    background="#0d0208",
+    surface="#0d1f0d",
+    panel="#0a1a0a",
+    success="#00ff41",
+    warning="#ffff00",
+    error="#ff0000",
     dark=True,
+    variables={
+        # Lighten/Darken variants
+        "primary-lighten-1": "#4dff78",
+        "primary-darken-1": "#00cc34",
+        "secondary-lighten-1": "#00bf17",
+        "secondary-darken-1": "#006f0d",
+        "accent-lighten-1": "#4dff78",
+        "accent-darken-1": "#00cc34",
+        "success-lighten-1": "#4dff78",
+        "success-darken-1": "#00cc34",
+        "warning-lighten-1": "#ffff66",
+        "warning-darken-1": "#cccc00",
+        "error-lighten-1": "#ff4d4d",
+        "error-darken-1": "#cc0000",
+        # Original variables
+        "block-cursor-background": "#00ff41",
+        "block-cursor-foreground": "#0d0208",
+        "block-cursor-text-style": "bold",
+        "border": "#00ff41",
+        "border-blurred": "#008f11",
+        "footer-background": "#0d1f0d",
+        "footer-foreground": "#00ff41",
+        "footer-key-foreground": "#00ff41",
+        "scrollbar": "#008f11",
+        "scrollbar-hover": "#00cc33",
+        "scrollbar-active": "#00ff41",
+        "scrollbar-background": "#0d0208",
+        "input-cursor-background": "#00ff41",
+        "input-cursor-foreground": "#0d0208",
+        "input-selection-background": "#008f11 60%",
+        "link-color": "#00ff41",
+        "link-color-hover": "#00cc33",
+        "button-foreground": "#00ff41",
+        "button-focus-text-style": "bold reverse",
+    },
 )

@@ -1,6 +1,19 @@
 /* Base styles and CSS variables for Legal Extractor TUI */
 
-/* NOTE: Variables are supplied by the Python Theme object defined in themes/*.py
+/* Custom variables for legal-extractor-tui */
+$panel-bg: $panel;
+$panel-header: $surface;
+$panel-border: $primary;
+$stage-pending: #6272a4;
+$stage-active: $primary;
+$stage-complete: $success;
+$stage-error: $error;
+$confidence-high: $success;
+$confidence-medium: $warning;
+$confidence-low: $error;
+$text-muted: #6272a4;
+
+/* NOTE: Additional variables are supplied by the Python Theme object defined in themes/*.py
    Textual built-in variables: $primary, $secondary, $accent, $foreground, $background,
    $surface, $panel, $success, $warning, $error
 */
@@ -37,7 +50,7 @@ ScrollBar {
 /* Text utilities */
 .muted {
     text-style: dim;
-    opacity: 0.7;
+    color: $text-muted;
 }
 
 .error-text {
@@ -102,15 +115,15 @@ ScrollBar {
 
 /* Confidence badges - Mapped to semantic variables */
 .confidence-high {
-    color: $success;
+    color: $confidence-high;
 }
 
 .confidence-medium {
-    color: $warning;
+    color: $confidence-medium;
 }
 
 .confidence-low {
-    color: $error;
+    color: $confidence-low;
     text-style: bold;
 }
 
@@ -136,7 +149,7 @@ ScrollBar {
 .border-accent { border: solid $accent; }
 .border-error { border: solid $error; }
 .border-success { border: solid $success; }
-.border-panel { border: solid $primary; }
+.border-panel { border: solid $panel-border; }
 .border-thick { border: thick $primary; }
 
 /* Display utilities */

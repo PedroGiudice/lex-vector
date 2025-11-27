@@ -24,7 +24,7 @@ classifiers = [
 ]
 
 dependencies = [
-    "textual>=0.80.0",
+    "textual>=6.0.0",
     "rich>=13.0.0",
     "pydantic>=2.0.0",
     "pydantic-settings>=2.0.0",

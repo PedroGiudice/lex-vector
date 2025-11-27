@@ -1,4 +1,5 @@
 /* Widget-specific styles for Legal Extractor TUI */
+/* Cyberpunk/Neon aesthetic with heavy borders and depth */
 
 /* ==================================================
    FILE SELECTOR WIDGET
@@ -6,14 +7,15 @@
 FileSelector {
     height: auto;
     min-height: 8;
-    border: solid $primary;
+    border: heavy $primary;
     padding: 1;
     margin-bottom: 1;
     background: $panel;
 }
 
 FileSelector:focus-within {
-    border: solid $accent;
+    border: heavy $accent;
+    background: $primary-darken-1 10%;
 }
 
 FileSelector .file-path {
@@ -21,16 +23,18 @@ FileSelector .file-path {
     margin-bottom: 1;
     padding: 1;
     background: $surface;
-    border: solid $primary;
+    border: solid $primary-lighten-1;
 }
 
 FileSelector .file-path:focus {
-    border: solid $primary;
+    border: thick $primary;
+    background: $background;
 }
 
 FileSelector .file-info {
     text-style: dim italic;
     padding: 0 1;
+    color: $primary-lighten-1;
 }
 
 FileSelector .file-status {
@@ -40,10 +44,12 @@ FileSelector .file-status {
 
 FileSelector .file-status.valid {
     color: $success;
+    text-style: bold;
 }
 
 FileSelector .file-status.invalid {
     color: $error;
+    text-style: bold;
 }
 
 FileSelector Button {
@@ -56,31 +62,32 @@ FileSelector Button {
 SystemSelector {
     height: auto;
     min-height: 5;
-    border: solid $primary;
+    border: heavy $primary;
     padding: 1;
     margin-bottom: 1;
     background: $panel;
 }
 
 SystemSelector:focus-within {
-    border: solid $accent;
+    border: heavy $accent;
+    background: $primary-darken-1 10%;
 }
 
 SystemSelector .system-option {
     padding: 1;
     margin-bottom: 1;
     background: $surface;
-    border: solid $primary;
+    border: solid $primary-lighten-1;
 }
 
 SystemSelector .system-option:hover {
-    border: solid $primary;
-    background: $panel;
+    border: thick $primary;
+    background: $primary-darken-1 15%;
 }
 
 SystemSelector .system-option.selected {
-    border: solid $accent;
-    background: $panel;
+    border: heavy $accent;
+    background: $accent-darken-1 20%;
     text-style: bold;
 }
 
@@ -92,6 +99,7 @@ SystemSelector .system-label {
 SystemSelector .system-description {
     text-style: dim;
     padding-left: 2;
+    color: $foreground 70%;
 }
 
 /* ==================================================
@@ -99,20 +107,21 @@ SystemSelector .system-description {
    ================================================== */
 ConfigPanel {
     height: auto;
-    border: solid $primary;
+    border: heavy $primary;
     padding: 1 2;
     background: $panel;
     margin-bottom: 1;
 }
 
 ConfigPanel:focus-within {
-    border: solid $accent;
+    border: heavy $accent;
+    background: $primary-darken-1 10%;
 }
 
 ConfigPanel .config-section {
     margin-bottom: 2;
     padding-bottom: 1;
-    border-bottom: solid $primary;
+    border-bottom: thick $primary-lighten-1;
 }
 
 ConfigPanel .config-section:last-child {
@@ -134,6 +143,7 @@ ConfigPanel .config-input {
 ConfigPanel .config-hint {
     text-style: dim italic;
     padding: 0 1;
+    color: $foreground 70%;
 }
 
 ConfigPanel Switch {
@@ -150,7 +160,7 @@ ConfigPanel Input {
 ExtractionProgress {
     height: auto;
     min-height: 8;
-    border: solid $accent;
+    border: heavy $accent;
     padding: 1 2;
     background: $panel;
 }
@@ -159,7 +169,7 @@ ExtractionProgress .progress-header {
     text-style: bold;
     color: $accent;
     padding-bottom: 1;
-    border-bottom: solid $primary;
+    border-bottom: thick $primary;
     margin-bottom: 1;
 }
 
@@ -167,32 +177,32 @@ ExtractionProgress .stage {
     height: 2;
     margin-bottom: 1;
     padding: 0 1;
-    border-left: solid $primary;
+    border-left: solid $primary-lighten-1;
 }
 
 ExtractionProgress .stage.pending {
     text-style: dim;
-    background: $surface;
+    background: $surface 30%;
     border-left: solid $surface;
 }
 
 ExtractionProgress .stage.active {
     color: $secondary;
-    background: $secondary;
-    border-left: thick $secondary;
+    background: $secondary-darken-1 25%;
+    border-left: heavy $secondary;
     text-style: bold;
 }
 
 ExtractionProgress .stage.complete {
     color: $success;
-    background: $success;
-    border-left: solid $success;
+    background: $success-darken-1 20%;
+    border-left: thick $success;
 }
 
 ExtractionProgress .stage.error {
     color: $error;
-    background: $error;
-    border-left: thick $error;
+    background: $error-darken-1 20%;
+    border-left: heavy $error;
     text-style: bold;
 }
 
@@ -209,7 +219,7 @@ ExtractionProgress .stats {
     text-style: dim;
     text-align: right;
     padding-top: 1;
-    border-top: solid $primary;
+    border-top: thick $primary;
     margin-top: 1;
 }
 
@@ -227,12 +237,12 @@ ExtractionProgress ProgressBar {
 ResultsPanel {
     height: 100%;
     width: 100%;
-    border: solid $primary;
+    border: heavy $primary;
     background: $panel;
 }
 
 ResultsPanel:focus-within {
-    border: solid $accent;
+    border: heavy $accent;
 }
 
 ResultsPanel TabbedContent {
@@ -250,13 +260,14 @@ ResultsPanel .preview-text {
     overflow-y: auto;
     height: 100%;
     background: $surface;
-    border: solid $primary;
+    border: solid $primary-lighten-1;
 }
 
 ResultsPanel .preview-empty {
     text-style: dim italic;
     text-align: center;
     padding: 4;
+    color: $foreground 60%;
 }
 
 /* Metadata tab */
@@ -269,7 +280,7 @@ ResultsPanel .metadata-row {
     margin-bottom: 1;
     padding: 1;
     background: $surface;
-    border: solid $primary;
+    border: solid $primary-lighten-1;
 }
 
 ResultsPanel .metadata-label {
@@ -285,6 +296,7 @@ ResultsPanel .metadata-value {
 
 ResultsPanel .metadata-value.empty {
     text-style: dim italic;
+    color: $foreground 60%;
 }
 
 /* Sections tab */
@@ -297,13 +309,13 @@ ResultsPanel .sections-list {
 ResultsPanel .section-item {
     padding: 2;
     margin-bottom: 1;
-    border: solid $primary;
+    border: solid $primary-lighten-1;
     background: $surface;
 }
 
 ResultsPanel .section-item:hover {
-    border: solid $primary;
-    background: $panel;
+    border: thick $primary;
+    background: $primary-darken-1 15%;
 }
 
 ResultsPanel .section-header {
@@ -311,7 +323,7 @@ ResultsPanel .section-header {
     color: $primary;
     padding-bottom: 1;
     margin-bottom: 1;
-    border-bottom: solid $primary;
+    border-bottom: solid $primary-lighten-1;
 }
 
 ResultsPanel .section-title {
@@ -331,7 +343,7 @@ ResultsPanel .section-content {
 ResultsPanel .section-metadata {
     text-style: dim;
     padding-top: 1;
-    border-top: solid $primary;
+    border-top: solid $primary-lighten-1;
     margin-top: 1;
 }
 
@@ -342,7 +354,7 @@ ResultsPanel .export-buttons {
     padding: 1 2;
     align: right middle;
     background: $surface;
-    border-top: solid $primary;
+    border-top: thick $primary;
 }
 
 ResultsPanel .export-buttons Button {
@@ -353,81 +365,86 @@ ResultsPanel .export-buttons Button {
    STANDARD TEXTUAL WIDGETS (CUSTOMIZED)
    ================================================== */
 
-/* Button */
+/* Button - Cyberpunk style with heavy borders */
 Button {
     background: $surface;
     color: $foreground;
-    border: solid $primary;
+    border: thick $primary;
     padding: 0 2;
     min-width: 10;
     height: 3;
 }
 
 Button:hover {
-    background: $panel;
-    border: solid $accent;
+    background: $primary-darken-1 20%;
+    border: thick $accent;
 }
 
 Button:focus {
     background: $primary;
     color: $background;
     text-style: bold;
+    border: heavy $accent;
 }
 
 Button.-primary {
     background: $primary;
     color: $background;
-    border: none;
+    border: thick $primary-lighten-1;
+    text-style: bold;
 }
 
 Button.-primary:hover {
     background: $accent;
+    border: thick $accent-lighten-1;
 }
 
 Button.-primary:focus {
     background: $secondary;
+    border: heavy $secondary-lighten-1;
 }
 
 Button.-success {
     background: $success;
     color: $background;
-    border: none;
+    border: thick $success-lighten-1;
+    text-style: bold;
 }
 
 Button.-success:hover {
-    background: $success;
-    opacity: 0.8;
+    background: $success-lighten-1;
 }
 
 Button.-danger {
     background: $error;
     color: $foreground;
-    border: none;
+    border: thick $error-lighten-1;
+    text-style: bold;
 }
 
 Button.-danger:hover {
-    background: $error;
-    opacity: 0.8;
+    background: $error-lighten-1;
 }
 
 Button.-warning {
     background: $warning;
     color: $background;
-    border: none;
+    border: thick $warning-lighten-1;
+    text-style: bold;
 }
 
 Button.-warning:hover {
-    background: $warning;
-    opacity: 0.8;
+    background: $warning-lighten-1;
 }
 
 Button:disabled {
-    opacity: 0.5;
-    background: $surface;
+    background: $surface 50%;
+    color: $foreground 50%;
     text-style: dim;
+    border: solid $primary-darken-1;
 }
 
-/* Input */
+/* Input - Neon glow on focus */
 Input {
     background: $panel;
     color: $foreground;
@@ -437,25 +454,26 @@ Input {
 }
 
 Input:focus {
-    border: solid $accent;
+    border: heavy $accent;
     background: $surface;
 }
 
 Input.-error {
-    border: solid $error;
+    border: thick $error;
 }
 
 Input.-success {
-    border: solid $success;
+    border: thick $success;
 }
 
 Input .input-placeholder {
     text-style: dim;
+    color: $foreground 60%;
 }
 
 Input:disabled {
-    opacity: 0.5;
-    background: $surface;
+    background: $surface 50%;
+    color: $foreground 50%;
     text-style: dim;
 }
 
@@ -472,6 +490,7 @@ Label.-required {
 
 Label.-muted {
     text-style: dim;
+    color: $foreground 70%;
 }
 
 /* Static (text display) */
@@ -487,7 +506,7 @@ Static.-highlight {
 
 Static.-muted {
     text-style: dim;
-    opacity: 0.7;
+    color: $foreground 70%;
 }
 
 Static.-primary {
@@ -510,7 +529,7 @@ Static.-warning {
     color: $warning;
 }
 
-/* Switch */
+/* Switch - Cyberpunk toggle */
 Switch {
     height: 3;
     padding: 0 1;
@@ -518,21 +537,24 @@ Switch {
 
 Switch:focus {
     background: $panel;
+    border: solid $accent;
 }
 
 Switch.-on {
     color: $success;
+    text-style: bold;
 }
 
 Switch.-off {
     text-style: dim;
+    color: $foreground 70%;
 }
 
-/* ProgressBar */
+/* ProgressBar - Heavy border with depth */
 ProgressBar {
     height: 1;
     background: $surface;
-    border: solid $primary;
+    border: thick $primary;
 }
 
 ProgressBar .bar--bar {
@@ -559,19 +581,20 @@ RadioSet RadioButton {
 
 RadioSet RadioButton:focus {
     background: $panel;
+    border: solid $accent;
 }
 
-/* Select */
+/* Select - Cyberpunk dropdown */
 Select {
     background: $panel;
     color: $foreground;
-    border: solid $primary;
+    border: thick $primary;
     height: 3;
     padding: 0 1;
 }
 
 Select:focus {
-    border: solid $accent;
+    border: heavy $accent;
     background: $surface;
 }
 
@@ -581,32 +604,33 @@ Select SelectCurrent {
 
 Select SelectOverlay {
     background: $surface;
-    border: solid $accent;
+    border: heavy $accent;
 }
 
-/* TextArea */
+/* TextArea - Neon bordered */
 TextArea {
     background: $panel;
     color: $foreground;
-    border: solid $primary;
+    border: thick $primary;
     padding: 1;
 }
 
 TextArea:focus {
-    border: solid $accent;
+    border: heavy $accent;
     background: $surface;
 }
 
-/* DataTable */
+/* DataTable - Cyberpunk grid */
 DataTable {
     background: $panel;
-    border: solid $primary;
+    border: heavy $primary;
 }
 
 DataTable .datatable--header {
-    background: $surface;
+    background: $primary-darken-1 20%;
     text-style: bold;
-    color: $primary;
+    color: $primary-lighten-1;
+    border-bottom: thick $primary;
 }
 
 DataTable .datatable--row {
@@ -614,45 +638,48 @@ DataTable .datatable--row {
 }
 
 DataTable .datatable--row:hover {
-    background: $panel;
+    background: $primary-darken-1 15%;
 }
 
 DataTable .datatable--cursor {
     background: $primary;
     color: $background;
+    text-style: bold;
 }
 
-/* Tree */
+/* Tree - Neon file browser */
 Tree {
     background: $panel;
-    border: solid $primary;
+    border: heavy $primary;
     padding: 1;
 }
 
 Tree:focus {
-    border: solid $accent;
+    border: heavy $accent;
 }
 
 Tree .tree--cursor {
     background: $primary;
     color: $background;
+    text-style: bold;
 }
 
 Tree .tree--cursor .tree--label {
     text-style: bold;
 }
 
-/* LoadingIndicator */
+/* LoadingIndicator - Animated neon */
 LoadingIndicator {
     background: $panel;
     color: $accent;
 }
 
-/* Placeholder */
+/* Placeholder - Dashed cyberpunk border */
 Placeholder {
-    background: $panel;
+    background: $panel 30%;
     text-style: dim;
     border: dashed $primary;
+    color: $foreground 60%;
 }
 
 /* ==================================================
@@ -660,7 +687,7 @@ Placeholder {
    ================================================== */
 LogPanel {
     background: $panel;
-    border: solid $primary;
+    border: heavy $primary;
     padding: 1;
     height: 100%;
     overflow-y: auto;
@@ -672,6 +699,7 @@ LogPanel .log-line {
 
 LogPanel .log-line.error {
     color: $error;
+    text-style: bold;
 }
 
 LogPanel .log-line.warning {
@@ -683,11 +711,12 @@ LogPanel .log-line.success {
 }
 
 LogPanel .log-line.info {
-    color: $primary;
+    color: $primary-lighten-1;
 }
 
 LogPanel .log-line.debug {
     text-style: dim;
+    color: $foreground 60%;
 }
 
 /* ==================================================
@@ -695,7 +724,7 @@ LogPanel .log-line.debug {
    ================================================== */
 StatusBar {
     background: $surface;
-    border-top: solid $primary;
+    border-top: heavy $primary;
     height: 3;
     padding: 0 2;
     dock: bottom;
@@ -719,6 +748,7 @@ StatusBar .status-segment.center {
 
 StatusBar .status-icon {
     padding-right: 1;
+    color: $accent;
 }
 
 StatusBar .status-text {
@@ -727,12 +757,15 @@ StatusBar .status-text {
 
 StatusBar .status-error {
     color: $error;
+    text-style: bold;
 }
 
 StatusBar .status-success {
     color: $success;
+    text-style: bold;
 }
 
 StatusBar .status-warning {
     color: $warning;
+    text-style: bold;
 }

@@ -4,15 +4,50 @@ from textual.theme import Theme
 
 VIBE_NEON_THEME = Theme(
     name="vibe-neon",
-    primary="#8be9fd",  # Cyan neon
-    secondary="#bd93f9",  # Roxo
-    accent="#ff79c6",  # Magenta neon
-    foreground="#f8f8f2",  # Texto claro
-    background="#0d0d0d",  # Void black
-    surface="#1a1a2e",  # Surface
-    panel="#16213e",  # Paineis
-    success="#50fa7b",  # Verde neon
-    warning="#ffb86c",  # Laranja
-    error="#ff5555",  # Vermelho
+    primary="#8be9fd",
+    secondary="#bd93f9",
+    accent="#ff79c6",
+    foreground="#f8f8f2",
+    background="#0d0d0d",
+    surface="#1a1a2e",
+    panel="#16213e",
+    success="#50fa7b",
+    warning="#ffb86c",
+    error="#ff5555",
     dark=True,
+    variables={
+        # Lighten/Darken variants
+        "primary-lighten-1": "#a8f0ff",
+        "primary-darken-1": "#6ec8db",
+        "secondary-lighten-1": "#d0b0ff",
+        "secondary-darken-1": "#9a75d4",
+        "accent-lighten-1": "#ff9ad6",
+        "accent-darken-1": "#d960a8",
+        "success-lighten-1": "#7cff9e",
+        "success-darken-1": "#40c862",
+        "warning-lighten-1": "#ffcc99",
+        "warning-darken-1": "#d99650",
+        "error-lighten-1": "#ff8080",
+        "error-darken-1": "#cc4444",
+        # Original variables
+        "block-cursor-background": "#ff79c6",
+        "block-cursor-foreground": "#0d0d0d",
+        "block-cursor-text-style": "bold",
+        "border": "#8be9fd",
+        "border-blurred": "#44475a",
+        "footer-background": "#1a1a2e",
+        "footer-foreground": "#f8f8f2",
+        "footer-key-foreground": "#50fa7b",
+        "scrollbar": "#44475a",
+        "scrollbar-hover": "#6272a4",
+        "scrollbar-active": "#8be9fd",
+        "scrollbar-background": "#0d0d0d",
+        "input-cursor-background": "#f8f8f2",
+        "input-cursor-foreground": "#0d0d0d",
+        "input-selection-background": "#44475a 60%",
+        "link-color": "#8be9fd",
+        "link-color-hover": "#ff79c6",
+        "button-foreground": "#f8f8f2",
+        "button-focus-text-style": "bold reverse",
+    },
 )

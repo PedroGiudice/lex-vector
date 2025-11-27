@@ -4,15 +4,50 @@ from textual.theme import Theme
 
 MINIMAL_LIGHT_THEME = Theme(
     name="minimal-light",
-    primary="#1a73e8",  # Google blue
-    secondary="#5094ed",  # Light blue
-    accent="#80b4f2",  # Lighter blue
-    foreground="#202124",  # Almost black
-    background="#ffffff",  # Pure white
-    surface="#f8f9fa",  # Off-white
-    panel="#e8eaed",  # Light gray panel
-    success="#1e8e3e",  # Green success
-    warning="#f29900",  # Orange warning
-    error="#d93025",  # Red error
+    primary="#4078f2",
+    secondary="#a626a4",
+    accent="#e45649",
+    foreground="#383a42",
+    background="#fafafa",
+    surface="#f0f0f0",
+    panel="#e5e5e5",
+    success="#50a14f",
+    warning="#c18401",
+    error="#e45649",
     dark=False,
+    variables={
+        # Lighten/Darken variants
+        "primary-lighten-1": "#739bf5",
+        "primary-darken-1": "#3360c2",
+        "secondary-lighten-1": "#c44dc2",
+        "secondary-darken-1": "#851e83",
+        "accent-lighten-1": "#eb8078",
+        "accent-darken-1": "#b6453a",
+        "success-lighten-1": "#7ab979",
+        "success-darken-1": "#40813f",
+        "warning-lighten-1": "#e5a434",
+        "warning-darken-1": "#9a6a01",
+        "error-lighten-1": "#eb8078",
+        "error-darken-1": "#b6453a",
+        # Original variables
+        "block-cursor-background": "#4078f2",
+        "block-cursor-foreground": "#fafafa",
+        "block-cursor-text-style": "bold",
+        "border": "#4078f2",
+        "border-blurred": "#c8c8c8",
+        "footer-background": "#f0f0f0",
+        "footer-foreground": "#383a42",
+        "footer-key-foreground": "#50a14f",
+        "scrollbar": "#c8c8c8",
+        "scrollbar-hover": "#a0a0a0",
+        "scrollbar-active": "#4078f2",
+        "scrollbar-background": "#fafafa",
+        "input-cursor-background": "#383a42",
+        "input-cursor-foreground": "#fafafa",
+        "input-selection-background": "#c8c8c8 60%",
+        "link-color": "#4078f2",
+        "link-color-hover": "#a626a4",
+        "button-foreground": "#383a42",
+        "button-focus-text-style": "bold reverse",
+    },
 )
