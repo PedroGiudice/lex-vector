@@ -1079,6 +1079,61 @@ Criado agente especialista em Textual TUI:
 
 ---
 
+## Legal Extractor TUI - Refactoring CSS (2025-11-27)
+
+### Problema Identificado
+
+O `legal-extractor-tui` tinha **17 widgets com DEFAULT_CSS** que sobrescreviam os estilos do `widgets.tcss`, impedindo que temas funcionassem corretamente.
+
+### Correções Aplicadas
+
+**1. Timer Leak em PowerlineHeader (CRÍTICO)**
+```python
+# ANTES (bug)
+def __init__(self, ...):
+    self.timer = self.set_interval(1, self._update_time)  # LEAK!
+
+# DEPOIS (correto)
+def __init__(self, ...):
+    self.timer = None
+
+def on_mount(self) -> None:
+    self.timer = self.set_interval(1, self._update_time)
+```
+
+**2. DEFAULT_CSS Removido de 17 Widgets:**
+- config_panel, extraction_progress, StageIndicator
+- file_selector, file_browser, header
+- powerline_breadcrumb, PowerlineBar, PowerlineHeader, PowerlineFooter
+- StageProgress, PipelineProgress, result_viewer
+- results_panel, sidebar, status_bar, system_selector
+
+**3. ~300 linhas CSS adicionadas ao widgets.tcss**
+
+### Como Executar
+
+```bash
+cd legal-extractor-tui
+./run.sh          # Modo normal
+./run.sh --dev    # Modo dev (Textual DevTools)
+```
+
+**Nota:** O script usa `legal_extractor_tui.app:LegalExtractorApp` (module path), não file path.
+
+### Resultado
+
+- ✅ Temas funcionam corretamente
+- ✅ ~726 linhas de CSS duplicado removidas
+- ✅ Single source of truth para estilos (widgets.tcss)
+- ✅ Timer leak corrigido
+
+### Commits
+
+- `d981fd1` - refactor: remove DEFAULT_CSS from widgets
+- `e6a3e49` - fix: use module path in textual run command
+
+---
+
 **Last updated:** 2025-11-27
 **Maintained by:** PedroGiudice
 **For Claude Code instances operating in:** `~/claude-work/repos/Claude-Code-Projetos` (WSL2)
