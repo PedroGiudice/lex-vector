@@ -769,3 +769,320 @@ StatusBar .status-warning {
     color: $warning;
     text-style: bold;
 }
+
+/* ==================================================
+   HEADER WIDGET
+   ================================================== */
+Header {
+    height: 5;
+    dock: top;
+    background: $panel;
+    border-bottom: solid $primary;
+}
+
+Header .logo {
+    width: 30;
+    content-align: center middle;
+    color: $accent;
+}
+
+Header .title {
+    width: 1fr;
+    content-align: left middle;
+    text-style: bold;
+    color: $foreground;
+}
+
+Header .status {
+    width: 20;
+    content-align: right middle;
+    padding-right: 2;
+}
+
+/* ==================================================
+   SIDEBAR WIDGET
+   ================================================== */
+Sidebar {
+    width: 20;
+    dock: left;
+    background: $panel;
+    border-right: solid $primary;
+    padding: 1;
+}
+
+Sidebar.collapsed {
+    width: 3;
+}
+
+Sidebar Button {
+    width: 100%;
+    margin-bottom: 1;
+    background: $surface;
+}
+
+Sidebar OptionList {
+    width: 100%;
+    background: $panel;
+    border: none;
+    height: 1fr;
+}
+
+Sidebar.collapsed OptionList {
+    display: none;
+}
+
+Sidebar.collapsed Button {
+    width: 100%;
+}
+
+/* ==================================================
+   FILE BROWSER WIDGET
+   ================================================== */
+FileBrowser {
+    width: 100%;
+    height: 100%;
+    background: $panel;
+    border: solid $primary;
+}
+
+FileBrowser .browser-title {
+    width: 100%;
+    height: 3;
+    content-align: center middle;
+    text-style: bold;
+    color: $foreground;
+    background: $surface;
+    border-bottom: solid $primary;
+}
+
+FileBrowser FilteredDirectoryTree {
+    width: 100%;
+    height: 1fr;
+    background: $surface;
+}
+
+FileBrowser DirectoryTree {
+    width: 100%;
+    height: 1fr;
+    background: $surface;
+}
+
+/* ==================================================
+   RESULT VIEWER WIDGET
+   ================================================== */
+ResultViewer {
+    width: 100%;
+    height: 100%;
+    background: $panel;
+    border: solid $primary;
+}
+
+ResultViewer .viewer-header {
+    width: 100%;
+    height: 3;
+    background: $surface;
+    border-bottom: solid $primary;
+    padding: 0 2;
+}
+
+ResultViewer .viewer-title {
+    width: 1fr;
+    content-align: left middle;
+    text-style: bold;
+    color: $foreground;
+}
+
+ResultViewer .viewer-source {
+    width: auto;
+    content-align: right middle;
+    text-style: dim italic;
+    color: $foreground;
+}
+
+ResultViewer Markdown {
+    width: 100%;
+    height: 1fr;
+    background: $surface;
+    padding: 1 2;
+}
+
+ResultViewer .empty-message {
+    width: 100%;
+    height: 1fr;
+    content-align: center middle;
+    color: $foreground;
+    text-style: dim italic;
+}
+
+/* ==================================================
+   STAGE INDICATOR WIDGET
+   ================================================== */
+StageIndicator {
+    width: 100%;
+    height: auto;
+    margin-bottom: 1;
+}
+
+StageIndicator .stage-header {
+    width: 100%;
+    height: 1;
+    margin-bottom: 1;
+}
+
+StageIndicator .stage-name {
+    width: 1fr;
+    text-style: bold;
+}
+
+StageIndicator .stage-status {
+    width: auto;
+    color: $foreground;
+    text-style: dim;
+}
+
+StageIndicator ProgressBar {
+    width: 100%;
+}
+
+StageIndicator .stage-message {
+    width: 100%;
+    height: 1;
+    color: $foreground;
+    text-style: dim;
+    margin-top: 1;
+}
+
+StageIndicator.active .stage-name {
+    color: $accent;
+}
+
+StageIndicator.completed .stage-name {
+    color: $success;
+}
+
+StageIndicator.error .stage-name {
+    color: $error;
+}
+
+StageIndicator.pending .stage-name {
+    color: $foreground;
+    text-style: dim;
+}
+
+/* ==================================================
+   STAGE PROGRESS WIDGET
+   ================================================== */
+StageProgress {
+    height: 3;
+    width: 100%;
+    layout: horizontal;
+    background: $panel;
+    border: solid $primary;
+    margin-bottom: 1;
+}
+
+StageProgress .stage-label {
+    width: 20;
+    content-align: left middle;
+    padding-left: 2;
+}
+
+StageProgress ProgressBar {
+    width: 1fr;
+    margin: 0 2;
+}
+
+StageProgress .stage-status {
+    width: 8;
+    content-align: center middle;
+}
+
+StageProgress.pending {
+    border: solid $surface;
+}
+
+StageProgress.running {
+    border: solid $accent;
+}
+
+StageProgress.completed {
+    border: solid $success;
+}
+
+StageProgress.error {
+    border: solid $error;
+}
+
+/* ==================================================
+   PIPELINE PROGRESS WIDGET
+   ================================================== */
+PipelineProgress {
+    width: 100%;
+    height: auto;
+    background: $surface;
+    border: solid $primary;
+    padding: 1;
+}
+
+PipelineProgress .pipeline-title {
+    width: 100%;
+    text-align: center;
+    text-style: bold;
+    color: $foreground;
+    margin-bottom: 1;
+}
+
+/* ==================================================
+   POWERLINE WIDGETS
+   ================================================== */
+PowerlineBar {
+    width: 100%;
+    height: 1;
+}
+
+PowerlineHeader {
+    width: 100%;
+    height: 1;
+    layout: horizontal;
+}
+
+PowerlineHeader .header-left {
+    width: 1fr;
+    content-align-horizontal: left;
+}
+
+PowerlineHeader .header-right {
+    width: auto;
+    content-align-horizontal: right;
+}
+
+PowerlineFooter {
+    width: 100%;
+    height: 1;
+    content-align-horizontal: right;
+}
+
+PowerlineBreadcrumb {
+    width: 100%;
+    height: auto;
+    padding: 0 1;
+}
+
+PowerlineBreadcrumb .breadcrumb-container {
+    width: 100%;
+    height: auto;
+}
+
+PowerlineBreadcrumb .crumb {
+    width: auto;
+    padding: 0 1;
+}
+
+PowerlineBreadcrumb .crumb:hover {
+    text-style: bold;
+}
+
+PowerlineBreadcrumb .separator {
+    width: auto;
+    padding: 0;
+}

@@ -30,51 +30,7 @@ class ResultViewer(Vertical):
     Provides a rich markdown rendering interface with source tracking.
     """
 
-    DEFAULT_CSS = """
-    ResultViewer {
-        width: 100%;
-        height: 100%;
-        background: $panel;
-        border: solid $primary;
-    }
-
-    ResultViewer .viewer-header {
-        width: 100%;
-        height: 3;
-        background: $surface;
-        border-bottom: solid $primary;
-        padding: 0 2;
-    }
-
-    ResultViewer .viewer-title {
-        width: 1fr;
-        content-align: left middle;
-        text-style: bold;
-        color: $foreground;
-    }
-
-    ResultViewer .viewer-source {
-        width: auto;
-        content-align: right middle;
-        text-style: dim italic;
-        color: $foreground;
-    }
-
-    ResultViewer Markdown {
-        width: 100%;
-        height: 1fr;
-        background: $surface;
-        padding: 1 2;
-    }
-
-    ResultViewer .empty-message {
-        width: 100%;
-        height: 1fr;
-        content-align: center middle;
-        color: $foreground;
-        text-style: dim italic;
-    }
-    """
+    # CSS moved to widgets.tcss for centralized theme management
 
     def __init__(
         self,

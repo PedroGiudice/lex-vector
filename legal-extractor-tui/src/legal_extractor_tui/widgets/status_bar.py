@@ -35,39 +35,7 @@ class StatusBar(Horizontal):
         ram_percent: Current RAM usage percentage
     """
 
-    DEFAULT_CSS = """
-    StatusBar {
-        height: 1;
-        dock: bottom;
-        background: $panel;
-        border-top: solid $primary;
-    }
-
-    StatusBar Label {
-        padding: 0 2;
-        background: transparent;
-    }
-
-    StatusBar .status-message {
-        width: 1fr;
-        color: $foreground;
-    }
-
-    StatusBar .cpu-metric {
-        width: auto;
-        color: $accent;
-    }
-
-    StatusBar .ram-metric {
-        width: auto;
-        color: $success;
-    }
-
-    StatusBar .runtime-metric {
-        width: auto;
-        color: $warning;
-    }
-    """
+    # CSS moved to widgets.tcss for centralized theme management
 
     cpu_percent: reactive[float] = reactive(0.0, init=False)
     ram_percent: reactive[float] = reactive(0.0, init=False)

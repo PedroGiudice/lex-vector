@@ -56,12 +56,7 @@ class PowerlineBar(Static):
     A base widget that renders a list of Powerline segments with separators.
     """
 
-    DEFAULT_CSS = """
-    PowerlineBar {
-        width: 100%;
-        height: 1;
-    }
-    """
+    # CSS moved to widgets.tcss for centralized theme management
 
     # A list of segments to render.
     segments: reactive[list[PowerlineSegment]] = reactive([])
@@ -117,21 +112,7 @@ class PowerlineHeader(Widget):
     Displays application name, version, and an optional live clock on the right.
     """
 
-    DEFAULT_CSS = """
-    PowerlineHeader {
-        width: 100%;
-        height: 1;
-        layout: horizontal;
-    }
-    .header-left {
-        width: 1fr;
-        content-align-horizontal: left;
-    }
-    .header-right {
-        width: auto;
-        content-align-horizontal: right;
-    }
-    """
+    # CSS moved to widgets.tcss for centralized theme management
 
     time: reactive[datetime] = reactive(datetime.now)
 
@@ -148,6 +129,10 @@ class PowerlineHeader(Widget):
         self.version = version
         self.show_time = show_time
         self.use_powerline_fonts = use_powerline_fonts
+        self.timer = None  # Timer will be set in on_mount
+
+    def on_mount(self) -> None:
+        """Set up timer when widget is mounted."""
         self.timer = self.set_interval(1, self._update_time)
 
     def _update_time(self) -> None:
@@ -183,13 +168,7 @@ class PowerlineFooter(Static):
     A Powerline-style footer widget that renders segments from right to left.
     """
 
-    DEFAULT_CSS = """
-    PowerlineFooter {
-        width: 100%;
-        height: 1;
-        content-align-horizontal: right;
-    }
-    """
+    # CSS moved to widgets.tcss for centralized theme management
     
     # A list of segments to render.
     segments: reactive[list[PowerlineSegment]] = reactive([])

@@ -32,59 +32,7 @@ from legal_extractor_tui.widgets.spinner_widget import SpinnerWidget
 class StageIndicator(Static):
     """Individual stage indicator with progress bar and status."""
 
-    DEFAULT_CSS = """
-    StageIndicator {
-        width: 100%;
-        height: auto;
-        margin-bottom: 1;
-    }
-
-    StageIndicator .stage-header {
-        width: 100%;
-        height: 1;
-        margin-bottom: 1;
-    }
-
-    StageIndicator .stage-name {
-        width: 1fr;
-        text-style: bold;
-    }
-
-    StageIndicator .stage-status {
-        width: auto;
-        color: $foreground;
-        text-style: dim;
-    }
-
-    StageIndicator ProgressBar {
-        width: 100%;
-    }
-
-    StageIndicator .stage-message {
-        width: 100%;
-        height: 1;
-        color: $foreground;
-        text-style: dim;
-        margin-top: 1;
-    }
-
-    StageIndicator.active .stage-name {
-        color: $accent;
-    }
-
-    StageIndicator.completed .stage-name {
-        color: $success;
-    }
-
-    StageIndicator.error .stage-name {
-        color: $error;
-    }
-
-    StageIndicator.pending .stage-name {
-        color: $foreground;
-        text-style: dim;
-    }
-    """
+    # CSS moved to widgets.tcss for centralized theme management
 
     stage_name: reactive[str] = reactive("")
     stage_status: reactive[str] = reactive("Pending")
@@ -190,78 +138,7 @@ class ExtractionProgress(Vertical):
     Each stage has progress bar, spinner, and status.
     """
 
-    DEFAULT_CSS = """
-    ExtractionProgress {
-        width: 100%;
-        height: auto;
-        background: $panel;
-        border: solid $primary;
-        padding: 1;
-    }
-
-    ExtractionProgress .progress-title {
-        width: 100%;
-        height: 1;
-        text-style: bold;
-        color: $accent;
-        margin-bottom: 1;
-    }
-
-    ExtractionProgress .stages-container {
-        width: 100%;
-        height: auto;
-        margin-top: 1;
-    }
-
-    ExtractionProgress .stats-panel {
-        width: 100%;
-        height: auto;
-        margin-top: 1;
-        padding: 1;
-        background: $surface;
-        border: solid $primary;
-    }
-
-    ExtractionProgress .stats-row {
-        width: 100%;
-        height: 1;
-    }
-
-    ExtractionProgress .stats-label {
-        width: 20;
-        color: $accent;
-    }
-
-    ExtractionProgress .stats-value {
-        width: 1fr;
-        color: $foreground;
-    }
-
-    ExtractionProgress .overall-status {
-        width: 100%;
-        height: 1;
-        text-align: center;
-        text-style: bold;
-        margin-top: 1;
-    }
-
-    ExtractionProgress .overall-status.idle {
-        color: $foreground;
-        text-style: dim;
-    }
-
-    ExtractionProgress .overall-status.processing {
-        color: $accent;
-    }
-
-    ExtractionProgress .overall-status.completed {
-        color: $success;
-    }
-
-    ExtractionProgress .overall-status.error {
-        color: $error;
-    }
-    """
+    # CSS moved to widgets.tcss for centralized theme management
 
     current_stage: reactive[str] = reactive("")
     overall_status: reactive[str] = reactive("Idle")

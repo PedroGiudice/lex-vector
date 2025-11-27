@@ -21,33 +21,7 @@ class Header(Container):
         DEFAULT_CSS: Inline CSS styling for the header
     """
 
-    DEFAULT_CSS = """
-    Header {
-        height: 5;
-        dock: top;
-        background: $panel;
-        border-bottom: solid $primary;
-    }
-
-    Header .logo {
-        width: 30;
-        content-align: center middle;
-        color: $accent;
-    }
-
-    Header .title {
-        width: 1fr;
-        content-align: left middle;
-        text-style: bold;
-        color: $foreground;
-    }
-
-    Header .status {
-        width: 20;
-        content-align: right middle;
-        padding-right: 2;
-    }
-    """
+    # CSS moved to widgets.tcss for centralized theme management
 
     def __init__(
         self,

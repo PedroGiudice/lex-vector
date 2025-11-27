@@ -38,48 +38,7 @@ class StageProgress(Container):
         progress: Current progress percentage (0-100)
     """
 
-    DEFAULT_CSS = """
-    StageProgress {
-        height: 3;
-        width: 100%;
-        layout: horizontal;
-        background: $panel;
-        border: solid $primary;
-        margin-bottom: 1;
-    }
-
-    StageProgress .stage-label {
-        width: 20;
-        content-align: left middle;
-        padding-left: 2;
-    }
-
-    StageProgress ProgressBar {
-        width: 1fr;
-        margin: 0 2;
-    }
-
-    StageProgress .stage-status {
-        width: 8;
-        content-align: center middle;
-    }
-
-    StageProgress.pending {
-        border: solid $surface;
-    }
-
-    StageProgress.running {
-        border: solid $accent;
-    }
-
-    StageProgress.completed {
-        border: solid $success;
-    }
-
-    StageProgress.error {
-        border: solid $error;
-    }
-    """
+    # CSS moved to widgets.tcss for centralized theme management
 
     status: reactive[StageStatus] = reactive("pending")
     progress: reactive[float] = reactive(0.0)
@@ -170,23 +129,7 @@ class PipelineProgress(Vertical):
     Manages a multi-stage pipeline with progress tracking.
     """
 
-    DEFAULT_CSS = """
-    PipelineProgress {
-        width: 100%;
-        height: auto;
-        background: $surface;
-        border: solid $primary;
-        padding: 1;
-    }
-
-    PipelineProgress .pipeline-title {
-        width: 100%;
-        text-align: center;
-        text-style: bold;
-        color: $foreground;
-        margin-bottom: 1;
-    }
-    """
+    # CSS moved to widgets.tcss for centralized theme management
 
     def __init__(
         self,

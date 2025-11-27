@@ -49,41 +49,7 @@ class Sidebar(Container):
         DEFAULT_CSS: Inline CSS styling for the sidebar
     """
 
-    DEFAULT_CSS = """
-    Sidebar {
-        width: 20;
-        dock: left;
-        background: $panel;
-        border-right: solid $primary;
-        padding: 1;
-        transition: width 200ms;
-    }
-
-    Sidebar.collapsed {
-        width: 3;
-    }
-
-    Sidebar Button {
-        width: 100%;
-        margin-bottom: 1;
-        background: $surface;
-    }
-
-    Sidebar OptionList {
-        width: 100%;
-        background: $panel;
-        border: none;
-        height: 1fr;
-    }
-
-    Sidebar.collapsed OptionList {
-        display: none;
-    }
-
-    Sidebar.collapsed Button {
-        width: 100%;
-    }
-    """
+    # CSS moved to widgets.tcss for centralized theme management
 
     collapsed: reactive[bool] = reactive(False)
 

@@ -50,59 +50,7 @@ class SystemSelector(Vertical):
     Provides dropdown selection with system descriptions.
     """
 
-    DEFAULT_CSS = """
-    SystemSelector {
-        width: 100%;
-        height: auto;
-        background: $panel;
-        border: solid $primary;
-        padding: 1;
-    }
-
-    SystemSelector .selector-title {
-        width: 100%;
-        height: 1;
-        text-style: bold;
-        color: $accent;
-        margin-bottom: 1;
-    }
-
-    SystemSelector .select-container {
-        width: 100%;
-        height: auto;
-        margin-bottom: 1;
-    }
-
-    SystemSelector Select {
-        width: 100%;
-    }
-
-    SystemSelector .system-description {
-        width: 100%;
-        height: auto;
-        color: $foreground;
-        text-style: dim;
-        padding: 1;
-        background: $surface;
-        border: solid $primary;
-        min-height: 3;
-    }
-
-    SystemSelector .description-label {
-        width: 100%;
-        height: 1;
-        color: $foreground;
-        text-style: dim italic;
-    }
-
-    SystemSelector .current-system {
-        width: 100%;
-        height: 1;
-        color: $success;
-        text-style: bold;
-        margin-top: 1;
-    }
-    """
+    # CSS moved to widgets.tcss for centralized theme management
 
     selected_system: reactive[str] = reactive("auto")
 

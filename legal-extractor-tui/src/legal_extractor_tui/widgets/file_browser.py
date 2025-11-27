@@ -99,36 +99,7 @@ class FileBrowser(Vertical):
     Provides a file browsing interface with optional extension filtering.
     """
 
-    DEFAULT_CSS = """
-    FileBrowser {
-        width: 100%;
-        height: 100%;
-        background: $panel;
-        border: solid $primary;
-    }
-
-    FileBrowser .browser-title {
-        width: 100%;
-        height: 3;
-        content-align: center middle;
-        text-style: bold;
-        color: $foreground;
-        background: $surface;
-        border-bottom: solid $primary;
-    }
-
-    FileBrowser FilteredDirectoryTree {
-        width: 100%;
-        height: 1fr;
-        background: $surface;
-    }
-
-    FileBrowser DirectoryTree {
-        width: 100%;
-        height: 1fr;
-        background: $surface;
-    }
-    """
+    # CSS moved to widgets.tcss for centralized theme management
 
     def __init__(
         self,

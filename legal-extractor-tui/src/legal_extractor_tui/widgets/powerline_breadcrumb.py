@@ -48,32 +48,7 @@ class PowerlineBreadcrumb(Widget):
         ```
     """
 
-    DEFAULT_CSS = """
-    PowerlineBreadcrumb {
-        width: 100%;
-        height: auto;
-        padding: 0 1;
-    }
-
-    PowerlineBreadcrumb .breadcrumb-container {
-        width: 100%;
-        height: auto;
-    }
-
-    PowerlineBreadcrumb .crumb {
-        width: auto;
-        padding: 0 1;
-    }
-
-    PowerlineBreadcrumb .crumb:hover {
-        text-style: bold;
-    }
-
-    PowerlineBreadcrumb .separator {
-        width: auto;
-        padding: 0;
-    }
-    """
+    # CSS moved to widgets.tcss for centralized theme management
 
     items: reactive[list[str]] = reactive([])
     """List of breadcrumb items to display."""
