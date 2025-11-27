@@ -9,7 +9,7 @@ FileSelector {
     border: solid $primary;
     padding: 1;
     margin-bottom: 1;
-    background: $panel-bg;
+    background: $panel;
 }
 
 FileSelector:focus-within {
@@ -21,7 +21,7 @@ FileSelector .file-path {
     margin-bottom: 1;
     padding: 1;
     background: $surface;
-    border: solid $panel-border;
+    border: solid $primary;
 }
 
 FileSelector .file-path:focus {
@@ -29,7 +29,7 @@ FileSelector .file-path:focus {
 }
 
 FileSelector .file-info {
-    color: $text-muted;
+    text-style: dim;
     text-style: italic;
     padding: 0 1;
 }
@@ -60,7 +60,7 @@ SystemSelector {
     border: solid $primary;
     padding: 1;
     margin-bottom: 1;
-    background: $panel-bg;
+    background: $panel;
 }
 
 SystemSelector:focus-within {
@@ -71,7 +71,7 @@ SystemSelector .system-option {
     padding: 1;
     margin-bottom: 1;
     background: $surface;
-    border: solid $panel-border;
+    border: solid $primary;
 }
 
 SystemSelector .system-option:hover {
@@ -91,7 +91,7 @@ SystemSelector .system-label {
 }
 
 SystemSelector .system-description {
-    color: $text-muted;
+    text-style: dim;
     padding-left: 2;
 }
 
@@ -102,7 +102,7 @@ ConfigPanel {
     height: auto;
     border: solid $primary;
     padding: 1 2;
-    background: $panel-bg;
+    background: $panel;
     margin-bottom: 1;
 }
 
@@ -113,7 +113,7 @@ ConfigPanel:focus-within {
 ConfigPanel .config-section {
     margin-bottom: 2;
     padding-bottom: 1;
-    border-bottom: solid $panel-border;
+    border-bottom: solid $primary;
 }
 
 ConfigPanel .config-section:last-child {
@@ -133,7 +133,7 @@ ConfigPanel .config-input {
 }
 
 ConfigPanel .config-hint {
-    color: $text-muted;
+    text-style: dim;
     text-style: italic;
     padding: 0 1;
 }
@@ -154,14 +154,14 @@ ExtractionProgress {
     min-height: 8;
     border: solid $accent;
     padding: 1 2;
-    background: $panel-bg;
+    background: $panel;
 }
 
 ExtractionProgress .progress-header {
     text-style: bold;
     color: $accent;
     padding-bottom: 1;
-    border-bottom: solid $panel-border;
+    border-bottom: solid $primary;
     margin-bottom: 1;
 }
 
@@ -169,11 +169,11 @@ ExtractionProgress .stage {
     height: 2;
     margin-bottom: 1;
     padding: 0 1;
-    border-left: solid $panel-border;
+    border-left: solid $primary;
 }
 
 ExtractionProgress .stage.pending {
-    color: $text-muted;
+    text-style: dim;
     background: $stage-pending 10%;
     border-left: solid $stage-pending;
 }
@@ -203,15 +203,15 @@ ExtractionProgress .stage-name {
 }
 
 ExtractionProgress .stage-status {
-    color: $text-muted;
+    text-style: dim;
     padding-left: 2;
 }
 
 ExtractionProgress .stats {
-    color: $text-muted;
+    text-style: dim;
     text-align: right;
     padding-top: 1;
-    border-top: solid $panel-border;
+    border-top: solid $primary;
     margin-top: 1;
 }
 
@@ -230,7 +230,7 @@ ResultsPanel {
     height: 100%;
     width: 100%;
     border: solid $primary;
-    background: $panel-bg;
+    background: $panel;
 }
 
 ResultsPanel:focus-within {
@@ -252,12 +252,12 @@ ResultsPanel .preview-text {
     overflow-y: auto;
     height: 100%;
     background: $surface;
-    border: solid $panel-border;
+    border: solid $primary;
     font-family: monospace;
 }
 
 ResultsPanel .preview-empty {
-    color: $text-muted;
+    text-style: dim;
     text-style: italic;
     text-align: center;
     padding: 4;
@@ -273,7 +273,7 @@ ResultsPanel .metadata-row {
     margin-bottom: 1;
     padding: 1;
     background: $surface;
-    border: solid $panel-border;
+    border: solid $primary;
 }
 
 ResultsPanel .metadata-label {
@@ -288,7 +288,7 @@ ResultsPanel .metadata-value {
 }
 
 ResultsPanel .metadata-value.empty {
-    color: $text-muted;
+    text-style: dim;
     text-style: italic;
 }
 
@@ -302,7 +302,7 @@ ResultsPanel .sections-list {
 ResultsPanel .section-item {
     padding: 2;
     margin-bottom: 1;
-    border: solid $panel-border;
+    border: solid $primary;
     background: $surface;
 }
 
@@ -316,7 +316,7 @@ ResultsPanel .section-header {
     color: $primary;
     padding-bottom: 1;
     margin-bottom: 1;
-    border-bottom: solid $panel-border;
+    border-bottom: solid $primary;
 }
 
 ResultsPanel .section-title {
@@ -334,9 +334,9 @@ ResultsPanel .section-content {
 }
 
 ResultsPanel .section-metadata {
-    color: $text-muted;
+    text-style: dim;
     padding-top: 1;
-    border-top: solid $panel-border;
+    border-top: solid $primary;
     margin-top: 1;
 }
 
@@ -429,7 +429,7 @@ Button.-warning:hover {
 Button:disabled {
     opacity: 0.5;
     background: $surface;
-    color: $text-muted;
+    text-style: dim;
 }
 
 /* Input */
@@ -455,14 +455,14 @@ Input.-success {
 }
 
 Input > .input-placeholder {
-    color: $text-muted;
+    text-style: dim;
     opacity: 0.5;
 }
 
 Input:disabled {
     opacity: 0.5;
     background: $surface;
-    color: $text-muted;
+    text-style: dim;
 }
 
 /* Label */
@@ -477,7 +477,7 @@ Label.-required::after {
 }
 
 Label.-muted {
-    color: $text-muted;
+    text-style: dim;
 }
 
 /* Static (text display) */
@@ -492,7 +492,7 @@ Static.-highlight {
 }
 
 Static.-muted {
-    color: $text-muted;
+    text-style: dim;
     opacity: 0.7;
 }
 
@@ -531,14 +531,14 @@ Switch.-on {
 }
 
 Switch.-off {
-    color: $text-muted;
+    text-style: dim;
 }
 
 /* ProgressBar */
 ProgressBar {
     height: 1;
     background: $surface;
-    border: solid $panel-border;
+    border: solid $primary;
 }
 
 ProgressBar > .bar--bar {
@@ -605,12 +605,12 @@ TextArea:focus {
 
 /* DataTable */
 DataTable {
-    background: $panel-bg;
+    background: $panel;
     border: solid $primary;
 }
 
 DataTable > .datatable--header {
-    background: $panel-header;
+    background: $surface;
     text-style: bold;
     color: $primary;
 }
@@ -630,7 +630,7 @@ DataTable > .datatable--cursor {
 
 /* Tree */
 Tree {
-    background: $panel-bg;
+    background: $panel;
     border: solid $primary;
     padding: 1;
 }
@@ -650,22 +650,22 @@ Tree > .tree--cursor > .tree--label {
 
 /* LoadingIndicator */
 LoadingIndicator {
-    background: $panel-bg;
+    background: $panel;
     color: $accent;
 }
 
 /* Placeholder */
 Placeholder {
     background: $panel;
-    color: $text-muted;
-    border: dashed $panel-border;
+    text-style: dim;
+    border: dashed $primary;
 }
 
 /* ==================================================
    LOG PANEL (CUSTOM WIDGET)
    ================================================== */
 LogPanel {
-    background: $panel-bg;
+    background: $panel;
     border: solid $primary;
     padding: 1;
     height: 100%;
@@ -694,7 +694,7 @@ LogPanel > .log-line.info {
 }
 
 LogPanel > .log-line.debug {
-    color: $text-muted;
+    text-style: dim;
 }
 
 /* ==================================================

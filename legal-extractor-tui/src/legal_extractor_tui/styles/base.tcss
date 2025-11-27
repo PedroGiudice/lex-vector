@@ -13,7 +13,6 @@ $panel: #16213e;          /* Dark blue - panel backgrounds */
 $success: #50fa7b;        /* Green - success states */
 $warning: #ffb86c;        /* Orange - warnings */
 $error: #ff5555;          /* Red - errors */
-$text-muted: #6272a4;     /* Muted blue - secondary text */
 
 /* Progress stage indicators */
 $stage-pending: #44475a;  /* Dark gray - not started */
@@ -22,9 +21,9 @@ $stage-complete: #50fa7b; /* Green - completed */
 $stage-error: #ff5555;    /* Red - failed */
 
 /* Panel backgrounds */
-$panel-bg: #1e1e2e;       /* Main panel background */
-$panel-header: #2d2d3d;   /* Panel header background */
-$panel-border: #44475a;   /* Panel border color */
+$panel: #1e1e2e;       /* Main panel background */
+$surface: #2d2d3d;   /* Panel header background */
+$primary: #44475a;   /* Panel border color */
 
 /* Confidence level colors */
 $confidence-high: #50fa7b;    /* >= 0.8 */
@@ -58,7 +57,7 @@ Screen {
 
 /* Text utilities */
 .muted {
-    color: $text-muted;
+    text-style: dim;
     opacity: 0.7;
 }
 
@@ -212,7 +211,7 @@ Screen {
 }
 
 .border-panel {
-    border: solid $panel-border;
+    border: solid $primary;
 }
 
 .border-thick {

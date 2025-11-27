@@ -37,7 +37,7 @@
     max-height: 12;
     min-height: 8;
     margin-bottom: 1;
-    background: $panel-bg;
+    background: $panel;
     border: solid $accent;
     padding: 1;
 }
@@ -66,7 +66,7 @@
 
 /* Panel containers */
 .panel {
-    background: $panel-bg;
+    background: $panel;
     border: solid $primary;
     padding: 1 2;
     margin: 1 0;
@@ -80,7 +80,7 @@
     text-style: bold;
     color: $primary;
     padding-bottom: 1;
-    border-bottom: solid $panel-border;
+    border-bottom: solid $primary;
     margin-bottom: 1;
 }
 
@@ -90,7 +90,7 @@
 
 .panel-footer {
     padding-top: 1;
-    border-top: solid $panel-border;
+    border-top: solid $primary;
     margin-top: 1;
 }
 
@@ -98,7 +98,7 @@
 .control-section {
     margin-bottom: 2;
     padding-bottom: 1;
-    border-bottom: solid $panel-border;
+    border-bottom: solid $primary;
 }
 
 .control-section:last-child {
@@ -122,7 +122,7 @@
     width: 80;
     height: auto;
     max-height: 80%;
-    background: $panel-bg;
+    background: $panel;
     border: thick $accent;
     padding: 2;
 }
@@ -262,7 +262,7 @@
 .section-divider {
     height: 1;
     width: 100%;
-    background: $panel-border;
+    background: $primary;
     margin: 2 0;
 }
 
@@ -316,7 +316,7 @@
 .list-item {
     padding: 1;
     margin-bottom: 1;
-    border: solid $panel-border;
+    border: solid $primary;
     background: $surface;
 }
 
