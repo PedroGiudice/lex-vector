@@ -101,6 +101,11 @@ if ! python -c "import legal_extractor_tui" 2>/dev/null; then
     pip install -e ".[dev]" -q
 fi
 
+# CRITICAL: Clear Python bytecode cache to prevent stale code execution
+# This fixes DuplicateIds and other bugs that persist after code fixes
+# See: skills/tui-core/bug-patterns.md (BUG 9, BUG 10)
+find "$SCRIPT_DIR" -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+
 # Build command arguments
 THEME_ARG=""
 if [[ -n "$THEME_NAME" ]]; then

@@ -303,6 +303,98 @@ class MyWidget(Static):
 
 ---
 
+## BUG 9: DuplicateIds ao Atualizar Widget Dinamicamente
+
+### Sintoma
+```
+DuplicateIds: Tried to insert a widget with ID 'preview-text', but a widget already exists
+```
+
+### Causa
+Ao atualizar conteudo de um widget, o codigo remove e monta um novo widget com mesmo ID, mas o `mount()` e chamado antes do `remove()` ser processado completamente.
+
+### Codigo Problematico
+```python
+def _update_pane(self) -> None:
+    try:
+        old_widget = self.query_one("#my-widget")
+        old_widget.remove()  # Async - nao e imediato!
+    except:
+        pass
+
+    parent.mount(Static("New content", id="my-widget"))  # ERRADO: ID duplicado!
+```
+
+### Solucao Correta
+```python
+def _update_pane(self) -> None:
+    try:
+        widget = self.query_one("#my-widget", Static)
+        widget.update("New content")  # CORRETO: Atualizar em vez de remover/montar
+        widget.set_classes("new-class")
+    except:
+        pass  # Widget nao existe ainda
+```
+
+### Alternativa (se precisar trocar tipo de widget)
+```python
+async def _update_pane(self) -> None:
+    try:
+        old_widget = self.query_one("#my-widget")
+        await old_widget.remove()  # AWAIT para garantir remocao completa
+    except:
+        pass
+
+    await self.mount(Static("New content", id="my-widget"))
+```
+
+### CRITICAL: Cache de .pyc
+**Este bug pode reaparecer mesmo apos corrigir o codigo!**
+
+O Python cacheia bytecode em `__pycache__/*.pyc`. Se o cache nao for limpo, o codigo antigo continua executando.
+
+**SEMPRE limpar cache apos modificar arquivos:**
+```bash
+find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null
+```
+
+**OU adicionar ao script de execucao:**
+```bash
+# No run.sh, antes de executar:
+find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null
+```
+
+### Verificacao
+```bash
+# Procurar por padroes de remove() seguido de mount() com mesmo ID
+grep -B5 -A5 "\.remove()" src/**/*.py | grep -A10 "mount.*id="
+```
+
+---
+
+## BUG 10: Cache de Bytecode (.pyc) Desatualizado
+
+### Sintoma
+Erro persiste mesmo apos corrigir codigo. Traceback mostra linhas que nao existem mais no arquivo.
+
+### Causa
+Python cacheia bytecode compilado em `__pycache__/`. Modificacoes no .py nao invalidam cache automaticamente em todos os casos.
+
+### Solucao
+```bash
+# Limpar TODOS os caches antes de executar
+find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null
+find . -type f -name "*.pyc" -delete 2>/dev/null
+
+# Alternativa: usar PYTHONDONTWRITEBYTECODE
+PYTHONDONTWRITEBYTECODE=1 python -m my_app
+```
+
+### Verificacao
+Se o traceback mostra codigo diferente do arquivo, e cache desatualizado.
+
+---
+
 ## Checklist Pre-Commit
 
 Antes de commitar codigo TUI:
