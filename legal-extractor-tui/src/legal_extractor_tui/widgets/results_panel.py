@@ -191,12 +191,20 @@ class ResultsPanel(Vertical):
 
         try:
             preview_widget = self.query_one("#preview-text", Static)
-            preview_widget.remove()
-        except Exception:
-            pass
 
-        tab_preview = self.query_one("#tab-preview", TabPane)
-        tab_preview.mount(self._create_preview_pane())
+            # Update content instead of removing and mounting new widget
+            if self.has_result and "text" in self.result_data:
+                preview_text = self.result_data["text"][:1000]
+                if len(self.result_data["text"]) > 1000:
+                    preview_text += "\n\n... (truncated)"
+                preview_widget.update(preview_text)
+                preview_widget.set_classes("preview-text")
+            else:
+                preview_widget.update("No results yet. Process a PDF file to see extracted text here.")
+                preview_widget.set_classes("empty-message")
+        except Exception:
+            # Widget doesn't exist yet, ignore
+            pass
 
     def _update_metadata_pane(self) -> None:
         """Update metadata tab with new data."""
@@ -205,12 +213,38 @@ class ResultsPanel(Vertical):
 
         try:
             metadata_widget = self.query_one("#metadata-container", VerticalScroll)
-            metadata_widget.remove()
-        except Exception:
-            pass
 
-        tab_metadata = self.query_one("#tab-metadata", TabPane)
-        tab_metadata.mount(self._create_metadata_pane())
+            # Clear existing children and rebuild
+            metadata_widget.remove_children()
+
+            if self.has_result:
+                # Worker returns flat structure, not nested metadata
+                # Add metadata rows
+                rows_data = [
+                    ("System Detected", self.result_data.get("system_name", "N/A")),
+                    ("System Code", self.result_data.get("system", "N/A")),
+                    ("Confidence", f"{self.result_data.get('confidence', 0):.1%}"),
+                    ("Original Length", f"{self.result_data.get('original_length', 0):,} chars"),
+                    ("Final Length", f"{self.result_data.get('final_length', 0):,} chars"),
+                    ("Reduction", f"{self.result_data.get('reduction_pct', 0):.1%}"),
+                    ("Patterns Removed", f"{self.result_data.get('patterns_removed', 0):,}"),
+                ]
+
+                for label_text, value_text in rows_data:
+                    row = Horizontal(classes="metadata-row")
+                    row.compose_add_child(Label(label_text + ":", classes="metadata-label"))
+                    row.compose_add_child(Label(str(value_text), classes="metadata-value"))
+                    metadata_widget.mount(row)
+            else:
+                metadata_widget.mount(
+                    Static(
+                        "No metadata available. Process a PDF file first.",
+                        classes="empty-message"
+                    )
+                )
+        except Exception:
+            # Widget doesn't exist yet, ignore
+            pass
 
     def _update_sections_pane(self) -> None:
         """Update sections tab with new data."""
@@ -219,12 +253,46 @@ class ResultsPanel(Vertical):
 
         try:
             sections_widget = self.query_one("#sections-container", VerticalScroll)
-            sections_widget.remove()
-        except Exception:
-            pass
 
-        tab_sections = self.query_one("#tab-sections", TabPane)
-        tab_sections.mount(self._create_sections_pane())
+            # Clear existing children and rebuild
+            sections_widget.remove_children()
+
+            if self.has_result and "sections" in self.result_data:
+                sections = self.result_data["sections"]
+
+                if sections:
+                    for idx, section in enumerate(sections, 1):
+                        section_widget = Vertical(classes="section-item")
+                        section_widget.compose_add_child(
+                            Label(f"Section {idx}: {section.get('title', 'Untitled')}", classes="section-title")
+                        )
+
+                        preview = section.get("content", "")[:200]
+                        if len(section.get("content", "")) > 200:
+                            preview += "..."
+
+                        section_widget.compose_add_child(
+                            Label(preview, classes="section-preview")
+                        )
+
+                        sections_widget.mount(section_widget)
+                else:
+                    sections_widget.mount(
+                        Static(
+                            "No sections detected. Enable section analysis to extract sections.",
+                            classes="empty-message"
+                        )
+                    )
+            else:
+                sections_widget.mount(
+                    Static(
+                        "No sections available. Process a PDF with section analysis enabled.",
+                        classes="empty-message"
+                    )
+                )
+        except Exception:
+            # Widget doesn't exist yet, ignore
+            pass
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """Handle export button clicks.
