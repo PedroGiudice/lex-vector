@@ -1134,7 +1134,88 @@ cd legal-extractor-tui
 
 ---
 
-**Last updated:** 2025-11-27
+## TUI Elite Squad - Specialized Agents (2025-11-28)
+
+### Arquitetura Implementada
+
+Criada squad de 4 agentes especializados + 1 generalista com shared knowledge base.
+
+**Problema Resolvido:**
+- `tui-master.md` original tinha ~600 linhas de conhecimento embutido
+- Conhecimento duplicava/conflitava com outras fontes
+- Risco de inconsistencias entre agentes
+
+**Solucao:** Single Source of Truth em `skills/tui-core/`
+
+### Knowledge Base (`skills/tui-core/`)
+
+| Arquivo | Linhas | Conteudo |
+|---------|--------|----------|
+| `KNOWLEDGE_INDEX.md` | ~100 | Indice central |
+| `rules.md` | ~200 | Anti-alucinacao TCSS |
+| `tcss-reference.md` | ~340 | Referencia CSS completa |
+| `patterns.md` | ~460 | Padroes de codigo |
+| `theme-guide.md` | ~265 | Sistema de temas |
+| `widget-catalog.md` | ~380 | Catalogo de widgets |
+| `bug-patterns.md` | ~340 | Bugs criticos e solucoes |
+| `debugging-guide.md` | ~230 | Workflow de debug |
+
+### Agentes Especializados (`.claude/agents/`)
+
+| Agente | Role | Tools | Restricoes |
+|--------|------|-------|------------|
+| `tui-architect` | Planejamento | Read, Grep, Glob | NAO escreve codigo |
+| `tui-designer` | TCSS/Temas | Read, Write, Edit, Glob, Grep | NAO escreve Python |
+| `tui-developer` | Python | All | NAO escreve TCSS visual |
+| `tui-debugger` | Diagnostico | Read, Bash, Grep, Glob | NAO modifica codigo |
+| `tui-master` | Generalista | All | Refatorado para usar KB |
+
+### Workflow
+
+```
+Claude Principal (orquestrador)
+       |
+   ┌───┴───┐
+   |       |
+tui-architect ──> tui-designer ──> tui-developer
+                       |               |
+                       └───────┬───────┘
+                               |
+                         tui-debugger
+
+tui-master = fallback para tarefas simples
+```
+
+### Invocacao
+
+```python
+Task(subagent_type='tui-architect', prompt='...')
+Task(subagent_type='tui-designer', prompt='...')
+Task(subagent_type='tui-developer', prompt='...')
+Task(subagent_type='tui-debugger', prompt='...')
+Task(subagent_type='tui-master', prompt='...')
+```
+
+### IMPORTANTE: Orquestracao de Agentes
+
+**O Claude Code NAO possui orquestracao nativa de agentes.**
+
+Cada agente e independente. O workflow e documentado no `SQUAD_MANIFEST.md` e seguido pelo Claude principal.
+
+### Fontes Primarias Usadas
+
+1. `legal-extractor-tui/Guia-completo-de-CSS-TCSS-Textual-0.80.0.md` (500 linhas)
+2. `legal-extractor-tui/Research-templates-guidance-TUI-TEXTUAL.md` (228 linhas)
+3. `tui-template/BUG_FIXES_APPLIED.md` (322 linhas)
+4. `tui-template/MESSAGE_CONTRACT_FIXES.md` (475 linhas)
+
+### Commit
+
+- `5405fe6` - feat(agents): implement TUI Elite Squad with shared knowledge base
+
+---
+
+**Last updated:** 2025-11-28
 **Maintained by:** PedroGiudice
 **For Claude Code instances operating in:** `~/claude-work/repos/Claude-Code-Projetos` (WSL2)
 - add explíto e curto que podem aparecer mensagens de erro, mas que não são VERDADEIROS erros de hook.
