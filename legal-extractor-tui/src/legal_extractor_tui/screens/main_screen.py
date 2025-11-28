@@ -126,11 +126,11 @@ class MainScreen(Screen):
                 yield SystemSelector(id="system-selector")
                 yield ConfigPanel(id="config-panel")
 
-                # Action buttons - compact icon style
+                # Action buttons - minimal modern style
                 with Horizontal(id="action-buttons"):
-                    yield Button("▶ RUN", id="extract-btn", variant="success")
-                    yield Button("💾 SAVE", id="save-btn", variant="primary")
-                    yield Button("❌ CLEAR", id="clear-btn", variant="error")
+                    yield Button("● RUN", id="extract-btn", variant="success")
+                    yield Button("↓ SAVE", id="save-btn", variant="primary")
+                    yield Button("× CLEAR", id="clear-btn", variant="error")
 
             # Right content area (70% width)
             with Vertical(id="content-area"):
