@@ -12,7 +12,7 @@ from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical, Container
 from textual.screen import Screen
-from textual.widgets import Footer
+from textual.widgets import Button, Footer
 
 from legal_extractor_tui.config import OUTPUT_FORMATS
 from legal_extractor_tui.messages import (
@@ -125,6 +125,12 @@ class MainScreen(Screen):
                 )
                 yield SystemSelector(id="system-selector")
                 yield ConfigPanel(id="config-panel")
+
+                # Action buttons - compact icon style
+                with Horizontal(id="action-buttons"):
+                    yield Button("▶ RUN", id="extract-btn", variant="success")
+                    yield Button("💾 SAVE", id="save-btn", variant="primary")
+                    yield Button("❌ CLEAR", id="clear-btn", variant="error")
 
             # Right content area (70% width)
             with Vertical(id="content-area"):
@@ -248,6 +254,37 @@ class MainScreen(Screen):
         from legal_extractor_tui.screens.help_screen import HelpScreen
 
         self.app.push_screen(HelpScreen())
+
+    def action_clear_selection(self) -> None:
+        """Clear file selection and results."""
+        # Clear file selector
+        file_selector = self.query_one("#file-selector", FileSelector)
+        file_selector.clear_selection()
+        self.selected_file = None
+
+        # Clear results
+        self.extraction_result = None
+        results_panel = self.query_one("#results-panel", ResultsPanel)
+        results_panel.clear_results()
+
+        self.add_log("Selection cleared", LogLevel.INFO)
+        self.update_status("Ready - Select a PDF file")
+
+    # Message Handlers - Action Buttons
+
+    @on(Button.Pressed)
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        """Handle action button clicks.
+
+        Args:
+            event: Button.Pressed event with button reference
+        """
+        if event.button.id == "extract-btn":
+            self.action_run_extraction()
+        elif event.button.id == "save-btn":
+            self.action_save_result()
+        elif event.button.id == "clear-btn":
+            self.action_clear_selection()
 
     # Message Handlers - File Selection
 
