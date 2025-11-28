@@ -2,6 +2,7 @@
   "_comment": "Configuração CENTRALIZADA - Legal-Braniac único decisor",
   "_docs": "Ver .claude/hooks/MIGRATION.md para detalhes da arquitetura centralizada",
   "_strategy": "SessionStart carrega Legal-Braniac (1x/sessão), UserPromptSubmit coleta contexto e delega todas decisões",
+  "_path_fix": "2025-11-28: Todos hooks corrigidos para usar $CLAUDE_PROJECT_DIR (caminhos absolutos) conforme documentação Anthropic",
 
   "_statusLine_DISABLED_FOR_VIBE_LOG": {
     "_comment": "TEMPORARILY DISABLED to test vibe-log Gordon Co-pilot statusline",
@@ -19,17 +20,17 @@
         "hooks": [
           {
             "type": "command",
-            "command": ".claude/hooks/venv-activate-global.sh",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/venv-activate-global.sh",
             "_note": "Ativa venv global do projeto para persistir durante toda a sessão"
           },
           {
             "type": "command",
-            "command": "node .claude/hooks/hook-wrapper.js .claude/hooks/legal-braniac-loader.js",
+            "command": "cd \"$CLAUDE_PROJECT_DIR\" && node .claude/hooks/hook-wrapper.js .claude/hooks/legal-braniac-loader.js",
             "_note": "Auto-discovery com last-used tracking [WRAPPED]"
           },
           {
             "type": "command",
-            "command": ".claude/hooks/vibe-log-safe-wrapper.sh sessionstart",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/vibe-log-safe-wrapper.sh sessionstart",
             "_note": "Vibe-log: capture session on startup (graceful skip if not authenticated - Claude Code Web compatible)"
           }
         ]
@@ -41,7 +42,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node .claude/hooks/session-end-git-safety.js",
+            "command": "cd \"$CLAUDE_PROJECT_DIR\" && node .claude/hooks/session-end-git-safety.js",
             "_note": "Auto-saves uncommitted changes to timestamped branch if session > 2.5h"
           }
         ]
@@ -51,7 +52,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": ".claude/hooks/vibe-log-safe-wrapper.sh sessionend",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/vibe-log-safe-wrapper.sh sessionend",
             "_note": "Vibe-log: capture final session state (graceful skip if not authenticated - Claude Code Web compatible)"
           }
         ]
@@ -61,7 +62,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": ".claude/monitoring/simple_tracker.py cleanup 7",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/monitoring/simple_tracker.py\" cleanup 7",
             "_note": "Remove tracking data older than 7 days"
           }
         ]
@@ -74,7 +75,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node .claude/hooks/inject-tools-to-agents.js",
+            "command": "cd \"$CLAUDE_PROJECT_DIR\" && node .claude/hooks/inject-tools-to-agents.js",
             "_note": "Reads agent-tools-mapping.json and injects available tools instruction into agent prompt"
           }
         ]
@@ -86,37 +87,37 @@
         "hooks": [
           {
             "type": "command",
-            "command": ".claude/monitoring/hooks/log_hook.sh UserPromptSubmit",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/monitoring/hooks/log_hook.sh UserPromptSubmit",
             "_note": "Multi-Agent Monitoring: Track hook execution"
           },
           {
             "type": "command",
-            "command": ".claude/monitoring/hooks/detect_agents.sh",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/monitoring/hooks/detect_agents.sh",
             "_note": "Multi-Agent Monitoring: Detect agent spawning patterns"
           },
           {
             "type": "command",
-            "command": "python3 .claude/hooks/improve-prompt.py",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/improve-prompt.py\"",
             "_note": "Prompt Improver (severity1): Evaluates prompt clarity and asks clarifying questions when vague"
           },
           {
             "type": "command",
-            "command": "node .claude/hooks/hook-wrapper.js .claude/hooks/context-collector.js",
+            "command": "cd \"$CLAUDE_PROJECT_DIR\" && node .claude/hooks/hook-wrapper.js .claude/hooks/context-collector.js",
             "_note": "Legal-Braniac Decision Engine: validations + skill detection + agent orchestration + aesthetic enforcement [WRAPPED]"
           },
           {
             "type": "command",
-            "command": "node .claude/hooks/lib/skill-content-injector.js",
+            "command": "cd \"$CLAUDE_PROJECT_DIR\" && node .claude/hooks/lib/skill-content-injector.js",
             "_note": "Skill Auto-Activation: Injects top 3 matched skills content into context (jefflester/supercharged approach - 95%+ success rate)"
           },
           {
             "type": "command",
-            "command": "node .claude/hooks/hook-wrapper.js .claude/hooks/vibe-analyze-prompt.js",
+            "command": "cd \"$CLAUDE_PROJECT_DIR\" && node .claude/hooks/hook-wrapper.js .claude/hooks/vibe-analyze-prompt.js",
             "_note": "Gordon AI Coach: Real-time prompt quality analysis via Claude SDK (background, non-blocking) [WRAPPED]"
           },
           {
             "type": "command",
-            "command": ".claude/monitoring/hooks/detect_skills.sh",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/monitoring/hooks/detect_skills.sh",
             "_note": "Multi-Agent Monitoring: Detect skill usage patterns"
           }
         ]
