@@ -1373,12 +1373,12 @@ SpinnerWidget.spinner-warning {
 
 SpinnerWidget.spinner-info {
     color: $primary-lighten-1;
-    text-style: normal;
+    text-style: none;
 }
 
 SpinnerWidget.spinner-processing {
     color: $secondary;
-    text-style: normal;
+    text-style: none;
 }
 
 /* Compact inline spinner (single character width) */
@@ -1414,7 +1414,7 @@ SpinnerWidget.compact {
 /* Status: Processing (cyan/accent) */
 .status-processing {
     color: $accent;
-    text-style: normal;
+    text-style: none;
 }
 
 /* Status: Warning (orange) */
@@ -1426,7 +1426,7 @@ SpinnerWidget.compact {
 /* Status: Info (cyan) */
 .status-info {
     color: $primary-lighten-1;
-    text-style: normal;
+    text-style: none;
 }
 
 /* Status: Success (green) */
