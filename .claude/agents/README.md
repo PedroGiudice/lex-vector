@@ -2,299 +2,135 @@
 
 Specialized agents for complex, multi-step tasks.
 
----
-
-## What Are Agents?
-
-Agents are autonomous Claude instances that handle specific complex tasks. Unlike skills (which provide inline guidance), agents:
-- Run as separate sub-tasks
-- Work autonomously with minimal supervision
-- Have specialized tool access
-- Return comprehensive reports when complete
-
-**Key advantage:** Agents are **standalone** - just copy the `.md` file and use immediately!
+**Total: 104 agents** organized into subdirectories (deduplicated, compliant with Anthropic naming conventions).
 
 ---
 
-## Available Agents (10)
+## Directory Structure
 
-### code-architecture-reviewer
-**Purpose:** Review code for architectural consistency and best practices
-
-**When to use:**
-- After implementing a new feature
-- Before merging significant changes
-- When refactoring code
-- To validate architectural decisions
-
-**Integration:** ✅ Copy as-is
-
----
-
-### code-refactor-master
-**Purpose:** Plan and execute comprehensive refactoring
-
-**When to use:**
-- Reorganizing file structures
-- Breaking down large components
-- Updating import paths after moves
-- Improving code maintainability
-
-**Integration:** ✅ Copy as-is
-
----
-
-### documentation-architect
-**Purpose:** Create comprehensive documentation
-
-**When to use:**
-- Documenting new features
-- Creating API documentation
-- Writing developer guides
-- Generating architectural overviews
-
-**Integration:** ✅ Copy as-is
-
----
-
-### frontend-error-fixer
-**Purpose:** Debug and fix frontend errors
-
-**When to use:**
-- Browser console errors
-- TypeScript compilation errors in frontend
-- React errors
-- Build failures
-
-**Integration:** ⚠️ May reference screenshot paths - update if needed
-
----
-
-### plan-reviewer
-**Purpose:** Review development plans before implementation
-
-**When to use:**
-- Before starting complex features
-- Validating architectural plans
-- Identifying potential issues early
-- Getting second opinion on approach
-
-**Integration:** ✅ Copy as-is
-
----
-
-### refactor-planner
-**Purpose:** Create comprehensive refactoring strategies
-
-**When to use:**
-- Planning code reorganization
-- Modernizing legacy code
-- Breaking down large files
-- Improving code structure
-
-**Integration:** ✅ Copy as-is
-
----
-
-### web-research-specialist
-**Purpose:** Research technical issues online
-
-**When to use:**
-- Debugging obscure errors
-- Finding solutions to problems
-- Researching best practices
-- Comparing implementation approaches
-
-**Integration:** ✅ Copy as-is
-
----
-
-### auth-route-tester
-**Purpose:** Test authenticated API endpoints
-
-**When to use:**
-- Testing routes with JWT cookie auth
-- Validating endpoint functionality
-- Debugging authentication issues
-
-**Integration:** ⚠️ Requires JWT cookie-based auth
-
----
-
-### auth-route-debugger
-**Purpose:** Debug authentication issues
-
-**When to use:**
-- Auth failures
-- Token issues
-- Cookie problems
-- Permission errors
-
-**Integration:** ⚠️ Requires JWT cookie-based auth
-
----
-
-### auto-error-resolver
-**Purpose:** Automatically fix TypeScript compilation errors
-
-**When to use:**
-- Build failures with TypeScript errors
-- After refactoring that breaks types
-- Systematic error resolution needed
-
-**Integration:** ⚠️ May need path updates
-
----
-
-## How to Integrate an Agent
-
-### Standard Integration (Most Agents)
-
-**Step 1: Copy the file**
-```bash
-cp showcase/.claude/agents/agent-name.md \\
-   your-project/.claude/agents/
+```
+.claude/agents/
+├── _meta/          (11)  # Meta-agents (organizers, reviewers, utilities)
+├── _project/       (7)   # Custom project-specific agents (legal/Brazilian)
+├── business/       (4)   # Product management, feedback
+├── data-ai/        (8)   # ML, AI, data engineering, databases
+├── design-ux/      (14)  # UI/UX design, accessibility, styling
+├── development/    (15)  # Frontend, backend, fullstack, language-specific
+├── infrastructure/ (12)  # DevOps, cloud, deployment, performance
+├── marketing/      (7)   # Social media, growth, ASO
+├── quality-testing/(14)  # Code review, QA, debugging, testing
+├── research/       (4)   # Documentation, web research
+├── routes-auth/    (2)   # Authentication/route testing
+├── security/       (1)   # Security auditing
+├── tui/            (5)   # Textual TUI specialists
 ```
 
-**Step 2: Verify (optional)**
-```bash
-# Check for hardcoded paths
-grep -n "~/git/\|/root/git/\|/Users/" your-project/.claude/agents/agent-name.md
+---
+
+## Naming Convention
+
+All agent names follow **lowercase-hyphen** format (Anthropic best practice):
+- ✅ `frontend-developer`
+- ✅ `code-architecture-reviewer`
+- ❌ ~~`Frontend Developer`~~ (spaces/capitals not allowed)
+
+---
+
+## Quick Reference by Category
+
+### Development (`development/`)
+- `frontend-developer.md` - React, TypeScript frontends
+- `backend-architect.md` - API design, Node.js
+- `rapid-prototyper.md` - Quick MVPs
+- `react-pro-lst97.md` - React specialist
+- `nextjs-pro-lst97.md` - Next.js specialist
+- `typescript-pro-lst97.md` - TypeScript specialist
+- `python-pro-lst97.md` - Python development
+- `golang-pro-lst97.md` - Go development
+- ... and more
+
+### Quality & Testing (`quality-testing/`)
+- `code-architecture-reviewer.md` - Architecture review
+- `code-refactor-master.md` - Comprehensive refactoring
+- `test-writer-fixer.md` - Test creation/fixing
+- `frontend-error-fixer.md` - Frontend debugging
+- `debugger-lst97.md` - General debugging
+- `qa-expert-lst97.md` - QA specialist
+- ... and more
+
+### Data & AI (`data-ai/`)
+- `ai-engineer.md` - AI/ML integration
+- `ml-engineer-lst97.md` - Machine learning
+- `data-scientist-lst97.md` - Data science
+- `database-optimizer-lst97.md` - DB optimization
+- `prompt-engineer-lst97.md` - Prompt engineering
+- ... and more
+
+### TUI (`tui/`)
+- `tui-master.md` - Generalist Textual TUI
+- `tui-architect.md` - TUI planning specialist
+- `tui-designer.md` - TCSS/styling specialist
+- `tui-developer.md` - Widget implementation
+- `tui-debugger.md` - TUI debugging specialist
+
+### Project-Specific (`_project/`)
+- `legal-text-extractor.md` - Brazilian legal text extraction
+- `legal-articles-finder.md` - Legal article lookup
+- `planejamento-legal.md` - Legal planning
+- `analise-dados-legal.md` - Legal data analysis
+- `documentacao.md` - Portuguese documentation
+- `desenvolvimento.md` - Portuguese development
+- `qualidade-codigo.md` - Code quality (Portuguese)
+
+---
+
+## How to Use
+
+### Invoke an Agent
+```
+Use the [agent-name] agent to [task]
 ```
 
-**Step 3: Use it**
-Ask Claude: "Use the [agent-name] agent to [task]"
+Example:
+```
+Use the code-architecture-reviewer agent to review the new API endpoints
+```
 
-That's it! Agents work immediately.
+### Agent Discovery
 
----
+Agents are auto-discovered recursively from `.claude/agents/**/*.md`.
 
-### Agents Requiring Customization
-
-**frontend-error-fixer:**
-- May reference screenshot paths
-- Ask user: "Where should screenshots be saved?"
-- Update paths in agent file
-
-**auth-route-tester / auth-route-debugger:**
-- Require JWT cookie authentication
-- Update service URLs from examples
-- Customize for user's auth setup
-
-**auto-error-resolver:**
-- May have hardcoded project paths
-- Update to use `$CLAUDE_PROJECT_DIR` or relative paths
+Run discovery manually:
+```bash
+node .claude/hooks/lib/agent-auto-discovery.js --update
+```
 
 ---
 
-## When to Use Agents vs Skills
+## Creating Custom Agents
 
-| Use Agents When... | Use Skills When... |
-|-------------------|-------------------|
-| Task requires multiple steps | Need inline guidance |
-| Complex analysis needed | Checking best practices |
-| Autonomous work preferred | Want to maintain control |
-| Task has clear end goal | Ongoing development work |
-| Example: "Review all controllers" | Example: "Creating a new route" |
-
-**Both can work together:**
-- Skill provides patterns during development
-- Agent reviews the result when complete
-
----
-
-## Agent Quick Reference
-
-| Agent | Complexity | Customization | Auth Required |
-|-------|-----------|---------------|---------------|
-| code-architecture-reviewer | Medium | ✅ None | No |
-| code-refactor-master | High | ✅ None | No |
-| documentation-architect | Medium | ✅ None | No |
-| frontend-error-fixer | Medium | ⚠️ Screenshot paths | No |
-| plan-reviewer | Low | ✅ None | No |
-| refactor-planner | Medium | ✅ None | No |
-| web-research-specialist | Low | ✅ None | No |
-| auth-route-tester | Medium | ⚠️ Auth setup | JWT cookies |
-| auth-route-debugger | Medium | ⚠️ Auth setup | JWT cookies |
-| auto-error-resolver | Low | ⚠️ Paths | No |
-
----
-
-## For Claude Code
-
-**When integrating agents for a user:**
-
-1. **Read [CLAUDE_INTEGRATION_GUIDE.md](../../CLAUDE_INTEGRATION_GUIDE.md)**
-2. **Just copy the .md file** - agents are standalone
-3. **Check for hardcoded paths:**
-   ```bash
-   grep "~/git/\|/root/" agent-name.md
-   ```
-4. **Update paths if found** to `$CLAUDE_PROJECT_DIR` or `.`
-5. **For auth agents:** Ask if they use JWT cookie auth first
-
-**That's it!** Agents are the easiest components to integrate.
-
----
-
-## Creating Your Own Agents
-
-Agents are markdown files with optional YAML frontmatter:
+Create a `.md` file with YAML frontmatter:
 
 ```markdown
-# Agent Name
+---
+name: my-agent
+description: What this agent does
+tools: Read, Write, Edit, Bash
+---
 
-## Purpose
-What this agent does
+# Agent Instructions
 
-## Instructions
-Step-by-step instructions for autonomous execution
-
-## Tools Available
-List of tools this agent can use
-
-## Expected Output
-What format to return results in
+Your detailed instructions here...
 ```
 
-**Tips:**
-- Be very specific in instructions
-- Break complex tasks into numbered steps
-- Specify exactly what to return
-- Include examples of good output
-- List available tools explicitly
+Place in appropriate subdirectory and run discovery.
 
 ---
 
-## Troubleshooting
+## Notes
 
-### Agent not found
-
-**Check:**
-```bash
-# Is agent file present?
-ls -la .claude/agents/[agent-name].md
-```
-
-### Agent fails with path errors
-
-**Check for hardcoded paths:**
-```bash
-grep "~/\|/root/\|/Users/" .claude/agents/[agent-name].md
-```
-
-**Fix:**
-```bash
-sed -i 's|~/git/.*project|$CLAUDE_PROJECT_DIR|g' .claude/agents/[agent-name].md
-```
-
----
-
-## Next Steps
-
-1. **Browse agents above** - Find ones useful for your work
-2. **Copy what you need** - Just the .md file
-3. **Ask Claude to use them** - "Use [agent] to [task]"
-4. **Create your own** - Follow the pattern for your specific needs
-
-**Questions?** See [CLAUDE_INTEGRATION_GUIDE.md](../../CLAUDE_INTEGRATION_GUIDE.md)
+- All agents inherit session model (no `model:` field needed)
+- Agents in subdirectories are fully supported by Claude Code
+- Deduplicated: each agent has exactly one authoritative file
+- Agent names must be lowercase-hyphen format
+- Run `node .claude/hooks/lib/agent-auto-discovery.js --update` after adding/modifying agents

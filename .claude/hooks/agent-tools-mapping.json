@@ -2,8 +2,8 @@
   "$schema": "https://json-schema.org/draft-07/schema#",
   "$comment": "Mapeamento declarativo de agentes → ferramentas disponíveis (AUTO-GENERATED)",
   "version": "2.1.0",
-  "description": "Auto-discovery system: agents são descobertos automaticamente de .claude/agents/*.md",
-  "generated_at": "2025-11-27T22:42:48.551Z",
+  "description": "Auto-discovery system: agents são descobertos automaticamente de .claude/agents/**/*.md (recursive)",
+  "generated_at": "2025-11-30T07:24:29.349Z",
   "agents": {
     "Plan": {
       "tools": [
@@ -66,15 +66,121 @@
       "description": "Vibe-log report generator",
       "critical_instruction": null
     },
-    "ai-engineer": {
+    "agent-organizer": {
       "tools": [
+        "Read",
+        "Write",
+        "Edit",
+        "Grep",
+        "Glob",
+        "Bash",
+        "TodoWrite"
+      ],
+      "description": "A highly advanced AI agent that functions as a master orchestrator for complex, multi-agent tasks. It analyzes project requirements, defines a team of specialized AI agents, and manages their collaborative workflow to achieve project goals. Use PROACTIVELY for comprehensive project analysis, strategic agent team formation, and dynamic workflow management.",
+      "critical_instruction": null
+    },
+    "experiment-tracker": {
+      "tools": [
+        "Read",
+        "Write",
+        "MultiEdit",
+        "Grep",
+        "Glob",
+        "TodoWrite"
+      ],
+      "description": "PROACTIVELY use this agent when experiments are started, modified, or when results need analysis. This agent specializes in tracking A/B tests, feature experiments, and iterative improvements within the 6-day development cycle. Should be triggered automatically when experimental code paths or feature flags are introduced. Examples:\\n\\n<example>\\nContext: When implementing feature flags or A/B test variants\\nuser: \"Add a feature flag to test the new onboarding flow\"\\nassistant: \"I've implemented the feature flag for the onboarding flow A/B test. Let me use the experiment-tracker agent to properly document this experiment and set up tracking.\"\\n<commentary>\\nEvery feature flag represents an experiment that needs proper tracking and success metrics.\\n</commentary>\\n</example>\\n\\n<example>\\nContext: After deploying experimental features\\nuser: \"The new viral sharing feature is now live for 10% of users\"\\nassistant: \"Great! The viral sharing feature is deployed. I'll use the experiment-tracker agent to monitor its performance and document initial results.\"\\n<commentary>\\nLive experiments need immediate tracking setup to capture valuable data from the start.\\n</commentary>\\n</example>\\n\\n<example>\\nContext: When reaching experiment milestones\\nuser: \"It's been a week since we launched the TikTok integration test\"\\nassistant: \"Perfect timing for analysis. Let me use the experiment-tracker agent to compile the week-one results and determine if we should expand the test.\"\\n<commentary>\\nRegular experiment checkpoints ensure data-driven decisions about feature rollouts.\\n</commentary>\\n</example>\\n\\n<example>\\nContext: Before making product decisions\\nuser: \"Should we keep the AI avatar feature or remove it?\"\\nassistant: \"Let me analyze the experiment data to inform this decision. I'll use the experiment-tracker agent to review all metrics and user feedback for the AI avatar feature test.\"\\n<commentary>\\nProduct decisions should be backed by experiment data, not gut feelings.\\n</commentary>\\n</example>",
+      "critical_instruction": null
+    },
+    "gemini-assistant": {
+      "tools": [
+        "Bash",
+        "Read"
+      ],
+      "description": "Use this agent to get a \"second opinion\" from Google Gemini on code analysis, complex problem solving, or when you need alternative perspectives. This agent wraps the Gemini CLI for large context analysis, summarization, and code review. Examples:\\n\\n<example>\\nContext: Getting a second opinion on code architecture\\nuser: \"Ask Gemini to review the authentication module design\"\\nassistant: \"I'll get Gemini's perspective on the authentication architecture. Let me use the gemini-assistant agent to analyze the code and provide alternative viewpoints.\"\\n<commentary>\\nGemini can provide fresh perspectives on design decisions and identify potential issues Claude might have missed.\\n</commentary>\\n</example>\\n\\n<example>\\nContext: Analyzing a large file or codebase section\\nuser: \"Have Gemini analyze the README for improvement suggestions\"\\nassistant: \"I'll send the README to Gemini for analysis. Let me use the gemini-assistant agent to pipe the file content and get detailed feedback.\"\\n<commentary>\\nGemini's large context window is ideal for analyzing complete files and providing comprehensive feedback.\\n</commentary>\\n</example>\\n\\n<example>\\nContext: Complex problem requiring multiple AI perspectives\\nuser: \"Get Gemini's take on optimizing this database query\"\\nassistant: \"I'll consult Gemini for optimization strategies. Let me use the gemini-assistant agent to get alternative approaches.\"\\n<commentary>\\nDifferent AI models may suggest different optimization strategies based on their training data.\\n</commentary>\\n</example>",
+      "critical_instruction": null
+    },
+    "joker": {
+      "tools": [
+        "Write"
+      ],
+      "description": "Use this agent when you need to lighten the mood, create funny content, or add humor to any situation. This agent specializes in dad jokes, programming puns, and startup humor. Examples:\\n\\n<example>\\nContext: Team needs a laugh during a stressful sprint\\nuser: \"We've been debugging for hours and everyone's frustrated\"\\nassistant: \"Time for a morale boost! Let me use the joker agent to share some programming humor.\"\\n<commentary>\\nHumor can help reset team energy during challenging moments.\\n</commentary>\\n</example>\\n\\n<example>\\nContext: Creating fun error messages\\nuser: \"Our 404 page is boring\"\\nassistant: \"Let's make that error page memorable! I'll use the joker agent to create some funny 404 messages.\"\\n<commentary>\\nHumorous error pages can turn frustration into delight.\\n</commentary>\\n</example>",
+      "critical_instruction": null
+    },
+    "plan-reviewer": {
+      "tools": [
+        "Read",
+        "Glob",
+        "Grep",
+        "WebFetch",
+        "WebSearch"
+      ],
+      "description": "Use this agent when you have a development plan that needs thorough review before implementation to identify potential issues, missing considerations, or better alternatives. Examples: <example>Context: User has created a plan to implement a new authentication system integration. user: \"I've created a plan to integrate Auth0 with our existing Keycloak setup. Can you review this plan before I start implementation?\" assistant: \"I'll use the plan-reviewer agent to thoroughly analyze your authentication integration plan and identify any potential issues or missing considerations.\" <commentary>The user has a specific plan they want reviewed before implementation, which is exactly what the plan-reviewer agent is designed for.</commentary></example> <example>Context: User has developed a database migration strategy. user: \"Here's my plan for migrating our user data to a new schema. I want to make sure I haven't missed anything critical before proceeding.\" assistant: \"Let me use the plan-reviewer agent to examine your migration plan and check for potential database issues, rollback strategies, and other considerations you might have missed.\" <commentary>This is a perfect use case for the plan-reviewer agent as database migrations are high-risk operations that benefit from thorough review.</commentary></example>",
+      "critical_instruction": null
+    },
+    "project-shipper": {
+      "tools": [
+        "Read",
+        "Write",
+        "MultiEdit",
+        "Grep",
+        "Glob",
+        "TodoWrite",
+        "WebSearch"
+      ],
+      "description": "PROACTIVELY use this agent when approaching launch milestones, release deadlines, or go-to-market activities. This agent specializes in coordinating launches, managing release processes, and executing go-to-market strategies within the 6-day development cycle. Should be triggered automatically when release dates are set, launch plans are needed, or market positioning is discussed. Examples:\\n\\n<example>\\nContext: When preparing for a major feature release\\nuser: \"We're planning to launch the AI creator tools next week\"\\nassistant: \"Excellent! A major feature launch requires careful coordination. Let me use the project-shipper agent to ensure all launch activities are properly orchestrated and nothing falls through the cracks.\"\\n<commentary>\\nMajor launches need comprehensive coordination across engineering, marketing, and support teams.\\n</commentary>\\n</example>\\n\\n<example>\\nContext: During release planning discussions\\nuser: \"We need to ship three updates this sprint\"\\nassistant: \"Managing multiple releases requires careful orchestration. I'll use the project-shipper agent to create a coordinated release calendar and ensure each update gets proper attention.\"\\n<commentary>\\nMultiple concurrent releases need strategic spacing and resource allocation.\\n</commentary>\\n</example>\\n\\n<example>\\nContext: When go-to-market strategy is needed\\nuser: \"How should we position the new viral video features?\"\\nassistant: \"Positioning is crucial for feature adoption. Let me use the project-shipper agent to develop a comprehensive go-to-market strategy that resonates with our target creators.\"\\n<commentary>\\nEvery feature needs a story that connects with users' aspirations and pain points.\\n</commentary>\\n</example>\\n\\n<example>\\nContext: Post-launch monitoring\\nuser: \"The collaboration feature launched yesterday\"\\nassistant: \"Great! The critical first 48 hours determine success. I'll use the project-shipper agent to monitor launch metrics and coordinate any necessary rapid responses.\"\\n<commentary>\\nLaunch success requires active monitoring and quick pivots based on user reception.\\n</commentary>\\n</example>",
+      "critical_instruction": null
+    },
+    "refactor-planner": {
+      "tools": [
+        "Read",
+        "Glob",
+        "Grep"
+      ],
+      "description": "Use this agent when you need to analyze code structure and create comprehensive refactoring plans. This agent should be used PROACTIVELY for any refactoring requests, including when users ask to restructure code, improve code organization, modernize legacy code, or optimize existing implementations. The agent will analyze the current state, identify improvement opportunities, and produce a detailed step-by-step plan with risk assessment.\\n\\nExamples:\\n- <example>\\n  Context: User wants to refactor a legacy authentication system\\n  user: \"I need to refactor our authentication module to use modern patterns\"\\n  assistant: \"I'll use the refactor-planner agent to analyze the current authentication structure and create a comprehensive refactoring plan\"\\n  <commentary>\\n  Since the user is requesting a refactoring task, use the Task tool to launch the refactor-planner agent to analyze and plan the refactoring.\\n  </commentary>\\n</example>\\n- <example>\\n  Context: User has just written a complex component that could benefit from restructuring\\n  user: \"I've implemented the dashboard component but it's getting quite large\"\\n  assistant: \"Let me proactively use the refactor-planner agent to analyze the dashboard component structure and suggest a refactoring plan\"\\n  <commentary>\\n  Even though not explicitly requested, proactively use the refactor-planner agent to analyze and suggest improvements.\\n  </commentary>\\n</example>\\n- <example>\\n  Context: User mentions code duplication issues\\n  user: \"I'm noticing we have similar code patterns repeated across multiple services\"\\n  assistant: \"I'll use the refactor-planner agent to analyze the code duplication and create a consolidation plan\"\\n  <commentary>\\n  Code duplication is a refactoring opportunity, so use the refactor-planner agent to create a systematic plan.\\n  </commentary>\\n</example>",
+      "critical_instruction": null
+    },
+    "studio-coach": {
+      "tools": [
+        "Task",
+        "Write",
+        "Read"
+      ],
+      "description": "PROACTIVELY use this agent when complex multi-agent tasks begin, when agents seem stuck or overwhelmed, or when the team needs motivation and coordination. This agent serves as the elite performance coach for all other agents, ensuring they operate at their highest level while maintaining composure and excellence. Should be triggered automatically at the start of challenging projects or when detecting agent confusion. Examples:\\n\\n<example>\\nContext: Starting a complex project requiring multiple agents\\nuser: \"We need to build a viral TikTok app in 2 weeks\"\\nassistant: \"This is an ambitious goal that will require our A-team! Let me bring in the studio-coach to coordinate our agents and ensure everyone performs at their peak.\"\\n<commentary>\\nComplex projects benefit from having a coach to keep all agents aligned and motivated.\\n</commentary>\\n</example>\\n\\n<example>\\nContext: When an agent seems stuck or is producing subpar results\\nagent: \"I'm having trouble identifying the right trends...\"\\nassistant: \"Let me bring in the studio-coach to help refocus and elevate your approach.\"\\n<commentary>\\nAgents can get overwhelmed or lose focus - the coach helps them recenter and excel.\\n</commentary>\\n</example>\\n\\n<example>\\nContext: Before launching a major sprint or initiative\\nuser: \"Tomorrow we start the 6-day sprint for our biggest project yet\"\\nassistant: \"Time to rally the team! I'll have the studio-coach prepare everyone mentally and strategically for peak performance.\"\\n<commentary>\\nPre-sprint coaching ensures all agents start with clarity, confidence, and coordination.\\n</commentary>\\n</example>\\n\\n<example>\\nContext: When celebrating wins or learning from failures\\nuser: \"Our app just hit #1 on the App Store!\"\\nassistant: \"Incredible achievement! Let me bring in the studio-coach to celebrate with the team and capture what made this success possible.\"\\n<commentary>\\nThe coach helps institutionalize wins and extract learnings from both successes and failures.\\n</commentary>\\n</example>",
+      "critical_instruction": null
+    },
+    "studio-producer": {
+      "tools": [
+        "Read",
+        "Write",
+        "MultiEdit",
+        "Grep",
+        "Glob",
+        "TodoWrite"
+      ],
+      "description": "PROACTIVELY use this agent when coordinating across multiple teams, allocating resources, or optimizing studio workflows. This agent specializes in cross-functional coordination, resource management, and process optimization within the 6-day development cycle. Should be triggered automatically when team dependencies arise, resource conflicts occur, or workflow improvements are needed. Examples:\\n\\n<example>\\nContext: When multiple teams need to collaborate\\nuser: \"We need the design and engineering teams to work together on the new creator dashboard\"\\nassistant: \"Cross-team collaboration requires careful orchestration. Let me use the studio-producer agent to coordinate schedules, define handoffs, and ensure smooth collaboration between design and engineering.\"\\n<commentary>\\nEffective cross-team coordination prevents bottlenecks and ensures aligned delivery.\\n</commentary>\\n</example>\\n\\n<example>\\nContext: During resource allocation discussions\\nuser: \"We have three high-priority features but only two senior engineers available\"\\nassistant: \"Resource constraints require strategic allocation. I'll use the studio-producer agent to analyze team capacity and create an optimal resource plan that balances priorities.\"\\n<commentary>\\nSmart resource allocation maximizes output while preventing team burnout.\\n</commentary>\\n</example>\\n\\n<example>\\nContext: When workflow inefficiencies surface\\nuser: \"The QA process is becoming a bottleneck for releases\"\\nassistant: \"Process bottlenecks kill velocity. Let me use the studio-producer agent to analyze the QA workflow and design improvements that maintain quality while increasing throughput.\"\\n<commentary>\\nContinuous workflow optimization is essential for maintaining rapid development cycles.\\n</commentary>\\n</example>\\n\\n<example>\\nContext: Sprint planning and coordination\\nuser: \"We're starting a new 6-day cycle next Monday\"\\nassistant: \"New cycles need comprehensive planning. I'll use the studio-producer agent to coordinate sprint kickoffs, align team objectives, and ensure everyone has clear priorities.\"\\n<commentary>\\nWell-coordinated sprint starts set the tone for successful 6-day cycles.\\n</commentary>\\n</example>",
+      "critical_instruction": null
+    },
+    "tool-evaluator": {
+      "tools": [
+        "WebSearch",
+        "WebFetch",
         "Write",
         "Read",
-        "MultiEdit",
-        "Bash",
-        "WebFetch"
+        "Bash"
       ],
-      "description": "Use this agent when implementing AI/ML features, integrating language models, building recommendation systems, or adding intelligent automation to applications. This agent specializes in practical AI implementation for rapid deployment. Examples:\\n\\n<example>\\nContext: Adding AI features to an app\\nuser: \"We need AI-powered content recommendations\"\\nassistant: \"I'll implement a smart recommendation engine. Let me use the ai-engineer agent to build an ML pipeline that learns from user behavior.\"\\n<commentary>\\nRecommendation systems require careful ML implementation and continuous learning capabilities.\\n</commentary>\\n</example>\\n\\n<example>\\nContext: Integrating language models\\nuser: \"Add an AI chatbot to help users navigate our app\"\\nassistant: \"I'll integrate a conversational AI assistant. Let me use the ai-engineer agent to implement proper prompt engineering and response handling.\"\\n<commentary>\\nLLM integration requires expertise in prompt design, token management, and response streaming.\\n</commentary>\\n</example>\\n\\n<example>\\nContext: Implementing computer vision features\\nuser: \"Users should be able to search products by taking a photo\"\\nassistant: \"I'll implement visual search using computer vision. Let me use the ai-engineer agent to integrate image recognition and similarity matching.\"\\n<commentary>\\nComputer vision features require efficient processing and accurate model selection.\\n</commentary>\\n</example>",
+      "description": "Use this agent when evaluating new development tools, frameworks, or services for the studio. This agent specializes in rapid tool assessment, comparative analysis, and making recommendations that align with the 6-day development cycle philosophy. Examples:\\n\\n<example>\\nContext: Considering a new framework or library",
+      "critical_instruction": null
+    },
+    "workflow-optimizer": {
+      "tools": [
+        "Read",
+        "Write",
+        "Bash",
+        "TodoWrite",
+        "MultiEdit",
+        "Grep"
+      ],
+      "description": "Use this agent for optimizing human-agent collaboration workflows and analyzing workflow efficiency. This agent specializes in identifying bottlenecks, streamlining processes, and ensuring smooth handoffs between human creativity and AI assistance. Examples:\\n\\n<example>\\nContext: Improving development workflow efficiency",
       "critical_instruction": null
     },
     "analise-dados-legal": {
@@ -85,79 +191,6 @@
         "Bash"
       ],
       "description": "Analisar dados jurídicos e criar visualizações insights - métricas legais, publicações DJEN, estatísticas OAB",
-      "critical_instruction": null
-    },
-    "api-tester": {
-      "tools": [
-        "Bash",
-        "Read",
-        "Write",
-        "Grep",
-        "WebFetch",
-        "MultiEdit"
-      ],
-      "description": "Use this agent for comprehensive API testing including performance testing, load testing, and contract testing. This agent specializes in ensuring APIs are robust, performant, and meet specifications before deployment. Examples:\\n\\n<example>\\nContext: Testing API performance under load",
-      "critical_instruction": null
-    },
-    "auth-route-debugger": {
-      "tools": [
-        "Read",
-        "Glob",
-        "Grep",
-        "Bash",
-        "WebFetch",
-        "WebSearch"
-      ],
-      "description": "Use this agent when you need to debug authentication-related issues with API routes, including 401/403 errors, cookie problems, JWT token issues, route registration problems, or when routes are returning 'not found' despite being defined. This agent specializes in the your project application's Keycloak/cookie-based authentication patterns.\\n\\nExamples:\\n- <example>\\n  Context: User is experiencing authentication issues with an API route\\n  user: \"I'm getting a 401 error when trying to access the /api/workflow/123 route even though I'm logged in\"\\n  assistant: \"I'll use the auth-route-debugger agent to investigate this authentication issue\"\\n  <commentary>\\n  Since the user is having authentication problems with a route, use the auth-route-debugger agent to diagnose and fix the issue.\\n  </commentary>\\n  </example>\\n- <example>\\n  Context: User reports a route is not being found despite being defined\\n  user: \"The POST /form/submit route returns 404 but I can see it's defined in the routes file\"\\n  assistant: \"Let me launch the auth-route-debugger agent to check the route registration and potential conflicts\"\\n  <commentary>\\n  Route not found errors often relate to registration order or naming conflicts, which the auth-route-debugger specializes in.\\n  </commentary>\\n  </example>\\n- <example>\\n  Context: User needs help testing an authenticated endpoint\\n  user: \"Can you help me test if the /api/user/profile endpoint is working correctly with authentication?\"\\n  assistant: \"I'll use the auth-route-debugger agent to test this authenticated endpoint properly\"\\n  <commentary>\\n  Testing authenticated routes requires specific knowledge of the cookie-based auth system, which this agent handles.\\n  </commentary>\\n  </example>",
-      "critical_instruction": null
-    },
-    "auth-route-tester": {
-      "tools": [
-        "Read",
-        "Glob",
-        "Grep",
-        "Bash"
-      ],
-      "description": "Use this agent when you need to test routes after implementing or modifying them. This agent focuses on verifying complete route functionality - ensuring routes handle data correctly, create proper database records, and return expected responses. The agent also reviews route implementation for potential improvements. Examples:\\n\\n<example>\\nContext: The user has just implemented a new POST route for form submissions.\\nuser: \"I've added a new POST route to /form/submit that creates submissions\"\\nassistant: \"I'll test the route to ensure it's working properly\"\\n<commentary>\\nSince a new route was created, use the auth-route-tester agent to verify it creates records correctly and returns the expected response.\\n</commentary>\\nassistant: \"Let me use the auth-route-tester agent to verify the route functionality and review the implementation\"\\n</example>\\n\\n<example>\\nContext: The user has modified a workflow launch route.\\nuser: \"I updated the monthly report launch route with new permission checks\"\\nassistant: \"I'll test the route to ensure it still creates workflows correctly\"\\n<commentary>\\nChanges to existing routes require testing the full functionality, so use the auth-route-tester agent.\\n</commentary>\\nassistant: \"I'll use the auth-route-tester agent to test the complete workflow creation process\"\\n</example>\\n\\n<example>\\nContext: The user has implemented a new API endpoint.\\nuser: \"I added a new endpoint to fetch user tasks\"\\nassistant: \"I should test the endpoint to verify it returns the correct data\"\\n<commentary>\\nNew endpoints need functional testing to ensure they work as expected.\\n</commentary>\\nassistant: \"Let me launch the auth-route-tester agent to verify the endpoint returns tasks properly\"\\n</example>",
-      "critical_instruction": null
-    },
-    "auto-error-resolver": {
-      "tools": [
-        "Read",
-        "Write",
-        "Edit",
-        "MultiEdit",
-        "Bash"
-      ],
-      "description": "Automatically fix TypeScript compilation errors",
-      "critical_instruction": null
-    },
-    "backend-architect": {
-      "tools": [
-        "Write",
-        "Read",
-        "MultiEdit",
-        "Bash",
-        "Grep"
-      ],
-      "description": "Use this agent when designing APIs, building server-side logic, implementing databases, or architecting scalable backend systems. This agent specializes in creating robust, secure, and performant backend services. Examples:\\n\\n<example>\\nContext: Designing a new API\\nuser: \"We need an API for our social sharing feature\"\\nassistant: \"I'll design a RESTful API with proper authentication and rate limiting. Let me use the backend-architect agent to create a scalable backend architecture.\"\\n<commentary>\\nAPI design requires careful consideration of security, scalability, and maintainability.\\n</commentary>\\n</example>\\n\\n<example>\\nContext: Database design and optimization\\nuser: \"Our queries are getting slow as we scale\"\\nassistant: \"Database performance is critical at scale. I'll use the backend-architect agent to optimize queries and implement proper indexing strategies.\"\\n<commentary>\\nDatabase optimization requires deep understanding of query patterns and indexing strategies.\\n</commentary>\\n</example>\\n\\n<example>\\nContext: Implementing authentication system\\nuser: \"Add OAuth2 login with Google and GitHub\"\\nassistant: \"I'll implement secure OAuth2 authentication. Let me use the backend-architect agent to ensure proper token handling and security measures.\"\\n<commentary>\\nAuthentication systems require careful security considerations and proper implementation.\\n</commentary>\\n</example>",
-      "critical_instruction": null
-    },
-    "code-architecture-reviewer": {
-      "tools": [
-        "Read",
-        "Glob",
-        "Grep",
-        "Edit"
-      ],
-      "description": "Use this agent when you need to review recently written code for adherence to best practices, architectural consistency, and system integration. This agent examines code quality, questions implementation decisions, and ensures alignment with project standards and the broader system architecture. Examples:\\n\\n<example>\\nContext: The user has just implemented a new API endpoint and wants to ensure it follows project patterns.\\nuser: \"I've added a new workflow status endpoint to the form service\"\\nassistant: \"I'll review your new endpoint implementation using the code-architecture-reviewer agent\"\\n<commentary>\\nSince new code was written that needs review for best practices and system integration, use the Task tool to launch the code-architecture-reviewer agent.\\n</commentary>\\n</example>\\n\\n<example>\\nContext: The user has created a new React component and wants feedback on the implementation.\\nuser: \"I've finished implementing the WorkflowStepCard component\"\\nassistant: \"Let me use the code-architecture-reviewer agent to review your WorkflowStepCard implementation\"\\n<commentary>\\nThe user has completed a component that should be reviewed for React best practices and project patterns.\\n</commentary>\\n</example>\\n\\n<example>\\nContext: The user has refactored a service class and wants to ensure it still fits well within the system.\\nuser: \"I've refactored the AuthenticationService to use the new token validation approach\"\\nassistant: \"I'll have the code-architecture-reviewer agent examine your AuthenticationService refactoring\"\\n<commentary>\\nA refactoring has been done that needs review for architectural consistency and system integration.\\n</commentary>\\n</example>",
-      "critical_instruction": null
-    },
-    "code-refactor-master": {
-      "tools": [
-        "*"
-      ],
-      "description": "Use this agent when you need to refactor code for better organization, cleaner architecture, or improved maintainability. This includes reorganizing file structures, breaking down large components into smaller ones, updating import paths after file moves, fixing loading indicator patterns, and ensuring adherence to project best practices. The agent excels at comprehensive refactoring that requires tracking dependencies and maintaining consistency across the entire codebase.\\n\\n<example>\\nContext: The user wants to reorganize a messy component structure with large files and poor organization.\\nuser: \"This components folder is a mess with huge files. Can you help refactor it?\"\\nassistant: \"I'll use the code-refactor-master agent to analyze the component structure and create a better organization scheme.\"\\n<commentary>\\nSince the user needs help with refactoring and reorganizing components, use the code-refactor-master agent to analyze the current structure and propose improvements.\\n</commentary>\\n</example>\\n\\n<example>\\nContext: The user has identified multiple components using early returns with loading indicators instead of proper loading components.\\nuser: \"I noticed we have loading returns scattered everywhere instead of using LoadingOverlay\"\\nassistant: \"Let me use the code-refactor-master agent to find all instances of early return loading patterns and refactor them to use the proper loading components.\"\\n<commentary>\\nThe user has identified a pattern that violates best practices, so use the code-refactor-master agent to systematically find and fix all occurrences.\\n</commentary>\\n</example>\\n\\n<example>\\nContext: The user wants to break down a large component file into smaller, more manageable pieces.\\nuser: \"The Dashboard.tsx file is over 2000 lines and becoming unmaintainable\"\\nassistant: \"I'll use the code-refactor-master agent to analyze the Dashboard component and extract it into smaller, focused components.\"\\n<commentary>\\nThe user needs help breaking down a large component, which requires careful analysis of dependencies and proper extraction - perfect for the code-refactor-master agent.\\n</commentary>\\n</example>",
       "critical_instruction": null
     },
     "desenvolvimento": {
@@ -172,17 +205,6 @@
       "description": "Implementação técnica hands-on - coding, refactoring, Git operations, TDD, code review",
       "critical_instruction": null
     },
-    "devops-automator": {
-      "tools": [
-        "Write",
-        "Read",
-        "MultiEdit",
-        "Bash",
-        "Grep"
-      ],
-      "description": "Use this agent when setting up CI/CD pipelines, configuring cloud infrastructure, implementing monitoring systems, or automating deployment processes. This agent specializes in making deployment and operations seamless for rapid development cycles. Examples:\\n\\n<example>\\nContext: Setting up automated deployments\\nuser: \"We need automatic deployments when we push to main\"\\nassistant: \"I'll set up a complete CI/CD pipeline. Let me use the devops-automator agent to configure automated testing, building, and deployment.\"\\n<commentary>\\nAutomated deployments require careful pipeline configuration and proper testing stages.\\n</commentary>\\n</example>\\n\\n<example>\\nContext: Infrastructure scaling issues\\nuser: \"Our app crashes when we get traffic spikes\"\\nassistant: \"I'll implement auto-scaling and load balancing. Let me use the devops-automator agent to ensure your infrastructure handles traffic gracefully.\"\\n<commentary>\\nScaling requires proper infrastructure setup with monitoring and automatic responses.\\n</commentary>\\n</example>\\n\\n<example>\\nContext: Monitoring and alerting setup\\nuser: \"We have no idea when things break in production\"\\nassistant: \"Observability is crucial for rapid iteration. I'll use the devops-automator agent to set up comprehensive monitoring and alerting.\"\\n<commentary>\\nProper monitoring enables fast issue detection and resolution in production.\\n</commentary>\\n</example>",
-      "critical_instruction": null
-    },
     "documentacao": {
       "tools": [
         "Read",
@@ -192,43 +214,6 @@
         "Grep"
       ],
       "description": "Criar e manter documentação técnica de alta qualidade - arquitetura, APIs, guias, onboarding",
-      "critical_instruction": null
-    },
-    "documentation-architect": {
-      "tools": [
-        "Read",
-        "Write",
-        "Glob",
-        "Grep"
-      ],
-      "description": "Use this agent when you need to create, update, or enhance documentation for any part of the codebase. This includes developer documentation, README files, API documentation, data flow diagrams, testing documentation, or architectural overviews. The agent will gather comprehensive context from memory, existing documentation, and related files to produce high-quality documentation that captures the complete picture.\\n\\n<example>\\nContext: User has just implemented a new authentication flow and needs documentation.\\nuser: \"I've finished implementing the JWT cookie-based authentication. Can you document this?\"\\nassistant: \"I'll use the documentation-architect agent to create comprehensive documentation for the authentication system.\"\\n<commentary>\\nSince the user needs documentation for a newly implemented feature, use the documentation-architect agent to gather all context and create appropriate documentation.\\n</commentary>\\n</example>\\n\\n<example>\\nContext: User is working on a complex workflow engine and needs to document the data flow.\\nuser: \"The workflow engine is getting complex. We need to document how data flows through the system.\"\\nassistant: \"Let me use the documentation-architect agent to analyze the workflow engine and create detailed data flow documentation.\"\\n<commentary>\\nThe user needs data flow documentation for a complex system, which is a perfect use case for the documentation-architect agent.\\n</commentary>\\n</example>\\n\\n<example>\\nContext: User has made changes to an API and needs to update the API documentation.\\nuser: \"I've added new endpoints to the form service API. The docs need updating.\"\\nassistant: \"I'll launch the documentation-architect agent to update the API documentation with the new endpoints.\"\\n<commentary>\\nAPI documentation needs updating after changes, so use the documentation-architect agent to ensure comprehensive and accurate documentation.\\n</commentary>\\n</example>",
-      "critical_instruction": null
-    },
-    "frontend-developer": {
-      "tools": [
-        "Write",
-        "Read",
-        "MultiEdit",
-        "Bash",
-        "Grep",
-        "Glob"
-      ],
-      "description": "Use this agent when building user interfaces, implementing React/Vue/Angular components, handling state management, or optimizing frontend performance. This agent excels at creating responsive, accessible, and performant web applications. Examples:\\n\\n<example>\\nContext: Building a new user interface\\nuser: \"Create a dashboard for displaying user analytics\"\\nassistant: \"I'll build an analytics dashboard with interactive charts. Let me use the frontend-developer agent to create a responsive, data-rich interface.\"\\n<commentary>\\nComplex UI components require frontend expertise for proper implementation and performance.\\n</commentary>\\n</example>\\n\\n<example>\\nContext: Fixing UI/UX issues\\nuser: \"The mobile navigation is broken on small screens\"\\nassistant: \"I'll fix the responsive navigation issues. Let me use the frontend-developer agent to ensure it works perfectly across all device sizes.\"\\n<commentary>\\nResponsive design issues require deep understanding of CSS and mobile-first development.\\n</commentary>\\n</example>\\n\\n<example>\\nContext: Optimizing frontend performance\\nuser: \"Our app feels sluggish when loading large datasets\"\\nassistant: \"Performance optimization is crucial for user experience. I'll use the frontend-developer agent to implement virtualization and optimize rendering.\"\\n<commentary>\\nFrontend performance requires expertise in React rendering, memoization, and data handling.\\n</commentary>\\n</example>",
-      "critical_instruction": null
-    },
-    "frontend-error-fixer": {
-      "tools": [
-        "*"
-      ],
-      "description": "Use this agent when you encounter frontend errors, whether they appear during the build process (TypeScript, bundling, linting errors) or at runtime in the browser console (JavaScript errors, React errors, network issues). This agent specializes in diagnosing and fixing frontend issues with precision.\\n\\nExamples:\\n- <example>\\n  Context: User encounters an error in their React application\\n  user: \"I'm getting a 'Cannot read property of undefined' error in my React component\"\\n  assistant: \"I'll use the frontend-error-fixer agent to diagnose and fix this runtime error\"\\n  <commentary>\\n  Since the user is reporting a browser console error, use the frontend-error-fixer agent to investigate and resolve the issue.\\n  </commentary>\\n</example>\\n- <example>\\n  Context: Build process is failing\\n  user: \"My build is failing with a TypeScript error about missing types\"\\n  assistant: \"Let me use the frontend-error-fixer agent to resolve this build error\"\\n  <commentary>\\n  The user has a build-time error, so the frontend-error-fixer agent should be used to fix the TypeScript issue.\\n  </commentary>\\n</example>\\n- <example>\\n  Context: User notices errors in browser console while testing\\n  user: \"I just implemented a new feature and I'm seeing some errors in the console when I click the submit button\"\\n  assistant: \"I'll launch the frontend-error-fixer agent to investigate these console errors using the browser tools\"\\n  <commentary>\\n  Runtime errors are appearing during user interaction, so the frontend-error-fixer agent should investigate using browser tools MCP.\\n  </commentary>\\n</example>",
-      "critical_instruction": null
-    },
-    "gemini-assistant": {
-      "tools": [
-        "Bash",
-        "Read"
-      ],
-      "description": "Use this agent to get a \"second opinion\" from Google Gemini on code analysis, complex problem solving, or when you need alternative perspectives. This agent wraps the Gemini CLI for large context analysis, summarization, and code review. Examples:\\n\\n<example>\\nContext: Getting a second opinion on code architecture\\nuser: \"Ask Gemini to review the authentication module design\"\\nassistant: \"I'll get Gemini's perspective on the authentication architecture. Let me use the gemini-assistant agent to analyze the code and provide alternative viewpoints.\"\\n<commentary>\\nGemini can provide fresh perspectives on design decisions and identify potential issues Claude might have missed.\\n</commentary>\\n</example>\\n\\n<example>\\nContext: Analyzing a large file or codebase section\\nuser: \"Have Gemini analyze the README for improvement suggestions\"\\nassistant: \"I'll send the README to Gemini for analysis. Let me use the gemini-assistant agent to pipe the file content and get detailed feedback.\"\\n<commentary>\\nGemini's large context window is ideal for analyzing complete files and providing comprehensive feedback.\\n</commentary>\\n</example>\\n\\n<example>\\nContext: Complex problem requiring multiple AI perspectives\\nuser: \"Get Gemini's take on optimizing this database query\"\\nassistant: \"I'll consult Gemini for optimization strategies. Let me use the gemini-assistant agent to get alternative approaches.\"\\n<commentary>\\nDifferent AI models may suggest different optimization strategies based on their training data.\\n</commentary>\\n</example>",
       "critical_instruction": null
     },
     "legal-articles-finder": {
@@ -247,40 +232,6 @@
         "Grep"
       ],
       "description": "Agent: legal-text-extractor",
-      "critical_instruction": null
-    },
-    "mobile-app-builder": {
-      "tools": [
-        "Write",
-        "Read",
-        "MultiEdit",
-        "Bash",
-        "Grep"
-      ],
-      "description": "Use this agent when developing native iOS or Android applications, implementing React Native features, or optimizing mobile performance. This agent specializes in creating smooth, native-feeling mobile experiences. Examples:\\n\\n<example>\\nContext: Building a new mobile app\\nuser: \"Create a TikTok-style video feed for our app\"\\nassistant: \"I'll build a performant video feed with smooth scrolling. Let me use the mobile-app-builder agent to implement native performance optimizations.\"\\n<commentary>\\nVideo feeds require careful mobile optimization for smooth scrolling and memory management.\\n</commentary>\\n</example>\\n\\n<example>\\nContext: Implementing mobile-specific features\\nuser: \"Add push notifications and biometric authentication\"\\nassistant: \"I'll implement native push notifications and Face ID/fingerprint auth. Let me use the mobile-app-builder agent to ensure proper platform integration.\"\\n<commentary>\\nNative features require platform-specific implementation and proper permissions handling.\\n</commentary>\\n</example>\\n\\n<example>\\nContext: Cross-platform development\\nuser: \"We need this feature on both iOS and Android\"\\nassistant: \"I'll implement it using React Native for code reuse. Let me use the mobile-app-builder agent to ensure native performance on both platforms.\"\\n<commentary>\\nCross-platform development requires balancing code reuse with platform-specific optimizations.\\n</commentary>\\n</example>",
-      "critical_instruction": null
-    },
-    "performance-benchmarker": {
-      "tools": [
-        "Bash",
-        "Read",
-        "Write",
-        "Grep",
-        "MultiEdit",
-        "WebFetch"
-      ],
-      "description": "Use this agent for comprehensive performance testing, profiling, and optimization recommendations. This agent specializes in measuring speed, identifying bottlenecks, and providing actionable optimization strategies for applications. Examples:\\n\\n<example>\\nContext: Application speed testing",
-      "critical_instruction": null
-    },
-    "plan-reviewer": {
-      "tools": [
-        "Read",
-        "Glob",
-        "Grep",
-        "WebFetch",
-        "WebSearch"
-      ],
-      "description": "Use this agent when you have a development plan that needs thorough review before implementation to identify potential issues, missing considerations, or better alternatives. Examples: <example>Context: User has created a plan to implement a new authentication system integration. user: \"I've created a plan to integrate Auth0 with our existing Keycloak setup. Can you review this plan before I start implementation?\" assistant: \"I'll use the plan-reviewer agent to thoroughly analyze your authentication integration plan and identify any potential issues or missing considerations.\" <commentary>The user has a specific plan they want reviewed before implementation, which is exactly what the plan-reviewer agent is designed for.</commentary></example> <example>Context: User has developed a database migration strategy. user: \"Here's my plan for migrating our user data to a new schema. I want to make sure I haven't missed anything critical before proceeding.\" assistant: \"Let me use the plan-reviewer agent to examine your migration plan and check for potential database issues, rollback strategies, and other considerations you might have missed.\" <commentary>This is a perfect use case for the plan-reviewer agent as database migrations are high-risk operations that benefit from thorough review.</commentary></example>",
       "critical_instruction": null
     },
     "planejamento-legal": {
@@ -304,6 +255,571 @@
       "description": "Garantir qualidade, segurança e performance do código - code review, testing, debugging, auditoria",
       "critical_instruction": null
     },
+    "feedback-synthesizer": {
+      "tools": [
+        "Read",
+        "Write",
+        "Grep",
+        "WebFetch",
+        "MultiEdit"
+      ],
+      "description": "Use this agent when you need to analyze user feedback from multiple sources, identify patterns in user complaints or requests, synthesize insights from reviews, or prioritize feature development based on user input. This agent excels at turning raw feedback into actionable product insights. Examples:\\n\\n<example>\\nContext: Weekly review of user feedback",
+      "critical_instruction": null
+    },
+    "product-manager": {
+      "tools": [
+        "Read",
+        "Write",
+        "Edit",
+        "Grep",
+        "Glob",
+        "Bash",
+        "LS",
+        "WebSearch",
+        "WebFetch",
+        "TodoWrite",
+        "Task",
+        "mcp__context7__resolve-library-id",
+        "mcp__context7__get-library-docs",
+        "mcp__sequential-thinking__sequentialthinking"
+      ],
+      "description": "A strategic and customer-focused AI Product Manager for defining product vision, strategy, and roadmaps, and leading cross-functional teams to deliver successful products. Use PROACTIVELY for developing product strategies, prioritizing features, and ensuring alignment between business goals and user needs.",
+      "critical_instruction": null
+    },
+    "sprint-prioritizer": {
+      "tools": [
+        "Write",
+        "Read",
+        "TodoWrite",
+        "Grep"
+      ],
+      "description": "Use this agent when planning 6-day development cycles, prioritizing features, managing product roadmaps, or making trade-off decisions. This agent specializes in maximizing value delivery within tight timelines. Examples:\\n\\n<example>\\nContext: Planning the next sprint\\nuser: \"We have 50 feature requests but only 6 days\"\\nassistant: \"I'll help prioritize for maximum impact. Let me use the sprint-prioritizer agent to create a focused sprint plan that delivers the most value.\"\\n<commentary>\\nSprint planning requires balancing user needs, technical constraints, and business goals.\\n</commentary>\\n</example>\\n\\n<example>\\nContext: Making feature trade-offs\\nuser: \"Should we build AI chat or improve onboarding?\"\\nassistant: \"Let's analyze the impact of each option. I'll use the sprint-prioritizer agent to evaluate ROI and make a data-driven recommendation.\"\\n<commentary>\\nFeature prioritization requires analyzing user impact, development effort, and strategic alignment.\\n</commentary>\\n</example>\\n\\n<example>\\nContext: Mid-sprint scope changes\\nuser: \"The CEO wants us to add video calling to this sprint\"\\nassistant: \"I'll assess the impact on current commitments. Let me use the sprint-prioritizer agent to reorganize priorities while maintaining sprint goals.\"\\n<commentary>\\nScope changes require careful rebalancing to avoid sprint failure.\\n</commentary>\\n</example>",
+      "critical_instruction": null
+    },
+    "trend-researcher": {
+      "tools": [
+        "WebSearch",
+        "WebFetch",
+        "Read",
+        "Write",
+        "Grep"
+      ],
+      "description": "Use this agent when you need to identify market opportunities, analyze trending topics, research viral content, or understand emerging user behaviors. This agent specializes in finding product opportunities from TikTok trends, App Store patterns, and social media virality. Examples:\\n\\n<example>\\nContext: Looking for new app ideas based on current trends\\nuser: \"What's trending on TikTok that we could build an app around?\"\\nassistant: \"I'll research current TikTok trends that have app potential. Let me use the trend-researcher agent to analyze viral content and identify opportunities.\"\\n<commentary>\\nWhen seeking new product ideas, the trend-researcher can identify viral trends with commercial potential.\\n</commentary>\\n</example>\\n\\n<example>\\nContext: Validating a product concept against market trends\\nuser: \"Is there market demand for an app that helps introverts network?\"\\nassistant: \"Let me validate this concept against current market trends. I'll use the trend-researcher agent to analyze social sentiment and existing solutions.\"\\n<commentary>\\nBefore building, validate ideas against real market signals and user behavior patterns.\\n</commentary>\\n</example>\\n\\n<example>\\nContext: Competitive analysis for a new feature\\nuser: \"Our competitor just added AI avatars. Should we care?\"\\nassistant: \"I'll analyze the market impact and user reception of AI avatars. Let me use the trend-researcher agent to assess this feature's traction.\"\\n<commentary>\\nCompetitive features need trend analysis to determine if they're fleeting or fundamental.\\n</commentary>\\n</example>\\n\\n<example>\\nContext: Finding viral mechanics for existing apps\\nuser: \"How can we make our habit tracker more shareable?\"\\nassistant: \"I'll research viral sharing mechanics in successful apps. Let me use the trend-researcher agent to identify patterns we can adapt.\"\\n<commentary>\\nExisting apps can be enhanced by incorporating proven viral mechanics from trending apps.\\n</commentary>\\n</example>",
+      "critical_instruction": null
+    },
+    "ai-engineer": {
+      "tools": [
+        "Read",
+        "Write",
+        "Edit",
+        "MultiEdit",
+        "Grep",
+        "Glob",
+        "Bash",
+        "LS",
+        "WebSearch",
+        "WebFetch",
+        "Task",
+        "mcp__context7__resolve-library-id",
+        "mcp__context7__get-library-docs",
+        "mcp__sequential-thinking__sequentialthinking"
+      ],
+      "description": "A highly specialized AI agent for designing, building, and optimizing LLM-powered applications, RAG systems, and complex prompt pipelines. This agent implements vector search, orchestrates agentic workflows, and integrates with various AI APIs. Use PROACTIVELY for developing and enhancing LLM features, chatbots, or any AI-driven application.",
+      "critical_instruction": null
+    },
+    "data-engineer": {
+      "tools": [
+        "Read",
+        "Write",
+        "Edit",
+        "MultiEdit",
+        "Grep",
+        "Glob",
+        "Bash",
+        "LS",
+        "WebSearch",
+        "WebFetch",
+        "Task",
+        "mcp__context7__resolve-library-id",
+        "mcp__context7__get-library-docs",
+        "mcp__sequential-thinking__sequentialthinking"
+      ],
+      "description": "Designs, builds, and optimizes scalable and maintainable data-intensive applications, including ETL/ELT pipelines, data warehouses, and real-time streaming architectures. This agent is an expert in Spark, Airflow, and Kafka, and proactively applies data governance and cost-optimization principles. Use for designing new data solutions, optimizing existing data infrastructure, or troubleshooting data pipeline issues.",
+      "critical_instruction": null
+    },
+    "data-scientist": {
+      "tools": [
+        "Read",
+        "Write",
+        "Edit",
+        "Grep",
+        "Glob",
+        "Bash",
+        "LS",
+        "WebFetch",
+        "WebSearch",
+        "Task",
+        "mcp__context7__resolve-library-id",
+        "mcp__context7__get-library-docs",
+        "mcp__sequential-thinking__sequentialthinking"
+      ],
+      "description": "An expert data scientist specializing in advanced SQL, BigQuery optimization, and actionable data insights. Designed to be a collaborative partner in data exploration and analysis.",
+      "critical_instruction": null
+    },
+    "database-optimizer": {
+      "tools": [
+        "Read",
+        "Write",
+        "Edit",
+        "Grep",
+        "Glob",
+        "Bash",
+        "LS",
+        "WebFetch",
+        "WebSearch",
+        "Task",
+        "mcp__context7__resolve-library-id",
+        "mcp__context7__get-library-docs",
+        "mcp__sequential-thinking__sequentialthinking"
+      ],
+      "description": "An expert AI assistant for holistically analyzing and optimizing database performance. It identifies and resolves bottlenecks related to SQL queries, indexing, schema design, and infrastructure. Proactively use for performance tuning, schema refinement, and migration planning.",
+      "critical_instruction": null
+    },
+    "graphql-architect": {
+      "tools": [
+        "Read",
+        "Write",
+        "Edit",
+        "MultiEdit",
+        "Grep",
+        "Glob",
+        "Bash",
+        "LS",
+        "WebSearch",
+        "WebFetch",
+        "Task",
+        "mcp__context7__resolve-library-id",
+        "mcp__context7__get-library-docs",
+        "mcp__sequential-thinking__sequentialthinking"
+      ],
+      "description": "A highly specialized AI agent for designing, implementing, and optimizing high-performance, scalable, and secure GraphQL APIs. It excels at schema architecture, resolver optimization, federated services, and real-time data with subscriptions. Use this agent for greenfield GraphQL projects, performance auditing, or refactoring existing GraphQL APIs.",
+      "critical_instruction": null
+    },
+    "ml-engineer": {
+      "tools": [
+        "Read",
+        "Write",
+        "Edit",
+        "Grep",
+        "Glob",
+        "Bash",
+        "LS",
+        "WebFetch",
+        "WebSearch",
+        "Task",
+        "mcp__context7__resolve-library-id",
+        "mcp__context7__get-library-docs",
+        "mcp__sequential-thinking__sequentialthinking"
+      ],
+      "description": "Designs, builds, and manages the end-to-end lifecycle of machine learning models in production. Specializes in creating scalable, reliable, and automated ML systems. Use PROACTIVELY for tasks involving the deployment, monitoring, and maintenance of ML models.",
+      "critical_instruction": null
+    },
+    "postgresql-pglite-pro": {
+      "tools": [
+        "Read",
+        "Write",
+        "Edit",
+        "Grep",
+        "Glob",
+        "Bash",
+        "LS",
+        "WebFetch",
+        "WebSearch",
+        "Task",
+        "mcp__context7__resolve-library-id",
+        "mcp__context7__get-library-docs",
+        "mcp__sequential-thinking__sequentialthinking"
+      ],
+      "description": "An expert in PostgreSQL and Pglite, specializing in robust database architecture, performance tuning, and the implementation of in-browser database solutions. Excels at designing efficient data models, optimizing queries for speed and reliability, and leveraging Pglite for innovative web applications. Use PROACTIVELY for database design, query optimization, and implementing client-side database functionalities.",
+      "critical_instruction": null
+    },
+    "prompt-engineer": {
+      "tools": [
+        "Read",
+        "Write",
+        "Edit",
+        "Grep",
+        "Glob",
+        "Bash",
+        "LS",
+        "mcp__context7__resolve-library-id",
+        "Task",
+        "mcp__context7__get-library-docs",
+        "mcp__sequential-thinking__sequentialthinking"
+      ],
+      "description": "A master prompt engineer who architects and optimizes sophisticated LLM interactions. Use for designing advanced AI systems, pushing model performance to its limits, and creating robust, safe, and reliable agentic workflows. Expert in a wide array of advanced prompting techniques, model-specific nuances, and ethical AI design.",
+      "critical_instruction": null
+    },
+    "aria-implementation-ui": {
+      "tools": [
+        "Read",
+        "Write",
+        "Edit",
+        "Bash",
+        "Glob",
+        "Grep"
+      ],
+      "description": "Use this agent when you need proper ARIA attributes and accessibility compliance for complex UI components. Examples: Making custom dropdowns screen-reader accessible, implementing keyboard navigation for modals and menus, ensuring WCAG AA/AAA compliance for interactive elements.",
+      "critical_instruction": null
+    },
+    "brand-guardian": {
+      "tools": [
+        "Write",
+        "Read",
+        "MultiEdit",
+        "WebSearch",
+        "WebFetch"
+      ],
+      "description": "Use this agent when establishing brand guidelines, ensuring visual consistency, managing brand assets, or evolving brand identity. This agent specializes in creating and maintaining cohesive brand experiences across all touchpoints while enabling rapid development. Examples:\\n\\n<example>\\nContext: Creating brand guidelines for a new app",
+      "critical_instruction": null
+    },
+    "css-architecture-ui": {
+      "tools": [
+        "Read",
+        "Glob",
+        "Grep"
+      ],
+      "description": "Use this agent when you need scalable CSS organization and architecture planning. Examples: Refactoring messy CSS codebases, establishing team CSS standards, setting up maintainable styling systems for large applications, solving CSS specificity and organization problems.",
+      "critical_instruction": null
+    },
+    "design-system-generator-ui": {
+      "tools": [
+        "Read",
+        "Glob",
+        "Grep"
+      ],
+      "description": "Use this agent when you need to create a comprehensive design system with tokens, components, and guidelines. Examples: Starting a new project that needs consistent styling, establishing design standards for a growing team, creating a component library with unified branding.",
+      "critical_instruction": null
+    },
+    "micro-interactions-ui": {
+      "tools": [
+        "Read",
+        "Glob",
+        "Grep"
+      ],
+      "description": "Use this agent when you need subtle, performance-optimized animations that enhance user experience. Examples: Adding hover effects to buttons and cards, creating loading states and feedback animations, designing smooth transitions between UI states.",
+      "critical_instruction": null
+    },
+    "mobile-design-philosophy-ui": {
+      "tools": [
+        "Read",
+        "Glob",
+        "Grep"
+      ],
+      "description": "Agent: mobile-design-philosophy-ui",
+      "critical_instruction": null
+    },
+    "mobile-first-layout-ui": {
+      "tools": [
+        "Read",
+        "Glob",
+        "Grep"
+      ],
+      "description": "Use this agent when you need responsive layouts optimized for mobile devices first. Examples: Building landing pages that work seamlessly across devices, creating dashboard layouts that adapt to screen size, designing e-commerce layouts with mobile conversion in mind.",
+      "critical_instruction": null
+    },
+    "react-component-generator-ui": {
+      "tools": [
+        "Read",
+        "Glob",
+        "Grep"
+      ],
+      "description": "Use this agent when you need to create modern, production-ready React components with TypeScript and best practices. Examples: Building reusable UI components, creating accessible form elements, developing complex interactive components with proper state management.",
+      "critical_instruction": null
+    },
+    "ui-designer": {
+      "tools": [
+        "Write",
+        "Read",
+        "MultiEdit",
+        "WebSearch",
+        "WebFetch"
+      ],
+      "description": "Use this agent when creating user interfaces, designing components, building design systems, or improving visual aesthetics. This agent specializes in creating beautiful, functional interfaces that can be implemented quickly within 6-day sprints. Examples:\\n\\n<example>\\nContext: Starting a new app or feature design",
+      "critical_instruction": null
+    },
+    "ui-design-expert": {
+      "tools": [
+        "Read",
+        "Glob",
+        "Grep"
+      ],
+      "description": "Use this agent when you need expert guidance on user interface design, visual hierarchy, accessibility compliance, design system implementation, or aesthetic improvements to digital interfaces. Examples: <example>Context: User is working on a web application and wants to improve the visual design of their dashboard. user: 'I have this dashboard layout but it feels cluttered and hard to navigate. Can you help me improve the visual hierarchy?' assistant: 'I'll use the ui-design-expert agent to analyze your dashboard and provide specific recommendations for improving visual hierarchy and user experience.' <commentary>Since the user needs UI design expertise for improving visual hierarchy, use the ui-design-expert agent.</commentary></example> <example>Context: User is building a mobile app and needs accessibility guidance. user: 'I want to make sure my app meets accessibility standards. What should I consider for color contrast and navigation?' assistant: 'Let me use the ui-design-expert agent to provide comprehensive accessibility guidance for your mobile app.' <commentary>The user needs expert advice on accessibility standards, which falls under UI design expertise.</commentary></example>",
+      "critical_instruction": null
+    },
+    "user-persona-generator-ui": {
+      "tools": [
+        "Read",
+        "Glob",
+        "Grep"
+      ],
+      "description": "Use this agent when you need data-driven user personas for product development and design decisions. Examples: Launching a new product and need target user insights, improving existing features based on user understanding, creating marketing strategies aligned with user needs.",
+      "critical_instruction": null
+    },
+    "ux-researcher": {
+      "tools": [
+        "Write",
+        "Read",
+        "MultiEdit",
+        "WebSearch",
+        "WebFetch"
+      ],
+      "description": "Use this agent when conducting user research, analyzing user behavior, creating journey maps, or validating design decisions through testing. This agent specializes in understanding user needs, pain points, and behaviors to inform product decisions within rapid development cycles. Examples:\\n\\n<example>\\nContext: Understanding user needs for a new feature",
+      "critical_instruction": null
+    },
+    "visual-storyteller": {
+      "tools": [
+        "Write",
+        "Read",
+        "MultiEdit",
+        "WebSearch",
+        "WebFetch"
+      ],
+      "description": "Use this agent when creating visual narratives, designing infographics, building presentations, or communicating complex ideas through imagery. This agent specializes in transforming data and concepts into compelling visual stories that engage users and stakeholders. Examples:\\n\\n<example>\\nContext: Creating app onboarding illustrations",
+      "critical_instruction": null
+    },
+    "whimsy-injector": {
+      "tools": [
+        "Read",
+        "Write",
+        "MultiEdit",
+        "Grep",
+        "Glob"
+      ],
+      "description": "PROACTIVELY use this agent after any UI/UX changes to ensure delightful, playful elements are incorporated. This agent specializes in adding joy, surprise, and memorable moments to user experiences. The agent should be triggered automatically when design or interface updates are made. Examples:\\n\\n<example>\\nContext: After implementing new features or UI components\\nuser: \"I've added the new onboarding flow for the app\"\\nassistant: \"Great! I've implemented the onboarding flow. Now let me use the whimsy-injector agent to add delightful touches that will make users smile during their first experience.\"\\n<commentary>\\nEvery new UI addition is an opportunity to inject personality and delight.\\n</commentary>\\n</example>\\n\\n<example>\\nContext: When error states or empty states are created\\nuser: \"Set up error handling for the payment flow\"\\nassistant: \"I've implemented the error handling. Let me use the whimsy-injector agent to transform those error messages into moments that reduce user frustration.\"\\n<commentary>\\nError states are perfect opportunities to show personality and maintain user goodwill.\\n</commentary>\\n</example>\\n\\n<example>\\nContext: After creating standard UI components\\nuser: \"Build a loading spinner for the data fetch\"\\nassistant: \"I've created the basic loading functionality. Now I'll use the whimsy-injector agent to make the loading experience entertaining rather than frustrating.\"\\n<commentary>\\nLoading states can become memorable moments instead of boring waits.\\n</commentary>\\n</example>\\n\\n<example>\\nContext: When reviewing completed features\\nuser: \"The user profile page is done\"\\nassistant: \"Perfect! The profile page is complete. Let me use the whimsy-injector agent to audit it for opportunities to add surprising delights and shareable moments.\"\\n<commentary>\\nCompleted features often miss opportunities for delight that can differentiate the app.\\n</commentary>\\n</example>",
+      "critical_instruction": null
+    },
+    "backend-architect": {
+      "tools": [
+        "Read",
+        "Write",
+        "Edit",
+        "MultiEdit",
+        "Grep",
+        "Glob",
+        "Bash",
+        "LS",
+        "WebSearch",
+        "WebFetch",
+        "TodoWrite",
+        "mcp__context7__resolve-library-id",
+        "mcp__context7__get-library-docs",
+        "Task",
+        "mcp__sequential-thinking__sequentialthinking"
+      ],
+      "description": "Acts as a consultative architect to design robust, scalable, and maintainable backend systems. Gathers requirements by first consulting the Context Manager and then asking clarifying questions before proposing a solution.",
+      "critical_instruction": null
+    },
+    "dx-optimizer": {
+      "tools": [
+        "Read",
+        "Write",
+        "Edit",
+        "MultiEdit",
+        "Grep",
+        "Glob",
+        "Bash",
+        "LS",
+        "WebSearch",
+        "WebFetch",
+        "Task",
+        "mcp__context7__resolve-library-id",
+        "mcp__context7__get-library-docs",
+        "mcp__sequential-thinking__sequentialthinking"
+      ],
+      "description": "A specialist in Developer Experience (DX). My purpose is to proactively improve tooling, setup, and workflows, especially when initiating new projects, responding to team feedback, or when friction in the development process is identified.",
+      "critical_instruction": null
+    },
+    "electron-pro": {
+      "tools": [
+        "Read",
+        "Write",
+        "Edit",
+        "Grep",
+        "Glob",
+        "LS",
+        "Bash",
+        "WebSearch",
+        "WebFetch",
+        "Task",
+        "mcp__context7__resolve-library-id",
+        "mcp__context7__get-library-docs",
+        "mcp__sequential-thinking__sequentialthinking"
+      ],
+      "description": "An expert in building cross-platform desktop applications using Electron and TypeScript. Specializes in creating secure, performant, and maintainable applications by leveraging the full potential of web technologies in a desktop environment. Focuses on robust inter-process communication, native system integration, and a seamless user experience. Use PROACTIVELY for developing new Electron applications, refactoring existing ones, or implementing complex desktop-specific features.",
+      "critical_instruction": null
+    },
+    "frontend-developer": {
+      "tools": [
+        "Read",
+        "Write",
+        "Edit",
+        "MultiEdit",
+        "Grep",
+        "Glob",
+        "Bash",
+        "LS",
+        "WebSearch",
+        "WebFetch",
+        "TodoWrite",
+        "Task",
+        "mcp__magic__21st_magic_component_builder",
+        "mcp__magic__21st_magic_component_refiner",
+        "mcp__context7__resolve-library-id",
+        "mcp__context7__get-library-docs",
+        "mcp__playwright__browser_snapshot",
+        "mcp__playwright__browser_click",
+        "mcp__magic__21st_magic_component_builder"
+      ],
+      "description": "Acts as a senior frontend engineer and AI pair programmer. Builds robust, performant, and accessible React components with a focus on clean architecture and best practices. Use PROACTIVELY when developing new UI features, refactoring existing code, or addressing complex frontend challenges.",
+      "critical_instruction": null
+    },
+    "full-stack-developer": {
+      "tools": [
+        "Read",
+        "Write",
+        "Edit",
+        "MultiEdit",
+        "Grep",
+        "Glob",
+        "Bash",
+        "LS",
+        "WebSearch",
+        "WebFetch",
+        "TodoWrite",
+        "Task",
+        "mcp__context7__resolve-library-id",
+        "mcp__context7__get-library-docs",
+        "mcp__sequential-thinking__sequentialthinking",
+        "mcp__magic__21st_magic_component_builder"
+      ],
+      "description": "A versatile AI Full Stack Developer proficient in designing, building, and maintaining all aspects of web applications, from the user interface to the server-side logic and database management. Use PROACTIVELY for end-to-end application development, ensuring seamless integration and functionality across the entire technology stack.",
+      "critical_instruction": null
+    },
+    "golang-pro": {
+      "tools": [
+        "Read",
+        "Write",
+        "Edit",
+        "Grep",
+        "Glob",
+        "Bash",
+        "LS",
+        "WebFetch",
+        "WebSearch",
+        "Task",
+        "mcp__context7__resolve-library-id",
+        "mcp__context7__get-library-docs",
+        "mcp__sequential-thinking__sequentialthinking"
+      ],
+      "description": "A Go expert that architects, writes, and refactors robust, concurrent, and highly performant Go applications. It provides detailed explanations for its design choices, focusing on idiomatic code, long-term maintainability, and operational excellence. Use PROACTIVELY for architectural design, deep code reviews, performance tuning, and complex concurrency challenges.",
+      "critical_instruction": null
+    },
+    "legacy-modernizer": {
+      "tools": [
+        "Read",
+        "Write",
+        "Edit",
+        "MultiEdit",
+        "Grep",
+        "Glob",
+        "Bash",
+        "LS",
+        "WebSearch",
+        "WebFetch",
+        "TodoWrite",
+        "Task",
+        "mcp__context7__resolve-library-id",
+        "mcp__context7__get-library-docs",
+        "mcp__sequential-thinking__sequentialthinking"
+      ],
+      "description": "A specialist agent for planning and executing the incremental modernization of legacy systems. It refactors aging codebases, migrates outdated frameworks, and decomposes monoliths safely. Use this to reduce technical debt, improve maintainability, and upgrade technology stacks without disrupting operations.",
+      "critical_instruction": null
+    },
+    "mobile-app-builder": {
+      "tools": [
+        "Write",
+        "Read",
+        "MultiEdit",
+        "Bash",
+        "Grep"
+      ],
+      "description": "Use this agent when developing native iOS or Android applications, implementing React Native features, or optimizing mobile performance. This agent specializes in creating smooth, native-feeling mobile experiences. Examples:\\n\\n<example>\\nContext: Building a new mobile app\\nuser: \"Create a TikTok-style video feed for our app\"\\nassistant: \"I'll build a performant video feed with smooth scrolling. Let me use the mobile-app-builder agent to implement native performance optimizations.\"\\n<commentary>\\nVideo feeds require careful mobile optimization for smooth scrolling and memory management.\\n</commentary>\\n</example>\\n\\n<example>\\nContext: Implementing mobile-specific features\\nuser: \"Add push notifications and biometric authentication\"\\nassistant: \"I'll implement native push notifications and Face ID/fingerprint auth. Let me use the mobile-app-builder agent to ensure proper platform integration.\"\\n<commentary>\\nNative features require platform-specific implementation and proper permissions handling.\\n</commentary>\\n</example>\\n\\n<example>\\nContext: Cross-platform development\\nuser: \"We need this feature on both iOS and Android\"\\nassistant: \"I'll implement it using React Native for code reuse. Let me use the mobile-app-builder agent to ensure native performance on both platforms.\"\\n<commentary>\\nCross-platform development requires balancing code reuse with platform-specific optimizations.\\n</commentary>\\n</example>",
+      "critical_instruction": null
+    },
+    "mobile-developer": {
+      "tools": [
+        "Read",
+        "Write",
+        "Edit",
+        "MultiEdit",
+        "Grep",
+        "Glob",
+        "Bash",
+        "LS",
+        "WebSearch",
+        "WebFetch",
+        "TodoWrite",
+        "Task",
+        "mcp__context7__resolve-library-id",
+        "mcp__context7__get-library-docs",
+        "mcp__sequential-thinking__sequentialthinking"
+      ],
+      "description": "Architects and leads the development of sophisticated, cross-platform mobile applications using React Native and Flutter. This role demands proactive leadership in mobile strategy, ensuring robust native integrations, scalable architecture, and impeccable user experiences. Key responsibilities include managing offline data synchronization, implementing comprehensive push notification systems, and navigating the complexities of app store deployments.",
+      "critical_instruction": null
+    },
+    "nextjs-pro": {
+      "tools": [
+        "Read",
+        "Write",
+        "Edit",
+        "Grep",
+        "Glob",
+        "Bash",
+        "LS",
+        "WebFetch",
+        "WebSearch",
+        "Task",
+        "mcp__context7__resolve-library-id",
+        "mcp__context7__get-library-docs",
+        "mcp__magic__21st_magic_component_builder",
+        "mcp__magic__21st_magic_component_inspiration",
+        "mcp__magic__21st_magic_component_refiner"
+      ],
+      "description": "An expert Next.js developer specializing in building high-performance, scalable, and SEO-friendly web applications.Leverages the full potential of Next.js, including Server-Side Rendering (SSR), Static Site Generation (SSG), and the App Router.Focuses on modern development practices, robust testing, and creating exceptional user experiences. Use PROACTIVELY for architecting new Next.js projects, performance optimization, or implementing complex features.",
+      "critical_instruction": null
+    },
+    "python-pro": {
+      "tools": [
+        "Read",
+        "Write",
+        "Edit",
+        "MultiEdit",
+        "Grep",
+        "Glob",
+        "Bash",
+        "LS",
+        "WebSearch",
+        "WebFetch",
+        "TodoWrite",
+        "Task",
+        "mcp__context7__resolve-library-id",
+        "mcp__context7__get-library-docs",
+        "mcp__sequential-thinking__sequentialthinking"
+      ],
+      "description": "An expert Python developer specializing in writing clean, performant, and idiomatic code. Leverages advanced Python features, including decorators, generators, and async/await. Focuses on optimizing performance, implementing established design patterns, and ensuring comprehensive test coverage. Use PROACTIVELY for Python refactoring, optimization, or implementing complex features.",
+      "critical_instruction": null
+    },
     "rapid-prototyper": {
       "tools": [
         "Write",
@@ -316,13 +832,526 @@
       "description": "Use this agent when you need to quickly create a new application prototype, MVP, or proof-of-concept within the 6-day development cycle. This agent specializes in scaffolding projects, integrating trending features, and building functional demos rapidly. Examples:\\n\\n<example>\\nContext: Starting a new experiment or app idea\\nuser: \"Create a new app that helps people overcome phone anxiety\"\\nassistant: \"I'll help you create a phone anxiety app. Let me use the rapid-prototyper agent to scaffold this project and build an MVP.\"\\n<commentary>\\nWhen starting any new project or experiment, use the rapid-prototyper to quickly set up the foundation and core features.\\n</commentary>\\n</example>\\n\\n<example>\\nContext: Need to test a trending feature or viral concept\\nuser: \"I saw this TikTok trend about AI avatars, can we build something around that?\"\\nassistant: \"That's a great trending opportunity! I'll use the rapid-prototyper agent to quickly build a prototype app featuring AI avatars.\"\\n<commentary>\\nFor capitalizing on trends and viral content, the rapid-prototyper can quickly create testable prototypes.\\n</commentary>\\n</example>\\n\\n<example>\\nContext: Validating a business idea with minimal investment\\nuser: \"We need to test if people would pay for a subscription box curation app\"\\nassistant: \"Let's validate that idea with a quick prototype. I'll use the rapid-prototyper agent to build an MVP with basic subscription and curation features.\"\\n<commentary>\\nBusiness validation requires fast prototyping to test market fit before full investment.\\n</commentary>\\n</example>\\n\\n<example>\\nContext: Creating demo apps for stakeholder presentations\\nuser: \"We're meeting with investors next week and need to show them our vision\"\\nassistant: \"I'll help create a compelling demo. Let me use the rapid-prototyper agent to build a functional prototype that showcases your vision.\"\\n<commentary>\\nInvestor demos and stakeholder presentations benefit from working prototypes rather than just mockups.\\n</commentary>\\n</example>",
       "critical_instruction": null
     },
-    "refactor-planner": {
+    "react-pro": {
+      "tools": [
+        "Read",
+        "Write",
+        "Edit",
+        "MultiEdit",
+        "Grep",
+        "Glob",
+        "Bash",
+        "LS",
+        "WebFetch",
+        "WebSearch",
+        "Task",
+        "mcp__context7__resolve-library-id",
+        "mcp__context7__get-library-docs",
+        "mcp__magic__21st_magic_component_builder",
+        "mcp__magic__21st_magic_component_inspiration",
+        "mcp__magic__21st_magic_component_refiner"
+      ],
+      "description": "An expert React developer specializing in creating modern, performant, and scalable web applications. Emphasizes a component-based architecture, clean code, and a seamless user experience. Leverages advanced React features like Hooks and the Context API, and is proficient in state management and performance optimization. Use PROACTIVELY for developing new React components, refactoring existing code, and solving complex UI challenges.",
+      "critical_instruction": null
+    },
+    "typescript-pro": {
+      "tools": [
+        "Read",
+        "Write",
+        "Edit",
+        "MultiEdit",
+        "Grep",
+        "Glob",
+        "Bash",
+        "LS",
+        "WebFetch",
+        "WebSearch",
+        "Task",
+        "mcp__context7__resolve-library-id",
+        "mcp__context7__get-library-docs",
+        "mcp__sequential-thinking__sequentialthinking"
+      ],
+      "description": "A TypeScript expert who architects, writes, and refactors scalable, type-safe, and maintainable applications for Node.js and browser environments. It provides detailed explanations for its architectural decisions, focusing on idiomatic code, robust testing, and long-term health of the codebase. Use PROACTIVELY for architectural design, complex type-level programming, performance tuning, and refactoring large codebases.",
+      "critical_instruction": null
+    },
+    "ux-designer": {
+      "tools": [
+        "Read",
+        "Write",
+        "Edit",
+        "MultiEdit",
+        "Grep",
+        "Glob",
+        "Bash",
+        "LS",
+        "WebSearch",
+        "WebFetch",
+        "TodoWrite",
+        "Task",
+        "mcp__context7__resolve-library-id",
+        "mcp__context7__get-library-docs",
+        "mcp__sequential-thinking__sequentialthinking",
+        "mcp__playwright__browser_navigate",
+        "mcp__playwright__browser_snapshot"
+      ],
+      "description": "A creative and empathetic professional focused on enhancing user satisfaction by improving the usability, accessibility, and pleasure provided in the interaction between the user and a product. Use PROACTIVELY to advocate for the user's needs throughout the entire design process, from initial research to final implementation.",
+      "critical_instruction": null
+    },
+    "analytics-reporter": {
+      "tools": [
+        "Write",
+        "Read",
+        "MultiEdit",
+        "WebSearch",
+        "Grep"
+      ],
+      "description": "Use this agent when analyzing metrics, generating insights from data, creating performance reports, or making data-driven recommendations. This agent excels at transforming raw analytics into actionable intelligence that drives studio growth and optimization. Examples:\\n\\n<example>\\nContext: Monthly performance review needed",
+      "critical_instruction": null
+    },
+    "cloud-architect": {
+      "tools": [
+        "Read",
+        "Write",
+        "Edit",
+        "MultiEdit",
+        "Grep",
+        "Glob",
+        "Bash",
+        "LS",
+        "WebSearch",
+        "WebFetch",
+        "Task",
+        "mcp__context7__resolve-library-id",
+        "mcp__context7__get-library-docs",
+        "mcp__sequential-thinking__sequentialthinking"
+      ],
+      "description": "A senior cloud architect AI that designs scalable, secure, and cost-efficient AWS, Azure, and GCP infrastructure. It specializes in Terraform for Infrastructure as Code (IaC), implements FinOps best practices for cost optimization, and architects multi-cloud and serverless solutions. PROACTIVELY engage for infrastructure planning, cost reduction analysis, or cloud migration strategies.",
+      "critical_instruction": null
+    },
+    "deployment-engineer": {
+      "tools": [
+        "Read",
+        "Write",
+        "Edit",
+        "MultiEdit",
+        "Grep",
+        "Glob",
+        "Bash",
+        "LS",
+        "WebSearch",
+        "WebFetch",
+        "Task",
+        "mcp__context7__resolve-library-id",
+        "mcp__context7__get-library-docs",
+        "mcp__sequential-thinking__sequentialthinking"
+      ],
+      "description": "Designs and implements robust CI/CD pipelines, container orchestration, and cloud infrastructure automation. Proactively architects and secures scalable, production-grade deployment workflows using best practices in DevOps and GitOps.",
+      "critical_instruction": null
+    },
+    "devops-automator": {
+      "tools": [
+        "Write",
+        "Read",
+        "MultiEdit",
+        "Bash",
+        "Grep"
+      ],
+      "description": "Use this agent when setting up CI/CD pipelines, configuring cloud infrastructure, implementing monitoring systems, or automating deployment processes. This agent specializes in making deployment and operations seamless for rapid development cycles. Examples:\\n\\n<example>\\nContext: Setting up automated deployments\\nuser: \"We need automatic deployments when we push to main\"\\nassistant: \"I'll set up a complete CI/CD pipeline. Let me use the devops-automator agent to configure automated testing, building, and deployment.\"\\n<commentary>\\nAutomated deployments require careful pipeline configuration and proper testing stages.\\n</commentary>\\n</example>\\n\\n<example>\\nContext: Infrastructure scaling issues\\nuser: \"Our app crashes when we get traffic spikes\"\\nassistant: \"I'll implement auto-scaling and load balancing. Let me use the devops-automator agent to ensure your infrastructure handles traffic gracefully.\"\\n<commentary>\\nScaling requires proper infrastructure setup with monitoring and automatic responses.\\n</commentary>\\n</example>\\n\\n<example>\\nContext: Monitoring and alerting setup\\nuser: \"We have no idea when things break in production\"\\nassistant: \"Observability is crucial for rapid iteration. I'll use the devops-automator agent to set up comprehensive monitoring and alerting.\"\\n<commentary>\\nProper monitoring enables fast issue detection and resolution in production.\\n</commentary>\\n</example>",
+      "critical_instruction": null
+    },
+    "devops-incident-responder": {
+      "tools": [
+        "Read",
+        "Write",
+        "Edit",
+        "MultiEdit",
+        "Grep",
+        "Glob",
+        "Bash",
+        "LS",
+        "WebSearch",
+        "WebFetch",
+        "Bash",
+        "Task",
+        "mcp__context7__resolve-library-id",
+        "mcp__context7__get-library-docs",
+        "mcp__sequential-thinking__sequentialthinking"
+      ],
+      "description": "A specialized agent for leading incident response, conducting in-depth root cause analysis, and implementing robust fixes for production systems. This agent is an expert in leveraging monitoring and observability tools to proactively identify and resolve system outages and performance degradation.",
+      "critical_instruction": null
+    },
+    "finance-tracker": {
+      "tools": [
+        "Write",
+        "Read",
+        "MultiEdit",
+        "WebSearch",
+        "Grep"
+      ],
+      "description": "Use this agent when managing budgets, optimizing costs, forecasting revenue, or analyzing financial performance. This agent excels at transforming financial chaos into strategic clarity, ensuring studio resources generate maximum return. Examples:\\n\\n<example>\\nContext: Planning next quarter's development budget",
+      "critical_instruction": null
+    },
+    "incident-responder": {
+      "tools": [
+        "Read",
+        "Write",
+        "Edit",
+        "MultiEdit",
+        "Grep",
+        "Glob",
+        "Bash",
+        "LS",
+        "WebSearch",
+        "WebFetch",
+        "Task",
+        "mcp__context7__resolve-library-id",
+        "mcp__context7__get-library-docs",
+        "mcp__sequential-thinking__sequentialthinking"
+      ],
+      "description": "A battle-tested Incident Commander persona for leading the response to critical production incidents with urgency, precision, and clear communication, based on Google SRE and other industry best practices. Use IMMEDIATELY when production issues occur.",
+      "critical_instruction": null
+    },
+    "infrastructure-maintainer": {
+      "tools": [
+        "Write",
+        "Read",
+        "MultiEdit",
+        "WebSearch",
+        "Grep",
+        "Bash"
+      ],
+      "description": "Use this agent when monitoring system health, optimizing performance, managing scaling, or ensuring infrastructure reliability. This agent excels at keeping studio applications running smoothly while preparing for growth and preventing disasters. Examples:\\n\\n<example>\\nContext: App experiencing slow performance",
+      "critical_instruction": null
+    },
+    "legal-compliance-checker": {
+      "tools": [
+        "Write",
+        "Read",
+        "MultiEdit",
+        "WebSearch",
+        "Grep"
+      ],
+      "description": "Use this agent when reviewing terms of service, privacy policies, ensuring regulatory compliance, or handling legal requirements. This agent excels at navigating the complex legal landscape of app development while maintaining user trust and avoiding costly violations. Examples:\\n\\n<example>\\nContext: Launching app in European markets",
+      "critical_instruction": null
+    },
+    "performance-benchmarker": {
+      "tools": [
+        "Bash",
+        "Read",
+        "Write",
+        "Grep",
+        "MultiEdit",
+        "WebFetch"
+      ],
+      "description": "Use this agent for comprehensive performance testing, profiling, and optimization recommendations. This agent specializes in measuring speed, identifying bottlenecks, and providing actionable optimization strategies for applications. Examples:\\n\\n<example>\\nContext: Application speed testing",
+      "critical_instruction": null
+    },
+    "performance-engineer": {
+      "tools": [
+        "Read",
+        "Write",
+        "Edit",
+        "MultiEdit",
+        "Grep",
+        "Glob",
+        "Bash",
+        "LS",
+        "WebSearch",
+        "WebFetch",
+        "Task",
+        "Bash",
+        "mcp__context7__resolve-library-id",
+        "mcp__context7__get-library-docs",
+        "mcp__sequential-thinking__sequentialthinking",
+        "mcp__playwright__browser_navigate",
+        "mcp__playwright__browser_take_screenshot",
+        "mcp__playwright__browser_evaluate"
+      ],
+      "description": "A senior-level performance engineer who defines and executes a comprehensive performance strategy. This role involves proactive identification of potential bottlenecks in the entire software development lifecycle, leading cross-team optimization efforts, and mentoring other engineers. Use PROACTIVELY for architecting for scale, resolving complex performance issues, and establishing a culture of performance.",
+      "critical_instruction": null
+    },
+    "support-responder": {
+      "tools": [
+        "Write",
+        "Read",
+        "MultiEdit",
+        "WebSearch",
+        "Grep"
+      ],
+      "description": "Use this agent when handling customer support inquiries, creating support documentation, setting up automated responses, or analyzing support patterns. This agent excels at maintaining high-quality support across all studio projects while identifying product improvement opportunities. Examples:\\n\\n<example>\\nContext: Setting up support for a new app launch",
+      "critical_instruction": null
+    },
+    "app-store-optimizer": {
+      "tools": [
+        "Write",
+        "Read",
+        "WebSearch",
+        "WebFetch",
+        "MultiEdit"
+      ],
+      "description": "Use this agent when preparing app store listings, researching keywords, optimizing app metadata, improving conversion rates, or analyzing app store performance. This agent specializes in maximizing organic app store visibility and downloads. Examples:\\n\\n<example>\\nContext: Preparing for app launch",
+      "critical_instruction": null
+    },
+    "content-creator-studio": {
       "tools": [
         "Read",
         "Glob",
         "Grep"
       ],
-      "description": "Use this agent when you need to analyze code structure and create comprehensive refactoring plans. This agent should be used PROACTIVELY for any refactoring requests, including when users ask to restructure code, improve code organization, modernize legacy code, or optimize existing implementations. The agent will analyze the current state, identify improvement opportunities, and produce a detailed step-by-step plan with risk assessment.\\n\\nExamples:\\n- <example>\\n  Context: User wants to refactor a legacy authentication system\\n  user: \"I need to refactor our authentication module to use modern patterns\"\\n  assistant: \"I'll use the refactor-planner agent to analyze the current authentication structure and create a comprehensive refactoring plan\"\\n  <commentary>\\n  Since the user is requesting a refactoring task, use the Task tool to launch the refactor-planner agent to analyze and plan the refactoring.\\n  </commentary>\\n</example>\\n- <example>\\n  Context: User has just written a complex component that could benefit from restructuring\\n  user: \"I've implemented the dashboard component but it's getting quite large\"\\n  assistant: \"Let me proactively use the refactor-planner agent to analyze the dashboard component structure and suggest a refactoring plan\"\\n  <commentary>\\n  Even though not explicitly requested, proactively use the refactor-planner agent to analyze and suggest improvements.\\n  </commentary>\\n</example>\\n- <example>\\n  Context: User mentions code duplication issues\\n  user: \"I'm noticing we have similar code patterns repeated across multiple services\"\\n  assistant: \"I'll use the refactor-planner agent to analyze the code duplication and create a consolidation plan\"\\n  <commentary>\\n  Code duplication is a refactoring opportunity, so use the refactor-planner agent to create a systematic plan.\\n  </commentary>\\n</example>",
+      "description": "Agent: content-creator-studio",
+      "critical_instruction": null
+    },
+    "growth-hacker-studio": {
+      "tools": [
+        "Read",
+        "Glob",
+        "Grep"
+      ],
+      "description": "Agent: growth-hacker-studio",
+      "critical_instruction": null
+    },
+    "instagram-curator-studio": {
+      "tools": [
+        "Read",
+        "Glob",
+        "Grep"
+      ],
+      "description": "Agent: instagram-curator-studio",
+      "critical_instruction": null
+    },
+    "reddit-community-builder-studio": {
+      "tools": [
+        "Read",
+        "Glob",
+        "Grep"
+      ],
+      "description": "Agent: reddit-community-builder-studio",
+      "critical_instruction": null
+    },
+    "tiktok-strategist": {
+      "tools": [
+        "Write",
+        "Read",
+        "WebSearch",
+        "WebFetch"
+      ],
+      "description": "Use this agent when you need to create TikTok marketing strategies, develop viral content ideas, plan TikTok campaigns, or optimize for TikTok's algorithm. This agent specializes in creating shareable moments and leveraging TikTok trends for app growth. Examples:\\n\\n<example>\\nContext: Launching a new app and need TikTok strategy\\nuser: \"We're launching our phone anxiety app next week. How should we approach TikTok?\"\\nassistant: \"TikTok will be crucial for your launch. Let me use the tiktok-strategist agent to create a comprehensive TikTok marketing strategy for your phone anxiety app.\"\\n<commentary>\\nNew app launches benefit from TikTok's viral potential and young user base.\\n</commentary>\\n</example>\\n\\n<example>\\nContext: Creating viral content for an existing app\\nuser: \"Our meditation app needs more downloads. What kind of TikTok content should we make?\"\\nassistant: \"I'll help you create viral TikTok content ideas. Let me use the tiktok-strategist agent to develop content that showcases your app in trending formats.\"\\n<commentary>\\nExisting apps can boost downloads through strategic TikTok content that fits platform culture.\\n</commentary>\\n</example>\\n\\n<example>\\nContext: Identifying TikTok influencers for partnerships\\nuser: \"Should we work with TikTok creators to promote our app?\"\\nassistant: \"Creator partnerships can be very effective. Let me use the tiktok-strategist agent to identify the right creators and collaboration strategies for your app.\"\\n<commentary>\\nInfluencer partnerships on TikTok can provide authentic reach to target audiences.\\n</commentary>\\n</example>\\n\\n<example>\\nContext: Optimizing app features for TikTok sharing\\nuser: \"How can we make our app more TikTok-friendly?\"\\nassistant: \"Making your app TikTok-native is smart. I'll use the tiktok-strategist agent to identify features and moments in your app that users would want to share on TikTok.\"\\n<commentary>\\nApps with built-in TikTok-worthy moments see higher organic growth through user-generated content.\\n</commentary>\\n</example>",
+      "critical_instruction": null
+    },
+    "twitter-engager-studio": {
+      "tools": [
+        "Read",
+        "Glob",
+        "Grep"
+      ],
+      "description": "Agent: twitter-engager-studio",
+      "critical_instruction": null
+    },
+    "api-tester": {
+      "tools": [
+        "Bash",
+        "Read",
+        "Write",
+        "Grep",
+        "WebFetch",
+        "MultiEdit"
+      ],
+      "description": "Use this agent for comprehensive API testing including performance testing, load testing, and contract testing. This agent specializes in ensuring APIs are robust, performant, and meet specifications before deployment. Examples:\\n\\n<example>\\nContext: Testing API performance under load",
+      "critical_instruction": null
+    },
+    "architect-reviewer": {
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "LS",
+        "WebFetch",
+        "WebSearch",
+        "Task",
+        "mcp__sequential-thinking__sequentialthinking",
+        "mcp__context7__resolve-library-id",
+        "mcp__context7__get-library-docs"
+      ],
+      "description": "Proactively reviews code for architectural consistency, adherence to patterns, and maintainability. Use after any structural changes, new service introductions, or API modifications to ensure system integrity.",
+      "critical_instruction": null
+    },
+    "auto-error-resolver": {
+      "tools": [
+        "Read",
+        "Write",
+        "Edit",
+        "MultiEdit",
+        "Bash"
+      ],
+      "description": "Automatically fix TypeScript compilation errors",
+      "critical_instruction": null
+    },
+    "code-architecture-reviewer": {
+      "tools": [
+        "Read",
+        "Glob",
+        "Grep",
+        "Edit"
+      ],
+      "description": "Use this agent when you need to review recently written code for adherence to best practices, architectural consistency, and system integration. This agent examines code quality, questions implementation decisions, and ensures alignment with project standards and the broader system architecture. Examples:\\n\\n<example>\\nContext: The user has just implemented a new API endpoint and wants to ensure it follows project patterns.\\nuser: \"I've added a new workflow status endpoint to the form service\"\\nassistant: \"I'll review your new endpoint implementation using the code-architecture-reviewer agent\"\\n<commentary>\\nSince new code was written that needs review for best practices and system integration, use the Task tool to launch the code-architecture-reviewer agent.\\n</commentary>\\n</example>\\n\\n<example>\\nContext: The user has created a new React component and wants feedback on the implementation.\\nuser: \"I've finished implementing the WorkflowStepCard component\"\\nassistant: \"Let me use the code-architecture-reviewer agent to review your WorkflowStepCard implementation\"\\n<commentary>\\nThe user has completed a component that should be reviewed for React best practices and project patterns.\\n</commentary>\\n</example>\\n\\n<example>\\nContext: The user has refactored a service class and wants to ensure it still fits well within the system.\\nuser: \"I've refactored the AuthenticationService to use the new token validation approach\"\\nassistant: \"I'll have the code-architecture-reviewer agent examine your AuthenticationService refactoring\"\\n<commentary>\\nA refactoring has been done that needs review for architectural consistency and system integration.\\n</commentary>\\n</example>",
+      "critical_instruction": null
+    },
+    "code-refactor-master": {
+      "tools": [
+        "*"
+      ],
+      "description": "Use this agent when you need to refactor code for better organization, cleaner architecture, or improved maintainability. This includes reorganizing file structures, breaking down large components into smaller ones, updating import paths after file moves, fixing loading indicator patterns, and ensuring adherence to project best practices. The agent excels at comprehensive refactoring that requires tracking dependencies and maintaining consistency across the entire codebase.\\n\\n<example>\\nContext: The user wants to reorganize a messy component structure with large files and poor organization.\\nuser: \"This components folder is a mess with huge files. Can you help refactor it?\"\\nassistant: \"I'll use the code-refactor-master agent to analyze the component structure and create a better organization scheme.\"\\n<commentary>\\nSince the user needs help with refactoring and reorganizing components, use the code-refactor-master agent to analyze the current structure and propose improvements.\\n</commentary>\\n</example>\\n\\n<example>\\nContext: The user has identified multiple components using early returns with loading indicators instead of proper loading components.\\nuser: \"I noticed we have loading returns scattered everywhere instead of using LoadingOverlay\"\\nassistant: \"Let me use the code-refactor-master agent to find all instances of early return loading patterns and refactor them to use the proper loading components.\"\\n<commentary>\\nThe user has identified a pattern that violates best practices, so use the code-refactor-master agent to systematically find and fix all occurrences.\\n</commentary>\\n</example>\\n\\n<example>\\nContext: The user wants to break down a large component file into smaller, more manageable pieces.\\nuser: \"The Dashboard.tsx file is over 2000 lines and becoming unmaintainable\"\\nassistant: \"I'll use the code-refactor-master agent to analyze the Dashboard component and extract it into smaller, focused components.\"\\n<commentary>\\nThe user needs help breaking down a large component, which requires careful analysis of dependencies and proper extraction - perfect for the code-refactor-master agent.\\n</commentary>\\n</example>",
+      "critical_instruction": null
+    },
+    "code-reviewer-pro": {
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Bash",
+        "LS",
+        "WebFetch",
+        "WebSearch",
+        "Task",
+        "mcp__context7__resolve-library-id",
+        "mcp__context7__get-library-docs",
+        "mcp__sequential-thinking__sequentialthinking"
+      ],
+      "description": "An AI-powered senior engineering lead that conducts comprehensive code reviews. It analyzes code for quality, security, maintainability, and adherence to best practices, providing clear, actionable, and educational feedback. Use immediately after writing or modifying code.",
+      "critical_instruction": null
+    },
+    "code-reviewer": {
+      "tools": [
+        "Read",
+        "Glob",
+        "Grep"
+      ],
+      "description": "Use this agent when a major project step has been completed and needs to be reviewed against the original plan and coding standards. Examples: <example>Context: The user is creating a code-review agent that should be called after a logical chunk of code is written. user: \"I've finished implementing the user authentication system as outlined in step 3 of our plan\" assistant: \"Great work! Now let me use the code-reviewer agent to review the implementation against our plan and coding standards\" <commentary>Since a major project step has been completed, use the code-reviewer agent to validate the work against the plan and identify any issues.</commentary></example> <example>Context: User has completed a significant feature implementation. user: \"The API endpoints for the task management system are now complete - that covers step 2 from our architecture document\" assistant: \"Excellent! Let me have the code-reviewer agent examine this implementation to ensure it aligns with our plan and follows best practices\" <commentary>A numbered step from the planning document has been completed, so the code-reviewer agent should review the work.</commentary></example>",
+      "critical_instruction": null
+    },
+    "debugger": {
+      "tools": [
+        "Read",
+        "Write",
+        "Edit",
+        "MultiEdit",
+        "Grep",
+        "Glob",
+        "Bash",
+        "LS",
+        "WebSearch",
+        "WebFetch",
+        "TodoWrite",
+        "Task",
+        "mcp__context7__resolve-library-id",
+        "mcp__context7__get-library-docs",
+        "mcp__sequential-thinking__sequentialthinking"
+      ],
+      "description": "Debugging specialist for errors, test failures, and unexpected behavior. Use proactively when encountering any issues.",
+      "critical_instruction": null
+    },
+    "design-review": {
+      "tools": [
+        "Grep",
+        "LS",
+        "Read",
+        "Edit",
+        "MultiEdit",
+        "Write",
+        "NotebookEdit",
+        "WebFetch",
+        "TodoWrite",
+        "WebSearch",
+        "BashOutput",
+        "KillBash",
+        "ListMcpResourcesTool",
+        "ReadMcpResourceTool",
+        "mcp__context7__resolve-library-id",
+        "mcp__context7__get-library-docs",
+        "mcp__playwright__browser_close",
+        "mcp__playwright__browser_resize",
+        "mcp__playwright__browser_console_messages",
+        "mcp__playwright__browser_handle_dialog",
+        "mcp__playwright__browser_evaluate",
+        "mcp__playwright__browser_file_upload",
+        "mcp__playwright__browser_install",
+        "mcp__playwright__browser_press_key",
+        "mcp__playwright__browser_type",
+        "mcp__playwright__browser_navigate",
+        "mcp__playwright__browser_navigate_back",
+        "mcp__playwright__browser_navigate_forward",
+        "mcp__playwright__browser_network_requests",
+        "mcp__playwright__browser_take_screenshot",
+        "mcp__playwright__browser_snapshot",
+        "mcp__playwright__browser_click",
+        "mcp__playwright__browser_drag",
+        "mcp__playwright__browser_hover",
+        "mcp__playwright__browser_select_option",
+        "mcp__playwright__browser_tab_list",
+        "mcp__playwright__browser_tab_new",
+        "mcp__playwright__browser_tab_select",
+        "mcp__playwright__browser_tab_close",
+        "mcp__playwright__browser_wait_for",
+        "Bash",
+        "Glob"
+      ],
+      "description": "Use this agent when you need to conduct a comprehensive design review on front-end pull requests or general UI changes. This agent should be triggered when a PR modifying UI components, styles, or user-facing features needs review; you want to verify visual consistency, accessibility compliance, and user experience quality; you need to test responsive design across different viewports; or you want to ensure that new UI changes meet world-class design standards. The agent requires access to a live preview environment and uses Playwright for automated interaction testing. Example - \"Review the design changes in PR 234",
+      "critical_instruction": null
+    },
+    "frontend-error-fixer": {
+      "tools": [
+        "*"
+      ],
+      "description": "Use this agent when you encounter frontend errors, whether they appear during the build process (TypeScript, bundling, linting errors) or at runtime in the browser console (JavaScript errors, React errors, network issues). This agent specializes in diagnosing and fixing frontend issues with precision.\\n\\nExamples:\\n- <example>\\n  Context: User encounters an error in their React application\\n  user: \"I'm getting a 'Cannot read property of undefined' error in my React component\"\\n  assistant: \"I'll use the frontend-error-fixer agent to diagnose and fix this runtime error\"\\n  <commentary>\\n  Since the user is reporting a browser console error, use the frontend-error-fixer agent to investigate and resolve the issue.\\n  </commentary>\\n</example>\\n- <example>\\n  Context: Build process is failing\\n  user: \"My build is failing with a TypeScript error about missing types\"\\n  assistant: \"Let me use the frontend-error-fixer agent to resolve this build error\"\\n  <commentary>\\n  The user has a build-time error, so the frontend-error-fixer agent should be used to fix the TypeScript issue.\\n  </commentary>\\n</example>\\n- <example>\\n  Context: User notices errors in browser console while testing\\n  user: \"I just implemented a new feature and I'm seeing some errors in the console when I click the submit button\"\\n  assistant: \"I'll launch the frontend-error-fixer agent to investigate these console errors using the browser tools\"\\n  <commentary>\\n  Runtime errors are appearing during user interaction, so the frontend-error-fixer agent should investigate using browser tools MCP.\\n  </commentary>\\n</example>",
+      "critical_instruction": null
+    },
+    "qa-expert": {
+      "tools": [
+        "Read",
+        "Write",
+        "Edit",
+        "MultiEdit",
+        "Grep",
+        "Glob",
+        "Bash",
+        "LS",
+        "WebSearch",
+        "WebFetch",
+        "Task",
+        "mcp__context7__resolve-library-id",
+        "mcp__context7__get-library-docs",
+        "mcp__sequential-thinking__sequentialthinking",
+        "mcp__playwright__browser_navigate",
+        "mcp__playwright__browser_snapshot",
+        "mcp__playwright__browser_click",
+        "mcp__playwright__browser_type",
+        "mcp__playwright__browser_take_screenshot"
+      ],
+      "description": "A sophisticated AI Quality Assurance (QA) Expert for designing, implementing, and managing comprehensive QA processes to ensure software products meet the highest standards of quality, reliability, and user satisfaction. Use PROACTIVELY for developing testing strategies, executing detailed test plans, and providing data-driven feedback to development teams.",
+      "critical_instruction": null
+    },
+    "test-automator": {
+      "tools": [
+        "Read",
+        "Write",
+        "Edit",
+        "MultiEdit",
+        "Grep",
+        "Glob",
+        "Bash",
+        "LS",
+        "WebSearch",
+        "WebFetch",
+        "Task",
+        "mcp__context7__resolve-library-id",
+        "mcp__context7__get-library-docs",
+        "mcp__playwright__browser_navigate",
+        "mcp__playwright__browser_click",
+        "mcp__playwright__browser_type",
+        "mcp__playwright__browser_snapshot",
+        "mcp__playwright__browser_take_screenshot"
+      ],
+      "description": "A Test Automation Specialist responsible for designing, implementing, and maintaining a comprehensive automated testing strategy. This role focuses on building robust test suites, setting up and managing CI/CD pipelines for testing, and ensuring high standards of quality and reliability across the software development lifecycle. Use PROACTIVELY for improving test coverage, setting up test automation from scratch, or optimizing testing processes.",
       "critical_instruction": null
     },
     "test-results-analyzer": {
@@ -347,28 +1376,50 @@
       "description": "Use this agent when code changes have been made and you need to write new tests, run existing tests, analyze failures, and fix them while maintaining test integrity. This agent should be triggered proactively after code modifications to ensure comprehensive test coverage and suite health. Examples:\\n\\n<example>\\nContext: The user has just implemented a new feature or modified existing code.\\nuser: \"I've updated the user authentication logic to support OAuth\"\\nassistant: \"I've successfully updated the authentication logic. Now let me run the test-writer-fixer agent to ensure all tests pass with these changes.\"\\n<commentary>\\nSince code changes were made, use the Task tool to launch the test-writer-fixer agent to run relevant tests and fix any failures.\\n</commentary>\\n</example>\\n\\n<example>\\nContext: The user has refactored a module or changed function signatures.\\nuser: \"Please refactor this payment processing module to use async/await\"\\nassistant: \"I've completed the refactoring to use async/await throughout the payment module.\"\\n<function call omitted for brevity>\\nassistant: \"Now I'll use the test-writer-fixer agent to run the tests and fix any issues caused by the refactoring.\"\\n<commentary>\\nAfter refactoring code, proactively use the test-writer-fixer agent to ensure tests still pass.\\n</commentary>\\n</example>\\n\\n<example>\\nContext: The user has fixed a bug or made a critical change.\\nuser: \"Fix the race condition in the data synchronization service\"\\nassistant: \"I've identified and fixed the race condition by implementing proper locking mechanisms.\"\\n<function call omitted for brevity>\\nassistant: \"Let me run the test-writer-fixer agent to verify the fix doesn't break existing functionality.\"\\n<commentary>\\nAfter bug fixes, use the test-writer-fixer agent to ensure the fix works and doesn't introduce regressions.\\n</commentary>\\n</example>\\n\\n<example>\\nContext: Code lacks test coverage for critical functionality.\\nuser: \"Our payment processing module has no tests\"\\nassistant: \"That's a critical gap. Let me use the test-writer-fixer agent to create comprehensive tests for the payment module including edge cases and error scenarios.\"\\n<commentary>\\nCritical modules without tests are high-risk areas that need immediate test coverage.\\n</commentary>\\n</example>\\n\\n<example>\\nContext: After implementing a new feature that needs tests.\\nuser: \"I've added the social sharing functionality\"\\nassistant: \"Great! The social sharing is implemented. Now let me use the test-writer-fixer agent to write tests that ensure this feature works correctly across different platforms.\"\\n<commentary>\\nNew features should always include comprehensive test coverage from the start.\\n</commentary>\\n</example>",
       "critical_instruction": null
     },
-    "tool-evaluator": {
-      "tools": [
-        "WebSearch",
-        "WebFetch",
-        "Write",
-        "Read",
-        "Bash"
-      ],
-      "description": "Use this agent when evaluating new development tools, frameworks, or services for the studio. This agent specializes in rapid tool assessment, comparative analysis, and making recommendations that align with the 6-day development cycle philosophy. Examples:\\n\\n<example>\\nContext: Considering a new framework or library",
-      "critical_instruction": null
-    },
-    "tui-master": {
+    "api-documenter": {
       "tools": [
         "Read",
         "Write",
         "Edit",
         "MultiEdit",
-        "Bash",
         "Grep",
-        "Glob"
+        "Glob",
+        "Bash",
+        "LS",
+        "WebSearch",
+        "WebFetch",
+        "Task",
+        "mcp__context7__resolve-library-id",
+        "mcp__context7__get-library-docs"
       ],
-      "description": "Specialized agent for Textual TUI development, CSS/TCSS styling, and terminal user interface implementation. Use this agent for creating, debugging, and refactoring Python TUI applications built with Textual framework. Handles theme systems, widget styling, layout patterns, and CSS troubleshooting with deep knowledge of Textual-specific constraints and best practices.",
+      "description": "A specialist agent that creates comprehensive, developer-first API documentation. It generates OpenAPI 3.0 specs, code examples, SDK usage guides, and full Postman collections.",
+      "critical_instruction": null
+    },
+    "documentation-architect": {
+      "tools": [
+        "Read",
+        "Write",
+        "Glob",
+        "Grep"
+      ],
+      "description": "Use this agent when you need to create, update, or enhance documentation for any part of the codebase. This includes developer documentation, README files, API documentation, data flow diagrams, testing documentation, or architectural overviews. The agent will gather comprehensive context from memory, existing documentation, and related files to produce high-quality documentation that captures the complete picture.\\n\\n<example>\\nContext: User has just implemented a new authentication flow and needs documentation.\\nuser: \"I've finished implementing the JWT cookie-based authentication. Can you document this?\"\\nassistant: \"I'll use the documentation-architect agent to create comprehensive documentation for the authentication system.\"\\n<commentary>\\nSince the user needs documentation for a newly implemented feature, use the documentation-architect agent to gather all context and create appropriate documentation.\\n</commentary>\\n</example>\\n\\n<example>\\nContext: User is working on a complex workflow engine and needs to document the data flow.\\nuser: \"The workflow engine is getting complex. We need to document how data flows through the system.\"\\nassistant: \"Let me use the documentation-architect agent to analyze the workflow engine and create detailed data flow documentation.\"\\n<commentary>\\nThe user needs data flow documentation for a complex system, which is a perfect use case for the documentation-architect agent.\\n</commentary>\\n</example>\\n\\n<example>\\nContext: User has made changes to an API and needs to update the API documentation.\\nuser: \"I've added new endpoints to the form service API. The docs need updating.\"\\nassistant: \"I'll launch the documentation-architect agent to update the API documentation with the new endpoints.\"\\n<commentary>\\nAPI documentation needs updating after changes, so use the documentation-architect agent to ensure comprehensive and accurate documentation.\\n</commentary>\\n</example>",
+      "critical_instruction": null
+    },
+    "documentation-expert": {
+      "tools": [
+        "Read",
+        "Write",
+        "Edit",
+        "MultiEdit",
+        "Grep",
+        "Glob",
+        "Bash",
+        "LS",
+        "Task",
+        "mcp__context7__resolve-library-id",
+        "mcp__context7__get-library-docs"
+      ],
+      "description": "A sophisticated AI Software Documentation Expert for designing, creating, and maintaining comprehensive and user-friendly software documentation. Use PROACTIVELY for developing clear, consistent, and accessible documentation for various audiences, including developers, end-users, and stakeholders.",
       "critical_instruction": null
     },
     "web-research-specialist": {
@@ -382,16 +1433,105 @@
       "description": "Use this agent when you need to research information on the internet, particularly for debugging issues, finding solutions to technical problems, or gathering comprehensive information from multiple sources. This agent excels at finding relevant discussions in GitHub issues, Reddit threads, Stack Overflow, forums, and other community resources. Use when you need creative search strategies, thorough investigation of a topic, or compilation of findings from diverse sources.\\n\\nExamples:\\n- <example>\\n  Context: The user is encountering a specific error with a library and needs to find if others have solved it.\\n  user: \"I'm getting a 'Module not found' error with the new version of webpack, can you help me debug this?\"\\n  assistant: \"I'll use the web-research-specialist agent to search for similar issues and solutions across various forums and repositories.\"\\n  <commentary>\\n  Since the user needs help debugging an issue that others might have encountered, use the web-research-specialist agent to search for solutions.\\n  </commentary>\\n</example>\\n- <example>\\n  Context: The user needs comprehensive information about a technology or approach.\\n  user: \"I need to understand the pros and cons of different state management solutions for React.\"\\n  assistant: \"Let me use the web-research-specialist agent to research and compile a detailed comparison of different state management solutions.\"\\n  <commentary>\\n  The user needs research and comparison from multiple sources, which is perfect for the web-research-specialist agent.\\n  </commentary>\\n</example>\\n- <example>\\n  Context: The user is implementing a feature and wants to see how others have approached it.\\n  user: \"How do other developers typically implement infinite scrolling with virtualization?\"\\n  assistant: \"I'll use the web-research-specialist agent to research various implementation approaches and best practices from the community.\"\\n  <commentary>\\n  This requires researching multiple implementation approaches from various sources, ideal for the web-research-specialist agent.\\n  </commentary>\\n</example>",
       "critical_instruction": null
     },
-    "workflow-optimizer": {
+    "auth-route-debugger": {
+      "tools": [
+        "Read",
+        "Glob",
+        "Grep",
+        "Bash",
+        "WebFetch",
+        "WebSearch"
+      ],
+      "description": "Use this agent when you need to debug authentication-related issues with API routes, including 401/403 errors, cookie problems, JWT token issues, route registration problems, or when routes are returning 'not found' despite being defined. This agent specializes in the your project application's Keycloak/cookie-based authentication patterns.\\n\\nExamples:\\n- <example>\\n  Context: User is experiencing authentication issues with an API route\\n  user: \"I'm getting a 401 error when trying to access the /api/workflow/123 route even though I'm logged in\"\\n  assistant: \"I'll use the auth-route-debugger agent to investigate this authentication issue\"\\n  <commentary>\\n  Since the user is having authentication problems with a route, use the auth-route-debugger agent to diagnose and fix the issue.\\n  </commentary>\\n  </example>\\n- <example>\\n  Context: User reports a route is not being found despite being defined\\n  user: \"The POST /form/submit route returns 404 but I can see it's defined in the routes file\"\\n  assistant: \"Let me launch the auth-route-debugger agent to check the route registration and potential conflicts\"\\n  <commentary>\\n  Route not found errors often relate to registration order or naming conflicts, which the auth-route-debugger specializes in.\\n  </commentary>\\n  </example>\\n- <example>\\n  Context: User needs help testing an authenticated endpoint\\n  user: \"Can you help me test if the /api/user/profile endpoint is working correctly with authentication?\"\\n  assistant: \"I'll use the auth-route-debugger agent to test this authenticated endpoint properly\"\\n  <commentary>\\n  Testing authenticated routes requires specific knowledge of the cookie-based auth system, which this agent handles.\\n  </commentary>\\n  </example>",
+      "critical_instruction": null
+    },
+    "auth-route-tester": {
+      "tools": [
+        "Read",
+        "Glob",
+        "Grep",
+        "Bash"
+      ],
+      "description": "Use this agent when you need to test routes after implementing or modifying them. This agent focuses on verifying complete route functionality - ensuring routes handle data correctly, create proper database records, and return expected responses. The agent also reviews route implementation for potential improvements. Examples:\\n\\n<example>\\nContext: The user has just implemented a new POST route for form submissions.\\nuser: \"I've added a new POST route to /form/submit that creates submissions\"\\nassistant: \"I'll test the route to ensure it's working properly\"\\n<commentary>\\nSince a new route was created, use the auth-route-tester agent to verify it creates records correctly and returns the expected response.\\n</commentary>\\nassistant: \"Let me use the auth-route-tester agent to verify the route functionality and review the implementation\"\\n</example>\\n\\n<example>\\nContext: The user has modified a workflow launch route.\\nuser: \"I updated the monthly report launch route with new permission checks\"\\nassistant: \"I'll test the route to ensure it still creates workflows correctly\"\\n<commentary>\\nChanges to existing routes require testing the full functionality, so use the auth-route-tester agent.\\n</commentary>\\nassistant: \"I'll use the auth-route-tester agent to test the complete workflow creation process\"\\n</example>\\n\\n<example>\\nContext: The user has implemented a new API endpoint.\\nuser: \"I added a new endpoint to fetch user tasks\"\\nassistant: \"I should test the endpoint to verify it returns the correct data\"\\n<commentary>\\nNew endpoints need functional testing to ensure they work as expected.\\n</commentary>\\nassistant: \"Let me launch the auth-route-tester agent to verify the endpoint returns tasks properly\"\\n</example>",
+      "critical_instruction": null
+    },
+    "security-auditor": {
       "tools": [
         "Read",
         "Write",
-        "Bash",
-        "TodoWrite",
+        "Edit",
         "MultiEdit",
+        "Grep",
+        "Glob",
+        "Bash",
+        "LS",
+        "WebSearch",
+        "WebFetch",
+        "Task",
+        "mcp__context7__resolve-library-id",
+        "mcp__context7__get-library-docs",
+        "mcp__sequential-thinking__sequentialthinking",
+        "mcp__playwright__browser_navigate",
+        "mcp__playwright__browser_snapshot",
+        "mcp__playwright__browser_evaluate"
+      ],
+      "description": "A senior application security auditor and ethical hacker, specializing in identifying, evaluating, and mitigating security vulnerabilities throughout the entire software development lifecycle. Use PROACTIVELY for comprehensive security assessments, penetration testing, secure code reviews, and ensuring compliance with industry standards like OWASP, NIST, and ISO 27001.",
+      "critical_instruction": null
+    },
+    "tui-architect": {
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob"
+      ],
+      "description": "TUI Planning Specialist - Designs widget hierarchies, screen layouts, and component specifications. Outputs diagrams and specs ONLY. Does NOT write code.",
+      "critical_instruction": null
+    },
+    "tui-debugger": {
+      "tools": [
+        "Read",
+        "Bash",
+        "Grep",
+        "Glob"
+      ],
+      "description": "TUI Debug Specialist - Diagnoses issues, runs tests, inspects DOM and styles. Does NOT write code - only reports findings.",
+      "critical_instruction": null
+    },
+    "tui-designer": {
+      "tools": [
+        "Read",
+        "Write",
+        "Edit",
+        "Glob",
         "Grep"
       ],
-      "description": "Use this agent for optimizing human-agent collaboration workflows and analyzing workflow efficiency. This agent specializes in identifying bottlenecks, streamlining processes, and ensuring smooth handoffs between human creativity and AI assistance. Examples:\\n\\n<example>\\nContext: Improving development workflow efficiency",
+      "description": "TUI Styling Specialist - Creates and modifies TCSS files and theme definitions ONLY. Does NOT write Python widget logic.",
+      "critical_instruction": null
+    },
+    "tui-developer": {
+      "tools": [
+        "Read",
+        "Write",
+        "Edit",
+        "MultiEdit",
+        "Bash",
+        "Grep",
+        "Glob"
+      ],
+      "description": "TUI Python Specialist - Implements widgets, screens, workers, and message handlers. Does NOT write visual styles (TCSS).",
+      "critical_instruction": null
+    },
+    "tui-master": {
+      "tools": [
+        "Read",
+        "Write",
+        "Edit",
+        "MultiEdit",
+        "Bash",
+        "Grep",
+        "Glob"
+      ],
+      "description": "Generalist TUI agent for Textual framework. Use for simple tasks or when crossing multiple domains (styling + code + debug). For complex work, prefer specialized agents (tui-architect, tui-designer, tui-developer, tui-debugger).",
       "critical_instruction": null
     }
   },

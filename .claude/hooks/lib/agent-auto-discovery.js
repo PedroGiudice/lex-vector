@@ -8,15 +8,19 @@
  * - Sistema "disfuncional" porque 11 agents não eram reconhecidos
  *
  * SOLUÇÃO:
- * - Auto-descobre TODOS agents em .claude/agents/*.md
+ * - Auto-descobre TODOS agents em .claude/agents/ (RECURSIVO, todas subpastas)
  * - Lê YAML frontmatter para extrair name, description, tools
  * - Gera automaticamente agent-tools-mapping.json
  *
  * USO:
  * node .claude/hooks/lib/agent-auto-discovery.js --update
  *
- * Version: 1.0.0
- * Date: 2025-11-23
+ * Version: 2.0.0
+ * Date: 2025-11-30
+ *
+ * CHANGELOG v2.0.0:
+ * - Recursive discovery: now scans all subdirectories under .claude/agents/
+ * - Supports organized agent structure with subdirs (development/, quality-testing/, etc)
  */
 
 const fs = require('fs');
@@ -51,8 +55,34 @@ function parseYamlFrontmatter(content) {
 }
 
 // ============================================================================
-// AGENT DISCOVERY
+// AGENT DISCOVERY (RECURSIVE)
 // ============================================================================
+
+/**
+ * Recursively find all .md files in a directory
+ */
+function findMdFilesRecursive(dir, baseDir = dir) {
+  const results = [];
+
+  if (!fs.existsSync(dir)) return results;
+
+  const entries = fs.readdirSync(dir, { withFileTypes: true });
+
+  for (const entry of entries) {
+    const fullPath = path.join(dir, entry.name);
+
+    if (entry.isDirectory()) {
+      // Recurse into subdirectories
+      results.push(...findMdFilesRecursive(fullPath, baseDir));
+    } else if (entry.isFile() && entry.name.endsWith('.md')) {
+      // Get relative path from base agents dir
+      const relativePath = path.relative(baseDir, fullPath);
+      results.push({ fullPath, relativePath, filename: entry.name });
+    }
+  }
+
+  return results;
+}
 
 function discoverAgents(projectDir = process.cwd()) {
   const agentsDir = path.join(projectDir, '.claude', 'agents');
@@ -62,28 +92,26 @@ function discoverAgents(projectDir = process.cwd()) {
     return [];
   }
 
-  const agentFiles = fs.readdirSync(agentsDir)
-    .filter(f => {
-      // Must end with .md
-      if (!f.endsWith('.md')) return false;
+  // Recursively find all .md files
+  const allMdFiles = findMdFilesRecursive(agentsDir);
 
-      // Exclude documentation files
-      if (f === 'README.md') return false;
-      if (f.match(/^[A-Z_]+.*\.md$/)) return false; // ALL_CAPS or UPPER_CASE docs
+  // Filter out documentation files
+  const agentFiles = allMdFiles.filter(f => {
+    // Exclude documentation files
+    if (f.filename === 'README.md') return false;
+    if (f.filename.match(/^[A-Z_]+.*\.md$/)) return false; // ALL_CAPS or UPPER_CASE docs
 
-      return true;
-    })
-    .sort();
+    return true;
+  }).sort((a, b) => a.relativePath.localeCompare(b.relativePath));
 
   const discovered = [];
 
   for (const file of agentFiles) {
-    const filePath = path.join(agentsDir, file);
-    const content = fs.readFileSync(filePath, 'utf8');
+    const content = fs.readFileSync(file.fullPath, 'utf8');
     const frontmatter = parseYamlFrontmatter(content);
 
     // Extract agent name from filename if not in frontmatter
-    const agentName = frontmatter?.name || file.replace('.md', '');
+    const agentName = frontmatter?.name || file.filename.replace('.md', '');
 
     // Extract description
     const description = frontmatter?.description || `Agent: ${agentName}`;
@@ -105,7 +133,7 @@ function discoverAgents(projectDir = process.cwd()) {
       description,
       tools,
       critical_instruction,
-      source: file
+      source: file.relativePath  // Now includes subdir path
     });
   }
 
@@ -206,7 +234,7 @@ function generateAgentMapping(discoveredAgents, existingMapping = null) {
     "$schema": "https://json-schema.org/draft-07/schema#",
     "$comment": "Mapeamento declarativo de agentes → ferramentas disponíveis (AUTO-GENERATED)",
     "version": "2.1.0",
-    "description": "Auto-discovery system: agents são descobertos automaticamente de .claude/agents/*.md",
+    "description": "Auto-discovery system: agents são descobertos automaticamente de .claude/agents/**/*.md (recursive)",
     "generated_at": new Date().toISOString(),
     "agents": agents,
     "_notes": {
@@ -229,7 +257,7 @@ function main() {
 
   // Discover agents
   const discovered = discoverAgents(projectDir);
-  console.log(`✅ Discovered ${discovered.length} agents from .claude/agents/*.md\n`);
+  console.log(`✅ Discovered ${discovered.length} agents from .claude/agents/**/*.md (recursive)\n`);
 
   // Show discovered agents
   console.log('📋 DISCOVERED AGENTS:');
