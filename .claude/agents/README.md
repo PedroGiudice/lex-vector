@@ -1,136 +1,134 @@
 # Agents
 
-Specialized agents for complex, multi-step tasks.
-
-**Total: 104 agents** organized into subdirectories (deduplicated, compliant with Anthropic naming conventions).
+**Status:** Consolidados em `~/.claude/agents/` (global)
 
 ---
 
-## Directory Structure
+## Estrutura Atual
+
+Todos os 59 agentes foram movidos para a pasta global do usuário:
 
 ```
-.claude/agents/
-├── _meta/          (11)  # Meta-agents (organizers, reviewers, utilities)
-├── _project/       (7)   # Custom project-specific agents (legal/Brazilian)
-├── business/       (4)   # Product management, feedback
-├── data-ai/        (8)   # ML, AI, data engineering, databases
-├── design-ux/      (14)  # UI/UX design, accessibility, styling
-├── development/    (15)  # Frontend, backend, fullstack, language-specific
-├── infrastructure/ (12)  # DevOps, cloud, deployment, performance
-├── marketing/      (7)   # Social media, growth, ASO
-├── quality-testing/(14)  # Code review, QA, debugging, testing
-├── research/       (4)   # Documentation, web research
-├── routes-auth/    (2)   # Authentication/route testing
-├── security/       (1)   # Security auditing
-├── tui/            (5)   # Textual TUI specialists
+~/.claude/agents/
+├── tui-*.md           (5)  # TUI specialists
+├── legal-*.md         (2)  # Legal extraction
+├── *-legal.md         (5)  # Legal project (PT-BR)
+├── *-lst97.md         (27) # LST97 collection
+├── *-studio.md        (5)  # Studio collection
+├── *-ui.md            (2)  # UI specialists
+└── outros             (13) # Development, meta, etc
 ```
 
----
-
-## Naming Convention
-
-All agent names follow **lowercase-hyphen** format (Anthropic best practice):
-- ✅ `frontend-developer`
-- ✅ `code-architecture-reviewer`
-- ❌ ~~`Frontend Developer`~~ (spaces/capitals not allowed)
+**Total: 59 agentes**
 
 ---
 
-## Quick Reference by Category
+## Por que Global?
 
-### Development (`development/`)
-- `frontend-developer.md` - React, TypeScript frontends
-- `backend-architect.md` - API design, Node.js
-- `rapid-prototyper.md` - Quick MVPs
-- `react-pro-lst97.md` - React specialist
-- `nextjs-pro-lst97.md` - Next.js specialist
-- `typescript-pro-lst97.md` - TypeScript specialist
-- `python-pro-lst97.md` - Python development
-- `golang-pro-lst97.md` - Go development
-- ... and more
-
-### Quality & Testing (`quality-testing/`)
-- `code-architecture-reviewer.md` - Architecture review
-- `code-refactor-master.md` - Comprehensive refactoring
-- `test-writer-fixer.md` - Test creation/fixing
-- `frontend-error-fixer.md` - Frontend debugging
-- `debugger-lst97.md` - General debugging
-- `qa-expert-lst97.md` - QA specialist
-- ... and more
-
-### Data & AI (`data-ai/`)
-- `ai-engineer.md` - AI/ML integration
-- `ml-engineer-lst97.md` - Machine learning
-- `data-scientist-lst97.md` - Data science
-- `database-optimizer-lst97.md` - DB optimization
-- `prompt-engineer-lst97.md` - Prompt engineering
-- ... and more
-
-### TUI (`tui/`)
-- `tui-master.md` - Generalist Textual TUI
-- `tui-architect.md` - TUI planning specialist
-- `tui-designer.md` - TCSS/styling specialist
-- `tui-developer.md` - Widget implementation
-- `tui-debugger.md` - TUI debugging specialist
-
-### Project-Specific (`_project/`)
-- `legal-text-extractor.md` - Brazilian legal text extraction
-- `legal-articles-finder.md` - Legal article lookup
-- `planejamento-legal.md` - Legal planning
-- `analise-dados-legal.md` - Legal data analysis
-- `documentacao.md` - Portuguese documentation
-- `desenvolvimento.md` - Portuguese development
-- `qualidade-codigo.md` - Code quality (Portuguese)
+1. **Disponibilidade:** Agentes disponíveis em qualquer projeto Claude Code
+2. **Manutenção:** Um único lugar para atualizar
+3. **Descoberta:** Claude Code descobre automaticamente de `~/.claude/agents/`
 
 ---
 
-## How to Use
+## Categorias
 
-### Invoke an Agent
+### TUI (5)
+- `tui-master` - Generalist
+- `tui-architect` - Planning
+- `tui-designer` - TCSS/styling
+- `tui-developer` - Python
+- `tui-debugger` - Diagnostics
+
+### Legal/Project (7)
+- `legal-text-extractor` - Text extraction
+- `legal-articles-finder` - Article lookup
+- `planejamento-legal` - Planning (PT-BR)
+- `analise-dados-legal` - Data analysis (PT-BR)
+- `documentacao` - Documentation (PT-BR)
+- `desenvolvimento` - Development (PT-BR)
+- `qualidade-codigo` - Code quality (PT-BR)
+
+### Development (10)
+- `frontend-developer`, `backend-architect`, `rapid-prototyper`
+- `react-pro-lst97`, `nextjs-pro-lst97`, `typescript-pro-lst97`
+- `python-pro-lst97`, `full-stack-developer-lst97`
+- `dx-optimizer-lst97`, `legacy-modernizer-lst97`
+
+### Quality & Testing (8)
+- `code-reviewer-superpowers`, `code-refactor-master`
+- `test-writer-fixer`, `debugger-lst97`, `qa-expert-lst97`
+- `test-automator-lst97`, `architect-review-lst97`
+- `security-auditor-lst97`
+
+### Data & AI (8)
+- `ai-engineer`, `ml-engineer-lst97`, `data-scientist-lst97`
+- `data-engineer-lst97`, `database-optimizer-lst97`
+- `postgres-pro-lst97`, `graphql-architect-lst97`
+- `prompt-engineer-lst97`
+
+### Infrastructure (6)
+- `cloud-architect-lst97`, `devops-automator`
+- `deployment-engineer-lst97`, `incident-responder-lst97`
+- `devops-incident-responder-lst97`, `performance-engineer-lst97`
+
+### Design/UX (4)
+- `ui-designer`, `react-component-generator-ui`
+- `ux-researcher-studio`
+
+### Business/Product (4)
+- `product-manager-lst97`, `sprint-prioritizer-studio`
+- `trend-researcher-studio`, `feedback-synthesizer-studio`
+
+### Meta/Utility (4)
+- `agent-organizer-lst97`, `gemini-assistant`
+- `plan-reviewer`, `refactor-planner`
+
+### Research (2)
+- `documentation-architect`, `web-research-specialist`
+
+### Routes/Auth (2)
+- `auth-route-debugger`, `auth-route-tester`
+
+---
+
+## Como Usar
+
 ```
 Use the [agent-name] agent to [task]
 ```
 
-Example:
+Exemplo:
 ```
-Use the code-architecture-reviewer agent to review the new API endpoints
-```
-
-### Agent Discovery
-
-Agents are auto-discovered recursively from `.claude/agents/**/*.md`.
-
-Run discovery manually:
-```bash
-node .claude/hooks/lib/agent-auto-discovery.js --update
+Use the tui-developer agent to create a new widget
 ```
 
 ---
 
-## Creating Custom Agents
+## Adicionar Novo Agente
 
-Create a `.md` file with YAML frontmatter:
+Crie em `~/.claude/agents/meu-agente.md`:
 
 ```markdown
 ---
-name: my-agent
-description: What this agent does
+name: meu-agente
+description: O que o agente faz
 tools: Read, Write, Edit, Bash
 ---
 
-# Agent Instructions
-
-Your detailed instructions here...
+# Instruções do Agente
+...
 ```
 
-Place in appropriate subdirectory and run discovery.
+**IMPORTANTE:** Reinicie a sessão do Claude Code para descobrir novos agentes.
 
 ---
 
-## Notes
+## Backup
 
-- All agents inherit session model (no `model:` field needed)
-- Agents in subdirectories are fully supported by Claude Code
-- Deduplicated: each agent has exactly one authoritative file
-- Agent names must be lowercase-hyphen format
-- Run `node .claude/hooks/lib/agent-auto-discovery.js --update` after adding/modifying agents
+Backup disponível em: `~/.claude/agents-backup-YYYYMMDD/`
+
+---
+
+**Consolidação:** 2025-11-30
+**De:** 106 agentes (projeto) → **59 agentes** (global)
