@@ -1,7 +1,7 @@
 """
-Legal Text Extractor - Agente de Extração de Texto Jurídico
+Legal Text Extractor - Sistema de Extração de Texto Jurídico
 
-Entry point e API principal do agente.
+Entry point e API principal do sistema.
 """
 import logging
 import time
@@ -12,13 +12,22 @@ from dataclasses import dataclass
 from src.extractors.text_extractor import TextExtractor
 from src.extractors.ocr_extractor import OCRExtractor
 from src.core.cleaner import DocumentCleaner
-from src.analyzers.section_analyzer import SectionAnalyzer, Section
 from src.exporters.text import TextExporter
 from src.exporters.markdown import MarkdownExporter
 from src.exporters.json import JSONExporter
 
 # Configurar logging
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class Section:
+    """Seção de documento (estrutura simples sem dependência de SDK)"""
+    type: str
+    content: str
+    start_pos: int
+    end_pos: int
+    confidence: float
 
 
 @dataclass
@@ -37,32 +46,23 @@ class ExtractionResult:
 
 class LegalTextExtractor:
     """
-    Agente de extração de texto jurídico.
+    Sistema de extração de texto jurídico.
 
-    Combina extração, limpeza e separação de seções.
+    Combina extração de texto e limpeza semântica.
     """
 
     def __init__(self):
         self.text_extractor = TextExtractor()
         self.ocr_extractor = OCRExtractor()
         self.cleaner = DocumentCleaner()
-        self._section_analyzer = None  # Lazy initialization (requer API key)
         self.txt_exporter = TextExporter()
         self.md_exporter = MarkdownExporter()
         self.json_exporter = JSONExporter()
-
-    @property
-    def section_analyzer(self):
-        """Lazy initialization do SectionAnalyzer (requer ANTHROPIC_API_KEY)"""
-        if self._section_analyzer is None:
-            self._section_analyzer = SectionAnalyzer()
-        return self._section_analyzer
 
     def process_pdf(
         self,
         pdf_path: Path | str,
         system: str | None = None,
-        separate_sections: bool = False,
         blacklist: list[str] | None = None,
         output_format: str = "text"  # "text", "markdown", "json"
     ) -> ExtractionResult:
@@ -72,7 +72,6 @@ class LegalTextExtractor:
         Args:
             pdf_path: Caminho do PDF
             system: Sistema judicial (None = auto-detect)
-            separate_sections: Separar seções usando Claude
             blacklist: Termos customizados a remover
             output_format: Formato de saída ("text", "markdown", "json")
 
@@ -86,7 +85,7 @@ class LegalTextExtractor:
         logger.info(f"Tamanho do arquivo: {pdf_path.stat().st_size / 1024 / 1024:.2f} MB")
 
         # 1. Extrai texto
-        logger.info("1/3 Extraindo texto do PDF...")
+        logger.info("1/2 Extraindo texto do PDF...")
         extract_start = time.time()
 
         if self.text_extractor.is_scanned(pdf_path):
@@ -99,7 +98,7 @@ class LegalTextExtractor:
         logger.info(f"✓ Texto extraído: {len(raw_text):,} caracteres ({extract_time:.2f}s)")
 
         # 2. Limpa texto
-        logger.info("2/3 Limpando documento...")
+        logger.info("2/2 Limpando documento...")
         clean_start = time.time()
 
         cleaning_result = self.cleaner.clean(
@@ -115,43 +114,19 @@ class LegalTextExtractor:
                    f"({cleaning_result.stats.original_length:,} → {cleaning_result.stats.final_length:,} chars)")
         logger.info(f"✓ Padrões removidos: {len(cleaning_result.stats.patterns_removed)} ({clean_time:.2f}s)")
 
-        # 3. Separa seções (opcional)
-        logger.info("3/3 Separando seções...")
-        section_start = time.time()
-        sections = []
+        # Cria seção única para o documento
+        sections = [Section(
+            type="documento_completo",
+            content=cleaning_result.text,
+            start_pos=0,
+            end_pos=len(cleaning_result.text),
+            confidence=1.0
+        )]
 
-        if separate_sections:
-            logger.info("Análise de seções via Claude API (requer ANTHROPIC_API_KEY)...")
-            try:
-                sections = self.section_analyzer.analyze(cleaning_result.text)
-                logger.info(f"✓ {len(sections)} seções identificadas")
-            except Exception as e:
-                logger.error(f"Falha na análise de seções: {e}")
-                logger.info("Criando seção única como fallback...")
-                sections = [Section(
-                    type="documento_completo",
-                    content=cleaning_result.text,
-                    start_pos=0,
-                    end_pos=len(cleaning_result.text),
-                    confidence=1.0
-                )]
-        else:
-            # Seção única
-            sections = [Section(
-                type="documento_completo",
-                content=cleaning_result.text,
-                start_pos=0,
-                end_pos=len(cleaning_result.text),
-                confidence=1.0
-            )]
-            logger.info("✓ Documento tratado como seção única (separate_sections=False)")
-
-        section_time = time.time() - section_start
-
-        # 4. Retorna resultado
+        # Retorna resultado
         total_time = time.time() - start_time
         logger.info(f"=== CONCLUÍDO: {total_time:.2f}s total "
-                   f"(extração: {extract_time:.2f}s, limpeza: {clean_time:.2f}s, seções: {section_time:.2f}s) ===\n")
+                   f"(extração: {extract_time:.2f}s, limpeza: {clean_time:.2f}s) ===\n")
 
         return ExtractionResult(
             text=cleaning_result.text,

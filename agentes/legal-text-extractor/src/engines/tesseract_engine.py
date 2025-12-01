@@ -214,7 +214,7 @@ class TesseractEngine(ExtractionEngine):
             logger.error(f"Erro ao extrair PDF via Tesseract OCR: {e}")
             raise RuntimeError(f"Falha na extração com Tesseract: {e}") from e
 
-    def _preprocess_image(self, image: Image.Image) -> np.ndarray:
+    def _preprocess_image(self, image: "Image.Image") -> "np.ndarray":
         """
         Pré-processa imagem para melhorar qualidade OCR.
 
