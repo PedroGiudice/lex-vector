@@ -59,8 +59,12 @@ PDF Original
 │  Classe: TextExtractor                                      │
 │  Input: layout.json + PDF + images/ (opcional)              │
 │  Output: outputs/{doc_id}/final.md                          │
-│  Função: Extrai texto via PDFPlumber (NATIVE) ou            │
-│          Tesseract OCR (RASTER), aplica limpeza semântica   │
+│  Função: Extrai texto com escalonamento automático:         │
+│          - PDFPlumber: texto nativo (rápido, 0.5GB RAM)     │
+│          - Tesseract OCR: scans simples (1GB RAM)           │
+│          - Marker: PDFs complexos (MELHOR, 10-12GB RAM)     │
+│  NOTA: Marker é o engine PREMIUM - maior qualidade,         │
+│        preserva layout, tabelas e formatação complexa       │
 └─────────────────────────────────────────────────────────────┘
     │
     ▼
@@ -95,7 +99,7 @@ legal-text-extractor/
 │   │   ├── base.py                  # Interface ExtractionEngine
 │   │   ├── pdfplumber_engine.py     # Engine nativa (0.5GB RAM)
 │   │   ├── tesseract_engine.py      # OCR (1GB RAM)
-│   │   ├── marker_engine.py         # Premium (8GB RAM) - STUB
+│   │   ├── marker_engine.py         # Engine PREMIUM (10-12GB RAM)
 │   │   ├── engine_selector.py       # Seleção automática
 │   │   ├── selector.py              # Escalação progressiva
 │   │   └── cleaning_engine.py       # Limpeza adaptativa
@@ -217,16 +221,19 @@ python -m src.steps.step_04_classify \
 ### Hierarquia de Qualidade
 | Engine | RAM | Qualidade | Uso |
 |--------|-----|-----------|-----|
-| **Marker** | 8GB | 1.0 (melhor) | PDFs complexos, tabelas |
+| **Marker** ⭐ | 10-12GB | 1.0 (MELHOR) | PDFs complexos, tabelas, layout preservado |
 | **PDFPlumber** | 0.5GB | 0.9 | Texto nativo (não escaneado) |
-| **Tesseract** | 1GB | 0.7 | OCR para scans |
+| **Tesseract** | 1GB | 0.7 | OCR para scans simples |
+
+> **IMPORTANTE**: Marker é o engine PREMIUM do sistema. Quando disponível (RAM suficiente),
+> produz resultados significativamente superiores para documentos complexos.
 
 ### Seleção Automática (engine_selector.py)
 ```python
 # Lógica de seleção:
-# 1. Se PDF tem ≥80% texto nativo → PDFPlumber
-# 2. Se PDF escaneado + RAM ≥8GB → Marker
-# 3. Fallback → Tesseract OCR
+# 1. Se PDF tem ≥80% texto nativo → PDFPlumber (rápido)
+# 2. Se PDF escaneado/complexo + RAM ≥10GB → Marker (MELHOR resultado)
+# 3. Fallback se RAM insuficiente → Tesseract OCR
 ```
 
 ### Escalação Progressiva (selector.py)
@@ -575,10 +582,10 @@ def list_systems():
 | **Total (NATIVE)** | ~0.6s/página | Sem OCR |
 | **Total (com OCR)** | ~1.5s/página | Com Tesseract |
 
-### Limitações Atuais
-1. **Marker Engine**: Stub (NotImplementedError) - aguarda sistema com ≥8GB RAM
-2. **OCR**: Apenas Tesseract implementado
-3. **Context Store**: schema.sql precisa ser criado
+### Requisitos de Sistema para Marker
+1. **Marker Engine**: Requer sistema com ≥10GB RAM dedicada (WSL2 ou nativo)
+2. **OCR Fallback**: Tesseract usado quando RAM insuficiente para Marker
+3. **Context Store**: Aprendizado automático de padrões entre documentos
 
 ### Erros Comuns
 ```python
