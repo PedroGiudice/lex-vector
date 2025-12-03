@@ -135,6 +135,14 @@ with st.sidebar:
     system = st.selectbox("JUDICIAL_SYSTEM", ["AUTO_DETECT", "PJE", "ESAJ", "STF"])
     process_btn = st.button(">> EXECUTE PIPELINE", use_container_width=True)
 
+    # Developer tools section
+    st.divider()
+    st.caption(">> DEV_TOOLS")
+    if st.button("RELOAD_BACKEND", use_container_width=True, help="Hot-fix: reload orchestrator after backend changes"):
+        st.cache_resource.clear()
+        st.success("> [OK] CACHE CLEARED")
+        st.rerun()
+
 # 5. MAIN EXECUTION
 if process_btn:
     if uploaded_file is None:
