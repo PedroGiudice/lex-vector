@@ -70,6 +70,9 @@ Claude-Code-Projetos/
 │   ├── djen-tracker/  # Monitors Electronic Justice Daily
 │   └── legal-lens/    # Analyzes legal publications
 │
+├── mcp-servers/       # Model Context Protocol servers
+│   └── trello-mcp/    # Trello integration with Streamlit frontend
+│
 ├── comandos/          # Reusable utility commands (single-purpose tools)
 │   ├── fetch-doc/     # Downloads documents from specific sources
 │   ├── extract-core/  # Extracts core information from documents
@@ -92,6 +95,87 @@ Claude-Code-Projetos/
     ├── utils/         # Utility functions (logging, path management)
     └── models/        # Data models
 ```
+
+---
+
+## MCP Servers
+
+### trello-mcp
+
+Production-grade Trello MCP Server with Streamlit frontend.
+
+**Location:** `mcp-servers/trello-mcp/`
+
+**Components:**
+- `src/` - Backend: TrelloClient, models, MCP server
+- `Trello-app.py` - Frontend Streamlit (CLI theme)
+- `run-ui.sh` - Script de execucao
+- `.env` - Credenciais (TRELLO_API_KEY, TRELLO_API_TOKEN)
+
+**Execucao:**
+```bash
+trello-ui  # alias configurado em ~/.bashrc
+# ou
+cd mcp-servers/trello-mcp && ./run-ui.sh
+```
+
+**Funcionalidades:**
+- Dropdown dinamico de boards (API real)
+- Extracao regex de dados juridicos (CPF, CNPJ, OAB, R$, CEP, telefone, email)
+- Export CSV e JSON
+- Metricas visuais e graficos
+- Progress bar durante pipeline
+
+**Decisao arquitetural:** Frontend usa requisicoes diretas via `client._request()` para evitar conflitos com modelos Pydantic do backend que tem `extra="forbid"`.
+
+---
+
+## Workflow: Gemini AI Studio para Frontend
+
+**Contexto:** Desenvolvimento de frontends Streamlit pode ser acelerado 10x usando Gemini AI Studio para gerar codigo inicial.
+
+### Processo
+
+1. **Preparacao do contexto**
+   - Adicionar tab SOURCE no frontend existente que exibe o proprio codigo
+   - Isso permite ao Gemini "ver" o codigo atual
+
+2. **Geracao no Gemini AI Studio**
+   - Enviar screenshot da interface atual
+   - Pedir melhorias esteticas especificas
+   - Gemini gera codigo Python completo
+
+3. **Salvamento**
+   - Salvar output do Gemini como arquivo na pasta do projeto (ex: `Newapp.py`)
+   - NAO colar codigo diretamente no chat
+
+4. **Mesclagem (Claude Code)**
+   - Claude le o arquivo gerado
+   - Identifica melhorias esteticas vs funcionalidade
+   - Mescla: visual do Gemini + logica funcional existente
+   - Remove tab SOURCE (era apenas ferramenta de trabalho)
+
+5. **Limpeza**
+   - Deletar arquivos intermediarios
+   - Manter apenas versao final consolidada
+
+### Exemplo Real (trello-mcp)
+
+- Gemini gerou: ASCII header, sidebar organizada, CSS melhorado, progress bar, metricas visuais
+- Claude preservou: integracao TrelloClient, requisicoes async, extracao regex, exports
+- Resultado: frontend completo em ~30 minutos vs estimativa de 4-6 horas manual
+
+### Quando Usar
+
+- Frontends Streamlit com tema visual especifico
+- Melhorias de UX/UI em interfaces existentes
+- Prototipagem rapida de dashboards
+
+### Quando NAO Usar
+
+- Logica de negocio complexa
+- Integracoes com APIs especificas
+- Codigo que requer conhecimento profundo do backend
 
 ---
 
@@ -340,7 +424,6 @@ The Claude Code discovers agents automatically from `.md` files in:
 
 ---
 
-**Last updated:** 2025-12-02
+**Last updated:** 2025-12-03
 **Maintained by:** PedroGiudice
 **For Claude Code instances operating in:** `~/claude-work/repos/Claude-Code-Projetos` (WSL2)
-- adicione objetivamente à memória. Não use emojis.

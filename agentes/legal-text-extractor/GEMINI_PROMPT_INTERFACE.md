@@ -181,84 +181,47 @@ legal-text-extractor/
 
 ---
 
-## 4. API PRINCIPAL - Como Usar
+## 4. API PRINCIPAL - Como Usar (Backend)
 
-### 4.1 Uso Básico (main.py)
+### 4.1 Uso via PipelineOrchestrator (Obrigatório)
 
 ```python
 from pathlib import Path
-from main import LegalTextExtractor
+from src.pipeline.orchestrator import PipelineOrchestrator
 
-# Inicializar
-extractor = LegalTextExtractor()
+# 1. Instanciar (Idealmente em cache)
+orchestrator = PipelineOrchestrator()
 
-# Processar PDF
-result = extractor.process_pdf(
-    pdf_path=Path("documento.pdf"),
-    system=None,          # Auto-detect (PJE, ESAJ, etc)
-    blacklist=None,       # Termos adicionais a remover
-    output_format="text"  # "text", "markdown", "json"
+# 2. Definir Callback de Progresso (para UI)
+def meu_callback(current, total, msg):
+    print(f"[{current}/{total}] {msg}")
+
+# 3. Processar
+result = orchestrator.process(
+    pdf_path=Path("/tmp/temp_upload.pdf"),
+    progress_callback=meu_callback
 )
 
-# Acessar resultado
-print(f"Sistema: {result.system_name} ({result.confidence}%)")
-print(f"Redução: {result.reduction_pct:.1f}%")
-print(f"Texto: {result.text[:500]}...")
+# 4. Acessar Resultados (PipelineResult)
+if result.success:
+    print(f"Páginas: {result.total_pages}")
+    print(f"Texto Final: {result.text[:100]}...")
+    print(f"Metadados: {result.metadata}") # Contém system_name, confidence, etc
+    print(f"Avisos: {result.warnings}")
+4.2 Objeto de Retorno (PipelineResult)
+O orquestrador retorna um objeto PipelineResult (ver src/pipeline/orchestrator.py), contendo:
 
-# Salvar
-extractor.save(result, "output.txt", format="text")
-extractor.save(result, "output.md", format="markdown")
-extractor.save(result, "output.json", format="json")
-```
+text: String final (Markdown) com o conteúdo extraído.
 
-### 4.2 Estrutura do ExtractionResult
+layout: Dict com estrutura das páginas (usado para debug).
 
-```python
-@dataclass
-class ExtractionResult:
-    text: str                      # Texto limpo extraído
-    sections: list[Section]        # Seções do documento
-    system: str                    # Código: 'pje', 'esaj', etc
-    system_name: str               # Nome completo do sistema
-    confidence: int                # Confiança da detecção (0-100)
-    original_length: int           # Caracteres antes da limpeza
-    final_length: int              # Caracteres após limpeza
-    reduction_pct: float           # Percentual de redução
-    patterns_removed: list[str]    # Padrões aplicados
-```
+metadata: Dict contendo system_name, confidence, doc_id, etc.
 
-### 4.3 Uso por Steps Individuais (CLI)
+success: Booleano indicando se o pipeline rodou até o fim.
 
-```bash
-# Ativar ambiente virtual
-cd /home/user/Claude-Code-Projetos/agentes/legal-text-extractor
-source .venv/bin/activate
+warnings: Lista de strings com erros não-fatais.
 
-# STEP 01: Análise de Layout
-python -m src.steps.step_01_layout inputs/processo.pdf
-# Output: outputs/processo/layout.json
-
-# STEP 02: Processamento de Imagem (se necessário)
-python -m src.steps.step_02_vision \
-    --layout-json outputs/processo/layout.json \
-    --pdf-path inputs/processo.pdf \
-    --doc-id processo
-# Output: outputs/processo/images/page_*.png
-
-# STEP 03: Extração de Texto
-python -m src.steps.step_03_extract \
-    --layout-json outputs/processo/layout.json \
-    --pdf-path inputs/processo.pdf \
-    --images-dir outputs/processo/images
-# Output: outputs/processo/final.md
-
-# STEP 04: Classificação Semântica
-python -m src.steps.step_04_classify \
-    --input-md outputs/processo/final.md
-# Output: outputs/processo/semantic_structure.json
-#         outputs/processo/final_tagged.md
-```
-
+ '''
 ---
 
 ## 5. ENGINES DE EXTRAÇÃO
@@ -577,32 +540,32 @@ pdfplumber.exceptions.PDFSyntaxError: "..."
 
 ---
 
-## 14. EXEMPLO DE EXECUÇÃO COMPLETA
+## 14. EXEMPLO DE FLUXO INTERNO (Mental Model)
 
-```bash
-# 1. Preparar ambiente
-cd /home/user/Claude-Code-Projetos/agentes/legal-text-extractor
-source .venv/bin/activate
+```python
+# O App deve simular este fluxo:
 
-# 2. Processar PDF de exemplo
-python -c "
-from pathlib import Path
-from main import LegalTextExtractor
+# 1. Recebe arquivo do Streamlit (BytesIO)
+uploaded_file = st.file_uploader(...)
 
-extractor = LegalTextExtractor()
-result = extractor.process_pdf('test-documents/fixtures/fixture_test.pdf')
+# 2. Salva em disco (WSL2 path)
+temp_path = save_temp_file(uploaded_file)
 
-print('=== RESULTADO ===')
-print(f'Sistema: {result.system_name}')
-print(f'Confiança: {result.confidence}%')
-print(f'Redução: {result.reduction_pct:.1f}%')
-print(f'Original: {result.original_length:,} chars')
-print(f'Final: {result.final_length:,} chars')
-print(f'Padrões removidos: {len(result.patterns_removed)}')
-print()
-print('=== PRIMEIROS 500 CARACTERES ===')
-print(result.text[:500])
-"
+# 3. Recupera Orquestrador do Cache
+orchestrator = get_orchestrator()
+
+# 4. Executa com Callback visual
+with st.status("Processando...") as status:
+    def update_bar(current, total, msg):
+        status.update(label=f"{msg} ({current}/{total})")
+        my_bar.progress(current / total)
+    
+    result = orchestrator.process(temp_path, progress_callback=update_bar)
+
+# 5. Exibe resultados
+st.markdown(result.text)
+st.json(result.metadata)
+
 ```
 
 ---
