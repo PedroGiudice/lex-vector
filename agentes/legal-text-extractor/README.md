@@ -66,12 +66,47 @@ opts = CleaningOptions(watermark_threshold=190, despeckle_kernel=5)
 cleaner = ImageCleaner.from_options(opts)
 ```
 
+### PipelineOrchestrator (`src/pipeline/orchestrator.py`)
+
+Orquestrador de alto nível com processamento página-a-página e integração UI:
+
+```python
+from src.pipeline.orchestrator import PipelineOrchestrator
+
+orchestrator = PipelineOrchestrator()
+
+# Modo básico
+result = orchestrator.process(Path("documento.pdf"))
+
+# Com callback de progresso (para Streamlit)
+def on_progress(current, total, msg):
+    st.progress(current / total)
+    st.text(msg)
+
+result = orchestrator.process(pdf_path, progress_callback=on_progress)
+
+# Modo generator (streaming)
+for page in orchestrator.process_generator(pdf_path):
+    print(f"Página {page['page_num']}: {len(page['text'])} chars")
+```
+
+**Engines suportados:**
+| Engine | Uso | Característica |
+|--------|-----|----------------|
+| `pdfplumber` | Texto nativo | Leve, usa `safe_bbox` |
+| `tesseract` | OCR (scans) | Converte 1 página por vez |
+| `marker` | Alta qualidade | Cache inteligente |
+
 ## Status
 
 - ✅ Fase 1: Core de limpeza (75+ padrões)
-- ✅ **Fase 2: Pipeline Algorítmico (ATUAL)**
+- ✅ Fase 2: Pipeline Algorítmico
   - 3 estágios algorítmicos (Cartógrafo, Saneador, Extrator)
   - ImageCleaner com despeckle condicional
   - Detecção automática de modo (digital/scanned)
   - 100% preservação de texto em documentos digitais
-  - 8 testes de integração passando
+- ✅ **Fase 3: Integração UI (ATUAL)**
+  - Extração granular página-a-página
+  - `progress_callback` para barras de progresso
+  - `process_generator` para streaming
+  - Cache Marker para eficiência
