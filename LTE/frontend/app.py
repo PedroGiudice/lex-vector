@@ -15,30 +15,83 @@ from src.pipeline.orchestrator import PipelineOrchestrator, PipelineResult
 # 1. PAGE CONFIG
 st.set_page_config(layout="wide", page_title="Legal CLI", page_icon="⚖️")
 
-# 2. RETRO THEME CSS (Safe Injection)
+# 2. DARK THEME CSS - White text with colored accents
 st.markdown("""
 <style>
-    /* Global Terminal Black */
-    .stApp { background-color: #000000; color: #00ff00; font-family: 'Courier New', monospace; }
-
-    /* Widget Colors */
-    .stMarkdown, .stButton>button, .stSelectbox, .stFileUploader, h1, h2, h3 {
-        color: #00ff00 !important;
+    /* Global Dark Background, White Text */
+    .stApp {
+        background-color: #0a0a0a;
+        color: #ffffff;
+        font-family: 'Courier New', monospace;
     }
 
-    /* Neon Accents */
-    h1 { border-bottom: 2px solid #ff00ff; padding-bottom: 10px; }
+    /* Main text - White */
+    .stMarkdown, p, span, label, .stTextArea textarea {
+        color: #ffffff !important;
+    }
 
-    /* Button Style */
+    /* Headers - Cyan accent */
+    h1, h2, h3 {
+        color: #00d4ff !important;
+    }
+    h1 {
+        border-bottom: 2px solid #ff00ff;
+        padding-bottom: 10px;
+    }
+
+    /* Sidebar header - Magenta */
+    .stSidebar h1, .stSidebar h2, .stSidebar h3 {
+        color: #ff00ff !important;
+    }
+
+    /* Primary Button - Cyan */
     .stButton>button {
-        border: 2px solid #00ff00;
-        background-color: #000000;
-        color: #00ff00;
-        border-radius: 0px;
+        border: 2px solid #00d4ff;
+        background-color: transparent;
+        color: #00d4ff !important;
+        border-radius: 4px;
+        font-weight: bold;
     }
     .stButton>button:hover {
-        background-color: #00ff00;
-        color: #000000;
+        background-color: #00d4ff;
+        color: #0a0a0a !important;
+    }
+
+    /* Success messages - Green */
+    .stSuccess {
+        color: #00ff88 !important;
+    }
+
+    /* Warning/Error - Orange/Red */
+    .stWarning { color: #ffaa00 !important; }
+    .stError { color: #ff4444 !important; }
+
+    /* Tabs - Yellow accent */
+    .stTabs [data-baseweb="tab"] {
+        color: #ffffff !important;
+    }
+    .stTabs [aria-selected="true"] {
+        color: #ffdd00 !important;
+        border-bottom-color: #ffdd00 !important;
+    }
+
+    /* DataFrame/Table styling */
+    .stDataFrame { color: #ffffff !important; }
+
+    /* File uploader */
+    .stFileUploader label { color: #ffffff !important; }
+
+    /* Selectbox */
+    .stSelectbox label { color: #ffffff !important; }
+
+    /* Progress bar - Gradient */
+    .stProgress > div > div {
+        background: linear-gradient(90deg, #00d4ff, #ff00ff);
+    }
+
+    /* Caption/small text - Gray */
+    .stCaption, small {
+        color: #888888 !important;
     }
 </style>
 """, unsafe_allow_html=True)
