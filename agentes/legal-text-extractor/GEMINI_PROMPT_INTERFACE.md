@@ -6,6 +6,32 @@ Você vai criar uma interface/aplicação para executar o **Legal Text Extractor
 
 ---
 
+## ⚠️ ESTADO ATUAL DO SISTEMA
+
+> **IMPORTANTE**: O sistema tem DUAS APIs disponíveis. Leia com atenção:
+
+### API 1: `LegalTextExtractor` (main.py) - FUNCIONAL MAS LIMITADA
+- ✅ Extração de PDFs com texto nativo (PDFPlumber)
+- ✅ Limpeza semântica com detecção de sistema judicial
+- ❌ NÃO suporta PDFs escaneados (lança `NotImplementedError`)
+- ❌ NÃO usa Marker (apenas PDFPlumber)
+
+### API 2: `PipelineOrchestrator` - ARQUITETURA COMPLETA
+- ✅ Pipeline de 4 estágios (steps implementados)
+- ✅ PDFPlumber funcional
+- ✅ Tesseract OCR funcional
+- ✅ **Marker funcional** (requer 10GB RAM)
+- ✅ Context Store para aprendizado
+- ⚠️ `_extract_page_text` é PLACEHOLDER (extrai todas páginas, não individual)
+
+### RECOMENDAÇÃO PARA INTERFACE
+Use `PipelineOrchestrator` para a interface:
+1. Todos os 3 engines funcionam (PDFPlumber, Tesseract, Marker)
+2. Marker é o engine PREMIUM para PDFs complexos
+3. Context Store para aprendizado
+
+---
+
 ## 1. VISÃO GERAL DO SISTEMA
 
 ### O que é
@@ -59,8 +85,12 @@ PDF Original
 │  Classe: TextExtractor                                      │
 │  Input: layout.json + PDF + images/ (opcional)              │
 │  Output: outputs/{doc_id}/final.md                          │
-│  Função: Extrai texto via PDFPlumber (NATIVE) ou            │
-│          Tesseract OCR (RASTER), aplica limpeza semântica   │
+│  Função: Extrai texto com escalonamento automático:         │
+│          - PDFPlumber: texto nativo (rápido, 0.5GB RAM)     │
+│          - Tesseract OCR: scans simples (1GB RAM)           │
+│          - Marker: PDFs complexos (MELHOR, 10-12GB RAM)     │
+│  NOTA: Marker é o engine PREMIUM - maior qualidade,         │
+│        preserva layout, tabelas e formatação complexa       │
 └─────────────────────────────────────────────────────────────┘
     │
     ▼
@@ -82,51 +112,63 @@ PDF Original
 
 ```
 legal-text-extractor/
-├── main.py                          # Entry point principal
+├── main.py                          # Entry point (API simples)
 ├── requirements.txt                 # Dependências Python
 ├── src/
 │   ├── config.py                    # Configurações centralizadas
-│   ├── steps/
-│   │   ├── step_01_layout.py        # Análise de layout
-│   │   ├── step_02_vision.py        # Processamento de imagem
-│   │   ├── step_03_extract.py       # Extração de texto
-│   │   └── step_04_classify.py      # Classificação semântica
-│   ├── engines/
+│   │
+│   ├── steps/                       # PIPELINE DE 4 ESTÁGIOS
+│   │   ├── step_01_layout.py        # Cartógrafo (19KB)
+│   │   ├── step_02_vision.py        # Saneador (12KB)
+│   │   ├── step_03_extract.py       # Extrator (17KB)
+│   │   └── step_04_classify.py      # Bibliotecário (10KB)
+│   │
+│   ├── engines/                     # MOTORES DE EXTRAÇÃO
 │   │   ├── base.py                  # Interface ExtractionEngine
-│   │   ├── pdfplumber_engine.py     # Engine nativa (0.5GB RAM)
-│   │   ├── tesseract_engine.py      # OCR (1GB RAM)
-│   │   ├── marker_engine.py         # Premium (8GB RAM) - STUB
-│   │   ├── engine_selector.py       # Seleção automática
+│   │   ├── pdfplumber_engine.py     # ✅ Funcional (0.5GB RAM)
+│   │   ├── tesseract_engine.py      # ✅ Funcional (1GB RAM)
+│   │   ├── marker_engine.py         # ✅ Engine PREMIUM (10GB RAM)
 │   │   ├── selector.py              # Escalação progressiva
 │   │   └── cleaning_engine.py       # Limpeza adaptativa
-│   ├── core/
-│   │   ├── cleaner.py               # DocumentCleaner principal
+│   │
+│   ├── core/                        # LÓGICA PRINCIPAL
+│   │   ├── cleaner.py               # DocumentCleaner
 │   │   ├── detector.py              # Detecção de sistema judicial
 │   │   ├── patterns.py              # 75+ padrões regex
-│   │   ├── normalizer.py            # Normalização de texto
-│   │   └── intelligence/
+│   │   └── intelligence/            # Módulos de IA
 │   │       ├── segmenter.py         # Segmentação de peças
-│   │       ├── definitions.py       # Taxonomia legal
-│   │       ├── cleaner_advanced.py  # Limpeza avançada
-│   │       └── boundary_detector.py # Detecção de limites
-│   ├── context/
-│   │   ├── store.py                 # ContextStore (aprendizado)
+│   │       └── definitions.py       # Taxonomia legal
+│   │
+│   ├── context/                     # APRENDIZADO
+│   │   ├── store.py                 # ContextStore (SQLite)
 │   │   ├── models.py                # Data models
 │   │   └── signature.py             # Cálculo de assinaturas
-│   ├── exporters/
+│   │
+│   ├── extractors/                  # EXTRATORES LEGADOS
+│   │   ├── text_extractor.py        # Extração de texto
+│   │   └── ocr_extractor.py         # ⚠️ NotImplementedError
+│   │
+│   ├── exporters/                   # EXPORTAÇÃO
 │   │   ├── text.py                  # Export .txt
 │   │   ├── markdown.py              # Export .md
 │   │   └── json.py                  # Export .json
-│   └── pipeline/
-│       └── orchestrator.py          # Orquestrador completo
+│   │
+│   ├── pipeline/                    # ORQUESTRAÇÃO
+│   │   └── orchestrator.py          # PipelineOrchestrator (usar este!)
+│   │
+│   ├── analyzers/                   # Analisadores auxiliares
+│   ├── learning/                    # A/B testing, métricas
+│   ├── memory/                      # Sessões de memória
+│   ├── prompts/                     # Templates de prompts
+│   └── schemas/                     # Schemas de validação
+│
 ├── inputs/                          # PDFs de entrada
 ├── outputs/                         # Resultados processados
 │   └── {doc_id}/
 │       ├── layout.json
 │       ├── images/
 │       ├── final.md
-│       ├── semantic_structure.json
-│       └── final_tagged.md
+│       └── semantic_structure.json
 └── tests/                           # Testes unitários
 ```
 
@@ -217,16 +259,19 @@ python -m src.steps.step_04_classify \
 ### Hierarquia de Qualidade
 | Engine | RAM | Qualidade | Uso |
 |--------|-----|-----------|-----|
-| **Marker** | 8GB | 1.0 (melhor) | PDFs complexos, tabelas |
+| **Marker** ⭐ | 10-12GB | 1.0 (MELHOR) | PDFs complexos, tabelas, layout preservado |
 | **PDFPlumber** | 0.5GB | 0.9 | Texto nativo (não escaneado) |
-| **Tesseract** | 1GB | 0.7 | OCR para scans |
+| **Tesseract** | 1GB | 0.7 | OCR para scans simples |
+
+> **IMPORTANTE**: Marker é o engine PREMIUM do sistema. Quando disponível (RAM suficiente),
+> produz resultados significativamente superiores para documentos complexos.
 
 ### Seleção Automática (engine_selector.py)
 ```python
 # Lógica de seleção:
-# 1. Se PDF tem ≥80% texto nativo → PDFPlumber
-# 2. Se PDF escaneado + RAM ≥8GB → Marker
-# 3. Fallback → Tesseract OCR
+# 1. Se PDF tem ≥80% texto nativo → PDFPlumber (rápido)
+# 2. Se PDF escaneado/complexo + RAM ≥10GB → Marker (MELHOR resultado)
+# 3. Fallback se RAM insuficiente → Tesseract OCR
 ```
 
 ### Escalação Progressiva (selector.py)
@@ -351,9 +396,18 @@ numpy>=1.24.0
 # OCR
 pytesseract>=0.3.10
 
-# Outros
+# Marker Engine (PREMIUM - requer 10-12GB RAM)
+marker-pdf>=1.0.0
+
+# Sistema
 psutil>=5.9.0
 ```
+
+> **NOTA**: O `marker-pdf` deve ser instalado separadamente:
+> ```bash
+> pip install marker-pdf
+> ```
+> Instalação demora ~5min e baixa modelos de ML (~2GB).
 
 ### Requisitos de Sistema
 ```bash
@@ -575,10 +629,10 @@ def list_systems():
 | **Total (NATIVE)** | ~0.6s/página | Sem OCR |
 | **Total (com OCR)** | ~1.5s/página | Com Tesseract |
 
-### Limitações Atuais
-1. **Marker Engine**: Stub (NotImplementedError) - aguarda sistema com ≥8GB RAM
-2. **OCR**: Apenas Tesseract implementado
-3. **Context Store**: schema.sql precisa ser criado
+### Requisitos de Sistema para Marker
+1. **Marker Engine**: Requer sistema com ≥10GB RAM dedicada (WSL2 ou nativo)
+2. **OCR Fallback**: Tesseract usado quando RAM insuficiente para Marker
+3. **Context Store**: Aprendizado automático de padrões entre documentos
 
 ### Erros Comuns
 ```python
