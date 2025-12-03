@@ -1,5 +1,5 @@
 """
-Marker Engine - High-quality PDF extraction with layout preservation (STUB).
+Marker Engine - High-quality PDF extraction with layout preservation.
 
 Marker is a powerful engine for PDF conversion that:
 - Preserves document layout and structure
@@ -7,11 +7,9 @@ Marker is a powerful engine for PDF conversion that:
 - Outputs markdown with formatting
 
 REQUIREMENTS:
-- High RAM: ~8GB minimum
+- High RAM: ~10GB minimum (WSL2 or native)
 - GPU: Optional but recommended for speed
 - Dependencies: marker-pdf package
-
-CURRENT STATUS: Stub implementation (engine unavailable on low-RAM systems)
 """
 
 import logging
@@ -34,14 +32,14 @@ class MarkerEngine(ExtractionEngine):
     High-quality extraction engine using Marker.
 
     Características:
-    - Pesado: ~8GB RAM mínimo
+    - Pesado: ~10GB RAM mínimo
     - Lento mas preciso: Análise profunda de layout
     - Suporta: Tabelas, colunas, imagens, formatação complexa
     - Output: Markdown com estrutura preservada
 
-    NOTA: Este é um STUB - implementação completa requer:
+    Requisitos:
     1. Instalar marker-pdf: pip install marker-pdf
-    2. Sistema com >= 8GB RAM disponível
+    2. Sistema com >= 10GB RAM disponível
     3. (Opcional) GPU para aceleração
 
     Example:
@@ -52,7 +50,7 @@ class MarkerEngine(ExtractionEngine):
     """
 
     name = "marker"
-    min_ram_gb = 8.0
+    min_ram_gb = 10.0
     dependencies = ["marker"]
 
     def __init__(self, use_gpu: bool = False):
@@ -69,7 +67,7 @@ class MarkerEngine(ExtractionEngine):
         Verifica se Marker está disponível.
 
         Returns:
-            True se marker-pdf está instalado E RAM >= 8GB
+            True se marker-pdf está instalado E RAM >= 10GB
         """
         if not MARKER_AVAILABLE:
             return False
@@ -80,48 +78,35 @@ class MarkerEngine(ExtractionEngine):
 
     def extract(self, pdf_path: Path) -> ExtractionResult:
         """
-        STUB: Extração com Marker não implementada.
-
-        Esta é uma implementação placeholder. A implementação completa
-        será adicionada quando houver sistema com RAM suficiente.
+        Extrai texto de PDF usando Marker.
 
         Args:
             pdf_path: Caminho para arquivo PDF
 
         Returns:
-            ExtractionResult (nunca - sempre levanta exceção)
-
-        Raises:
-            NotImplementedError: Sempre (stub não implementado)
+            ExtractionResult com texto extraído e metadados
         """
-        raise NotImplementedError(
-            "Marker engine is not yet implemented. "
-            "This is a placeholder for future implementation.\n"
-            "Requirements:\n"
-            "  - System with >= 8GB available RAM\n"
-            "  - Install marker-pdf: pip install marker-pdf\n"
-            "  - (Optional) CUDA GPU for acceleration"
-        )
+        from marker.converters.pdf import PdfConverter
+        from marker.models import create_model_dict
 
-        # TODO: Implement when RAM is available
-        # from marker.convert import convert_single_pdf
-        # from marker.models import load_all_models
-        #
-        # models = load_all_models()
-        # full_text, images, metadata = convert_single_pdf(
-        #     str(pdf_path),
-        #     models,
-        #     ...
-        # )
-        #
-        # return ExtractionResult(
-        #     text=full_text,
-        #     pages=metadata.get("pages", 0),
-        #     engine_used=self.name,
-        #     confidence=0.95,  # Marker typically high quality
-        #     metadata={
-        #         "markdown": full_text,
-        #         "images_extracted": len(images),
-        #         ...
-        #     },
-        # )
+        logger.info(f"Marker: Carregando modelos...")
+        models = create_model_dict()
+
+        logger.info(f"Marker: Convertendo {pdf_path.name}...")
+        converter = PdfConverter(artifact_dict=models)
+        rendered = converter(str(pdf_path))
+
+        full_text = rendered.markdown
+        pages = len(rendered.pages) if hasattr(rendered, 'pages') else 0
+
+        logger.info(f"Marker: Extração concluída - {len(full_text)} chars, {pages} páginas")
+
+        return ExtractionResult(
+            text=full_text,
+            pages=pages,
+            engine_used=self.name,
+            confidence=0.95,
+            metadata={
+                "markdown": full_text,
+            },
+        )
