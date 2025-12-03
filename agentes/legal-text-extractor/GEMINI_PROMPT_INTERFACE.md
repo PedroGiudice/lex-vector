@@ -399,6 +399,9 @@ pytesseract>=0.3.10
 # Marker Engine (PREMIUM - requer 10-12GB RAM)
 marker-pdf>=1.0.0
 
+# Interface
+streamlit>=1.30.0
+
 # Sistema
 psutil>=5.9.0
 ```
@@ -546,73 +549,69 @@ EXCELENTÍSSIMO SENHOR DOUTOR JUIZ...
 └─────────────────────────────────────────────────────────────┘
 ```
 
-### Integração com Backend
+### Integração com Streamlit
 
 ```python
-# Exemplo de API endpoint (FastAPI)
-from fastapi import FastAPI, UploadFile, File
+# Exemplo de interface Streamlit
+import streamlit as st
 from pathlib import Path
 import tempfile
 
 from main import LegalTextExtractor
 
-app = FastAPI()
-extractor = LegalTextExtractor()
+st.set_page_config(page_title="Legal Text Extractor", layout="wide")
+st.title("📄 Legal Text Extractor")
 
-@app.post("/extract")
-async def extract_pdf(
-    file: UploadFile = File(...),
-    system: str = None,
-    output_format: str = "json"
-):
-    # Salvar arquivo temporário
+# Sidebar - Configurações
+with st.sidebar:
+    st.header("⚙️ Configurações")
+    sistema = st.selectbox(
+        "Sistema Judicial",
+        ["Auto-detect", "PJe", "ESAJ", "EPROC", "PROJUDI", "STF", "STJ"],
+        index=0
+    )
+    formato = st.radio("Formato de Saída", ["Texto", "Markdown", "JSON"])
+
+# Upload
+uploaded_file = st.file_uploader("Arraste um PDF aqui", type=["pdf"])
+
+if uploaded_file:
+    # Salvar temporário
     with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
-        tmp.write(await file.read())
+        tmp.write(uploaded_file.read())
         tmp_path = Path(tmp.name)
 
-    try:
-        # Processar
+    # Processar
+    with st.spinner("Extraindo texto..."):
+        extractor = LegalTextExtractor()
         result = extractor.process_pdf(
             pdf_path=tmp_path,
-            system=system
+            system=None if sistema == "Auto-detect" else sistema.lower()
         )
 
-        # Retornar resultado
-        return {
-            "success": True,
-            "system": result.system,
-            "system_name": result.system_name,
-            "confidence": result.confidence,
-            "original_length": result.original_length,
-            "final_length": result.final_length,
-            "reduction_pct": result.reduction_pct,
-            "patterns_removed": len(result.patterns_removed),
-            "text": result.text if output_format == "text" else None,
-            "sections": [
-                {
-                    "type": s.type,
-                    "content": s.content,
-                    "confidence": s.confidence
-                }
-                for s in result.sections
-            ] if output_format == "json" else None
-        }
-    finally:
-        tmp_path.unlink()  # Limpar arquivo temporário
+    # Limpar temp
+    tmp_path.unlink()
 
-@app.get("/systems")
-def list_systems():
-    """Lista sistemas judiciais suportados"""
-    return {
-        "systems": [
-            {"code": "pje", "name": "PJe - Processo Judicial Eletrônico"},
-            {"code": "esaj", "name": "ESAJ - Sistema de Automação da Justiça"},
-            {"code": "eproc", "name": "EPROC - Sistema de Processo Eletrônico"},
-            {"code": "projudi", "name": "PROJUDI - Processo Judicial Digital"},
-            {"code": "stf", "name": "STF - Supremo Tribunal Federal"},
-            {"code": "stj", "name": "STJ - Superior Tribunal de Justiça"},
-        ]
-    }
+    # Resultados
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Sistema", result.system_name)
+    col2.metric("Confiança", f"{result.confidence}%")
+    col3.metric("Redução", f"{result.reduction_pct:.1f}%")
+
+    # Texto extraído
+    st.subheader("📝 Texto Extraído")
+    st.text_area("", result.text, height=400)
+
+    # Downloads
+    st.download_button("📥 Download TXT", result.text, "resultado.txt")
+```
+
+**Executar:**
+```bash
+cd /home/user/Claude-Code-Projetos/agentes/legal-text-extractor
+source .venv/bin/activate
+pip install streamlit
+streamlit run app.py
 ```
 
 ---
