@@ -26,6 +26,7 @@ htmlcov/
 !README.md
 !ROADMAP.md
 !Mermaid-Legal-text-extractor.md
+!GEMINI_PROMPT_INTERFACE.md
 !requirements.txt
 
 # PDFs de teste (grandes)
