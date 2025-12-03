@@ -20,6 +20,28 @@ xlsxwriter==3.2.9
 # Streamlit UI dependencies
 streamlit>=1.32.0
 
-# Legal Text Extractor core dependencies
+# ===========================================
+# Legal Text Extractor - ALL Core Dependencies
+# ===========================================
+
+# PDF Native Extraction
 pdfplumber>=0.11.0
 pdfminer.six>=20231228
+pypdfium2>=5.0.0
+
+# OCR Pipeline (Tesseract)
+pytesseract>=0.3.13
+pdf2image>=1.16.0
+
+# Vision Pipeline
+opencv-python-headless>=4.8.0
+
+# Marker ML Engine (OPTIONAL - heavy, ~2GB models)
+# Uncomment if using Marker engine for complex PDFs:
+# marker-pdf>=0.2.0
+# torch>=2.0.0
+# torchvision>=0.15.0
+
+# Supporting libs
+img2pdf>=0.5.0
+pydantic>=2.0.0
