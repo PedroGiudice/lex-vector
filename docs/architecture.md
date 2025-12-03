@@ -1,39 +1,39 @@
 # Arquitetura do Sistema
 
-## Visão Geral
+## Visao Geral
 
-Sistema de automação jurídica baseado em agentes Python para monitoramento e processamento de publicações.
+Sistema de automacao juridica baseado em agentes Python para monitoramento e processamento de publicacoes.
 
-## Separação em 3 Camadas
+## Separacao em 3 Camadas
 
-### CAMADA 1: CÓDIGO
-- **Localização:** C:\claude-work\repos\Claude-Code-Projetos\
-- **Conteúdo:** Código-fonte Python, configurações
-- **Versionamento:** Git obrigatório
-- **Sincronização:** git push/pull entre máquinas
+### CAMADA 1: CODIGO
+- Localizacao: ~/claude-work/repos/Claude-Code-Projetos/
+- Conteudo: Codigo-fonte Python, configuracoes
+- Versionamento: Git obrigatorio
+- Sincronizacao: git push/pull entre maquinas
 
 ### CAMADA 2: AMBIENTE
-- **Localização:** .venv/ dentro de cada projeto
-- **Conteúdo:** Interpretador Python, pacotes instalados
-- **Versionamento:** NUNCA (em .gitignore)
-- **Recriação:** Via requirements.txt
+- Localizacao: .venv/ dentro de cada projeto
+- Conteudo: Interpretador Python, pacotes instalados
+- Versionamento: NUNCA (em .gitignore)
+- Recriacao: Via requirements.txt
 
 ### CAMADA 3: DADOS
-- **Localização:** E:\claude-code-data\
-- **Conteúdo:** Downloads, logs, outputs
-- **Versionamento:** NUNCA
-- **Portabilidade:** HD externo físico apenas
+- Localizacao: ~/claude-code-data/ (configuravel)
+- Conteudo: Downloads, logs, outputs
+- Versionamento: NUNCA
+- Portabilidade: Backup/restore apenas
 
 ## Fluxo de Dados
 
 ```
-API DJEN → oab-watcher → Downloads (E:\)
+API DJEN → oab-watcher → Downloads (~/claude-code-data)
                        ↓
-                   legal-lens → Análise
+                   legal-lens → Analise
                        ↓
-                   Outputs (E:\) → Relatórios
+                   Outputs (~/claude-code-data) → Relatorios
 ```
 
 ## Status
 
-🟡 **Em desenvolvimento** - Documentação será expandida conforme implementação
+Em desenvolvimento - Documentacao sera expandida conforme implementacao

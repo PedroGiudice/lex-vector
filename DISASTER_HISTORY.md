@@ -1,617 +1,311 @@
-# CONTEXTO HISTÓRICO: 3 DIAS DE DESASTRE ARQUITETURAL
+# CONTEXTO HISTORICO: 3 DIAS DE DESASTRE ARQUITETURAL
 
-**Período:** 03/11/2025 - 04/11/2025
-**Resultado:** Sistema inoperável por 3 dias devido a decisão arquitetural incorreta
-**Causa Raiz:** Tentativa de manter código-fonte em HD externo ao invés de Git
-**Lição Fundamental:** Debugging de sintomas sem identificar causa raiz leva a iterações infinitas
+Periodo: 03/11/2025 - 04/11/2025
+Resultado: Sistema inoperavel por 3 dias devido a decisao arquitetural incorreta
+Causa Raiz: Tentativa de manter codigo-fonte em HD externo ao inves de Git
+Licao Fundamental: Debugging de sintomas sem identificar causa raiz leva a iteracoes infinitas
 
 ---
 
 ## RESUMO EXECUTIVO
 
-Durante 3 dias, tentamos corrigir falhas do Claude Code e agentes Python através de debugging de sintomas (PATH corrompido, hooks com caminhos hardcoded, pacotes npm incorretos, symlinks quebrados). **TODOS ESSES ERAM SINTOMAS** de uma única decisão arquitetural incorreta: manter código-fonte em HD externo (E:\) ao invés de usar Git.
+Durante 3 dias, tentamos corrigir falhas do Claude Code e agentes Python atraves de debugging de sintomas (PATH corrompido, hooks com caminhos hardcoded, pacotes npm incorretos, symlinks quebrados). TODOS ESSES ERAM SINTOMAS de uma unica decisao arquitetural incorreta: manter codigo-fonte em HD externo (E:\) ao inves de usar Git.
 
-**Decisão correta (implementada agora):**
-- **CÓDIGO:** C:\claude-work\repos\ (versionado no Git)
-- **AMBIENTE:** C:\claude-work\repos\<projeto>\.venv\ (recriado localmente)
-- **DADOS:** E:\claude-code-data\ (HD externo apenas)
+Decisao correta (implementada agora):
+- CODIGO: ~/claude-work/repos/ (versionado no Git)
+- AMBIENTE: ~/claude-work/repos/<projeto>/.venv/ (recriado localmente)
+- DADOS: ~/claude-code-data/ (configuravel, nao versionado)
 
 ---
 
-## LINHA DO TEMPO COMPLETA
+## LINHA DO TEMPO
 
-### DIA 1: QUARTA-FEIRA, 03/11/2025
+### DIA 1: Tentativa de Centralizacao via HD Externo
 
-#### MANHÃ - Tentativa de Centralização via HD Externo
-**Conversa:** "Centralizing Claude settings across multiple PCs via external drive"
-**Objetivo:** Sincronizar configurações de Claude Desktop e Claude Code entre trabalho e casa
+Objetivo: Sincronizar configuracoes de Claude Desktop e Claude Code entre trabalho e casa
 
-**Ações tomadas:**
-```powershell
-# Mover TODOS os arquivos para E:\projetos\
-Claude Desktop → E:\projetos\claude-desktop\
-Claude Code → E:\projetos\.claude\
+Acoes tomadas:
+- Mover TODOS os arquivos para HD externo
+- Criar symlinks do Windows com caminhos absolutos (C:\Users\pedro)
 
-# Criar symlinks do Windows
-mklink /D "C:\Users\pedro\AppData\Roaming\Claude" "E:\projetos\claude-desktop"
-mklink /D "C:\Users\pedro\.claude" "E:\projetos\.claude"
-```
-
-**Resultado:** PARCIAL
+Resultado: PARCIAL
 - Symlinks criados com sucesso
-- Arquivos de configuração do Claude Desktop foram acidentalmente deletados
-- Claude Code começou a apresentar instabilidade
+- Arquivos de configuracao do Claude Desktop acidentalmente deletados
+- Claude Code comecou a apresentar instabilidade
 
-**Erro cometido:** Symlinks usam caminhos absolutos (C:\Users\pedro) que funcionam em uma máquina mas falham na outra se o nome de usuário diferir.
+Erro cometido: Symlinks usam caminhos absolutos que funcionam em uma maquina mas falham na outra se o nome de usuario diferir.
 
-**Lição não aprendida naquele momento:** HD externo para DADOS é correto, mas para CÓDIGO-FONTE é arquiteturalmente errado.
+Licao nao aprendida naquele momento: HD externo para DADOS e correto, mas para CODIGO-FONTE e arquiteturalmente errado.
 
----
+Descoberta do Caos Organizacional:
+- Arquivos espalhados em multiplas localizacoes
+- Multiplas "fontes de verdade" causando plugins serem salvos em locais diferentes
+- Consolidacao foi feita, mas AINDA no HD externo
+- Problema de portabilidade codigo + ambiente nao foi identificado
 
-#### TARDE - Descoberta do Caos Organizacional
-**Conversa:** "File organization issues in Claude Code and Desktop"
-**Hipótese do usuário:** "Claude Code e Desktop criam arquivos sem convenção de nomenclatura ou verificação de localização"
+### DIA 2: O Colapso do PATH
 
-**Evidências coletadas:**
-```
-Arquivos espalhados em:
-E:\projetos\agents\
-E:\projetos\Claude Skills\        # Nomenclatura inconsistente
-E:\projetos\CLAUDE-CONFIG\         # Diretório redundante
-E:\projetos\.claude\agents         # Conflito: arquivo E diretório
-C:\Users\pedro\.claude\            # Via symlink
-C:\Users\pedro\AppData\Local\Claude\
-```
+Sintoma critico: Claude Code inicia mas trava completamente, VSCode abre automaticamente com arquivos de plugins
 
-**Diagnóstico (correto):** Múltiplas "fontes de verdade" causando plugins serem salvos em locais diferentes dos esperados pelas configurações.
-
-**Solução proposta:** Consolidação em E:\projetos\.claude\ como fonte única de verdade.
-
-**Erro fundamental:** Consolidação foi feita, mas AINDA no HD externo. O problema de portabilidade código + ambiente não foi identificado.
-
----
-
-#### NOITE - Aprofundamento da Análise
-**Conversa:** "Project file organization and directory structure"
-**Objetivo:** Verificar estrutura após consolidação, sem fazer mudanças
-
-**Descobertas:**
-- Symlinks funcionando corretamente
-- Claude Desktop segue padrões normais: config/ e data/
-- Claude Code usa estrutura aninhada: .claude/plugins/cache/episodic-memory/node_modules/...
-- Separação entre Claude Desktop e Claude Code confirmada
-
-**Estado ao fim do Dia 1:**
-- Arquivos centralizados em E:\
-- Symlinks ativos
-- Claude Code instável mas "funcionando"
-- Usuário planejava testar em outra máquina
-
-**Problema oculto:** Ainda ninguém percebeu que código-fonte em HD externo + ambientes diferentes = desastre garantido.
-
----
-
-### DIA 2: QUINTA-FEIRA, 03/11/2025 (NOITE) - 04/11/2025 (MADRUGADA)
-
-#### MADRUGADA - O Colapso do PATH
-**Conversa:** "Claude Code plugin files opening automatically"
-**Sintoma crítico:** Claude Code inicia mas trava completamente, VSCode abre automaticamente com arquivos de plugins
-
-**Investigação sistemática revelou:**
-```powershell
-# PATH do sistema incluía:
-C:\Users\pedro    # INTEIRO, não apenas .local\bin
-
-# Consequências:
-- Node.js executáveis "soltos" no diretório home
+Investigacao revelou:
+- PATH do sistema incluia C:\Users\pedro INTEIRO, nao apenas .local\bin
+- Node.js executaveis "soltos" no diretorio home
 - Claude Code plugins tentam executar node.exe
-- Sistema encontra versões conflitantes
-- AbortError → Windows abre arquivos em VSCode como fallback
+- Sistema encontra versoes conflitantes
+- AbortError resulta em Windows abrir arquivos em VSCode como fallback
+
+Causa raiz identificada: Claude Code tinha instruido modificacao INCORRETA do PATH em sessao anterior.
+
+Solucao implementada:
+- Remover C:\Users\pedro do PATH
+- Adicionar APENAS C:\Users\pedro\.local\bin
+- Reorganizar executaveis Node.js para local correto
+
+Resultado: Claude Code voltou a funcionar, mas ainda instavel.
+
+Insight importante (ainda nao compreendido completamente): Usuario usava Claude Code como Administrator e tinha arquivos em E:\. A conexao entre "ambiente dinamico" e "codigo estatico" ainda nao tinha clicado.
+
+### DIA 3: Hooks com Caminhos Hardcoded e Pacote Errado
+
+Novo sintoma: Claude Code inicia, mostra "thinking mode on" alternando com "Sonnet 4.5", mas bloqueia stdin (nao aceita input).
+
+Erros identificados:
+- Plugin hook error: 'C:\Users\CMR' nao e reconhecido como um comando interno (3x)
+
+Causa: Hooks configurados em sessao anterior no trabalho (C:\Users\CMR\...) tinham caminhos HARDCODED. Ao executar em casa (C:\Users\pedro\...), hooks falhavam e bloqueavam buffer de entrada.
+
+Diagnostico do usuario (CORRETO):
+"Hooks devem referenciar o diretorio da instancia atual do Claude Code, nao um path predefinido de conversa anterior"
+
+Problema adicional descoberto: Hooks estavam em E:\projetos\[project-name]\.claude\hooks\, confirmando que codigo estava sendo executado do HD externo.
+
+Descoberta: Usuario tinha instalado pacote INCORRETO:
+- npm install -g claude-code (ERRADO)
+- npm install -g @anthropic-ai/claude-code (CORRETO)
+
+Correcao: Desinstalar pacote errado, instalar correto, limpar cache npm.
+
+A REVELACAO FINAL:
+Pergunta do usuario:
+"Parece que estavamos tentando debugar uma situacao claramente impossivel de resolver: os codigos estao no HD externo. Os ambientes (e as variaveis) mudam. O codigo e as configuracoes, nao. Veja se estou correto."
+
+DIAGNOSTICO FINAL:
 ```
-
-**Causa raiz identificada:** Claude Code tinha instruído modificação INCORRETA do PATH em sessão anterior. Ao invés de adicionar apenas `C:\Users\pedro\.local\bin`, adicionou o diretório inteiro.
-
-**Solução implementada:**
-```powershell
-# Remover C:\Users\pedro do PATH
-# Adicionar APENAS C:\Users\pedro\.local\bin
-# Reorganizar executáveis Node.js para local correto
-```
-
-**Scripts criados:**
-- diagnostic_and_fix.ps1 (diagnóstico completo)
-- quick_fix_guide.md (guia de correção)
-- universal_claude_code_fixer.ps1 (correção genérica)
-
-**Resultado:** Claude Code voltou a funcionar, mas ainda instável.
-
-**Insight importante (ainda não compreendido completamente):** O usuário mencionou que usava Claude Code como Administrator e que tinha arquivos em E:\. A conexão entre "ambiente dinâmico" e "código estático" ainda não tinha clicado.
-
----
-
-### DIA 3: SEXTA-FEIRA, 04/11/2025
-
-#### MADRUGADA - Hooks com Caminhos Hardcoded
-**Conversa 1:** "Claude Code input buffer error with plugin hooks"
-**Conversa 2:** "Claude Code input freezing after terminal restart"
-
-**Novo sintoma:** Claude Code inicia, mostra "thinking mode on" alternando com "Sonnet 4.5", mas bloqueia stdin (não aceita input).
-
-**Erros identificados:**
-```
-Plugin hook error: 'C:\Users\CMR' não é reconhecido como um comando interno
-Plugin hook error: 'C:\Users\CMR' não é reconhecido como um comando interno
-Plugin hook error: 'C:\Users\CMR' não é reconhecido como um comando interno
-```
-
-**Causa:** Hooks configurados em sessão anterior no trabalho (C:\Users\CMR\...) tinham caminhos HARDCODED. Ao executar em casa (C:\Users\pedro\...), hooks falhavam e bloqueavam buffer de entrada.
-
-**Diagnóstico do usuário (CORRETO):**
-> "Hooks devem referenciar o diretório da instância atual do Claude Code, não um path predefinido de conversa anterior"
-
-**Problema adicional descoberto:** Hooks estavam em `E:\projetos\[project-name]\.claude\hooks\`, confirmando que código estava sendo executado do HD externo.
-
-**Solução proposta:** Editar hooks para usar caminhos dinâmicos.
-
-**Erro persistente:** AINDA tentando fazer funcionar código no HD externo ao invés de questionar a arquitetura.
-
----
-
-#### MANHÃ - Pacote Errado Instalado
-**Conversa:** "Claude Code installation troubleshooting"
-**Sintoma:** Claude Code não respondia, mesmo via VSCode
-
-**Descoberta:** Usuário tinha instalado pacote INCORRETO:
-```bash
-npm install -g claude-code                    # ERRADO
-npm install -g @anthropic-ai/claude-code      # CORRETO
-```
-
-**Correção:** Desinstalar pacote errado, instalar correto, limpar cache npm.
-
-**Estado:** Claude Code funcionando, mas problemas de portabilidade persistem.
-
----
-
-#### MEIO-DIA - A REVELAÇÃO FINAL
-**Conversa:** "External drive code configuration mismatch"
-**Pergunta do usuário:**
-> "Parece que estávamos tentando debugar uma situação claramente impossível de resolver: os códigos estão no HD externo. Os ambientes (e as variáveis) mudam. O código e as configurações, não. Veja se estou correto."
-
-**DIAGNÓSTICO FINAL:**
-```
-CÓDIGO (estático, E:\)  +  AMBIENTE (dinâmico, C:\)  =  INDETERMINISMO
+CODIGO (estatico, E:\)  +  AMBIENTE (dinamico, C:\)  =  INDETERMINISMO
      ↓                           ↓                            ↓
-Não muda entre             Muda entre                  Comportamento
-máquinas                   máquinas                     imprevisível
+Nao muda entre             Muda entre                  Comportamento
+maquinas                   maquinas                     imprevisivel
 ```
 
-**Confirmação:**
-- Trabalho: `C:\Program Files\Python310\python.exe` + bibliotecas v1.5
-- Casa: `C:\Users\pedro\AppData\Local\Programs\Python\Python312\python.exe` + bibliotecas v1.6
-- Código em E:\ tenta usar bibliotecas, mas versões e localizações diferem
-- Symlinks internos de bibliotecas apontam para `C:\Users\Trabalho\...` que não existe em Casa
+Confirmacao:
+- Trabalho: C:\Program Files\Python310\python.exe + bibliotecas v1.5
+- Casa: C:\Users\pedro\AppData\Local\Programs\Python\Python312\python.exe + bibliotecas v1.6
+- Codigo em E:\ tenta usar bibliotecas, mas versoes e localizacoes diferem
+- Symlinks internos de bibliotecas apontam para caminhos que nao existem em Casa
 
-**CAUSA RAIZ DOS 3 DIAS:**
-Tentativa de debugar CÓDIGO quando o problema era ARQUITETURA. Debugging de sintomas ao invés de causa raiz.
+CAUSA RAIZ DOS 3 DIAS: Tentativa de debugar CODIGO quando o problema era ARQUITETURA. Debugging de sintomas ao inves de causa raiz.
 
 ---
 
-## ANÁLISE DE CAUSA RAIZ
+## ANALISE DE CAUSA RAIZ
 
-### TÉCNICA DOS 5 PORQUÊS
+### TECNICA DOS 5 PORQUES
 
-**Sintoma observado:** Claude Code e agentes Python falham inconsistentemente entre máquinas
+Sintoma observado: Claude Code e agentes Python falham inconsistentemente entre maquinas
 
 ```
-PERGUNTA 1: Por quê Claude Code falha?
-→ Porque plugins não encontram Node.js correto
+PERGUNTA 1: Por que Claude Code falha?
+→ Porque plugins nao encontram Node.js correto
 
-PERGUNTA 2: Por quê plugins não encontram Node.js correto?
-→ Porque PATH está corrompido com caminho absoluto errado
+PERGUNTA 2: Por que plugins nao encontram Node.js correto?
+→ Porque PATH esta corrompido com caminho absoluto errado
 
-PERGUNTA 3: Por quê PATH foi corrompido?
-→ Porque Claude Code instruiu modificação incorreta em sessão anterior
+PERGUNTA 3: Por que PATH foi corrompido?
+→ Porque Claude Code instruiu modificacao incorreta em sessao anterior
 
-PERGUNTA 4: Por quê isso causou problemas entre máquinas?
+PERGUNTA 4: Por que isso causou problemas entre maquinas?
 → Porque caminhos absolutos (C:\Users\pedro) diferem entre trabalho e casa
 
-PERGUNTA 5: Por quê tentamos resolver via debugging ao invés de arquitetura?
-→ **CAUSA RAIZ: Premissa incorreta de que código em HD externo era portável**
+PERGUNTA 5: Por que tentamos resolver via debugging ao inves de arquitetura?
+→ CAUSA RAIZ: Premissa incorreta de que codigo em HD externo era portavel
 ```
 
-**CAUSA RAIZ REAL:**
-Tentativa de fazer CÓDIGO-FONTE + CONFIGURAÇÕES serem portáveis via HD físico, quando apenas DADOS deveriam estar no HD. Código deveria estar em Git, Ambiente deveria estar isolado localmente.
-
----
-
-### CADEIA: DEFEITO → INFECÇÃO → PROPAGAÇÃO → FALHA
-
-**Cadeia principal (Claude Code):**
-1. **DEFEITO ORIGINAL (Dia 1):** Decisão de colocar código-fonte em HD externo sem versionamento Git
-2. **INFECÇÃO (Dia 1-2):** Instalações globais de dependências contaminam ambientes de ambas as máquinas com versões diferentes
-3. **PROPAGAÇÃO (Dia 2):** PATH corrompido espalha inconsistência; symlinks criam caminhos absolutos inválidos; hooks hardcoded referenciam máquina errada
-4. **FALHA VISÍVEL (Dias 2-3):** Claude Code trava, VSCode abre automaticamente, stdin bloqueado, agentes falham
-
-**Cadeia alternativa (agentes Python):**
-1. **DEFEITO:** Código Python em E:\ sem ambiente virtual
-2. **INFECÇÃO:** Bibliotecas instaladas globalmente em C:\, versões diferentes entre máquinas
-3. **PROPAGAÇÃO:** Symlinks internos de bibliotecas apontam para caminhos absolutos da máquina de instalação
-4. **FALHA:** `ModuleNotFoundError` ou comportamento diferente entre máquinas
+CAUSA RAIZ REAL:
+Tentativa de fazer CODIGO-FONTE + CONFIGURACOES serem portaveis via HD fisico, quando apenas DADOS deveriam estar no HD. Codigo deveria estar em Git, Ambiente deveria estar isolado localmente.
 
 ---
 
 ## RESUMO DOS ERROS ACUMULADOS
 
-| Erro | Quando | Consequência | Foi causa raiz? |
+| Erro | Quando | Consequencia | Foi causa raiz? |
 |------|--------|--------------|-----------------|
-| Código-fonte em HD externo | Dia 1 | Base de todo desastre subsequente | **SIM** |
-| Symlinks com caminhos absolutos | Dia 1 | Funcionam em 1 máquina, falham na outra | Não (sintoma) |
-| PATH global corrompido | Dia 2 | Claude Code trava, VSCode abre plugins | Não (sintoma) |
-| Hooks com caminhos hardcoded | Dia 3 | Buffer de entrada bloqueado | Não (sintoma) |
-| Pacote npm incorreto | Dia 3 | Claude Code não responde | Não (sintoma) |
-| Instalações globais de dependências | Dias 1-3 | Versões conflitantes entre máquinas | Não (sintoma) |
+| Codigo-fonte em HD externo | Dia 1 | Base de todo desastre subsequente | SIM |
+| Symlinks com caminhos absolutos | Dia 1 | Funcionam em 1 maquina, falham na outra | Nao (sintoma) |
+| PATH global corrompido | Dia 2 | Claude Code trava, VSCode abre plugins | Nao (sintoma) |
+| Hooks com caminhos hardcoded | Dia 3 | Buffer de entrada bloqueado | Nao (sintoma) |
+| Pacote npm incorreto | Dia 3 | Claude Code nao responde | Nao (sintoma) |
+| Instalacoes globais de dependencias | Dias 1-3 | Versoes conflitantes entre maquinas | Nao (sintoma) |
 
-**NENHUM DOS SINTOMAS ERA O PROBLEMA REAL.** Todos eram consequências da decisão arquitetural de manter código no HD externo.
-
----
-
-## LIÇÕES FUNDAMENTAIS
-
-### LIÇÃO 1: Separação de Camadas é Inegociável
-**Contexto histórico:** Misturar código (estático) com dados (dinâmicos) causou 3 dias de debugging infrutífero.
-
-**Arquitetura correta:**
-- **CÓDIGO:** C:\claude-work\repos\ (Git)
-- **AMBIENTE:** C:\claude-work\repos\<projeto>\.venv\ (local)
-- **DADOS:** E:\claude-code-data\ (HD externo)
-
-### LIÇÃO 2: Symlinks com Caminhos Absolutos Não São Portáveis
-**Contexto histórico:** Dia 1 - Symlinks de C:\Users\pedro funcionaram, mas falhariam em C:\Users\CMR.
-
-**Solução:** Cada máquina tem código local sincronizado via Git. Sem symlinks entre máquinas.
-
-### LIÇÃO 3: PATH Global Deve Conter Apenas Diretórios de Binários
-**Contexto histórico:** Dia 2 - C:\Users\pedro inteiro no PATH causou crash de plugins.
-
-**Solução:** PATH contém apenas C:\Users\pedro\.local\bin (ou equivalente específico).
-
-### LIÇÃO 4: Hooks e Configurações NÃO Podem Ter Caminhos Hardcoded
-**Contexto histórico:** Dia 3 - Hooks com C:\Users\CMR bloquearam stdin em máquina diferente.
-
-**Solução:** Hooks usam %USERPROFILE% ou caminhos relativos ao diretório do projeto.
-
-### LIÇÃO 5: Debugging sem Causa Raiz = Iterações Infinitas
-**Contexto histórico:** 3 dias corrigindo PATH, hooks, packages - problema era arquitetura.
-
-**Solução:** Aplicar técnica dos 5 Porquês ANTES de propor correções. Identificar causa raiz, não tratar sintomas.
-
-### LIÇÃO 6: Ambiente Virtual NÃO é Opcional
-**Contexto histórico:** Instalações globais causaram versões conflitantes invisíveis entre máquinas.
-
-**Solução:** TODO projeto Python DEVE ter .venv local. Sem exceções.
-
-### LIÇÃO 7: Git é Sistema de Transporte Diário, Não Cofre Opcional
-**Contexto histórico:** Ausência de Git forçou uso de HD para código, causando o desastre.
-
-**Solução:** git commit + git push ao fim do dia. git pull ao iniciar em outra máquina. Código NUNCA transportado via HD físico.
+NENHUM DOS SINTOMAS ERA O PROBLEMA REAL. Todos eram consequencias da decisao arquitetural de manter codigo no HD externo.
 
 ---
 
-## COMANDOS QUE NÃO DEVEM SER EXECUTADOS NOVAMENTE
+## LICOES FUNDAMENTAIS
+
+### LICAO 1: Separacao de Camadas e Inegociavel
+Contexto historico: Misturar codigo (estatico) com dados (dinamicos) causou 3 dias de debugging infrutifero.
+
+Arquitetura correta:
+- CODIGO: ~/claude-work/repos/ (Git)
+- AMBIENTE: ~/claude-work/repos/<projeto>/.venv/ (local)
+- DADOS: ~/claude-code-data/ (configuravel)
+
+### LICAO 2: Symlinks com Caminhos Absolutos Nao Sao Portaveis
+Contexto historico: Dia 1 - Symlinks de C:\Users\pedro funcionaram, mas falhariam em C:\Users\CMR.
+
+Solucao: Cada maquina tem codigo local sincronizado via Git. Sem symlinks entre maquinas.
+
+### LICAO 3: PATH Global Deve Conter Apenas Diretorios de Binarios
+Contexto historico: Dia 2 - C:\Users\pedro inteiro no PATH causou crash de plugins.
+
+Solucao: PATH contem apenas ~/.local/bin (ou equivalente especifico).
+
+### LICAO 4: Hooks e Configuracoes NAO Podem Ter Caminhos Hardcoded
+Contexto historico: Dia 3 - Hooks com C:\Users\CMR bloquearam stdin em maquina diferente.
+
+Solucao: Hooks usam variaveis de ambiente ou caminhos relativos ao diretorio do projeto.
+
+### LICAO 5: Debugging sem Causa Raiz = Iteracoes Infinitas
+Contexto historico: 3 dias corrigindo PATH, hooks, packages - problema era arquitetura.
+
+Solucao: Aplicar tecnica dos 5 Porques ANTES de propor correcoes. Identificar causa raiz, nao tratar sintomas.
+
+### LICAO 6: Ambiente Virtual NAO e Opcional
+Contexto historico: Instalacoes globais causaram versoes conflitantes invisiveis entre maquinas.
+
+Solucao: TODO projeto Python DEVE ter .venv local. Sem excecoes.
+
+### LICAO 7: Git e Sistema de Transporte Diario, Nao Cofre Opcional
+Contexto historico: Ausencia de Git forcou uso de HD para codigo, causando o desastre.
+
+Solucao: git commit + git push ao fim do dia. git pull ao iniciar em outra maquina. Codigo NUNCA transportado via HD fisico.
+
+---
+
+## COMANDOS QUE NAO DEVEM SER EXECUTADOS NOVAMENTE
 
 ### BLOQUEADOS - Causaram o Desastre
 
-```powershell
-# ❌ NUNCA - Código para HD externo
-cp *.py E:\projetos\
-mv <projeto> E:\
+```bash
+# NUNCA - Codigo para HD externo
+cp *.py ~/claude-code-data/
+mv <projeto> ~/claude-code-data/
 
-# ❌ NUNCA - Symlinks com caminhos absolutos de usuário
-mklink /D <dest> C:\Users\pedro\<src>
+# NUNCA - Symlinks com caminhos absolutos de usuario
+ln -s /home/usuario/src /caminho/absoluto
 
-# ❌ NUNCA - PATH com diretório de usuário inteiro
-setx PATH "%PATH%;C:\Users\pedro"
-
-# ❌ NUNCA - Instalação Python sem venv ativo
+# NUNCA - Instalacao Python sem venv ativo
 pip install <library>  # sem .venv ativado
 
-# ❌ NUNCA - Hooks com caminhos hardcoded
+# NUNCA - Hooks com caminhos hardcoded
 # (editar .claude/hooks/* com caminhos absolutos fixos)
 ```
 
 ### CORRETOS - Arquitetura Atual
 
-```powershell
-# ✅ Código em Git
-cd C:\claude-work\repos
+```bash
+# Codigo em Git
+cd ~/claude-work/repos
 git clone <repo> <projeto>
 git commit -m "Adiciona feature"
 git push
 
-# ✅ Dados em HD externo
-mkdir E:\claude-code-data\<projeto>\logs
-# Código acessa via caminho relativo ou variável de ambiente
+# Dados em diretorio separado
+mkdir -p ~/claude-code-data/<projeto>/logs
+# Codigo acessa via caminho relativo ou variavel de ambiente
 
-# ✅ PATH apenas com bin
-setx PATH "%PATH%;C:\Users\pedro\.local\bin"
-
-# ✅ Python sempre com venv
-cd C:\claude-work\repos\<projeto>
-python -m venv .venv
-.venv\Scripts\activate
+# Python sempre com venv
+cd ~/claude-work/repos/<projeto>
+python3 -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
 python main.py
 
-# ✅ Hooks com caminhos dinâmicos
-# Usar %USERPROFILE% ou caminhos relativos
+# Hooks com caminhos dinamicos
+# Usar variaveis de ambiente ou caminhos relativos
 ```
 
 ---
 
-## VALIDAÇÃO DA SOLUÇÃO ATUAL
+## VALIDACAO DA SOLUCAO ATUAL
 
 ### Estado Anterior (Incorreto)
 ```
 E:\projetos\
 ├── oab-watcher\
-│   ├── main.py           # ❌ Código em HD externo
-│   ├── .venv\            # ❌ Ambiente em HD externo
-│   └── downloads\        # ✅ Dados OK
+│   ├── main.py           # Codigo em HD externo
+│   ├── .venv\            # Ambiente em HD externo
+│   └── downloads\        # Dados OK
 ```
 
 ### Estado Atual (Correto)
 ```
-C:\claude-work\repos\Claude-Code-Projetos\  # ✅ Código local + Git
+~/claude-work/repos/Claude-Code-Projetos/  # Codigo local + Git
 ├── agentes\
 │   └── oab-watcher\
-│       ├── main.py       # ✅ Código versionado
-│       ├── .venv\        # ✅ Ambiente local (não vai para Git)
-│       └── .gitignore    # ✅ Exclui .venv do Git
+│       ├── main.py       # Codigo versionado
+│       ├── .venv\        # Ambiente local (nao vai para Git)
+│       └── .gitignore    # Exclui .venv do Git
 
-E:\claude-code-data\      # ✅ Apenas dados
+~/claude-code-data/      # Apenas dados
 ├── agentes\
 │   └── oab-watcher\
-│       ├── downloads\    # ✅ PDFs baixados
-│       ├── logs\         # ✅ Logs de execução
-│       └── outputs\      # ✅ Resultados processados
+│       ├── downloads\    # PDFs baixados
+│       ├── logs\         # Logs de execucao
+│       └── outputs\      # Resultados processados
 ```
 
 ### Teste de Portabilidade
 
-**Máquina A (Trabalho):**
-```powershell
-cd C:\claude-work\repos\Claude-Code-Projetos
+Maquina A:
+```bash
+cd ~/claude-work/repos/Claude-Code-Projetos
 git add .
-git commit -m "Implementa parser de publicações"
+git commit -m "Implementa parser de publicacoes"
 git push
 ```
 
-**Máquina B (Casa):**
-```powershell
-cd C:\claude-work\repos\Claude-Code-Projetos
-git pull  # ✅ Código atualizado automaticamente
-cd agentes\oab-watcher
-.venv\Scripts\activate  # ✅ Ambiente local independente
-python main.py  # ✅ Funciona sem conflitos
-```
-
-**HD Externo:**
-- Downloads, logs e outputs permanecem na máquina onde foram gerados
-- Código é sincronizado via Git, não via transporte físico
-
----
-
-### DIA 4: QUARTA-FEIRA, 13/11/2025
-
-#### MANHÃ - SessionStart Hooks + Ambiente Corporativo = EPERM Loop Infinito
-
-**Conversa:** "Setup SessionStart hooks for Claude Code"
-**Objetivo:** Implementar hooks que injetam contexto do projeto automaticamente no início de cada sessão
-
-**Ações tomadas:**
-```javascript
-// Criados 3 hooks SessionStart em Node.js:
-.claude/hooks/session-start.js     // Setup Python venv (Web apenas)
-.claude/hooks/session-context.js   // Injeta contexto arquitetura + skills + agentes
-.claude/hooks/venv-check.js        // Valida RULE_006 (venv obrigatório)
-```
-
-**Resultado inicial:** ✅ Hooks funcionam PERFEITAMENTE na Web (Linux)
-- JSON válido retornado
-- Contexto injetado com sucesso
-- Sem erros
-
-**Problema descoberto:** ❌ Windows CLI (trabalho - C:\Users\CMR) congela completamente
-```
-Sintomas:
-1. Claude Code CLI inicia normalmente
-2. Hooks executam com sucesso (JSON válido nos logs)
-3. Mensagens aparecem corretamente
-4. MAS... interface congela (stdin não aceita input)
-5. Logs mostram ~20+ erros EPERM repetidos
-```
-
-**Investigação - Logs DEBUG:**
-```
-[DEBUG] Successfully parsed and validated hook JSON output (3x)  ✓
-[ERROR] Failed to save config with lock: EPERM                    ✗
-[DEBUG] Falling back to non-atomic write                          ↓
-[DEBUG] File written successfully with fallback                   ✓
-[ERROR] Failed to save config with lock: EPERM                    ✗ ← REPETE!
-[DEBUG] Falling back to non-atomic write                          ↓
-[DEBUG] File written successfully with fallback                   ✓
-[ERROR] Failed to save config with lock: EPERM                    ✗ ← LOOP INFINITO
-```
-
-**Causa Raiz Identificada:**
-1. **Hooks funcionam** - não são o problema
-2. **Ambiente corporativo** (C:\Users\CMR) tem GPOs restritivas
-3. Claude Code CLI tenta salvar config após hooks executarem
-4. Tenta criar `C:\Users\CMR\.claude.json.lock` → GPO bloqueia (EPERM)
-5. **BUG DO CLI:** Fallback sucede, mas CLI continua tentando atomic write infinitamente
-6. Loop infinito bloqueia event loop do Node.js → stdin congelado
-
-**Teste de Reprodução:**
-```powershell
-# Outros repos SEM hooks
-cd C:\outros-projetos\repo-sem-hooks
-claude
-→ Funciona normalmente ✓
-
-# Este repo COM hooks
-cd C:\claude-work\repos\Claude-Code-Projetos
-claude
-→ Congela após hooks executarem ✗
-```
-
-**Descoberta crítica:** Problema é ESPECÍFICO da combinação:
-- Ambiente corporativo Windows (GPOs restritivas)
-- SessionStart hooks configurados
-- Claude Code CLI v2.0.31
-
-**Solução implementada:**
-```powershell
-# 1. PowerShell fix script criado
-.\fix-claude-permissions.ps1
-  ├─ Detecta EPERM issues
-  ├─ Limpa locks remanescentes
-  ├─ Fixa permissões NTFS
-  └─ Adiciona exclusão Windows Defender (requer Admin)
-
-# 2. Documentação criada
-docs/WINDOWS_PERMISSION_FIX.md
-claude-freeze-visualization.html  # Visualização interativa do bug
-
-# 3. Bug reportado para Anthropic
-Issue: "Windows corporate environment - Infinite EPERM retry loop with SessionStart hooks"
-```
-
-**Estado ao fim do Dia 4:**
-- Hooks funcionam na Web (Linux) ✓
-- Hooks NÃO funcionam no CLI Windows corporativo (GPO bloqueio) ✗
-- Workaround disponível (PowerShell script)
-- Bug reportado upstream
-- Arquitetura correta mantida (hooks seguem LIÇÃO 4 - sem hardcoded paths)
-
----
-
-### LIÇÃO 8: Ambientes Corporativos Precisam Tratamento Especial
-
-**Contexto histórico:** Dia 4 - SessionStart hooks perfeitos causam freeze em ambiente corporativo Windows.
-
-**Problema:**
-- GPOs corporativas podem bloquear operações que funcionam normalmente
-- Claude Code CLI não tem tratamento especial para ambientes restritos
-- Infinite retry loop sem backoff quando file locking falha
-
-**Solução:**
-1. **Detecção:** Identificar ambiente corporativo (GPO detection)
-2. **Adaptação:** Hooks verificam ambiente antes de executar operações arriscadas
-3. **Fallback:** Workaround via PowerShell script para fixar permissões
-4. **Reporte:** Bug upstream para fix permanente
-
-**Padrão correto:**
-```javascript
-// Hook detecta ambiente corporativo
-const env = detectEnvironment();
-if (env.hasCorporateGPO && env.isWindowsCLI) {
-  // Skip operações que podem causar EPERM
-  // OU usar métodos alternativos
-}
+Maquina B:
+```bash
+cd ~/claude-work/repos/Claude-Code-Projetos
+git pull  # Codigo atualizado automaticamente
+cd agentes/oab-watcher
+source .venv/bin/activate  # Ambiente local independente
+python main.py  # Funciona sem conflitos
 ```
 
 ---
 
-## RESUMO DOS ERROS ACUMULADOS (ATUALIZADO)
-
-| Erro | Quando | Consequência | Foi causa raiz? |
-|------|--------|--------------|-----------------|
-| Código-fonte em HD externo | Dia 1 | Base de todo desastre subsequente | **SIM** |
-| Symlinks com caminhos absolutos | Dia 1 | Funcionam em 1 máquina, falham na outra | Não (sintoma) |
-| PATH global corrompido | Dia 2 | Claude Code trava, VSCode abre plugins | Não (sintoma) |
-| Hooks com caminhos hardcoded | Dia 3 | Buffer de entrada bloqueado | Não (sintoma) |
-| Pacote npm incorreto | Dia 3 | Claude Code não responde | Não (sintoma) |
-| Instalações globais de dependências | Dias 1-3 | Versões conflitantes entre máquinas | Não (sintoma) |
-| **CLI infinite EPERM retry loop** | **Dia 4** | **Stdin congelado em ambiente corporativo** | **SIM (bug upstream)** |
-
-**Nota:** Dia 4 revelou um segundo problema de causa raiz (bug no CLI), mas ortogonal ao desastre original (código em HD externo). Hooks estão corretos - problema é tratamento de erros do CLI.
-
----
-
-## LIÇÕES FUNDAMENTAIS (ATUALIZADO)
-
-### LIÇÃO 1: Separação de Camadas é Inegociável
-**Contexto histórico:** Misturar código (estático) com dados (dinâmicos) causou 3 dias de debugging infrutífero.
-
-**Arquitetura correta:**
-- **CÓDIGO:** C:\claude-work\repos\ (Git)
-- **AMBIENTE:** C:\claude-work\repos\<projeto>\.venv\ (local)
-- **DADOS:** E:\claude-code-data\ (HD externo)
-
-### LIÇÃO 2: Symlinks com Caminhos Absolutos Não São Portáveis
-**Contexto histórico:** Dia 1 - Symlinks de C:\Users\pedro funcionaram, mas falhariam em C:\Users\CMR.
-
-**Solução:** Cada máquina tem código local sincronizado via Git. Sem symlinks entre máquinas.
-
-### LIÇÃO 3: PATH Global Deve Conter Apenas Diretórios de Binários
-**Contexto histórico:** Dia 2 - C:\Users\pedro inteiro no PATH causou crash de plugins.
-
-**Solução:** PATH contém apenas C:\Users\pedro\.local\bin (ou equivalente específico).
-
-### LIÇÃO 4: Hooks e Configurações NÃO Podem Ter Caminhos Hardcoded
-**Contexto histórico:** Dia 3 - Hooks com C:\Users\CMR bloquearam stdin em máquina diferente.
-
-**Solução:** Hooks usam `process.env.CLAUDE_PROJECT_DIR || process.cwd()` ou caminhos relativos.
-
-### LIÇÃO 5: Debugging sem Causa Raiz = Iterações Infinitas
-**Contexto histórico:** 3 dias corrigindo PATH, hooks, packages - problema era arquitetura.
-
-**Solução:** Aplicar técnica dos 5 Porquês ANTES de propor correções. Identificar causa raiz, não tratar sintomas.
-
-### LIÇÃO 6: Ambiente Virtual NÃO é Opcional
-**Contexto histórico:** Instalações globais causaram versões conflitantes invisíveis entre máquinas.
-
-**Solução:** TODO projeto Python DEVE ter .venv local. Sem exceções.
-
-### LIÇÃO 7: Git é Sistema de Transporte Diário, Não Cofre Opcional
-**Contexto histórico:** Ausência de Git forçou uso de HD para código, causando o desastre.
-
-**Solução:** git commit + git push ao fim do dia. git pull ao iniciar em outra máquina. Código NUNCA transportado via HD físico.
-
-### LIÇÃO 8: Ambientes Corporativos Exigem Tratamento Especial ⭐ NOVA
-**Contexto histórico:** Dia 4 - Hooks perfeitos causam freeze em Windows corporativo (GPOs).
-
-**Solução:**
-1. Detectar ambiente corporativo via heurísticas (GPOs, username patterns)
-2. Adaptar comportamento de hooks (skip operações arriscadas)
-3. Fornecer workarounds (PowerShell scripts)
-4. Reportar bugs upstream quando comportamento CLI é inadequado
-
-**Padrão:** Hooks devem ser defensivos e gracefully degrade em ambientes restritos.
-
----
-
-## CONCLUSÃO
+## CONCLUSAO
 
 Durante 3 dias, tentamos corrigir:
 - PATH corrompido
 - Hooks com caminhos hardcoded
 - Pacotes npm incorretos
 - Symlinks quebrados
-- Versões conflitantes de bibliotecas
+- Versoes conflitantes de bibliotecas
 
-**Todos eram sintomas de uma única causa raiz:** Código-fonte em HD externo ao invés de Git.
+Todos eram sintomas de uma unica causa raiz: Codigo-fonte em HD externo ao inves de Git.
 
-**Solução final:** Separação rígida de camadas (CÓDIGO em C:\ + Git, AMBIENTE em C:\ local, DADOS em E:\).
+Solucao final: Separacao rigida de camadas (CODIGO em ~/claude-work/repos/ + Git, AMBIENTE local, DADOS em ~/claude-code-data/).
 
-**Tempo economizado no futuro:** Infinito - problemas arquiteturais foram eliminados pela raiz.
+Tempo economizado no futuro: Infinito - problemas arquiteturais foram eliminados pela raiz.
 
-**Regra de ouro:** Se você está debugando há mais de 2 horas sem progresso, pare e aplique os 5 Porquês. Provavelmente está tratando sintoma ao invés de causa raiz.
+Regra de ouro: Se voce esta debugando ha mais de 2 horas sem progresso, pare e aplique os 5 Porques. Provavelmente esta tratando sintoma ao inves de causa raiz.
 
 ---
 
-**Documentado em:** 07/11/2025
-**Autor:** PedroGiudice
-**Status:** Resolvido - Arquitetura correta implementada
-**Leia antes de:** Fazer qualquer mudança arquitetural no projeto
+Documentado em: 07/11/2025
+Autor: PedroGiudice
+Status: Resolvido - Arquitetura correta implementada
+Leia antes de: Fazer qualquer mudanca arquitetural no projeto

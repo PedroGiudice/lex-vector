@@ -1,102 +1,95 @@
 # Guia de Setup Detalhado
 
-## Pré-requisitos
+## Pre-requisitos
 
 - Python 3.10+ instalado
 - Git configurado com SSH ou HTTPS
-- HD externo montado em E:\ (para dados)
-- PowerShell 5.1+ (Windows)
+- WSL2 (Ubuntu 24.04+) ou Linux nativo
+- Espaco em disco para dados (configuravel)
 
-## Setup Inicial em Nova Máquina
+## Setup Inicial em Nova Maquina
 
-### 1. Clone do Repositório
+### 1. Clone do Repositorio
 
-```powershell
-cd C:\claude-work\repos
+```bash
+mkdir -p ~/claude-work/repos
+cd ~/claude-work/repos
 git clone https://github.com/PedroGiudice/Claude-Code-Projetos.git
 cd Claude-Code-Projetos
 ```
 
-### 2. Criar Estrutura de Dados no HD Externo
+### 2. Criar Estrutura de Dados
 
-```powershell
-# Criar diretórios para cada agente
-mkdir E:\claude-code-data\agentes\oab-watcher\downloads\cadernos
-mkdir E:\claude-code-data\agentes\oab-watcher\downloads\busca_oab
-mkdir E:\claude-code-data\agentes\oab-watcher\logs
-mkdir E:\claude-code-data\agentes\oab-watcher\outputs\relatorios
-
-mkdir E:\claude-code-data\agentes\djen-tracker\downloads
-mkdir E:\claude-code-data\agentes\djen-tracker\logs
-mkdir E:\claude-code-data\agentes\djen-tracker\outputs
-
-mkdir E:\claude-code-data\agentes\legal-lens\downloads
-mkdir E:\claude-code-data\agentes\legal-lens\logs
-mkdir E:\claude-code-data\agentes\legal-lens\outputs
-
-mkdir E:\claude-code-data\shared\cache
-mkdir E:\claude-code-data\shared\temp
+```bash
+# Criar diretorios para cada agente
+mkdir -p ~/claude-code-data/agentes/oab-watcher/{downloads/cadernos,downloads/busca_oab,logs,outputs/relatorios}
+mkdir -p ~/claude-code-data/agentes/djen-tracker/{downloads,logs,outputs}
+mkdir -p ~/claude-code-data/agentes/legal-lens/{downloads,logs,outputs}
+mkdir -p ~/claude-code-data/agentes/legal-text-extractor/{downloads,logs,outputs}
+mkdir -p ~/claude-code-data/agentes/legal-articles-finder/{downloads,logs,outputs}
+mkdir -p ~/claude-code-data/agentes/legal-rag/{downloads,logs,outputs}
+mkdir -p ~/claude-code-data/shared/{cache,temp}
 ```
 
 ### 3. Setup de Cada Agente
 
-```powershell
+```bash
 # Exemplo: oab-watcher
-cd agentes\oab-watcher
+cd agentes/oab-watcher
 
 # Criar ambiente virtual
-python -m venv .venv
+python3 -m venv .venv
 
 # Ativar ambiente
-.venv\Scripts\activate
+source .venv/bin/activate
 
-# Verificar ativação
-where python  # Deve mostrar caminho com .venv
+# Verificar ativacao
+which python  # Deve mostrar caminho com .venv
 
-# Instalar dependências
+# Instalar dependencias
 pip install --upgrade pip
 pip install -r requirements.txt
 
-# Verificar instalação
+# Verificar instalacao
 pip list
 ```
 
-Repita para cada agente conforme necessário.
+Repita para cada agente conforme necessario.
 
 ## Workflow Git
 
-### Máquina A (Trabalho)
+### Maquina A
 
 ```bash
-# Fazer mudanças
+# Fazer mudancas
 # ...
 
 # Commit
 git add .
-git commit -m "Descrição das mudanças"
+git commit -m "Descricao das mudancas"
 git push
 ```
 
-### Máquina B (Casa)
+### Maquina B
 
 ```bash
 # Sincronizar
 git pull
 
-# Ambiente já existe? Use-o
-cd agentes\oab-watcher
-.venv\Scripts\activate
+# Ambiente ja existe? Use-o
+cd agentes/oab-watcher
+source .venv/bin/activate
 
-# Ambiente não existe? Recrie
-python -m venv .venv
-.venv\Scripts\activate
+# Ambiente nao existe? Recrie
+python3 -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
 ## Troubleshooting
 
-Veja seção Troubleshooting no README.md principal.
+Veja secao Troubleshooting no README.md principal.
 
 ## Status
 
-🟡 **Em desenvolvimento** - Será expandido conforme novos casos de uso
+Em desenvolvimento - Sera expandido conforme novos casos de uso
