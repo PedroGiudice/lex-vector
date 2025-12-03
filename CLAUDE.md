@@ -343,3 +343,4 @@ The Claude Code discovers agents automatically from `.md` files in:
 **Last updated:** 2025-12-02
 **Maintained by:** PedroGiudice
 **For Claude Code instances operating in:** `~/claude-work/repos/Claude-Code-Projetos` (WSL2)
+- adicione objetivamente à memória. Não use emojis.
