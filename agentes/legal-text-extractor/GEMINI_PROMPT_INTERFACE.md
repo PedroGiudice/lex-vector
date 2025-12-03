@@ -6,29 +6,22 @@ Você vai criar uma interface/aplicação para executar o **Legal Text Extractor
 
 ---
 
-## ⚠️ ESTADO ATUAL DO SISTEMA
+## ⚠️ ESTADO ATUAL DO SISTEMA & API
 
-> **IMPORTANTE**: O sistema tem DUAS APIs disponíveis. Leia com atenção:
+> **CRÍTICO**: O sistema possui dois pontos de entrada. Você deve usar APENAS O SEGUNDO.
 
-### API 1: `LegalTextExtractor` (main.py) - FUNCIONAL MAS LIMITADA
-- ✅ Extração de PDFs com texto nativo (PDFPlumber)
-- ✅ Limpeza semântica com detecção de sistema judicial
-- ❌ NÃO suporta PDFs escaneados (lança `NotImplementedError`)
-- ❌ NÃO usa Marker (apenas PDFPlumber)
+### ❌ API 1: `LegalTextExtractor` (main.py) - NÃO USAR
+- Legado. Não suporta os motores avançados (Marker/OCR) nem callback de progresso. Ignore.
 
-### API 2: `PipelineOrchestrator` - ARQUITETURA COMPLETA
-- ✅ Pipeline de 4 estágios (steps implementados)
-- ✅ PDFPlumber funcional
-- ✅ Tesseract OCR funcional
-- ✅ **Marker funcional** (requer 10GB RAM)
-- ✅ Context Store para aprendizado
-- ⚠️ `_extract_page_text` é PLACEHOLDER (extrai todas páginas, não individual)
+### ✅ API 2: `PipelineOrchestrator` (src/pipeline/orchestrator.py) - TARGET
+- **Arquitetura:** Pipeline completo de 4 estágios.
+- **Motores:** Suporta PDFPlumber, Tesseract e **Marker (10GB RAM)**.
+- **Observabilidade:** O método `process(pdf_path, progress_callback=...)` agora aceita uma função de callback para reportar progresso em tempo real.
+- **Uso Obrigatório:** Sua interface deve instanciar e usar esta classe.
 
-### RECOMENDAÇÃO PARA INTERFACE
-Use `PipelineOrchestrator` para a interface:
-1. Todos os 3 engines funcionam (PDFPlumber, Tesseract, Marker)
-2. Marker é o engine PREMIUM para PDFs complexos
-3. Context Store para aprendizado
+### REQUISITO DE ARQUITETURA
+1. Todos os 3 engines funcionam (PDFPlumber, Tesseract, Marker).
+2. O `PipelineOrchestrator` deve ser mantido em **cache** (memória) para não recarregar modelos pesados.
 
 ---
 
@@ -47,6 +40,20 @@ Sistema de extração inteligente de texto de PDFs jurídicos brasileiros, com:
 ```
 /home/user/Claude-Code-Projetos/agentes/legal-text-extractor/
 ```
+
+## 1.1 AMBIENTE DE EXECUÇÃO & TECH STACK (MANDATÓRIO)
+
+1.  **Framework:** Streamlit (Python puro).
+2.  **Ambiente Host:** WSL2 (Ubuntu 24.04).
+    * Use sempre `pathlib.Path` para caminhos (ex: `/tmp/...`).
+    * **NÃO** use caminhos Windows (`C:\`).
+3.  **Ponte de Arquivos (Memory -> Disk):**
+    * O Streamlit recebe uploads como `BytesIO` (memória).
+    * O `PipelineOrchestrator` exige um `pathlib.Path` (disco).
+    * **Sua Solução:** Crie uma função `save_temp_file` que salve o upload em `/tmp/`, retorne o `Path` para o processamento e limpe depois.
+4.  **Gestão de Recursos (CRÍTICO):**
+    * Use `@st.cache_resource` para carregar o `PipelineOrchestrator` (evita travar o PC recarregando o Marker de 10GB).
+    * Use `st.session_state` para manter os resultados na tela ao trocar de abas.
 
 ---
 
@@ -477,145 +484,40 @@ EXCELENTÍSSIMO SENHOR DOUTOR JUIZ...
 
 ---
 
-## 11. FLUXO PARA INTERFACE
+## 11. ARQUITETURA DA INTERFACE (STREAMLIT)
 
-### Workflow Recomendado para UI
+O arquivo `app.py` deve operar como um "Direct Import Monolith" (sem APIs externas), importando diretamente de `src/`.
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│  1. UPLOAD DO PDF                                           │
-│     - Aceitar arquivo PDF                                   │
-│     - Mostrar preview (primeira página)                     │
-│     - Exibir metadados (tamanho, páginas)                   │
-└─────────────────────────────────────────────────────────────┘
-                          │
-                          ▼
-┌─────────────────────────────────────────────────────────────┐
-│  2. CONFIGURAÇÃO (Opcional)                                 │
-│     - Sistema judicial: [Auto-detect ▼] PJE/ESAJ/STF/etc   │
-│     - Blacklist customizada: [textarea]                     │
-│     - Formato de saída: [Text ▼] Markdown/JSON             │
-│     - Aprendizado: [☐] Ativar Context Store                │
-└─────────────────────────────────────────────────────────────┘
-                          │
-                          ▼
-┌─────────────────────────────────────────────────────────────┐
-│  3. PROCESSAMENTO (Progress Bar)                            │
-│     [████████░░░░░░░░░░░░] 40% - Analisando layout...      │
-│                                                             │
-│     Steps:                                                  │
-│     ✓ Cartógrafo (layout.json)        [0.5s]               │
-│     ⏳ Saneador (imagens)              [em progresso]       │
-│     ○ Extrator (final.md)                                   │
-│     ○ Bibliotecário (structure.json)                        │
-└─────────────────────────────────────────────────────────────┘
-                          │
-                          ▼
-┌─────────────────────────────────────────────────────────────┐
-│  4. RESULTADO                                               │
-│                                                             │
-│  ┌─────────────────────────────────────────────────────┐   │
-│  │  RESUMO                                              │   │
-│  │  Sistema: PJe - Processo Judicial Eletrônico        │   │
-│  │  Confiança: 95%                                      │   │
-│  │  Redução: 21.5% (125,000 → 98,125 chars)            │   │
-│  │  Páginas: 50 (45 NATIVE, 5 OCR)                     │   │
-│  │  Seções: 8 peças processuais                        │   │
-│  └─────────────────────────────────────────────────────┘   │
-│                                                             │
-│  ┌─────────────────────────────────────────────────────┐   │
-│  │  SEÇÕES IDENTIFICADAS                                │   │
-│  │  1. Petição Inicial (pág 1-15) [conf: 0.92]         │   │
-│  │  2. Contestação (pág 16-28) [conf: 0.88]            │   │
-│  │  3. Réplica (pág 29-35) [conf: 0.85]                │   │
-│  │  4. Sentença (pág 36-42) [conf: 0.95]               │   │
-│  │  5. Anexos (pág 43-50) [conf: 0.78]                 │   │
-│  └─────────────────────────────────────────────────────┘   │
-│                                                             │
-│  ┌─────────────────────────────────────────────────────┐   │
-│  │  TEXTO EXTRAÍDO                                      │   │
-│  │  [Tabs: Completo | Por Seção | Raw Markdown]        │   │
-│  │  ┌─────────────────────────────────────────────┐    │   │
-│  │  │ TRIBUNAL REGIONAL FEDERAL DA 3ª REGIÃO      │    │   │
-│  │  │ Seção Judiciária de São Paulo               │    │   │
-│  │  │ ...                                          │    │   │
-│  │  └─────────────────────────────────────────────┘    │   │
-│  └─────────────────────────────────────────────────────┘   │
-│                                                             │
-│  [📥 Download TXT] [📥 Download MD] [📥 Download JSON]     │
-└─────────────────────────────────────────────────────────────┘
-```
+### Estrutura Lógica do Código
+1.  **Setup & Imports:**
+    ```python
+    import sys
+    from pathlib import Path
+    sys.path.append(str(Path(__file__).parent)) # Garante visibilidade do src/
+    from src.pipeline.orchestrator import PipelineOrchestrator
+    ```
 
-### Integração com Backend
+2.  **Carregamento Seguro (Cache):**
+    Instancie o orquestrador dentro de uma função com `@st.cache_resource`.
 
-```python
-# Exemplo de API endpoint (FastAPI)
-from fastapi import FastAPI, UploadFile, File
-from pathlib import Path
-import tempfile
+3.  **Callback de Progresso (Visual):**
+    Crie uma função para conectar o backend à UI:
+    ```python
+    def update_ui(current, total, message):
+        # Atualiza st.progress() e st.status()
+        pass
+    
+    # No botão de processar:
+    orchestrator.process(pdf_path, progress_callback=update_ui)
+    ```
 
-from main import LegalTextExtractor
-
-app = FastAPI()
-extractor = LegalTextExtractor()
-
-@app.post("/extract")
-async def extract_pdf(
-    file: UploadFile = File(...),
-    system: str = None,
-    output_format: str = "json"
-):
-    # Salvar arquivo temporário
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
-        tmp.write(await file.read())
-        tmp_path = Path(tmp.name)
-
-    try:
-        # Processar
-        result = extractor.process_pdf(
-            pdf_path=tmp_path,
-            system=system
-        )
-
-        # Retornar resultado
-        return {
-            "success": True,
-            "system": result.system,
-            "system_name": result.system_name,
-            "confidence": result.confidence,
-            "original_length": result.original_length,
-            "final_length": result.final_length,
-            "reduction_pct": result.reduction_pct,
-            "patterns_removed": len(result.patterns_removed),
-            "text": result.text if output_format == "text" else None,
-            "sections": [
-                {
-                    "type": s.type,
-                    "content": s.content,
-                    "confidence": s.confidence
-                }
-                for s in result.sections
-            ] if output_format == "json" else None
-        }
-    finally:
-        tmp_path.unlink()  # Limpar arquivo temporário
-
-@app.get("/systems")
-def list_systems():
-    """Lista sistemas judiciais suportados"""
-    return {
-        "systems": [
-            {"code": "pje", "name": "PJe - Processo Judicial Eletrônico"},
-            {"code": "esaj", "name": "ESAJ - Sistema de Automação da Justiça"},
-            {"code": "eproc", "name": "EPROC - Sistema de Processo Eletrônico"},
-            {"code": "projudi", "name": "PROJUDI - Processo Judicial Digital"},
-            {"code": "stf", "name": "STF - Supremo Tribunal Federal"},
-            {"code": "stj", "name": "STJ - Superior Tribunal de Justiça"},
-        ]
-    }
-```
-
----
+4.  **Layout da Tela:**
+    * **Sidebar:** Upload, Seletor de Sistema (Auto/PJE/ESAJ...), Botão "Processar".
+    * **Área Principal (Status):** Use `st.status` expandido para mostrar o log do callback ("Lendo página 1...", "Extraindo com Marker...").
+    * **Área Principal (Abas de Resultado):**
+        * **Tab 1 Documento:** Texto final (`result.text`).
+        * **Tab 2 Estrutura:** JSON (`result.sections` e `result.metadata`).
+        * **Tab 3 Debug:** Tabela com `result.patterns_removed` e métricas de confiança.
 
 ## 12. CONSIDERAÇÕES IMPORTANTES
 
@@ -706,5 +608,6 @@ print(result.text[:500])
 ---
 
 **FIM DO PROMPT**
-
+   ```
 Use este documento como referência completa para criar a interface/app que integra com o Legal Text Extractor. O sistema está pronto para uso programático via `main.py` ou via CLI com os steps individuais.
+   ```
