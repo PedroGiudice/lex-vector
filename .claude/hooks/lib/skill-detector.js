@@ -38,6 +38,21 @@ const FILE_PATTERN_SKILLS = {
   'skills': {
     patterns: [/skills\/.*\.md$/, /skill-rules\.json$/, /SKILL\.md$/],
     skills: ['skill-developer']
+  },
+  // Planning/Design → brainstorming, writing-plans
+  'planning': {
+    patterns: [/docs\/plans\//, /\.plan\.md$/, /PLAN\.md$/, /design\.md$/i, /architecture\.md$/i],
+    skills: ['brainstorming', 'writing-plans']
+  },
+  // Git operations → git-pushing
+  'git': {
+    patterns: [/\.git\//, /\.gitignore$/, /CHANGELOG\.md$/i],
+    skills: ['git-pushing']
+  },
+  // TUI/Textual → tui skills (handled by agents, not skills)
+  'tui': {
+    patterns: [/\.tcss$/, /textual/, /tui.*\.py$/],
+    skills: ['cli-design']
   }
 };
 

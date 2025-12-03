@@ -153,11 +153,18 @@
           "refactor",
           "refactoring",
           "code cleanup",
-          "improve code structure"
+          "improve code structure",
+          "refatorar",
+          "reorganizar",
+          "limpar código",
+          "melhorar código",
+          "reestruturar",
+          "organizar melhor"
         ],
         "intentPatterns": [
-          "(refactor|restructure|reorganize).*?(code)",
-          "improve.*?(code).*?(structure|organization)"
+          "(refactor|restructure|reorganize|refator|reorganiz).*?(code|código)",
+          "(improve|melhor).*?(code|código).*?(structure|organization|estrutura)",
+          "(limp|organiz).*?(código|code|pasta|arquivo)"
         ]
       }
     },
@@ -308,11 +315,19 @@
         "keywords": [
           "execute plan",
           "implement plan",
-          "follow plan"
+          "follow plan",
+          "executar plano",
+          "implementar plano",
+          "seguir plano",
+          "conforme plano",
+          "baseado no plano",
+          "prossiga",
+          "continue"
         ],
         "intentPatterns": [
-          "(execute|implement|follow).*?(plan)",
-          "based on.*?(plan)"
+          "(execute|implement|follow|execut|implement|segu).*?(plan|plano)",
+          "(based|baseado|conforme).*?(plan|plano)",
+          "(prossig|continu).*?(task|tarefa|plano)"
         ]
       }
     },
@@ -326,11 +341,20 @@
           "plan feature",
           "feature design",
           "implementation plan",
-          "architecture plan"
+          "architecture plan",
+          "planejar",
+          "planejamento",
+          "arquitetura",
+          "como implementar",
+          "preciso implementar",
+          "vamos criar",
+          "nova feature",
+          "nova funcionalidade"
         ],
         "intentPatterns": [
-          "(plan|design).*?(feature|implementation)",
-          "how.*?(implement|build).*?(feature)"
+          "(plan|design|planejar).*?(feature|implementation|funcionalidade)",
+          "(how|como).*?(implement|build|criar|fazer)",
+          "(preciso|quero|vamos).*?(criar|implementar|fazer)"
         ]
       }
     },
@@ -408,17 +432,26 @@
     "git-pushing": {
       "type": "utility",
       "enforcement": "suggest",
-      "priority": "low",
+      "priority": "high",
       "description": "Git Push Workflow",
       "promptTriggers": {
         "keywords": [
           "git push",
           "push commit",
-          "push changes"
+          "push changes",
+          "commit",
+          "faz commit",
+          "fazer commit",
+          "commita",
+          "git add",
+          "faça push",
+          "faz push"
         ],
         "intentPatterns": [
-          "git.*?push",
-          "push.*?(commit|change)"
+          "git.*?(push|commit|add)",
+          "(push|commit).*?(change|alterac|mudanc)",
+          "(faz|faca|fazer).*?(commit|push)",
+          "commit.*?(push|tudo|all)"
         ]
       }
     },
@@ -642,11 +675,21 @@
           "troubleshoot",
           "diagnose",
           "fix bug",
-          "error investigation"
+          "error investigation",
+          "erro",
+          "bug",
+          "não funciona",
+          "quebrou",
+          "falhou",
+          "deu erro",
+          "corrigir",
+          "resolver"
         ],
         "intentPatterns": [
           "(debug|troubleshoot|diagnose).*?(error|bug|issue)",
-          "(fix|resolve).*?(bug|error)"
+          "(fix|resolve|corrig|resolv).*?(bug|error|erro)",
+          "(nao|não).*?(funciona|roda|executa)",
+          "(deu|teve|tem).*?(erro|bug|problema)"
         ]
       }
     },
@@ -697,11 +740,18 @@
           "failing test",
           "broken test",
           "test failure",
-          "fix test"
+          "fix test",
+          "teste falhou",
+          "teste quebrou",
+          "corrigir teste",
+          "arrumar teste",
+          "pytest",
+          "test error"
         ],
         "intentPatterns": [
-          "(fix|repair).*?(test|spec)",
-          "test.*?(fail|break|error)"
+          "(fix|repair|corrig|arruma).*?(test|spec|teste)",
+          "test.*?(fail|break|error|falh|quebr)",
+          "(pytest|jest|mocha).*?(fail|error)"
         ]
       }
     },
