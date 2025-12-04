@@ -1,5 +1,7 @@
 {
+  "outputStyle": "Technical Director",
   "_comment": "Configuração SIMPLIFICADA - Legal-Braniac removido (2025-11-30)",
+  "_technical_director": "North Star Guardian System - Proactive architectural governance (2025-12-04)",
   "_docs": "Ver .claude/hooks/lib/ para scripts independentes",
   "_strategy": "Hooks independentes: validations, skill-content-injector, inject-tools-to-agents",
   "_path_fix": "2025-11-28: Todos hooks corrigidos para usar $CLAUDE_PROJECT_DIR (caminhos absolutos) conforme documentação Anthropic",
@@ -124,6 +126,11 @@
             "type": "command",
             "command": "$CLAUDE_PROJECT_DIR/.claude/monitoring/hooks/detect_skills.sh",
             "_note": "Multi-Agent Monitoring: Detect skill usage patterns"
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/project-context.py\"",
+            "_note": "Technical Director: North Star status + git state awareness"
           }
         ]
       }
