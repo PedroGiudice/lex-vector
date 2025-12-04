@@ -30,6 +30,22 @@ data = get_data_dir('oab-watcher', 'downloads')
 - `skills/` = custom (requer SKILL.md)
 - `.claude/skills/` = managed (nao modificar)
 
+### 5. Gemini para Context Offloading (OBRIGATORIO)
+**SEMPRE** usar o agente Gemini (`gemini-assistant`) para:
+- Arquivos > 500 linhas
+- Multiplos arquivos (mesmo pequenos)
+- Logs extensos, diffs grandes, exploracao de diretorios
+
+```bash
+# Exemplo: resumir arquivo grande
+cat arquivo_grande.py | gemini -m gemini-2.5-flash "Resuma em 5 bullets"
+
+# Exemplo: mapear multiplos arquivos
+find src/ -name "*.py" | xargs cat | gemini -m gemini-2.5-flash "Liste classes e funcoes principais"
+```
+
+**Por que:** Poupa tokens, mantem contexto limpo, acelera analise.
+
 ---
 
 ## Estrutura
@@ -86,4 +102,4 @@ Novo agente? Reinicie a sessao.
 ---
 
 **Ultima atualizacao:** 2025-12-04
-- adicione à memória a causa raíz para o não acionamento do custom style
+- Regra 5: Gemini obrigatorio para context offloading (>500 linhas ou multiplos arquivos)
