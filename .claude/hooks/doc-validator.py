@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Validates documentation accuracy and limits."""
 import os
-import subprocess
 import sys
 
-BASE = os.environ.get('PROJECT_DIR', '/home/user/Claude-Code-Projetos')
+# Support both web (CLAUDE_PROJECT_DIR) and CLI environments
+BASE = os.environ.get('CLAUDE_PROJECT_DIR') or os.environ.get('PROJECT_DIR') or os.getcwd()
 
 def count_dirs(path):
     """Count subdirectories."""
