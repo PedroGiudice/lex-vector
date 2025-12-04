@@ -10,8 +10,8 @@ source "${SCRIPT_DIR}/lib/logger.sh"
 # Primeiro argumento é o nome do hook
 HOOK_NAME=${1:-"unknown"}
 
-# Recebe JSON
-INPUT=$(cat)
+# Recebe JSON com timeout (evita hang se stdin vazio)
+INPUT=$(timeout 1 cat 2>/dev/null || echo '{}')
 # Sanitize SESSION_ID - remove all chars except alphanumeric, underscore, hyphen
 SESSION_ID=$(echo "$INPUT" | jq -r '.session_id // "unknown"' | tr -cd 'a-zA-Z0-9_-')
 

@@ -6,9 +6,15 @@ Evaluates prompts for clarity and invokes the prompt-improver skill for vague ca
 import json
 import sys
 
-# Load input from stdin
+# Load input from stdin (non-blocking with timeout)
+import select
 try:
-    input_data = json.load(sys.stdin)
+    if select.select([sys.stdin], [], [], 0.5)[0]:
+        input_data = json.load(sys.stdin)
+    else:
+        # No input available - output pass-through message
+        print(json.dumps({"hookSpecificOutput": {"hookEventName": "UserPromptSubmit", "additionalContext": "Success"}}))
+        sys.exit(0)
 except json.JSONDecodeError as e:
     print(f"Error: Invalid JSON input: {e}", file=sys.stderr)
     sys.exit(1)

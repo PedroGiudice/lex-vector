@@ -7,8 +7,8 @@ TRACKER="${SCRIPT_DIR}/../simple_tracker.py"
 # Load logger library
 source "${SCRIPT_DIR}/lib/logger.sh"
 
-# Recebe JSON do Claude Code
-INPUT=$(cat)
+# Recebe JSON do Claude Code com timeout (evita hang se stdin vazio)
+INPUT=$(timeout 1 cat 2>/dev/null || echo '{}')
 
 # Sanitize SESSION_ID - remove all chars except alphanumeric, underscore, hyphen
 SESSION_ID=$(echo "$INPUT" | jq -r '.session_id // "unknown"' | tr -cd 'a-zA-Z0-9_-')

@@ -89,8 +89,11 @@ def build_context() -> str:
 
 
 def main():
+    import select
     try:
-        json.load(sys.stdin)
+        # Non-blocking stdin read with timeout
+        if select.select([sys.stdin], [], [], 0.1)[0]:
+            json.load(sys.stdin)
     except:
         pass
 

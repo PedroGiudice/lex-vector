@@ -86,3 +86,4 @@ Novo agente? Reinicie a sessao.
 ---
 
 **Ultima atualizacao:** 2025-12-04
+- adicione à memória a causa raíz para o não acionamento do custom style
