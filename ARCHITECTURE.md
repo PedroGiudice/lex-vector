@@ -91,13 +91,6 @@ Claude-Code-Projetos/
 
 ---
 
-## Stack Tecnologica
+## Stack
 
-- **Runtime:** Python 3.11, Node.js v22
-- **SO:** Ubuntu 24.04 (WSL2)
-- **Versionamento:** Git
-- **Orquestracao:** Claude Code + Hooks
-
----
-
-**Ultima atualizacao:** 2025-12-04
+Python 3.11 | Node.js v22 | Ubuntu 24.04 (WSL2) | Git | Claude Code
