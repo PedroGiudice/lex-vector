@@ -1,0 +1,20 @@
+{
+  "nome": "João da Silva",
+  "cpf": "123.456.789-01",
+  "nacionalidade": "brasileiro",
+  "estado_civil": "casado",
+  "profissao": "engenheiro",
+  "endereco": "Rua das Flores",
+  "numero": "123",
+  "complemento": "Apto. 101",
+  "bairro": "Centro",
+  "cidade": "São Paulo",
+  "uf": "SP",
+  "cep": "01310-100",
+  "data": "06 de dezembro de 2025",
+  "nome_raw": "MARIA  DAS GRAÇAS  DA SILVA",
+  "endereco_raw": "AV. BRASIL N 500 AP 201 BL A",
+  "cpf_raw": "98765432100",
+  "cnpj_raw": "12345678000199",
+  "cep_raw": "04567890"
+}
