@@ -233,6 +233,189 @@ class DocumentEngine:
 
         return sorted(list(variables))
 
+    def get_template_text(self, template_path: str | Path) -> List[Dict[str, Any]]:
+        """
+        Extract text content from a template as a list of paragraphs.
+
+        Each paragraph includes its text, index, and whether it contains
+        Jinja2 variables.
+
+        Args:
+            template_path: Path to .docx template
+
+        Returns:
+            List of dicts with keys: 'index', 'text', 'has_variables'
+        """
+        from docx import Document
+        import re
+
+        template_path = Path(template_path)
+
+        if not template_path.exists():
+            raise FileNotFoundError(f"Template not found: {template_path}")
+
+        doc = Document(template_path)
+        paragraphs = []
+
+        jinja_pattern = re.compile(r'\{\{.*?\}\}')
+
+        for i, para in enumerate(doc.paragraphs):
+            text = para.text.strip()
+            if text:  # Skip empty paragraphs
+                paragraphs.append({
+                    'index': i,
+                    'text': text,
+                    'has_variables': bool(jinja_pattern.search(text))
+                })
+
+        return paragraphs
+
+    def mark_text_as_variable(
+        self,
+        template_path: str | Path,
+        text_to_replace: str,
+        variable_name: str,
+        output_path: str | Path,
+        filter_name: Optional[str] = None,
+        replace_all: bool = True
+    ) -> Path:
+        """
+        Replace specific text in template with Jinja2 variable placeholder.
+
+        Args:
+            template_path: Path to source .docx template
+            text_to_replace: Exact text to find and replace
+            variable_name: Name for the Jinja2 variable
+            output_path: Path to save modified template
+            filter_name: Optional filter to apply (nome, cpf, etc.)
+            replace_all: If True, replace all occurrences; if False, only first
+
+        Returns:
+            Path to the modified template
+
+        Example:
+            engine.mark_text_as_variable(
+                "template.docx",
+                "MARIA DA SILVA",
+                "nome",
+                "marked_template.docx",
+                filter_name="nome"
+            )
+            # Result: "MARIA DA SILVA" becomes "{{ nome|nome }}"
+        """
+        from docx import Document
+
+        template_path = Path(template_path)
+        output_path = Path(output_path)
+
+        if not template_path.exists():
+            raise FileNotFoundError(f"Template not found: {template_path}")
+
+        doc = Document(template_path)
+
+        # Build the variable placeholder
+        if filter_name:
+            placeholder = f"{{{{ {variable_name}|{filter_name} }}}}"
+        else:
+            placeholder = f"{{{{ {variable_name} }}}}"
+
+        # Process each paragraph
+        for para in doc.paragraphs:
+            if text_to_replace in para.text:
+                # Handle runs (formatted segments within paragraph)
+                full_text = para.text
+                if replace_all:
+                    new_text = full_text.replace(text_to_replace, placeholder)
+                else:
+                    new_text = full_text.replace(text_to_replace, placeholder, 1)
+
+                # Clear existing runs and add new text
+                # Note: This may lose formatting - acceptable for MVP
+                for run in para.runs:
+                    run.text = ""
+                if para.runs:
+                    para.runs[0].text = new_text
+                else:
+                    para.add_run(new_text)
+
+        # Ensure output directory exists
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        doc.save(output_path)
+
+        return output_path
+
+    def find_markable_patterns(self, text: str) -> List[Dict[str, Any]]:
+        """
+        Find common patterns in text that could be marked as variables.
+
+        Detects:
+            - CPF (formatted or unformatted)
+            - CNPJ (formatted or unformatted)
+            - CEP
+            - Dates (DD/MM/YYYY format)
+
+        Args:
+            text: Text to analyze
+
+        Returns:
+            List of dicts with: 'text', 'type', 'start', 'end', 'suggested_var', 'suggested_filter'
+        """
+        import re
+
+        patterns = []
+
+        # CPF patterns (formatted and unformatted)
+        cpf_pattern = re.compile(r'\b\d{3}[.\s]?\d{3}[.\s]?\d{3}[-.\s]?\d{2}\b')
+        for match in cpf_pattern.finditer(text):
+            patterns.append({
+                'text': match.group(),
+                'type': 'cpf',
+                'start': match.start(),
+                'end': match.end(),
+                'suggested_var': 'cpf',
+                'suggested_filter': 'cpf'
+            })
+
+        # CNPJ patterns
+        cnpj_pattern = re.compile(r'\b\d{2}[.\s]?\d{3}[.\s]?\d{3}[/\s]?\d{4}[-.\s]?\d{2}\b')
+        for match in cnpj_pattern.finditer(text):
+            patterns.append({
+                'text': match.group(),
+                'type': 'cnpj',
+                'start': match.start(),
+                'end': match.end(),
+                'suggested_var': 'cnpj',
+                'suggested_filter': 'cnpj'
+            })
+
+        # CEP patterns
+        cep_pattern = re.compile(r'\b\d{5}[-.\s]?\d{3}\b')
+        for match in cep_pattern.finditer(text):
+            # Exclude if already matched as CPF/CNPJ
+            if not any(p['start'] <= match.start() < p['end'] for p in patterns):
+                patterns.append({
+                    'text': match.group(),
+                    'type': 'cep',
+                    'start': match.start(),
+                    'end': match.end(),
+                    'suggested_var': 'cep',
+                    'suggested_filter': 'cep'
+                })
+
+        # Date patterns (DD/MM/YYYY)
+        date_pattern = re.compile(r'\b\d{1,2}/\d{1,2}/\d{2,4}\b')
+        for match in date_pattern.finditer(text):
+            patterns.append({
+                'text': match.group(),
+                'type': 'date',
+                'start': match.start(),
+                'end': match.end(),
+                'suggested_var': 'data',
+                'suggested_filter': None
+            })
+
+        return patterns
+
     def validate_data(
         self,
         template_path: str | Path,

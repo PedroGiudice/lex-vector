@@ -501,3 +501,155 @@ class TestDocumentEngineNestedData:
 
         assert "item1" in text
         assert "  item1  " not in text
+
+
+class TestDocumentEngineTextExtraction:
+    """Tests for template text extraction."""
+
+    def test_get_template_text_returns_paragraphs(self, temp_dir):
+        """Test that get_template_text extracts paragraphs from docx."""
+        from docx import Document as DocxDoc
+        from src.engine import DocumentEngine
+
+        # Create a test docx
+        doc = DocxDoc()
+        doc.add_paragraph("First paragraph with some text.")
+        doc.add_paragraph("Second paragraph with more content.")
+        doc.add_paragraph("Third paragraph.")
+        test_path = temp_dir / "test_template.docx"
+        doc.save(test_path)
+
+        engine = DocumentEngine()
+        paragraphs = engine.get_template_text(str(test_path))
+
+        assert len(paragraphs) == 3
+        assert paragraphs[0]["text"] == "First paragraph with some text."
+        assert paragraphs[1]["text"] == "Second paragraph with more content."
+        assert paragraphs[2]["text"] == "Third paragraph."
+        assert all("index" in p for p in paragraphs)
+
+
+class TestDocumentEngineMarkVariable:
+    """Tests for marking text as Jinja2 variables."""
+
+    def test_mark_text_as_variable(self, temp_dir):
+        """Test marking specific text as a Jinja2 variable in docx."""
+        from docx import Document as DocxDoc
+        from src.engine import DocumentEngine
+
+        # Create a test docx
+        doc = DocxDoc()
+        doc.add_paragraph("O cliente MARIA DA SILVA compareceu.")
+        doc.add_paragraph("CPF: 12345678901")
+        test_path = temp_dir / "test_mark.docx"
+        doc.save(test_path)
+
+        engine = DocumentEngine()
+
+        # Mark "MARIA DA SILVA" as variable "nome"
+        output_path = temp_dir / "marked.docx"
+        result = engine.mark_text_as_variable(
+            template_path=str(test_path),
+            text_to_replace="MARIA DA SILVA",
+            variable_name="nome",
+            output_path=str(output_path)
+        )
+
+        # Verify the output contains the variable
+        paragraphs = engine.get_template_text(str(output_path))
+        assert "{{ nome }}" in paragraphs[0]["text"]
+        assert paragraphs[0]["has_variables"] is True
+
+    def test_mark_text_as_variable_with_filter(self, temp_dir):
+        """Test marking text with a normalization filter."""
+        from docx import Document as DocxDoc
+        from src.engine import DocumentEngine
+
+        doc = DocxDoc()
+        doc.add_paragraph("CPF: 12345678901")
+        test_path = temp_dir / "test_filter.docx"
+        doc.save(test_path)
+
+        engine = DocumentEngine()
+        output_path = temp_dir / "filtered.docx"
+
+        engine.mark_text_as_variable(
+            template_path=str(test_path),
+            text_to_replace="12345678901",
+            variable_name="cpf",
+            output_path=str(output_path),
+            filter_name="cpf"
+        )
+
+        paragraphs = engine.get_template_text(str(output_path))
+        assert "{{ cpf|cpf }}" in paragraphs[0]["text"]
+
+
+class TestDocumentEnginePatternDetection:
+    """Tests for automatic pattern detection in text."""
+
+    def test_find_markable_patterns_detects_cpf(self):
+        """Test that CPF patterns are detected."""
+        from src.engine import DocumentEngine
+
+        engine = DocumentEngine()
+        text = "Cliente: MARIA DA SILVA, CPF: 123.456.789-01"
+        patterns = engine.find_markable_patterns(text)
+
+        cpf_patterns = [p for p in patterns if p["type"] == "cpf"]
+        assert len(cpf_patterns) == 1
+        assert cpf_patterns[0]["text"] == "123.456.789-01"
+        assert cpf_patterns[0]["suggested_var"] == "cpf"
+        assert cpf_patterns[0]["suggested_filter"] == "cpf"
+
+    def test_find_markable_patterns_detects_cnpj(self):
+        """Test that CNPJ patterns are detected."""
+        from src.engine import DocumentEngine
+
+        engine = DocumentEngine()
+        text = "Empresa LTDA, CNPJ: 12.345.678/0001-99"
+        patterns = engine.find_markable_patterns(text)
+
+        cnpj_patterns = [p for p in patterns if p["type"] == "cnpj"]
+        assert len(cnpj_patterns) == 1
+        assert cnpj_patterns[0]["text"] == "12.345.678/0001-99"
+        assert cnpj_patterns[0]["suggested_var"] == "cnpj"
+
+    def test_find_markable_patterns_detects_cep(self):
+        """Test that CEP patterns are detected."""
+        from src.engine import DocumentEngine
+
+        engine = DocumentEngine()
+        text = "Endereco: Rua das Flores, 123 - CEP 01310-100"
+        patterns = engine.find_markable_patterns(text)
+
+        cep_patterns = [p for p in patterns if p["type"] == "cep"]
+        assert len(cep_patterns) == 1
+        assert cep_patterns[0]["text"] == "01310-100"
+
+    def test_find_markable_patterns_detects_date(self):
+        """Test that date patterns are detected."""
+        from src.engine import DocumentEngine
+
+        engine = DocumentEngine()
+        text = "Sao Paulo, 15/06/2024"
+        patterns = engine.find_markable_patterns(text)
+
+        date_patterns = [p for p in patterns if p["type"] == "date"]
+        assert len(date_patterns) == 1
+        assert date_patterns[0]["text"] == "15/06/2024"
+        assert date_patterns[0]["suggested_var"] == "data"
+
+    def test_find_markable_patterns_multiple(self):
+        """Test detection of multiple patterns in same text."""
+        from src.engine import DocumentEngine
+
+        engine = DocumentEngine()
+        text = "CPF: 123.456.789-01, CNPJ: 12.345.678/0001-99, Data: 01/01/2025"
+        patterns = engine.find_markable_patterns(text)
+
+        assert len(patterns) >= 3
+        types = [p["type"] for p in patterns]
+        assert "cpf" in types
+        assert "cnpj" in types
+        assert "date" in types

@@ -219,6 +219,16 @@ if 'template_variables' not in st.session_state:
 if 'assembled_doc' not in st.session_state:
     st.session_state.assembled_doc = None
 
+# Template builder state
+if 'template_paragraphs' not in st.session_state:
+    st.session_state.template_paragraphs = []
+if 'template_name' not in st.session_state:
+    st.session_state.template_name = None
+if 'marked_variables' not in st.session_state:
+    st.session_state.marked_variables = []
+if 'template_text_content' not in st.session_state:
+    st.session_state.template_text_content = None
+
 # -----------------------------------------------------------------------------
 # SIDEBAR
 # -----------------------------------------------------------------------------
@@ -454,58 +464,70 @@ if nav_mode == "Data Input":
 
 elif nav_mode == "Template Builder":
     st.markdown("## Template Builder")
-    st.markdown('<span class="text-muted">Upload and configure document templates with Jinja2 variables.</span>', unsafe_allow_html=True)
+    st.markdown('<span class="text-muted">Upload and configure document templates with variable marking.</span>', unsafe_allow_html=True)
 
-    # Template upload
-    st.markdown("#### Upload Template")
+    # Tab-based interface
+    tab_upload, tab_text, tab_preview = st.tabs(["Upload Template", "Text Editor", "Preview & Mark"])
 
-    uploaded_template = st.file_uploader(
-        "Choose a .docx template",
-        type=["docx"],
-        help="Word document with {{ variable }} placeholders"
-    )
+    with tab_upload:
+        st.markdown("#### Upload .docx Template")
+        st.markdown('<span class="text-muted">Upload a Word document to use as template base.</span>', unsafe_allow_html=True)
 
-    if uploaded_template is not None:
-        try:
-            # Save to temp file for processing
-            with tempfile.NamedTemporaryFile(delete=False, suffix='.docx') as tmp:
-                tmp.write(uploaded_template.read())
-                tmp_path = tmp.name
+        uploaded_template = st.file_uploader(
+            "Choose a .docx file",
+            type=["docx"],
+            help="Word document - can contain existing {{ variable }} placeholders or plain text",
+            key="template_upload"
+        )
 
-            # Create engine and extract variables
-            engine = DocumentEngine()
-            variables = engine.get_template_variables(tmp_path)
+        if uploaded_template is not None:
+            try:
+                # Save to temp file for processing
+                with tempfile.NamedTemporaryFile(delete=False, suffix='.docx') as tmp:
+                    tmp.write(uploaded_template.read())
+                    tmp_path = tmp.name
 
-            st.session_state.template_content = tmp_path
-            st.session_state.template_variables = list(variables)
+                # Store path in session
+                st.session_state.template_content = tmp_path
+                st.session_state.template_name = uploaded_template.name
 
-            st.success(f"Template loaded: {uploaded_template.name}")
+                # Create engine and extract info
+                engine = DocumentEngine()
+                variables = engine.get_template_variables(tmp_path)
+                paragraphs = engine.get_template_text(tmp_path)
 
-            # Show extracted variables
-            st.markdown("#### Detected Variables")
-            if variables:
-                cols = st.columns(3)
-                for i, var in enumerate(sorted(variables)):
-                    with cols[i % 3]:
-                        st.code(f"{{{{ {var} }}}}")
-            else:
-                st.warning("No Jinja2 variables detected in template.")
+                st.session_state.template_variables = list(variables)
+                st.session_state.template_paragraphs = paragraphs
 
-        except Exception as e:
-            st.error(f"Error processing template: {e}")
+                st.success(f"Template loaded: {uploaded_template.name}")
 
-    # Or create template from scratch
-    st.markdown("---")
-    st.markdown("#### Or Create Template Text")
-    st.markdown('<span class="text-muted">Write template content with Jinja2 placeholders.</span>', unsafe_allow_html=True)
+                # Quick stats
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    st.metric("Paragraphs", len(paragraphs))
+                with col2:
+                    st.metric("Variables Found", len(variables))
+                with col3:
+                    pattern_count = sum(
+                        len(engine.find_markable_patterns(p['text']))
+                        for p in paragraphs
+                    )
+                    st.metric("Markable Patterns", pattern_count)
 
-    template_text = st.text_area(
-        "Template Content",
-        value="""PROCURAÇÃO AD JUDICIA
+                st.info("Go to 'Preview & Mark' tab to view content and mark variables.")
+
+            except Exception as e:
+                st.error(f"Error processing template: {e}")
+
+    with tab_text:
+        st.markdown("#### Create Template from Text")
+        st.markdown('<span class="text-muted">Write template content with Jinja2 placeholders.</span>', unsafe_allow_html=True)
+
+        default_template = """PROCURACAO AD JUDICIA
 
 Outorgante: {{ nome|nome }}
 CPF: {{ cpf|cpf }}
-Endereço: {{ endereco|endereco }}
+Endereco: {{ endereco|endereco }}
 CEP: {{ cep|cep }} - {{ cidade|nome }}/{{ estado }}
 
 Outorgado: {{ advogado|nome }}
@@ -515,68 +537,177 @@ OAB: {{ oab|oab }}
 
 _______________________________
 {{ nome|nome }}
-""",
-        height=400,
-        help="Use {{ variable }} or {{ variable|filter }} syntax"
-    )
+"""
+        template_text = st.text_area(
+            "Template Content",
+            value=st.session_state.get('template_text_content', default_template),
+            height=400,
+            help="Use {{ variable }} or {{ variable|filter }} syntax",
+            key="template_text_area"
+        )
 
-    # Variable mapping
-    st.markdown("---")
-    st.markdown("#### Variable Mapping")
-
-    if st.session_state.input_data:
-        st.markdown('<span class="text-muted">Map template variables to loaded data fields:</span>', unsafe_allow_html=True)
-
-        # Extract variables from text template
-        try:
+        if st.button("Use This Template", key="use_text_template"):
+            st.session_state.template_text_content = template_text
+            # Extract variables from text
             text_vars = set(re.findall(r'\{\{\s*(\w+)(?:\|[\w]+)?\s*\}\}', template_text))
-        except Exception as e:
-            st.error(f"Error extracting variables: {e}")
-            text_vars = set()
+            st.session_state.template_variables = list(text_vars)
+            st.success(f"Template text saved with {len(text_vars)} variables")
 
-        if text_vars:
-            mapping = {}
-            cols = st.columns(2)
+        # Available filters reference
+        st.markdown("---")
+        st.markdown("#### Available Filters")
+        st.markdown("""
+        | Filter | Description | Example |
+        |--------|-------------|---------|
+        | `nome` | Name normalization | `{{ nome\\|nome }}` |
+        | `endereco` | Address expansion | `{{ rua\\|endereco }}` |
+        | `cpf` | CPF formatting | `{{ cpf\\|cpf }}` |
+        | `cnpj` | CNPJ formatting | `{{ cnpj\\|cnpj }}` |
+        | `cep` | CEP formatting | `{{ cep\\|cep }}` |
+        | `oab` | OAB formatting | `{{ oab\\|oab }}` |
+        | `texto` | Text normalization | `{{ descricao\\|texto }}` |
+        """)
 
-            data_fields = list(st.session_state.input_data.keys())
+    with tab_preview:
+        st.markdown("#### Document Preview")
 
-            for i, var in enumerate(sorted(text_vars)):
-                with cols[i % 2]:
-                    # Try to auto-match
-                    default_idx = 0
-                    for j, field in enumerate(data_fields):
-                        if field.lower() == var.lower() or var.lower() in field.lower():
-                            default_idx = j
-                            break
+        if 'template_paragraphs' not in st.session_state or not st.session_state.template_paragraphs:
+            st.info("Upload a template first to preview its content.")
+        else:
+            paragraphs = st.session_state.template_paragraphs
 
-                    mapping[var] = st.selectbox(
-                        f"{{ {var} }}",
-                        options=data_fields + ["[Custom Value]"],
-                        index=default_idx if default_idx < len(data_fields) else 0,
-                        key=f"map_{var}"
+            st.markdown('<span class="text-muted">Review paragraphs and mark text as variables.</span>', unsafe_allow_html=True)
+
+            # Initialize marked variables storage
+            if 'marked_variables' not in st.session_state:
+                st.session_state.marked_variables = []
+
+            # Display paragraphs with marking options
+            for i, para in enumerate(paragraphs):
+                with st.expander(f"Paragraph {i+1}", expanded=i < 3):
+                    # Show paragraph text
+                    if para['has_variables']:
+                        st.markdown('<span class="label label-blue">Has Variables</span>', unsafe_allow_html=True)
+                    st.text(para['text'])
+
+                    # Auto-detected patterns
+                    engine = DocumentEngine()
+                    patterns = engine.find_markable_patterns(para['text'])
+
+                    if patterns:
+                        st.markdown("**Detected Patterns:**")
+                        for pat in patterns:
+                            col1, col2, col3 = st.columns([2, 1, 1])
+                            with col1:
+                                st.code(pat['text'])
+                            with col2:
+                                st.caption(f"Type: {pat['type']}")
+                            with col3:
+                                if st.button(f"Mark as {pat['suggested_var']}", key=f"mark_{i}_{pat['start']}"):
+                                    st.session_state.marked_variables.append({
+                                        'paragraph_index': i,
+                                        'text': pat['text'],
+                                        'variable': pat['suggested_var'],
+                                        'filter': pat['suggested_filter']
+                                    })
+                                    st.rerun()
+
+                    # Manual marking
+                    st.markdown("**Manual Marking:**")
+                    col_text, col_var, col_filter, col_btn = st.columns([3, 2, 2, 1])
+
+                    with col_text:
+                        text_to_mark = st.text_input(
+                            "Text to mark",
+                            key=f"text_mark_{i}",
+                            placeholder="Enter exact text..."
+                        )
+                    with col_var:
+                        var_name = st.text_input(
+                            "Variable name",
+                            key=f"var_name_{i}",
+                            placeholder="e.g., nome"
+                        )
+                    with col_filter:
+                        filter_choice = st.selectbox(
+                            "Filter",
+                            ["none", "nome", "endereco", "cpf", "cnpj", "cep", "oab", "texto"],
+                            key=f"filter_{i}"
+                        )
+                    with col_btn:
+                        st.write("")  # Spacing
+                        st.write("")
+                        if st.button("Mark", key=f"mark_manual_{i}"):
+                            if text_to_mark and var_name:
+                                st.session_state.marked_variables.append({
+                                    'paragraph_index': i,
+                                    'text': text_to_mark,
+                                    'variable': var_name,
+                                    'filter': filter_choice if filter_choice != "none" else None
+                                })
+                                st.rerun()
+
+            # Show marked variables summary
+            if st.session_state.marked_variables:
+                st.markdown("---")
+                st.markdown("#### Marked Variables Summary")
+
+                for j, mark in enumerate(st.session_state.marked_variables):
+                    col1, col2, col3 = st.columns([3, 2, 1])
+                    with col1:
+                        filter_str = f"|{mark['filter']}" if mark['filter'] else ""
+                        st.code(f'"{mark["text"]}" -> {{{{ {mark["variable"]}{filter_str} }}}}')
+                    with col2:
+                        st.caption(f"Paragraph {mark['paragraph_index'] + 1}")
+                    with col3:
+                        if st.button("Remove", key=f"remove_mark_{j}"):
+                            st.session_state.marked_variables.pop(j)
+                            st.rerun()
+
+                # Apply markings button
+                st.markdown("---")
+                if st.button("Apply All Markings", type="primary"):
+                    try:
+                        engine = DocumentEngine()
+                        current_path = st.session_state.template_content
+
+                        # Apply each marking
+                        for mark in st.session_state.marked_variables:
+                            output_path = Path(tempfile.gettempdir()) / f"marked_{datetime.now().strftime('%Y%m%d_%H%M%S_%f')}.docx"
+                            engine.mark_text_as_variable(
+                                template_path=current_path,
+                                text_to_replace=mark['text'],
+                                variable_name=mark['variable'],
+                                output_path=str(output_path),
+                                filter_name=mark['filter']
+                            )
+                            current_path = str(output_path)
+
+                        # Update session state
+                        st.session_state.template_content = current_path
+                        st.session_state.template_paragraphs = engine.get_template_text(current_path)
+                        st.session_state.template_variables = list(engine.get_template_variables(current_path))
+                        st.session_state.marked_variables = []
+
+                        st.success("All markings applied! Template updated.")
+                        st.rerun()
+
+                    except Exception as e:
+                        st.error(f"Error applying markings: {e}")
+
+            # Download modified template
+            if st.session_state.template_content and Path(st.session_state.template_content).exists():
+                st.markdown("---")
+                st.markdown("#### Download Modified Template")
+
+                with open(st.session_state.template_content, "rb") as f:
+                    st.download_button(
+                        label="Download Template with Variables",
+                        data=f.read(),
+                        file_name=f"template_{datetime.now().strftime('%Y%m%d_%H%M%S')}.docx",
+                        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                        type="primary"
                     )
-
-            if st.button("Save Mapping"):
-                st.session_state.variable_mapping = mapping
-                st.success("Mapping saved")
-    else:
-        st.info("Load data first to map variables")
-
-    # Available filters reference
-    st.markdown("---")
-    st.markdown("#### Available Filters")
-
-    st.markdown("""
-    | Filter | Description | Example |
-    |--------|-------------|---------|
-    | `nome` | Name normalization | `{{ nome\\|nome }}` |
-    | `endereco` | Address expansion | `{{ rua\\|endereco }}` |
-    | `cpf` | CPF formatting | `{{ cpf\\|cpf }}` |
-    | `cnpj` | CNPJ formatting | `{{ cnpj\\|cnpj }}` |
-    | `cep` | CEP formatting | `{{ cep\\|cep }}` |
-    | `oab` | OAB formatting | `{{ oab\\|oab }}` |
-    | `texto` | Text normalization | `{{ descricao\\|texto }}` |
-    """)
 
 # -----------------------------------------------------------------------------
 # ASSEMBLER PAGE
