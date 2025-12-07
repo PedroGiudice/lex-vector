@@ -8,10 +8,10 @@
 #
 # BEHAVIOR:
 # - Opens WSL automatically when PowerShell starts
-# - Navigates to ~/claude-work/repos/Claude-Code-Projetos
+# - Auto-detects WSL username and project location
 # - Quick commands available (claude, scc, gcp, etc.)
 #
-# Last updated: 2025-11-15
+# Last updated: 2025-12-07
 #==============================================================================
 
 #==============================================================================
@@ -24,26 +24,29 @@ $env:CLAUDE_SHELL = "wsl"
 # Environment variables passed from Windows to WSL
 $env:WSLENV = "CLAUDE_SHELL"
 
-# Add your API keys here if needed (not recommended - use browser auth instead)
-# $env:ANTHROPIC_API_KEY = ""
-# $env:GITHUB_PAT = ""
-# Update WSLENV if you add variables:
-# $env:WSLENV = "ANTHROPIC_API_KEY:GITHUB_PAT:CLAUDE_SHELL"
-
 #==============================================================================
-# WSL USER CONFIGURATION
+# AUTO-DETECT WSL CONFIGURATION
 #==============================================================================
 
-# CHANGE THIS to your WSL username
-# Find it with: wsl -- whoami
-$WSL_USERNAME = "cmr-auto"
+# Auto-detect WSL username
+$WSL_USERNAME = (wsl -- whoami 2>$null).Trim()
+if (-not $WSL_USERNAME) {
+    Write-Host "[ERRO] WSL nao encontrado ou nao configurado!" -ForegroundColor Red
+    return
+}
 
-# Claude Code path in WSL
-# Find it with: wsl -- which claude
-$CLAUDE_PATH = "/home/$WSL_USERNAME/.npm-global/bin/claude"
+# Auto-detect Claude Code path
+$CLAUDE_PATH = (wsl -- which claude 2>$null).Trim()
+if (-not $CLAUDE_PATH) {
+    $CLAUDE_PATH = "/home/$WSL_USERNAME/.npm-global/bin/claude"
+}
 
-# Project directory in WSL (using tilde for portability across WSL users)
-$PROJECT_DIR = "~/claude-work/repos/Claude-Code-Projetos"
+# Auto-detect project directory (procura Claude-Code-Projetos)
+$PROJECT_DIR = (wsl -- bash -c "find ~ -maxdepth 4 -type d -name 'Claude-Code-Projetos' 2>/dev/null | head -1").Trim()
+if (-not $PROJECT_DIR) {
+    # Fallback para locais comuns
+    $PROJECT_DIR = "~/projetos/Claude-Code-Projetos"
+}
 
 #==============================================================================
 # FUNCTION: claude command interceptor
@@ -169,27 +172,20 @@ function Show-ClaudeWelcome {
     Write-Host ""
     Write-Host "==============================================================================" -ForegroundColor Cyan
     Write-Host " Claude Code + WSL Environment Ready" -ForegroundColor Cyan
-    Write-Host " Project: Claude-Code-Projetos" -ForegroundColor Cyan
     Write-Host "==============================================================================" -ForegroundColor Cyan
     Write-Host ""
-    Write-Host "Quick Commands:" -ForegroundColor Yellow
-    Write-Host "  claude      - Run Claude Code in WSL" -ForegroundColor Green
-    Write-Host "  scc         - Start Claude in project directory" -ForegroundColor Green
-    Write-Host "  gcp         - Open bash WSL in project" -ForegroundColor Green
-    Write-Host "  owsl        - Open WSL (login shell) in project" -ForegroundColor Green
+    Write-Host "Detectado:" -ForegroundColor Yellow
+    Write-Host "  Usuario WSL: $WSL_USERNAME" -ForegroundColor Green
+    Write-Host "  Projeto:     $PROJECT_DIR" -ForegroundColor Green
+    Write-Host "  Claude:      $CLAUDE_PATH" -ForegroundColor Green
     Write-Host ""
-    Write-Host "Git:" -ForegroundColor Yellow
-    Write-Host "  gsync       - Git pull + status" -ForegroundColor Green
-    Write-Host "  qcommit     - Quick commit with message" -ForegroundColor Green
-    Write-Host "  qpush       - Push to remote" -ForegroundColor Green
-    Write-Host "  qsync       - Pull + commit + push" -ForegroundColor Green
+    Write-Host "Comandos:" -ForegroundColor Yellow
+    Write-Host "  scc     - Iniciar Claude Code no projeto" -ForegroundColor White
+    Write-Host "  gcp     - Abrir bash no projeto" -ForegroundColor White
+    Write-Host "  gsync   - Git pull + status" -ForegroundColor White
+    Write-Host "  cenv    - Info do ambiente" -ForegroundColor White
     Write-Host ""
-    Write-Host "Diagnostics:" -ForegroundColor Yellow
-    Write-Host "  cstatus     - Check Claude Code installation" -ForegroundColor Green
-    Write-Host "  cenv        - Show environment info" -ForegroundColor Green
-    Write-Host "  pstatus     - Show project status" -ForegroundColor Green
-    Write-Host ""
-    Write-Host "Tip: Type owsl to start WSL in the project directory" -ForegroundColor Gray
+    Write-Host "Entrando no WSL..." -ForegroundColor Gray
     Write-Host ""
 }
 
