@@ -1,0 +1,5 @@
+system:
+  version: "2.4.0"
+  env: "WSL2"
+
+modules: []
