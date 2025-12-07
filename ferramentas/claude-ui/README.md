@@ -309,3 +309,54 @@ Arquivos criados em `~/.claude-ui/`:
 ## Licenca
 
 MIT License
+
+## Frontend
+
+### Execucao
+
+```bash
+cd ferramentas/claude-ui
+streamlit run frontend/app.py --server.port 8501
+```
+
+### Com acesso remoto (Tailscale)
+
+```bash
+# WSL
+streamlit run frontend/app.py --server.port 8501 --server.address 0.0.0.0
+
+# Windows PowerShell (Admin)
+tailscale funnel 8501
+```
+
+### Estrutura
+
+```
+frontend/
+├── app.py              # Entry point
+├── components/
+│   ├── chat.py         # Chat interface
+│   ├── sidebar.py      # Sidebar controls
+│   ├── statusline.py   # Footer status bar
+│   └── file_explorer.py
+├── styles/
+│   └── theme.py        # CSS + colors
+└── utils/
+    └── helpers.py      # SVG icons
+```
+
+### Integracao com Backend
+
+O frontend utiliza o backend para:
+- `ClaudeCodeWrapper`: Comunicacao com o CLI via subprocess
+- `OutputParser`: Parse de output em blocos estruturados
+- `StatusLineParser`: Extracao de dados da statusline
+- `SessionManager`: Persistencia de sessoes
+- `ConfigManager`: Configuracoes persistentes em ~/.claude-ui/
+
+### Dependencias
+
+Frontend requer:
+- Python 3.11+
+- streamlit >= 1.28.0
+- Backend instalado (somente stdlib)
