@@ -11,7 +11,7 @@ Sistema de automacao juridica brasileira com agentes Python.
 | Camada | Local | Git |
 |--------|-------|-----|
 | **Codigo** | `~/claude-work/repos/Claude-Code-Projetos/` | Sim |
-| **Ambiente** | `agentes/*/.venv/` | Nunca |
+| **Ambiente** | `agentes/*/.venv/`, `ferramentas/*/.venv/` | Nunca |
 | **Dados** | `~/claude-code-data/` | Nunca |
 
 **Violacao desta regra causou 3 dias de sistema inoperavel.** Ver `DISASTER_HISTORY.md`.
@@ -37,10 +37,15 @@ python main.py
 
 ```
 Claude-Code-Projetos/
-├── agentes/              # Agentes Python autonomos
+├── agentes/              # Agentes Python autonomos (monitoramento continuo)
 │   ├── oab-watcher/      # Monitora Diario OAB
 │   ├── djen-tracker/     # Monitora DJEN
 │   └── legal-lens/       # Analise NLP
+├── ferramentas/          # Ferramentas Python (processamento sob demanda)
+│   ├── legal-text-extractor/  # Extracao de texto de PDFs juridicos
+│   ├── stj-dados-abertos/     # Coleta dados STJ via API
+│   ├── legal-doc-assembler/   # Montagem de documentos juridicos
+│   └── claude-ui/             # Interface grafica Claude Code
 ├── comandos/             # Utilitarios single-purpose
 ├── mcp-servers/          # Servidores MCP (trello-mcp)
 ├── legal-extractor-cli/  # CLI extracao de PDFs
@@ -76,6 +81,12 @@ Claude-Code-Projetos/
 - **Decisao:** `skills/` = custom, `.claude/skills/` = managed
 - **Razao:** Separar skills do projeto de skills oficiais
 - **Consequencia:** Nunca colocar skills custom em `.claude/skills/`
+
+### ADR-005: Separacao Agentes vs Ferramentas
+- **Decisao:** `agentes/` = monitoramento autonomo, `ferramentas/` = processamento sob demanda
+- **Razao:** Agentes (oab-watcher, djen-tracker) executam continuamente; ferramentas (legal-text-extractor) sao invocadas pontualmente
+- **Consequencia:** Novos modulos devem ser classificados pela natureza (autonomo vs sob demanda)
+- **Data:** 2025-12-07
 
 ---
 

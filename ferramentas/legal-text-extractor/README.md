@@ -5,7 +5,7 @@ Agente de extração inteligente de texto de documentos jurídicos processuais b
 ## Instalação
 
 ```bash
-cd agentes/legal-text-extractor
+cd ferramentas/legal-text-extractor
 python -m venv .venv
 source .venv/bin/activate  # Linux/WSL
 # .venv\Scripts\activate  # Windows

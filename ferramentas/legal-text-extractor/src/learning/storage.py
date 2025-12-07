@@ -43,7 +43,7 @@ class LearningStorage:
             data_dir: Diretório base para storage (default: data/learning/)
         """
         if data_dir is None:
-            # Default: agentes/legal-text-extractor/data/learning/
+            # Default: ferramentas/legal-text-extractor/data/learning/
             data_dir = Path(__file__).parent.parent.parent / "data" / "learning"
 
         self.data_dir = Path(data_dir)

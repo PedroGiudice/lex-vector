@@ -38,7 +38,7 @@ Sistema de extração inteligente de texto de PDFs jurídicos brasileiros, com:
 
 ### Localização do Código
 ```
-/home/user/Claude-Code-Projetos/agentes/legal-text-extractor/
+/home/user/Claude-Code-Projetos/ferramentas/legal-text-extractor/
 ```
 
 ## 1.1 AMBIENTE DE EXECUÇÃO & TECH STACK (MANDATÓRIO)

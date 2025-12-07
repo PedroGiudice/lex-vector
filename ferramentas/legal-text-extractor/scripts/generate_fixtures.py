@@ -8,7 +8,7 @@ Gera um PDF de teste com 3 páginas:
 - Página 3: Texto com tarja lateral (TARJA_DETECTED) - documento com assinatura digital
 
 Uso:
-    cd agentes/legal-text-extractor
+    cd ferramentas/legal-text-extractor
     source .venv/bin/activate
     python scripts/generate_fixtures.py
 

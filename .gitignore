@@ -192,7 +192,7 @@ Captura de tela*.png
 stj-indices/
 /mnt/d/juridico-data/
 ~/stj-indices/
-agentes/stj-dados-abertos/data_local/
+ferramentas/stj-dados-abertos/data_local/
 .claude/agents-external/
 
 # Gemini CLI context files (large, auto-generated)

@@ -51,7 +51,7 @@ legal-extract batch ./pasta-com-pdfs/
 Esta CLI **NÃO reimplementa** a lógica de extração. Ela é um wrapper que chama:
 
 ```
-agentes/legal-text-extractor/
+ferramentas/legal-text-extractor/
 ├── main.py                 # LegalTextExtractor
 ├── src/
 │   ├── steps/

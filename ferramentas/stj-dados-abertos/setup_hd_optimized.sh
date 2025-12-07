@@ -347,7 +347,7 @@ fi)
 
 PRÓXIMOS PASSOS:
 1. Testar download inicial:
-   cd ~/claude-work/repos/Claude-Code-Projetos/agentes/stj-dados-abertos
+   cd ~/claude-work/repos/Claude-Code-Projetos/ferramentas/stj-dados-abertos
    python cli.py stj-download-periodo --inicio 2024-11-20 --fim 2024-11-22
 
 2. Verificar configuração:

@@ -414,7 +414,7 @@ pyproject.toml
 
 **Legal Extractor Integration:**
 ```
-/home/cmr-auto/claude-work/repos/Claude-Code-Projetos/agentes/legal-text-extractor/
+/home/cmr-auto/claude-work/repos/Claude-Code-Projetos/ferramentas/legal-text-extractor/
 ```
 
 ---

@@ -201,7 +201,7 @@ def get_storage_info() -> dict[str, float | str | bool]:
 **Step 3: Verify config loads without errors**
 
 ```bash
-cd /home/cmr-auto/claude-work/repos/Claude-Code-Projetos/agentes/stj-dados-abertos
+cd /home/cmr-auto/claude-work/repos/Claude-Code-Projetos/ferramentas/stj-dados-abertos
 python -c "import config; print(f'DATA_ROOT: {config.DATA_ROOT}')"
 ```
 
@@ -385,7 +385,7 @@ class TestRatioDecidendi:
 **Step 2: Run test to verify it fails**
 
 ```bash
-cd /home/cmr-auto/claude-work/repos/Claude-Code-Projetos/agentes/stj-dados-abertos
+cd /home/cmr-auto/claude-work/repos/Claude-Code-Projetos/ferramentas/stj-dados-abertos
 pytest tests/test_processor.py -v
 ```
 
@@ -2130,7 +2130,7 @@ git commit -m "test: add integration test for complete pipeline"
 **Step 1: Run all tests**
 
 ```bash
-cd /home/cmr-auto/claude-work/repos/Claude-Code-Projetos/agentes/stj-dados-abertos
+cd /home/cmr-auto/claude-work/repos/Claude-Code-Projetos/ferramentas/stj-dados-abertos
 pytest tests/ -v --tb=short
 ```
 

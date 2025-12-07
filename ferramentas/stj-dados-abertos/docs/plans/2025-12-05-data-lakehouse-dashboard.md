@@ -15,7 +15,7 @@
 Before starting, verify environment:
 
 ```bash
-cd agentes/stj-dados-abertos
+cd ferramentas/stj-dados-abertos
 source .venv/bin/activate
 python -c "import streamlit, duckdb, pandas; print('OK')"
 python -c "from config import DATABASE_PATH; print(DATABASE_PATH.exists())"
@@ -28,7 +28,7 @@ Expected: `OK` and `True`
 ## Task 1: Database Connection Singleton
 
 **Files:**
-- Modify: `agentes/stj-dados-abertos/app.py:1-30`
+- Modify: `ferramentas/stj-dados-abertos/app.py:1-30`
 
 **Step 1: Write the connection test**
 
@@ -57,7 +57,7 @@ def test_get_database_returns_singleton():
 **Step 2: Run test to verify it fails**
 
 ```bash
-cd agentes/stj-dados-abertos
+cd ferramentas/stj-dados-abertos
 pytest tests/test_app_connection.py -v
 ```
 
@@ -121,7 +121,7 @@ git commit -m "feat(app): add singleton database connection with st.cache_resour
 ## Task 2: Dynamic Filter Data Helper
 
 **Files:**
-- Modify: `agentes/stj-dados-abertos/app.py:34-62`
+- Modify: `ferramentas/stj-dados-abertos/app.py:34-62`
 
 **Step 1: Write the filter helper test**
 
@@ -220,7 +220,7 @@ git commit -m "feat(app): add cached filter data helpers"
 ## Task 3: Cyberpunk CSS Theme with Badge Styles
 
 **Files:**
-- Modify: `agentes/stj-dados-abertos/app.py:64-161`
+- Modify: `ferramentas/stj-dados-abertos/app.py:64-161`
 
 **Step 1: No test needed (visual CSS)**
 
@@ -332,7 +332,7 @@ st.markdown("""
 **Step 3: Visual verification**
 
 ```bash
-cd agentes/stj-dados-abertos
+cd ferramentas/stj-dados-abertos
 streamlit run app.py --server.headless true &
 sleep 3
 curl -s http://localhost:8501 | grep -o "badge-provimento" && echo "CSS OK"
@@ -353,7 +353,7 @@ git commit -m "style(app): add cyberpunk dark theme with outcome badges"
 ## Task 4: Header with Live DB Stats
 
 **Files:**
-- Modify: `agentes/stj-dados-abertos/app.py:163-183`
+- Modify: `ferramentas/stj-dados-abertos/app.py:163-183`
 
 **Step 1: Implement header section**
 
@@ -394,7 +394,7 @@ git commit -m "feat(app): add header with live database stats"
 ## Task 5: Jurisprudence Lab Tab with Filters
 
 **Files:**
-- Modify: `agentes/stj-dados-abertos/app.py:185-364`
+- Modify: `ferramentas/stj-dados-abertos/app.py:185-364`
 
 **Step 1: Write filter integration test**
 
@@ -474,7 +474,7 @@ git commit -m "feat(app): add Jurisprudence Lab with dynamic filters and outcome
 ## Task 6: SQL Editor Tab
 
 **Files:**
-- Modify: `agentes/stj-dados-abertos/app.py:366-451`
+- Modify: `ferramentas/stj-dados-abertos/app.py:366-451`
 
 **Step 1: Write SQL editor security test**
 
@@ -546,7 +546,7 @@ git commit -m "feat(app): add SQL Editor with security validation"
 ## Task 7: Source Code Tab
 
 **Files:**
-- Modify: `agentes/stj-dados-abertos/app.py:453-461`
+- Modify: `ferramentas/stj-dados-abertos/app.py:453-461`
 
 **Step 1: Implement source code display**
 
@@ -662,7 +662,7 @@ git commit -m "test(app): add integration test suite"
 **Step 1: Syntax check**
 
 ```bash
-cd agentes/stj-dados-abertos
+cd ferramentas/stj-dados-abertos
 python -m py_compile app.py && echo "Syntax OK"
 ```
 

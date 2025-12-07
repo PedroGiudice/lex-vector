@@ -135,7 +135,7 @@ PROXIMOS_PASSOS = """
    sudo apt install poppler-utils tesseract-ocr tesseract-ocr-por
 
 2. Testar pipeline com fixture:
-   cd agentes/legal-text-extractor
+   cd ferramentas/legal-text-extractor
    source .venv/bin/activate
    python src/steps/step_01_layout.py test-documents/fixture_test.pdf
 

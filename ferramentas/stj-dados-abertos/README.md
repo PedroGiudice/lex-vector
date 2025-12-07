@@ -28,7 +28,7 @@ stj-dados-abertos/
 ### 1. Ativar Virtual Environment
 
 ```bash
-cd ~/claude-work/repos/Claude-Code-Projetos/agentes/stj-dados-abertos
+cd ~/claude-work/repos/Claude-Code-Projetos/ferramentas/stj-dados-abertos
 source .venv/bin/activate
 ```
 
