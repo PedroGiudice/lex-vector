@@ -1,0 +1,15 @@
+# Claude Code UI - Backend Requirements
+# =====================================
+# The backend uses only Python standard library (no external dependencies)
+# subprocess, threading, queue, json, pathlib, dataclasses are all built-in
+
+# Development/Testing
+# -------------------
+pytest>=7.0.0
+pytest-cov>=4.0.0
+
+# Enhanced Development Experience
+# --------------------------------
+mypy>=1.0.0            # Type checking
+black>=23.0.0          # Code formatting
+ruff>=0.1.0            # Fast linting
