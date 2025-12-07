@@ -1,5 +1,7 @@
 # Legal Extractor TUI
 
+> ⚠️ **DEPRECADO**: Este projeto foi descontinuado. Use `legal-workbench/ferramentas/legal-text-extractor/` como a implementação ativa.
+
 Terminal User Interface (TUI) for Brazilian Legal Document Text Extraction.
 
 ## Features

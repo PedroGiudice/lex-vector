@@ -81,16 +81,16 @@ st.markdown("""
 
 class SystemLoader:
     """Handles configuration loading and dynamic module resolution."""
-    
+
     @staticmethod
     def load_config() -> Dict[str, Any]:
         """Reads the master config.yaml."""
-        # Mocking file read for this prototype
         return {
-            "system": {"version": "2.4.0", "env": "WSL2"},
+            "system": {"version": "2.5.0", "env": "WSL2"},
             "modules": [
-                {"id": "juris", "name": "Jurisprudence Search", "active": True},
+                {"id": "text_extractor", "name": "Text Extractor", "active": True},
                 {"id": "docs", "name": "Document Assembler", "active": True},
+                {"id": "juris", "name": "Jurisprudence Search", "active": False},
                 {"id": "analytics", "name": "Case Analytics", "active": False}
             ]
         }
@@ -99,30 +99,16 @@ class SystemLoader:
     def load_module(module_id: str):
         """Dynamically imports and executes a module's render function."""
         try:
-            # In production:
-            # lib = importlib.import_module(f"modules.{module_id}.main")
-            # lib.render()
-            
-            # Simulation:
-            st.title(f"Module: {module_id.upper()}")
-            st.info(f"Loaded 'modules.{module_id}.main' successfully.")
-            
-            # Simulate a tool interface
-            st.markdown("---")
-            col1, col2 = st.columns([3, 1])
-            with col1:
-                st.text_input("Input Query / Context", placeholder="Type command...")
-                st.text_area("Output Buffer", height=300, disabled=True)
-            with col2:
-                st.markdown("#### Context")
-                st.code("ENV: PRODUCTION\nUSER: ADMIN", language="text")
-                if st.button("Execute", key="exec_btn"):
-                    with st.spinner("Processing..."):
-                        time.sleep(0.5)
-                        st.success("Task completed.")
-            
+            # Dynamic import of module
+            lib = importlib.import_module(f"modules.{module_id}")
+            lib.render()
+
         except ImportError as e:
             st.error(f"FATAL: Could not load module '{module_id}'. {str(e)}")
+        except AttributeError:
+            st.error(f"Module '{module_id}' does not have a render() function.")
+        except Exception as e:
+            st.error(f"Error loading module '{module_id}': {str(e)}")
 
 def render_dashboard():
     """Renders the main system status dashboard."""

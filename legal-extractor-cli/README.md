@@ -1,5 +1,7 @@
 # Legal Extractor CLI
 
+> ⚠️ **DEPRECADO**: Este projeto foi descontinuado. Use `legal-workbench/ferramentas/legal-text-extractor/` como a implementação ativa.
+
 CLI simplificada para extração de texto de documentos jurídicos em PDF.
 
 ## Características
