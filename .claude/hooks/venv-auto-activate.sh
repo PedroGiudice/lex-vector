@@ -12,7 +12,8 @@
 ## - Usuário não deveria ter que lembrar disso
 ##
 
-PROJECT_ROOT="/home/cmr-auto/claude-work/repos/Claude-Code-Projetos"
+# Use CLAUDE_PROJECT_DIR (set by Claude Code) or fallback to script location
+PROJECT_ROOT="${CLAUDE_PROJECT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
 VENV_PATH="$PROJECT_ROOT/.venv"
 
 # Cores para output

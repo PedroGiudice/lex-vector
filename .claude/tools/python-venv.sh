@@ -13,8 +13,8 @@
 
 set -euo pipefail  # Exit on error, undefined vars, pipe failures
 
-# Diretório do projeto (absoluto)
-PROJECT_ROOT="/home/cmr-auto/claude-work/repos/Claude-Code-Projetos"
+# Diretório do projeto (usa CLAUDE_PROJECT_DIR ou fallback para localização do script)
+PROJECT_ROOT="${CLAUDE_PROJECT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
 VENV_PATH="$PROJECT_ROOT/.venv"
 VENV_PYTHON="$VENV_PATH/bin/python"
 VENV_ACTIVATE="$VENV_PATH/bin/activate"
