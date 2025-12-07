@@ -103,6 +103,12 @@ Novo agente? Reinicie a sessao.
 
 ---
 
+## Team
+
+- **LGP** = Leo (contribuidor ativo, socio do projeto)
+
+---
+
 **Ultima atualizacao:** 2025-12-07
 - Consolidacao: `legal-text-extractor` e `stj-dados-abertos` movidos de `agentes/` para `ferramentas/` (ADR-005)
 - `stj-dados-abertos`: Data Lakehouse Dashboard funcional (Streamlit + DuckDB) - download retroativo 2022-hoje
