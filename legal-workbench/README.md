@@ -16,8 +16,10 @@ ccui-status
 
 | Servico | Local | Mobile (Tailscale) |
 |---------|-------|-------------------|
-| Legal-Workbench | http://localhost:8501 | http://100.x.x.x:8501 |
-| ClaudeCodeUI | http://localhost:3001 | http://100.x.x.x:3001 |
+| Legal-Workbench | http://localhost:8501 | http://100.76.94.104:8501 |
+| ClaudeCodeUI | http://localhost:3001 | http://100.76.94.104:3001 |
+
+**Nota:** ClaudeCodeUI requer autenticacao (criar usuario no primeiro acesso via localhost).
 
 ## Modulos
 
@@ -33,9 +35,10 @@ ccui-status
 ## Mobile
 
 1. Instale Tailscale no celular
-2. Autentique com mesma conta
-3. Acesse `http://100.x.x.x:3001`
-4. Adicione a home screen (PWA)
+2. Autentique com mesma conta (GitHub)
+3. Acesse `http://100.76.94.104:3001`
+4. Faca login com credenciais criadas no localhost
+5. Adicione a home screen (PWA)
 
 ## Aliases
 
@@ -64,7 +67,8 @@ legal-workbench/
 
 ## Servicos Externos
 
-- **ClaudeCodeUI** (siteboon/claudecodeui) - Gerenciado via PM2
+- **ClaudeCodeUI** (siteboon/claudecodeui v1.12.0) - Gerenciado via PM2
   - Porta: 3001
   - Config: `~/pm2-ecosystem.config.js`
   - Logs: `~/.pm2/logs/claude-code-ui-*.log`
+  - Update: `npm update -g @siteboon/claude-code-ui && pm2 restart claude-code-ui`
