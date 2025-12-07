@@ -67,13 +67,13 @@ Tests for ETL script extraction functions.
 
 ### Install Dependencies
 ```bash
-cd mcp-servers/trello-mcp
+cd ferramentas/trello-mcp
 uv pip install pytest pytest-asyncio pytest-httpx
 ```
 
 ### Run All Tests
 ```bash
-cd mcp-servers/trello-mcp
+cd ferramentas/trello-mcp
 export PYTHONPATH=src
 .venv/bin/python -m pytest tests/ -v
 ```
