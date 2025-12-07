@@ -114,3 +114,4 @@ Novo agente? Reinicie a sessao.
 - Consolidacao: `legal-text-extractor` e `stj-dados-abertos` movidos de `agentes/` para `ferramentas/` (ADR-005)
 - `stj-dados-abertos`: Data Lakehouse Dashboard funcional (Streamlit + DuckDB) - download retroativo 2022-hoje
 - Regra 5: Gemini obrigatorio para context offloading (>500 linhas ou multiplos arquivos)
+- `legal-workbench`: claudecodeui integrado para mobile; wrapper Streamlit pendente debug para integracao interna
