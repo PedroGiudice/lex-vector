@@ -45,9 +45,10 @@ Claude-Code-Projetos/
 │   ├── legal-text-extractor/  # Extracao de texto de PDFs juridicos
 │   ├── stj-dados-abertos/     # Coleta dados STJ via API
 │   ├── legal-doc-assembler/   # Montagem de documentos juridicos
-│   └── claude-ui/             # Interface grafica Claude Code
+│   ├── claude-ui/             # Interface grafica Claude Code
+│   └── trello-mcp/            # Servidor MCP Trello
 ├── comandos/             # Utilitarios single-purpose
-├── mcp-servers/          # Servidores MCP (trello-mcp)
+├── mcp-servers/          # Servidores MCP (djen-mcp-server)
 ├── legal-extractor-cli/  # CLI extracao de PDFs
 ├── legal-extractor-tui/  # TUI extracao de PDFs
 ├── shared/               # Codigo compartilhado

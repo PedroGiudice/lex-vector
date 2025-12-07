@@ -52,9 +52,9 @@ find src/ -name "*.py" | xargs cat | gemini -m gemini-2.5-flash "Liste classes e
 
 ```
 agentes/           # Agentes Python autonomos (oab-watcher, djen-tracker, legal-lens)
-ferramentas/       # Ferramentas Python sob demanda (legal-text-extractor, stj-dados-abertos)
+ferramentas/       # Ferramentas Python sob demanda (legal-text-extractor, stj-dados-abertos, trello-mcp)
 comandos/          # Utilitarios (fetch-doc, parse-legal, validate-id)
-mcp-servers/       # Servidores MCP (trello-mcp)
+mcp-servers/       # Servidores MCP (djen-mcp-server)
 legal-extractor-*/ # CLI/TUI extracao PDF
 shared/            # Codigo compartilhado
 skills/            # Skills custom
@@ -66,6 +66,7 @@ skills/            # Skills custom
 ## MCP: trello-mcp
 
 ```bash
+cd ferramentas/trello-mcp
 trello-ui  # alias em ~/.bashrc
 ```
 

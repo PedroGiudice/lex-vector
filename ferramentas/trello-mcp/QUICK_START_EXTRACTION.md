@@ -10,7 +10,7 @@ This guide shows how to extract data from Trello **without needing Claude**, usi
 ## Setup (One-Time)
 
 ```bash
-cd mcp-servers/trello-mcp
+cd ferramentas/trello-mcp
 
 # 1. Copy environment template
 cp .env.example .env
