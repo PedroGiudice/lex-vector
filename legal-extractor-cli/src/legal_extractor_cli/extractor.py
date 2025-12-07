@@ -2,7 +2,7 @@
 Módulo de integração com o Legal Text Extractor.
 
 Este módulo é apenas um WRAPPER - toda a lógica de extração está em:
-agentes/legal-text-extractor/
+ferramentas/legal-text-extractor/
 
 NÃO reimplementa nada, apenas importa e usa os módulos existentes.
 """
@@ -15,8 +15,8 @@ from dataclasses import dataclass
 
 # Adiciona o legal-text-extractor ao path
 # De: legal-extractor-cli/src/legal_extractor_cli/extractor.py
-# Para: agentes/legal-text-extractor/
-EXTRACTOR_PATH = Path(__file__).parent.parent.parent.parent / "agentes" / "legal-text-extractor"
+# Para: ferramentas/legal-text-extractor/
+EXTRACTOR_PATH = Path(__file__).parent.parent.parent.parent / "ferramentas" / "legal-text-extractor"
 if str(EXTRACTOR_PATH) not in sys.path:
     sys.path.insert(0, str(EXTRACTOR_PATH))
 

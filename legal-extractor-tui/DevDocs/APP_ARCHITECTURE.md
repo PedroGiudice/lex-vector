@@ -344,4 +344,4 @@ All errors logged to LogPanel with appropriate level and displayed in StatusBar.
 - `styles/` - TCSS styling
 
 **Agent Integration**:
-- `/home/cmr-auto/claude-work/repos/Claude-Code-Projetos/agentes/legal-text-extractor/` - PDF extraction agent
+- `/home/cmr-auto/claude-work/repos/Claude-Code-Projetos/ferramentas/legal-text-extractor/` - PDF extraction tool

@@ -90,7 +90,7 @@ examples/
 
 ### 1. Virtual Environment
 ```bash
-cd agentes/legal-text-extractor
+cd ferramentas/legal-text-extractor
 python -m venv .venv
 source .venv/bin/activate
 ```

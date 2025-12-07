@@ -13,7 +13,7 @@ Métricas validadas:
 3. Performance (tempo de processamento)
 
 Execução:
-    cd agentes/legal-text-extractor
+    cd ferramentas/legal-text-extractor
     source .venv/bin/activate
     pytest tests/test_image_cleaner_integration.py -v
 """

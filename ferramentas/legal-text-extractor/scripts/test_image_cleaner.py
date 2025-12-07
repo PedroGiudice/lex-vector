@@ -9,7 +9,7 @@ Gera imagens sintéticas e valida matematicamente que:
 4. Speckles são removidos sem destruir pontuação
 
 Execução:
-    cd agentes/legal-text-extractor
+    cd ferramentas/legal-text-extractor
     source .venv/bin/activate
     python scripts/test_image_cleaner.py
 """

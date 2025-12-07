@@ -90,7 +90,7 @@ Pós-processamento de texto:
 
 ### Módulos Core (Portáveis)
 ```
-agentes/legal-text-extractor/
+ferramentas/legal-text-extractor/
 ├── src/
 │   ├── core/
 │   │   ├── detector.py       # Detecção de sistema (7 sistemas, scoring)

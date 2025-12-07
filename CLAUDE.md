@@ -11,7 +11,7 @@ Instrucoes operacionais para Claude Code neste repositorio.
 
 ### 1. Sempre Usar venv
 ```bash
-cd agentes/<nome>
+cd agentes/<nome>      # ou ferramentas/<nome>
 source .venv/bin/activate
 python main.py
 ```
@@ -51,10 +51,11 @@ find src/ -name "*.py" | xargs cat | gemini -m gemini-2.5-flash "Liste classes e
 ## Estrutura
 
 ```
-agentes/           # Agentes Python (oab-watcher, djen-tracker, legal-lens)
+agentes/           # Agentes Python autonomos (oab-watcher, djen-tracker, legal-lens)
+ferramentas/       # Ferramentas Python sob demanda (legal-text-extractor, stj-dados-abertos)
 comandos/          # Utilitarios (fetch-doc, parse-legal, validate-id)
 mcp-servers/       # Servidores MCP (trello-mcp)
-legal-extractor-*/ # Ferramentas de extracao PDF
+legal-extractor-*/ # CLI/TUI extracao PDF
 shared/            # Codigo compartilhado
 skills/            # Skills custom
 .claude/           # Config Claude Code (agents, hooks, skills managed)
@@ -101,6 +102,7 @@ Novo agente? Reinicie a sessao.
 
 ---
 
-**Ultima atualizacao:** 2025-12-05
+**Ultima atualizacao:** 2025-12-07
+- Consolidacao: `legal-text-extractor` e `stj-dados-abertos` movidos de `agentes/` para `ferramentas/` (ADR-005)
 - `stj-dados-abertos`: Data Lakehouse Dashboard funcional (Streamlit + DuckDB) - download retroativo 2022-hoje
 - Regra 5: Gemini obrigatorio para context offloading (>500 linhas ou multiplos arquivos)

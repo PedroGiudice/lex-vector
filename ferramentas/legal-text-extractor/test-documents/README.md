@@ -25,7 +25,7 @@ PDF de teste gerado automaticamente com 3 páginas para validar a pipeline:
 
 **Gerar novamente:**
 ```bash
-cd agentes/legal-text-extractor
+cd ferramentas/legal-text-extractor
 source .venv/bin/activate
 python scripts/generate_fixtures.py
 ```
