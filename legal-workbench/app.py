@@ -85,15 +85,8 @@ class SystemLoader:
     @staticmethod
     def load_config() -> Dict[str, Any]:
         """Reads the master config.yaml."""
-        return {
-            "system": {"version": "2.5.0", "env": "WSL2"},
-            "modules": [
-                {"id": "text_extractor", "name": "Text Extractor", "active": True},
-                {"id": "docs", "name": "Document Assembler", "active": True},
-                {"id": "juris", "name": "Jurisprudence Search", "active": False},
-                {"id": "analytics", "name": "Case Analytics", "active": False}
-            ]
-        }
+        with open(CONFIG_PATH, 'r', encoding='utf-8') as f:
+            return yaml.safe_load(f)
 
     @staticmethod
     def load_module(module_id: str):

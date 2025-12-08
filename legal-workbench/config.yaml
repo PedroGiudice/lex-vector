@@ -1,5 +1,17 @@
 system:
-  version: "2.4.0"
+  version: "2.5.0" # Updated to match the latest version logic
   env: "WSL2"
 
-modules: []
+modules:
+  - id: "text_extractor"
+    name: "Text Extractor"
+    active: True
+  - id: "docs"
+    name: "Document Assembler"
+    active: True
+  - id: "juris"
+    name: "Jurisprudence Search"
+    active: False
+  - id: "analytics"
+    name: "Case Analytics"
+    active: False
