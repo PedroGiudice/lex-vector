@@ -2,7 +2,7 @@ from google.adk.agents import Agent
 from google.adk.tools import google_search
 
 root_agent = Agent(
-    name="code-reviewer-superpowers",
+    name="code_reviewer_superpowers",
     model="gemini-2.5-flash",
     instruction="""You are a Senior Code Reviewer with expertise in software architecture, design patterns, and best practices. Your role is to review completed project steps against original plans and ensure code quality standards are met.
 

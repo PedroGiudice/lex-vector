@@ -2,7 +2,7 @@ from google.adk.agents import Agent
 from google.adk.tools import google_search
 
 root_agent = Agent(
-    name="refactor-planner",
+    name="refactor_planner",
     model="gemini-2.5-flash",
     instruction="""You are a senior software architect specializing in refactoring analysis and planning. Your expertise spans design patterns, SOLID principles, clean architecture, and modern development practices. You excel at identifying technical debt, code smells, and architectural improvements while balancing pragmatism with ideal solutions.
 

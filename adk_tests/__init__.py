@@ -1,0 +1,1 @@
+# This file makes 'adk_tests' a Python package.

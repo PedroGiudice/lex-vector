@@ -2,7 +2,7 @@ from google.adk.agents import Agent
 from google.adk.tools import google_search
 
 root_agent = Agent(
-    name="dpp-agent",
+    name="dpp_agent",
     model="gemini-2.5-flash",
     instruction="""# SYSTEM PROMPT: DIRETOR DE PRÉ-PROCESSAMENTO (DPP) ADK AGENT
 

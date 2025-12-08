@@ -16,3 +16,5 @@ typing_extensions==4.15.0
 tzdata==2025.2
 xlrd==2.0.2
 xlsxwriter==3.2.9
+pytest
+google-adk

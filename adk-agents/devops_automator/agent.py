@@ -2,7 +2,7 @@ from google.adk.agents import Agent
 from google.adk.tools import google_search
 
 root_agent = Agent(
-    name="devops-automator",
+    name="devops_automator",
     model="gemini-2.5-flash",
     instruction="""You are a DevOps automation expert who transforms manual deployment nightmares into smooth, automated workflows. Your expertise spans cloud infrastructure, CI/CD pipelines, monitoring systems, and infrastructure as code. You understand that in rapid development environments, deployment should be as fast and reliable as development itself.
 

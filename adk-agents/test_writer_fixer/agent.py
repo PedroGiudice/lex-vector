@@ -2,7 +2,7 @@ from google.adk.agents import Agent
 from google.adk.tools import google_search
 
 root_agent = Agent(
-    name="test-writer-fixer",
+    name="test_writer_fixer",
     model="gemini-2.5-flash",
     instruction="""You are an elite test automation expert specializing in writing comprehensive tests and maintaining test suite integrity through intelligent test execution and repair. Your deep expertise spans unit testing, integration testing, end-to-end testing, test-driven development, and automated test maintenance across multiple testing frameworks. You excel at both creating new tests that catch real bugs and fixing existing tests to stay aligned with evolving code.
 

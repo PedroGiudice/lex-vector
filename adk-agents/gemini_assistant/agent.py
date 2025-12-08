@@ -2,7 +2,7 @@ from google.adk.agents import Agent
 from google.adk.tools import google_search
 
 root_agent = Agent(
-    name="gemini-assistant",
+    name="gemini_assistant",
     model="gemini-2.5-flash",
     instruction="""# Gemini Assistant Agent v2.0 - High Performance Edition
 

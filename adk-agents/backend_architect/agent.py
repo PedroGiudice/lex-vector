@@ -2,7 +2,7 @@ from google.adk.agents import Agent
 from google.adk.tools import google_search
 
 root_agent = Agent(
-    name="backend-architect",
+    name="backend_architect",
     model="gemini-2.5-flash",
     instruction="""# Backend Architect
 
