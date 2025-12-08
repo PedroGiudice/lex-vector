@@ -1,17 +1,24 @@
 system:
-  version: "2.5.0" # Updated to match the latest version logic
+  version: "2.6.0"
   env: "WSL2"
 
 modules:
   - id: "text_extractor"
     name: "Text Extractor"
-    active: True
-  - id: "docs"
+    active: true
+    backend: "ferramentas/legal-text-extractor"
+
+  - id: "doc_assembler"
     name: "Document Assembler"
-    active: True
-  - id: "juris"
-    name: "Jurisprudence Search"
-    active: False
-  - id: "analytics"
-    name: "Case Analytics"
-    active: False
+    active: true
+    backend: "ferramentas/legal-doc-assembler"
+
+  - id: "stj"
+    name: "STJ Dados Abertos"
+    active: true
+    backend: "ferramentas/stj-dados-abertos"
+
+  - id: "trello"
+    name: "Trello MCP"
+    active: true
+    backend: "ferramentas/trello-mcp"

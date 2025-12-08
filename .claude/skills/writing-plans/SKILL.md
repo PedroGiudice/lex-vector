@@ -96,21 +96,17 @@ git commit -m "feat: add specific feature"
 
 ## Execution Handoff
 
-After saving the plan, offer execution choice:
+**MANDATORY: Subagent-Driven Development**
 
-**"Plan complete and saved to `docs/plans/<filename>.md`. Two execution options:**
+After saving the plan, execution MUST be via subagent-driven development (same session).
 
-**1. Subagent-Driven (this session)** - I dispatch fresh subagent per task, review between tasks, fast iteration
+**Announce:** "Plan saved. Starting subagent-driven execution."
 
-**2. Parallel Session (separate)** - Open new session with executing-plans, batch execution with checkpoints
-
-**Which approach?"**
-
-**If Subagent-Driven chosen:**
+**Execution Protocol:**
 - **REQUIRED SUB-SKILL:** Use superpowers:subagent-driven-development
 - Stay in this session
-- Fresh subagent per task + code review
+- Fresh subagent per task
+- Code review between tasks
+- Fast iteration with user visibility
 
-**If Parallel Session chosen:**
-- Guide them to open new session in worktree
-- **REQUIRED SUB-SKILL:** New session uses superpowers:executing-plans
+**DO NOT offer parallel session option.** This project mandates subagent-driven execution for all plans.
