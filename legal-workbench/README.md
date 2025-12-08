@@ -21,12 +21,17 @@ ccui-status
 
 **Nota:** ClaudeCodeUI requer autenticacao (criar usuario no primeiro acesso via localhost).
 
-## Modulos
+## Modulos (v2.6.0)
 
-- **Dashboard** - Status do sistema
-- **Jurisprudence Search** - Busca de jurisprudencia
-- **Document Assembler** - Montagem de documentos
-- **Case Analytics** - Analise de casos (disabled)
+| Modulo | ID | Status | Backend |
+|--------|-----|--------|---------|
+| Dashboard | - | System | app.py |
+| Text Extractor | text_extractor | Active | ferramentas/legal-text-extractor |
+| Document Assembler | doc_assembler | Active | ferramentas/legal-doc-assembler |
+| STJ Dados Abertos | stj | Active | ferramentas/stj-dados-abertos |
+| Trello MCP | trello | Active | ferramentas/trello-mcp |
+
+**Principio:** Separacao absoluta entre frontend (`modules/`) e backend (`ferramentas/src/`).
 
 ## Tools
 
@@ -53,17 +58,21 @@ ccui-restart    # Reinicia claudecodeui
 
 ```
 legal-workbench/
-├── app.py              # Dashboard Streamlit (porta 8501)
-├── config.yaml         # Configuracao
-├── ferramentas/        # Modulos integrados
-│   ├── claude-ui/      # ARCHIVED - substituido por siteboon/claudecodeui
-│   ├── legal-text-extractor/
-│   ├── legal-doc-assembler/
-│   ├── prompt-library/
-│   ├── stj-dados-abertos/
-│   └── trello-mcp/
-└── README.md
+├── app.py              # Hub principal (routing + sidebar)
+├── config.yaml         # Registro de modulos
+├── modules/            # UI wrappers (Streamlit) - FRONTEND
+│   ├── text_extractor.py
+│   ├── doc_assembler.py
+│   ├── stj.py
+│   └── trello.py
+└── ferramentas/        # Backend logic (pure Python)
+    ├── legal-text-extractor/src/
+    ├── legal-doc-assembler/src/
+    ├── stj-dados-abertos/src/
+    └── trello-mcp/src/
 ```
+
+**Fluxo:** `app.py` carrega modulos de `modules/` via `config.yaml`. Cada modulo importa APENAS a logica de `ferramentas/*/src/`.
 
 ## Servicos Externos
 
