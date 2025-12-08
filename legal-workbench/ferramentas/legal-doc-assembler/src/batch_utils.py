@@ -17,7 +17,7 @@ def sanitize_filename(name: str, max_length: int = 100) -> str:
     Sanitize a string for use as a safe filename.
 
     Removes or replaces characters that are illegal in filenames:
-        - Removes: / \ : * ? " < > |
+        - Removes: / \\ : * ? " < > |
         - Replaces spaces with underscores
         - Collapses multiple underscores
         - Truncates to max_length

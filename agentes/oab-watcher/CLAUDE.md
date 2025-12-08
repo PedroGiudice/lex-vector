@@ -1,1 +1,0 @@
-- add adicionar próximos passos e erros

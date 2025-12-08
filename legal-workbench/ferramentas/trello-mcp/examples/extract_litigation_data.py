@@ -348,7 +348,8 @@ def validate_record(record: dict[str, Any]) -> tuple[bool, list[str]]:
 async def extract_litigation_data(
     board_name: str,
     list_name: Optional[str] = None,
-    output_dir: str = "output"
+    output_dir: str = "output",
+    split_output: bool = False
 ) -> dict[str, Any]:
     """
     Extract litigation data from Trello board.
@@ -357,6 +358,7 @@ async def extract_litigation_data(
         board_name: Name of board to extract from (case-insensitive)
         list_name: Optional list name to filter by
         output_dir: Output directory for JSON files
+        split_output: If True, saves individual JSON files per card in a 'cards' subdirectory
 
     Returns:
         Dictionary with extraction stats
@@ -430,6 +432,14 @@ async def extract_litigation_data(
         valid_records = []
         error_records = []
 
+        # Setup individual card output directory if split_output is enabled
+        individual_cards_output_path = None
+        if split_output:
+            individual_cards_output_path = Path(output_dir) / "cards"
+            individual_cards_output_path.mkdir(parents=True, exist_ok=True)
+            print(f"📂 Individual card JSONs will be saved to: {individual_cards_output_path}\n")
+
+
         for i, card in enumerate(cards, 1):
             # Progress indicator with percentage
             progress_pct = (i / len(cards)) * 100
@@ -451,7 +461,7 @@ async def extract_litigation_data(
                     "list_id": card.id_list,
                     "labels": [lbl.name for lbl in card.labels],
                     "due_date": card.due,
-                    "description_data": desc_data,
+                    "description_data": desc_data, # Use description_data as flat map as originally specified by user for doc-assembler
                     "custom_fields": custom_data,
                     "extracted_at": datetime.utcnow().isoformat(),
                 }
@@ -466,17 +476,40 @@ async def extract_litigation_data(
                     record["validation_errors"] = errors
                     error_records.append(record)
                     print(f"            Status: ⚠ INVALID - {'; '.join(errors)}")
+                
+                # Save individual card JSON if enabled
+                if split_output and individual_cards_output_path:
+                    # Sanitize filename for the card
+                    sanitized_card_name = re.sub(r'[\\/*?:"<>|]', "", card.name) # Remove illegal chars
+                    sanitized_card_name = sanitized_card_name[:50].strip() # Truncate and strip
+                    filename = f"{record['card_id']}_{sanitized_card_name}.json"
+                    individual_card_file = individual_cards_output_path / filename
+
+                    with open(individual_card_file, "w", encoding="utf-8") as f:
+                        json.dump(record, f, indent=2, ensure_ascii=False)
+                    print(f"            Saved: {individual_card_file.name}")
 
             except Exception as e:
                 # Graceful error handling - log and continue
                 print(f"            Status: ✗ ERROR - {e}", file=sys.stderr)
-                error_records.append({
+                error_record = { # Prepare an error record for individual saving
                     "card_id": card.id,
                     "card_name": card.name,
                     "card_url": card.url,
                     "extraction_error": str(e),
                     "extracted_at": datetime.utcnow().isoformat(),
-                })
+                }
+                error_records.append(error_record)
+                
+                # Save individual error card JSON if enabled
+                if split_output and individual_cards_output_path:
+                    sanitized_card_name = re.sub(r'[\\/*?:"<>|]', "", card.name)
+                    sanitized_card_name = sanitized_card_name[:50].strip()
+                    filename = f"{card.id}_{sanitized_card_name}_error.json"
+                    individual_card_file = individual_cards_output_path / filename
+                    with open(individual_card_file, "w", encoding="utf-8") as f:
+                        json.dump(error_record, f, indent=2, ensure_ascii=False)
+                    print(f"            Saved Error: {individual_card_file.name}")
 
             # Add spacing every 10 cards for readability
             if i % 10 == 0 and i < len(cards):
@@ -490,7 +523,7 @@ async def extract_litigation_data(
         print("💾 Writing output files...")
         print(f"{'='*70}\n")
 
-        # Write valid records
+        # Write valid records (old behavior, kept for compatibility/optionality)
         valid_file = output_path / "litigation_dataset_clean.json"
         try:
             with open(valid_file, "w", encoding="utf-8") as f:
@@ -499,7 +532,7 @@ async def extract_litigation_data(
         except Exception as e:
             print(f"✗ Failed to write valid records: {e}", file=sys.stderr)
 
-        # Write error records if any
+        # Write error records if any (old behavior, kept for compatibility/optionality)
         if error_records:
             error_file = output_path / "litigation_dataset_errors.json"
             try:
@@ -565,6 +598,11 @@ async def main():
         default="output",
         help="Output directory (default: output/)"
     )
+    parser.add_argument(
+        "--split-output",
+        action="store_true",
+        help="If set, saves individual JSON files per card in an 'cards' subdirectory"
+    )
 
     args = parser.parse_args()
 
@@ -572,7 +610,8 @@ async def main():
         await extract_litigation_data(
             board_name=args.board_name,
             list_name=args.list_name,
-            output_dir=args.output
+            output_dir=args.output,
+            split_output=args.split_output
         )
     except KeyboardInterrupt:
         print("\n\n⚠️  Extraction cancelled by user")
