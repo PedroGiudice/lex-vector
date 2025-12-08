@@ -8,17 +8,39 @@ import zipfile
 import tempfile
 from typing import Dict, Any, Optional, List
 
-# Add backend directory to path (directory has hyphen, can't import directly)
-backend_path = Path(__file__).parent.parent / "ferramentas" / "legal-doc-assembler"
-sys.path.insert(0, str(backend_path))
+# Setup backend path (must be done before imports)
+_backend_path = Path(__file__).parent.parent / "ferramentas" / "legal-doc-assembler"
 
-from src.engine import DocumentEngine
-from src.batch_engine import BatchProcessor
-from src.normalizers import normalize_all
+# Module-level variables for lazy-loaded imports
+_DocumentEngine = None
+_BatchProcessor = None
+_normalize_all = None
+
+
+def _setup_imports():
+    """Lazy import setup to avoid module resolution issues."""
+    global _DocumentEngine, _BatchProcessor, _normalize_all
+
+    if _DocumentEngine is None:
+        if str(_backend_path) not in sys.path:
+            sys.path.insert(0, str(_backend_path))
+
+        from src.engine import DocumentEngine
+        from src.batch_engine import BatchProcessor
+        from src.normalizers import normalize_all
+
+        _DocumentEngine = DocumentEngine
+        _BatchProcessor = BatchProcessor
+        _normalize_all = normalize_all
+
+    return _DocumentEngine, _BatchProcessor, _normalize_all
 
 
 def render():
     """Renders the Streamlit UI for the Document Assembler module."""
+    # Initialize lazy imports
+    _setup_imports()
+
     st.header("Document Assembler")
     st.caption("Monte documentos jurídicos a partir de templates .docx e dados JSON.")
 
@@ -289,7 +311,7 @@ def validate_single_document(template_file, json_file):
             json_data = json.loads(json_file.getvalue().decode("utf-8"))
 
             # Validate using engine
-            engine = DocumentEngine()
+            engine = _DocumentEngine()
             validation = engine.validate_data(template_path, json_data)
 
             # Store result
@@ -324,7 +346,7 @@ def render_single_document(template_file, json_file, field_types: Optional[Dict[
                 output_path = Path(tmp_output.name)
 
             # Render document
-            engine = DocumentEngine(auto_normalize=True)
+            engine = _DocumentEngine(auto_normalize=True)
             result_path = engine.render(
                 template_path=template_path,
                 data=json_data,
@@ -380,7 +402,7 @@ def validate_batch_documents(template_file, json_files):
                     json_paths.append(json_path)
 
                 # Validate
-                processor = BatchProcessor(max_workers=1)
+                processor = _BatchProcessor(max_workers=1)
                 validation_result = processor.validate_batch(json_paths, template_path)
 
                 # Store result
@@ -436,7 +458,7 @@ def process_batch_documents(
 
                 # Process batch
                 progress_bar.progress(30, "Processando documentos...")
-                processor = BatchProcessor(max_workers=max_workers, checkpoint_enabled=False)
+                processor = _BatchProcessor(max_workers=max_workers, checkpoint_enabled=False)
                 result = processor.process_batch(
                     json_files=json_paths,
                     template_path=template_path,

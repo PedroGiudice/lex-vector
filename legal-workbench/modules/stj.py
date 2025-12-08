@@ -6,16 +6,25 @@ import sys
 import pandas as pd
 from datetime import datetime, timedelta
 
-# Adiciona o diretório de ferramentas ao path para importação do backend
-tool_path = Path(__file__).parent.parent / "ferramentas" / "stj-dados-abertos"
-sys.path.insert(0, str(tool_path))
+# Setup backend path (must be done before imports)
+_backend_path = Path(__file__).parent.parent / "ferramentas" / "stj-dados-abertos"
 
-from src.database import STJDatabase
-from config import DATABASE_PATH, ORGAOS_JULGADORES
+
+def _setup_imports():
+    """Lazy import setup to avoid module resolution issues."""
+    if str(_backend_path) not in sys.path:
+        sys.path.insert(0, str(_backend_path))
+
+    from src.database import STJDatabase
+    from config import DATABASE_PATH, ORGAOS_JULGADORES
+    return STJDatabase, DATABASE_PATH, ORGAOS_JULGADORES
 
 
 def render():
     """Renders the Streamlit UI for the STJ Dados Abertos module."""
+    # Lazy imports to avoid module resolution issues
+    STJDatabase, DATABASE_PATH, ORGAOS_JULGADORES = _setup_imports()
+
     st.header("STJ Dados Abertos")
     st.caption("Busca em acórdãos do Superior Tribunal de Justiça (STJ)")
 
