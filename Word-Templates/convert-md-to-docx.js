@@ -26,16 +26,18 @@ const PAGE_CONFIG = {
 };
 
 // ===== FONTES =====
+// CRÍTICO: Century Gothic é a fonte do CORPO, Verdana só no header
 const FONTS = {
-  body: "Verdana",
-  chapter: "Century Gothic"
+  header: "Verdana",       // APENAS para cabeçalho
+  body: "Century Gothic"   // Corpo, capítulos, citações, TUDO
 };
 
 // ===== TAMANHOS (em half-points) =====
 const SIZES = {
-  normal: 20,      // 10pt
-  title: 24,       // 12pt
-  small: 12        // 6pt
+  normal: 24,      // 12pt - PADRÃO DO CORPO
+  header: 52,      // 26pt - Cabeçalho "C. M. RODRIGUES"
+  citation: 20,    // 10pt - Citações de jurisprudência
+  small: 12        // 6pt - Rodapé
 };
 
 // ===== ESPAÇAMENTOS (em twips) =====
@@ -73,7 +75,7 @@ const CMR_STYLES = {
       id: "TituloPeca",
       name: "Título da Peça",
       basedOn: "Normal",
-      run: { font: FONTS.body, size: SIZES.title, bold: true },
+      run: { font: FONTS.body, size: SIZES.normal, bold: true },  // Century Gothic 12pt bold
       paragraph: {
         alignment: AlignmentType.CENTER,
         spacing: { line: SPACING.line1_5, before: 240, after: 240 }
@@ -83,7 +85,7 @@ const CMR_STYLES = {
       id: "Capitulo",
       name: "Capítulo",
       basedOn: "Normal",
-      run: { font: FONTS.chapter, size: SIZES.title, bold: true },
+      run: { font: FONTS.body, size: SIZES.normal, bold: true },  // Century Gothic 12pt bold
       paragraph: {
         alignment: AlignmentType.BOTH,
         spacing: { line: SPACING.line1_5, before: 360, after: 120 }
@@ -93,7 +95,7 @@ const CMR_STYLES = {
       id: "Subcapitulo",
       name: "Subcapítulo",
       basedOn: "Normal",
-      run: { font: FONTS.chapter, size: SIZES.normal, bold: true },
+      run: { font: FONTS.body, size: SIZES.normal, bold: true },  // Century Gothic 12pt bold
       paragraph: {
         alignment: AlignmentType.BOTH,
         spacing: { line: SPACING.line1_5, before: 240, after: 120 }
@@ -114,7 +116,7 @@ const CMR_STYLES = {
       id: "Citacao",
       name: "Citação",
       basedOn: "Normal",
-      run: { font: FONTS.body, size: SIZES.normal, italics: true },
+      run: { font: FONTS.body, size: SIZES.citation, italics: true },  // Century Gothic 10pt italic
       paragraph: {
         alignment: AlignmentType.LEFT,
         spacing: { line: SPACING.line1_0, before: 120, after: 120 },
@@ -146,6 +148,7 @@ const CMR_STYLES = {
 };
 
 // ===== CABEÇALHO =====
+// CRÍTICO: Cabeçalho usa VERDANA (não Century Gothic!)
 function createHeader() {
   return new Header({
     children: [
@@ -153,13 +156,13 @@ function createHeader() {
         alignment: AlignmentType.RIGHT,
         spacing: { after: 0 },
         children: [
-          new TextRun({ text: "C. M. RODRIGUES", font: FONTS.body, size: SIZES.normal })
+          new TextRun({ text: "C. M. RODRIGUES", font: FONTS.header, size: SIZES.header })  // Verdana 26pt
         ]
       }),
       new Paragraph({
         alignment: AlignmentType.RIGHT,
         children: [
-          new TextRun({ text: "Advogados", font: FONTS.body, size: SIZES.normal })
+          new TextRun({ text: "Advogados", font: FONTS.header, size: SIZES.normal })  // Verdana 12pt
         ]
       })
     ]
@@ -357,7 +360,7 @@ function markdownToDocx(markdown) {
         const quoteText = blockquoteLines.join(' ').replace(/^>\s*/gm, '').trim();
         elements.push(new Paragraph({
           style: "Citacao",
-          children: [new TextRun({ text: quoteText, italics: true, font: FONTS.body, size: SIZES.normal })]
+          children: [new TextRun({ text: quoteText, italics: true, font: FONTS.body, size: SIZES.citation })]
         }));
         blockquoteLines = [];
         inBlockquote = false;
@@ -422,13 +425,13 @@ function markdownToDocx(markdown) {
           text === 'PETIÇÃO INICIAL' || text.match(/^[A-ZÇÃÕÁÉÍÓÚÂÊÔ\s]+$/)) {
         elements.push(new Paragraph({
           style: "TituloPeca",
-          children: [new TextRun({ text: text, bold: true, font: FONTS.body, size: SIZES.title })]
+          children: [new TextRun({ text: text, bold: true, font: FONTS.body, size: SIZES.normal })]
         }));
       } else {
         // Capítulo normal (I. TEMPESTIVIDADE, II. SÍNTESE...)
         elements.push(new Paragraph({
           style: "Capitulo",
-          children: [new TextRun({ text: text, bold: true, font: FONTS.chapter, size: SIZES.title })]
+          children: [new TextRun({ text: text, bold: true, font: FONTS.body, size: SIZES.normal })]
         }));
       }
       i++;
@@ -440,7 +443,7 @@ function markdownToDocx(markdown) {
       const text = trimmedLine.substring(4).trim();
       elements.push(new Paragraph({
         style: "Subcapitulo",
-        children: [new TextRun({ text: text, bold: true, font: FONTS.chapter, size: SIZES.normal })]
+        children: [new TextRun({ text: text, bold: true, font: FONTS.body, size: SIZES.normal })]
       }));
       i++;
       continue;

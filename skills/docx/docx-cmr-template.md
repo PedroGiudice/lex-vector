@@ -28,18 +28,20 @@ const PAGE_CONFIG = {
 };
 
 // ===== FONTES E TAMANHOS (PADRÃO CMR) =====
+// CRÍTICO: Century Gothic é a fonte principal do CORPO, não Verdana!
+// Verdana é usada APENAS no cabeçalho (header)
 const FONTS = {
-  body: "Verdana",           // Corpo de texto normal
-  chapter: "Century Gothic", // Títulos de capítulos/seções
+  header: "Verdana",         // APENAS para cabeçalho do documento
+  body: "Century Gothic",    // Corpo de texto, capítulos, citações, TUDO
   fallback: "Arial"          // Fallback universal
 };
 
 const SIZES = {
-  normal: 20,      // 10pt (half-points)
-  title: 24,       // 12pt para títulos internos
-  heading1: 24,    // 12pt
+  normal: 24,      // 12pt (half-points) - PADRÃO DO CORPO
+  header: 52,      // 26pt para cabeçalho "C. M. RODRIGUES"
+  citation: 20,    // 10pt para citações de jurisprudência
   footnote: 18,    // 9pt
-  small: 12        // 6pt
+  small: 12        // 6pt para rodapé
 };
 
 // ===== ESPAÇAMENTOS (EM TWIPS) =====
@@ -66,7 +68,7 @@ const INDENT = {
 const CMR_STYLES = {
   default: {
     document: {
-      run: { font: FONTS.body, size: SIZES.normal }
+      run: { font: FONTS.body, size: SIZES.normal }  // Century Gothic 12pt
     }
   },
   paragraphStyles: [
@@ -75,7 +77,7 @@ const CMR_STYLES = {
       id: "Enderecamento",
       name: "Endereçamento",
       basedOn: "Normal",
-      run: { font: FONTS.body, size: SIZES.normal },
+      run: { font: FONTS.body, size: SIZES.normal },  // Century Gothic 12pt
       paragraph: {
         alignment: AlignmentType.BOTH,
         spacing: { line: SPACING.line1_5, after: 0 }
@@ -87,7 +89,7 @@ const CMR_STYLES = {
       id: "TituloPeca",
       name: "Título da Peça",
       basedOn: "Normal",
-      run: { font: FONTS.body, size: SIZES.title, bold: true },
+      run: { font: FONTS.body, size: SIZES.normal, bold: true },  // Century Gothic 12pt bold
       paragraph: {
         alignment: AlignmentType.CENTER,
         spacing: { line: SPACING.line1_5, before: 240, after: 240 }
@@ -99,7 +101,7 @@ const CMR_STYLES = {
       id: "Capitulo",
       name: "Capítulo",
       basedOn: "Normal",
-      run: { font: FONTS.chapter, size: SIZES.heading1, bold: true },
+      run: { font: FONTS.body, size: SIZES.normal, bold: true },  // Century Gothic 12pt bold
       paragraph: {
         alignment: AlignmentType.BOTH,
         spacing: { line: SPACING.line1_5, before: 360, after: 120 }
@@ -111,7 +113,7 @@ const CMR_STYLES = {
       id: "Subcapitulo",
       name: "Subcapítulo",
       basedOn: "Normal",
-      run: { font: FONTS.chapter, size: SIZES.normal, bold: true },
+      run: { font: FONTS.body, size: SIZES.normal, bold: true },  // Century Gothic 12pt bold
       paragraph: {
         alignment: AlignmentType.BOTH,
         spacing: { line: SPACING.line1_5, before: 240, after: 120 }
@@ -123,7 +125,7 @@ const CMR_STYLES = {
       id: "ParagrafoNumerado",
       name: "Parágrafo Numerado",
       basedOn: "Normal",
-      run: { font: FONTS.body, size: SIZES.normal },
+      run: { font: FONTS.body, size: SIZES.normal },  // Century Gothic 12pt
       paragraph: {
         alignment: AlignmentType.BOTH,
         spacing: { line: SPACING.line1_5, after: 0 },
@@ -132,12 +134,12 @@ const CMR_STYLES = {
     },
 
     // === CITAÇÃO DE JURISPRUDÊNCIA ===
-    // CRÍTICO: Usa itálico, recuo à esquerda, espaçamento simples
+    // CRÍTICO: Century Gothic 10pt itálico, recuada, espaçamento simples
     {
       id: "Citacao",
       name: "Citação",
       basedOn: "Normal",
-      run: { font: FONTS.body, size: SIZES.normal, italics: true },
+      run: { font: FONTS.body, size: SIZES.citation, italics: true },  // Century Gothic 10pt italic
       paragraph: {
         alignment: AlignmentType.LEFT,
         spacing: { line: SPACING.line1_0, before: 120, after: 120 },
@@ -150,7 +152,7 @@ const CMR_STYLES = {
       id: "ReferenciaCitacao",
       name: "Referência da Citação",
       basedOn: "Citacao",
-      run: { font: FONTS.body, size: SIZES.normal, italics: true },
+      run: { font: FONTS.body, size: SIZES.citation, italics: true },  // Century Gothic 10pt italic
       paragraph: {
         alignment: AlignmentType.LEFT,
         spacing: { line: SPACING.line1_0, after: 240 },
@@ -163,7 +165,7 @@ const CMR_STYLES = {
       id: "ItemLista",
       name: "Item de Lista",
       basedOn: "Normal",
-      run: { font: FONTS.body, size: SIZES.normal },
+      run: { font: FONTS.body, size: SIZES.normal },  // Century Gothic 12pt
       paragraph: {
         alignment: AlignmentType.BOTH,
         spacing: { line: SPACING.line1_5, after: 60 },
@@ -176,7 +178,7 @@ const CMR_STYLES = {
       id: "Assinatura",
       name: "Assinatura",
       basedOn: "Normal",
-      run: { font: FONTS.body, size: SIZES.normal, bold: true },
+      run: { font: FONTS.body, size: SIZES.normal, bold: true },  // Century Gothic 12pt bold
       paragraph: {
         alignment: AlignmentType.LEFT,
         spacing: { line: SPACING.line1_0, before: 480, after: 0 }
@@ -232,6 +234,7 @@ const NUMBERING_CONFIG = {
 
 ```javascript
 // === CABEÇALHO PADRÃO CMR ===
+// CRÍTICO: Cabeçalho usa VERDANA (não Century Gothic!)
 function createHeader() {
   return new Header({
     children: [
@@ -239,13 +242,13 @@ function createHeader() {
         alignment: AlignmentType.RIGHT,
         spacing: { after: 0 },
         children: [
-          new TextRun({ text: "C. M. RODRIGUES", font: FONTS.body, size: SIZES.normal })
+          new TextRun({ text: "C. M. RODRIGUES", font: FONTS.header, size: SIZES.header })  // Verdana 26pt
         ]
       }),
       new Paragraph({
         alignment: AlignmentType.RIGHT,
         children: [
-          new TextRun({ text: "Advogados", font: FONTS.body, size: SIZES.normal })
+          new TextRun({ text: "Advogados", font: FONTS.header, size: SIZES.normal })  // Verdana 12pt
         ]
       })
     ]
@@ -253,6 +256,7 @@ function createHeader() {
 }
 
 // === RODAPÉ PADRÃO CMR ===
+// Rodapé usa fonte menor (6pt)
 function createFooter() {
   return new Footer({
     children: [
@@ -503,11 +507,17 @@ new Paragraph({
 
 | Elemento | Fonte | Tamanho | Espaçamento | Alinhamento | Recuo |
 |----------|-------|---------|-------------|-------------|-------|
-| Corpo normal | Verdana | 10pt | 1.5 linhas | Justificado | 1ª linha: 2268 twips |
-| Capítulos | Century Gothic | 12pt | 1.5 linhas | Justificado | Nenhum |
-| Citações | Verdana | 10pt | 1.0 linha | Esquerda | Esquerda: 2268 twips |
-| Tabelas | Verdana | 10pt | 1.0 linha | Conforme | Nenhum |
-| Rodapé | Verdana | 6pt | 1.0 linha | Direita | Nenhum |
+| **Cabeçalho** | Verdana | 26pt | 1.0 linha | Direita | Nenhum |
+| **Corpo normal** | Century Gothic | 12pt | 1.5 linhas | Justificado | 1ª linha: 2268 twips |
+| **Capítulos** | Century Gothic | 12pt bold | 1.5 linhas | Justificado | Nenhum |
+| **Subcapítulos** | Century Gothic | 12pt bold | 1.5 linhas | Justificado | Nenhum |
+| **Citações** | Century Gothic | 10pt italic | 1.0 linha | Esquerda | Esquerda: 2268 twips |
+| **Tabelas** | Century Gothic | 12pt | 1.0 linha | Conforme | Nenhum |
+| **Rodapé** | Century Gothic | 6pt | 1.0 linha | Direita | Nenhum |
+
+**RESUMO CRÍTICO:**
+- **Cabeçalho**: ÚNICA parte que usa Verdana
+- **Todo o resto**: Century Gothic (corpo, capítulos, citações, tabelas, rodapé)
 
 ## Erros Comuns a Evitar
 
