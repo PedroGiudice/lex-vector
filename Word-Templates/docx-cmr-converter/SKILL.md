@@ -1,7 +1,6 @@
 ---
 name: docx-cmr-converter
 description: Converte documentos Markdown para Word (DOCX) seguindo o padrão de formatação CMR Advogados - fontes, espaçamentos e estilos jurídicos
-version: 1.0.0
 ---
 
 # Conversor de Markdown para DOCX - Padrão CMR Advogados
