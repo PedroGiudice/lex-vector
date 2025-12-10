@@ -1,0 +1,143 @@
+{
+  "metadata": {
+    "profile_name": "Padrão CMR Advogados",
+    "version": "2.0",
+    "description": "Definições de formatação para documentos jurídicos CMR"
+  },
+  "page_setup": {
+    "size": {
+      "width_twips": 11906,
+      "height_twips": 16838,
+      "format": "A4"
+    },
+    "margins_twips": {
+      "top": 1417,
+      "bottom": 1417,
+      "left": 1701,
+      "right": 1133,
+      "header": 708,
+      "footer": 708
+    }
+  },
+  "fonts": {
+    "primary": "Century Gothic",
+    "secondary": "Verdana"
+  },
+  "header": {
+    "line1": {
+      "text": "C. M. RODRIGUES",
+      "font_name": "Verdana",
+      "font_size_pt": 26,
+      "alignment": "RIGHT"
+    },
+    "line2": {
+      "text": "Advogados",
+      "font_name": "Verdana",
+      "font_size_pt": 12,
+      "alignment": "RIGHT"
+    }
+  },
+  "footer": {
+    "lines": [
+      "Alameda Santos nº. 211, 16º andar, cj. 1607",
+      "São Paulo – SP 01419-000",
+      "Tel.: (11) 3044 4160"
+    ],
+    "font_name": "Century Gothic",
+    "font_size_pt": 6,
+    "alignment": "RIGHT",
+    "line_spacing_rule": "SINGLE"
+  },
+  "styles_map": {
+    "Normal": {
+      "description": "Texto padrão do corpo",
+      "font_name": "Century Gothic",
+      "font_size_pt": 12,
+      "alignment": "BOTH",
+      "line_spacing_rule": "1.5",
+      "spacing_after_twips": 0
+    },
+    "Enderecamento": {
+      "description": "Endereçamento inicial (EXCELENTÍSSIMO SENHOR...)",
+      "font_name": "Century Gothic",
+      "font_size_pt": 12,
+      "alignment": "BOTH",
+      "line_spacing_rule": "1.5"
+    },
+    "Title_Peca": {
+      "description": "Título centralizado (CONTESTAÇÃO, APELAÇÃO, etc.)",
+      "font_name": "Century Gothic",
+      "font_size_pt": 12,
+      "bold": true,
+      "alignment": "CENTER",
+      "spacing_before_twips": 240,
+      "spacing_after_twips": 240,
+      "line_spacing_rule": "1.5"
+    },
+    "Chapter_Heading": {
+      "description": "Capítulos numerados (I. DO MÉRITO, II. DOS FATOS)",
+      "font_name": "Century Gothic",
+      "font_size_pt": 12,
+      "bold": true,
+      "alignment": "BOTH",
+      "spacing_before_twips": 360,
+      "spacing_after_twips": 120,
+      "line_spacing_rule": "1.5"
+    },
+    "Subcapitulo": {
+      "description": "Subcapítulos (A. Da Ilegitimidade, B. Do Mérito)",
+      "font_name": "Century Gothic",
+      "font_size_pt": 12,
+      "bold": true,
+      "alignment": "BOTH",
+      "spacing_before_twips": 240,
+      "spacing_after_twips": 120,
+      "line_spacing_rule": "1.5"
+    },
+    "Paragraph_Numbered": {
+      "description": "Parágrafos numerados (1., 2., 3...)",
+      "font_name": "Century Gothic",
+      "font_size_pt": 12,
+      "alignment": "BOTH",
+      "indent_first_line_twips": 2268,
+      "line_spacing_rule": "1.5"
+    },
+    "Paragraph_Indented": {
+      "description": "Parágrafos com recuo de primeira linha (4cm)",
+      "font_name": "Century Gothic",
+      "font_size_pt": 12,
+      "alignment": "BOTH",
+      "indent_first_line_twips": 2268,
+      "line_spacing_rule": "1.5"
+    },
+    "Citation": {
+      "description": "Citações de jurisprudência/doutrina",
+      "font_name": "Century Gothic",
+      "font_size_pt": 10,
+      "italics": true,
+      "alignment": "LEFT",
+      "indent_left_twips": 2268,
+      "line_spacing_rule": "SINGLE",
+      "spacing_before_twips": 120,
+      "spacing_after_twips": 120
+    },
+    "Item_Lista": {
+      "description": "Itens de lista (a), b), c)...)",
+      "font_name": "Century Gothic",
+      "font_size_pt": 12,
+      "alignment": "BOTH",
+      "indent_left_twips": 2268,
+      "indent_hanging_twips": 360,
+      "line_spacing_rule": "1.5",
+      "spacing_after_twips": 60
+    },
+    "Assinatura": {
+      "description": "Bloco de assinatura",
+      "font_name": "Century Gothic",
+      "font_size_pt": 12,
+      "alignment": "LEFT",
+      "line_spacing_rule": "SINGLE",
+      "spacing_before_twips": 480
+    }
+  }
+}
