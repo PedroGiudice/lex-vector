@@ -64,62 +64,104 @@ src/context/
 
 ---
 
-## Detalhes do Bibliotecario (Step 04)
+## Step 04: Bibliotecário com Gemini - IMPLEMENTADO ✅
 
-Quarto estagio da pipeline:
+**Data:** 2025-12-10
+**ADR:** [ADR-002](docs/adr/ADR-002-step04-gemini.md)
+
+### BREAKING CHANGE: Regex → Gemini 2.5 Flash
+
+O Step 04 foi **reimplementado** usando Gemini 2.5 Flash para classificação semântica, substituindo a implementação baseada em regex.
 
 ```
-PDF → [Cartógrafo] → [Saneador] → [Extrator] → [Bibliotecário] → structure.json
-       step_01       step_02       step_03       step_04
+final.md → [Gemini: Classificação] → [Gemini: Limpeza] → Outputs
+                    ↓                        ↓
+           semantic_structure.json    final_cleaned.md
+                                      final_tagged.md
 ```
 
-### ESTÁGIO 4: O BIBLIOTECÁRIO (Semantic Classifier)
+### Comparação: Antes vs Depois
 
-**Script:** `src/steps/step_04_classify.py`
+| Aspecto | Antes (regex) | Depois (Gemini) |
+|---------|---------------|-----------------|
+| Método | Pattern matching | Compreensão semântica |
+| Tempo | Instantâneo (<100ms) | ~5-15s por documento |
+| Custo | Gratuito | ~$0.001-0.01 por doc |
+| Precisão | ~80% | ~95%+ |
+| Manutenção | Código novo por padrão | Ajuste de prompt |
+| Edge cases | Falha silenciosa | Lida com ambiguidade |
 
-**Input:** `outputs/{doc_id}/final.md` (do Estágio 3)
+### Nova Arquitetura
 
-**Lógica:**
-1. Lê o Markdown estruturado
-2. Aplica biblioteca de Regex (portada do JS) para identificar cabeçalhos de peças:
-   - `EXCELENTÍSSIMO SENHOR DOUTOR JUIZ...` → Petição Inicial
-   - `SENTENÇA` → Sentença
-   - `ACÓRDÃO` → Acórdão
-   - `CONTESTAÇÃO` → Contestação
-   - `RÉPLICA` → Réplica
-   - `EMBARGOS DE DECLARAÇÃO` → Embargos
-   - `DESPACHO` → Despacho
-   - `DECISÃO INTERLOCUTÓRIA` → Decisão
-   - `CERTIDÃO` → Certidão
-   - `ATA DE AUDIÊNCIA` → Ata
-3. Segmenta o documento logicamente por peça processual
-
-**Output:** `outputs/{doc_id}/structure.json`
-
-```json
-{
-  "doc_id": "processo_123",
-  "total_sections": 5,
-  "sections": [
-    {
-      "id": 1,
-      "type": "peticao_inicial",
-      "title": "EXCELENTÍSSIMO SENHOR DOUTOR JUIZ DE DIREITO...",
-      "start_line": 1,
-      "end_line": 150,
-      "confidence": 0.95
-    },
-    {
-      "id": 2,
-      "type": "contestacao",
-      "title": "CONTESTAÇÃO",
-      "start_line": 151,
-      "end_line": 280,
-      "confidence": 0.92
-    }
-  ]
-}
 ```
+src/gemini/                    # NOVO - Módulo Gemini
+├── __init__.py
+├── client.py                  # GeminiClient wrapper
+├── schemas.py                 # Pydantic models
+└── prompts/
+    ├── classifier.py          # Prompt de classificação (7.5k chars)
+    └── cleaner.py             # Prompt de limpeza (3.6k chars)
+
+src/steps/
+├── step_04_classify.py        # Nova implementação (Gemini)
+└── step_04_legacy.py          # Backup (regex)
+```
+
+### Taxonomia de 12 Categorias
+
+1. `PETICAO_INICIAL` - Documento que inicia o processo
+2. `CONTESTACAO` - Resposta do réu
+3. `REPLICA` - Resposta à contestação
+4. `DECISAO_JUDICIAL` - Sentenças, acórdãos
+5. `DESPACHO` - Determinações procedimentais
+6. `RECURSO` - Apelações, agravos, embargos
+7. `PARECER_MP` - Pareceres do MP
+8. `ATA_TERMO` - Atas de audiência, termos
+9. `CERTIDAO` - Certidões, intimações
+10. `ANEXOS` - Documentos probatórios
+11. `CAPA_DADOS` - Capa e dados de autuação
+12. `INDETERMINADO` - Fallback
+
+### Uso
+
+```python
+from src.steps.step_04_classify import GeminiBibliotecario
+
+bibliotecario = GeminiBibliotecario()
+result = bibliotecario.process(Path("outputs/doc/final.md"))
+
+print(f"Seções: {result['classification'].total_sections}")
+print(f"Redução: {result['cleaning'].reduction_percent}%")
+```
+
+### CLI
+
+```bash
+# Classificação + Limpeza
+python -m src.steps.step_04_classify -i outputs/doc/final.md
+
+# Só classificação
+python -m src.steps.step_04_classify -i outputs/doc/final.md --skip-cleaning
+
+# Com modelo Pro (mais preciso, mais caro)
+python -m src.steps.step_04_classify -i outputs/doc/final.md -m gemini-2.5-pro
+```
+
+### Outputs Gerados
+
+1. **`semantic_structure.json`** - Classificação estruturada (sempre)
+2. **`final_tagged.md`** - Original com tags semânticas (sempre)
+3. **`final_cleaned.md`** - Texto limpo sem ruído (opcional)
+
+### Features
+
+- ✅ Classificação semântica via Gemini 2.5 Flash
+- ✅ Limpeza contextual (remove ruído, preserva conteúdo)
+- ✅ Validação Pydantic rigorosa
+- ✅ CLI compatível com versão anterior
+- ✅ 21 testes unitários passando
+- ✅ ADR-002 documentando decisão
+- ✅ Fallback disponível (step_04_legacy.py)
 
 ---
 
@@ -178,16 +220,16 @@ PDF → [Cartógrafo] → [Saneador] → [Extrator] → [Bibliotecário] → str
 
 ## Decisões Arquiteturais
 
-| Decisão | Motivo |
-|---------|--------|
-| Pipeline algorítmica (sem LLM) | Custo proibitivo de API para volume alto |
-| Regex para classificação | Padrões jurídicos são bem definidos |
-| Output em JSON | Facilita integração com sistemas downstream |
-| Grayscale output | Suficiente para OCR, menor tamanho |
-| SQLite para Context Store | Zero-config, file-based, ACID compliant |
-| Cosine similarity | Simples, rápido, efetivo para vetores normalizados |
-| Engine quality ranking | Marker (melhor) > PDFPlumber > Tesseract (pior) |
-| Auto-deprecation | Padrões não confiáveis (3+ falhas) são removidos |
+| Decisão | Motivo | ADR |
+|---------|--------|-----|
+| Marker-only para extração | Simplicidade, qualidade, output leve | [ADR-001](docs/adr/ADR-001-marker-only-architecture.md) |
+| **Gemini para classificação** | Precisão semântica superior a regex | [ADR-002](docs/adr/ADR-002-step04-gemini.md) |
+| Gemini Flash (não Pro) | 16x mais barato, suficiente para classificação | ADR-002 |
+| Output em JSON | Facilita integração com sistemas downstream | - |
+| SQLite para Context Store | Zero-config, file-based, ACID compliant | - |
+| Pydantic para validação | LLMs podem retornar outputs inesperados | ADR-002 |
+| Engine quality ranking | Marker (melhor) > PDFPlumber > Tesseract (pior) | ADR-001 |
+| Auto-deprecation | Padrões não confiáveis (3+ falhas) são removidos | - |
 
 ---
 
@@ -209,9 +251,18 @@ PDF → [Cartógrafo] → [Saneador] → [Extrator] → [Bibliotecário] → str
 | Step 01 (Layout) | ~50ms |
 | Step 02 (Vision) | ~200ms |
 | Step 03 (Extract) | ~500ms |
-| Step 04 (Classify) | ~100ms |
-| **Total** | **~850ms/página** |
+| Step 04 (Classify) - regex | ~100ms |
+| Step 04 (Classify) - **Gemini** | ~5-15s |
+| **Total (com Gemini)** | **~6-16s/página** |
+
+### Custo Estimado (Gemini)
+
+| Tamanho Doc | Tokens (aprox) | Custo Flash |
+|-------------|----------------|-------------|
+| 10 páginas | ~50k tokens | ~$0.004 |
+| 50 páginas | ~250k tokens | ~$0.02 |
+| 100 páginas | ~500k tokens | ~$0.04 |
 
 ---
 
-*Última atualização: 2025-11-29*
+*Última atualização: 2025-12-10*
