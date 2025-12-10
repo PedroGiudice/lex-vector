@@ -4,16 +4,16 @@
 
 ### 1. Integracao Claude Code UI (wrapper Streamlit)
 
-**Status:** Pendente
-**Prioridade:** Alta
+**Status:** Arquivado (baixa prioridade)
+**Prioridade:** Baixa
 
-Debugar e corrigir o wrapper Streamlit arquivado (`ferramentas/_archived/claude-ui-streamlit/`) para integrar o Claude Code diretamente no Legal-Workbench.
+Wrapper Streamlit arquivado em `ferramentas/_archived/claude-ui-streamlit/`.
 
-**Problema atual:** O wrapper conecta ao Claude CLI mas nao recebe resposta apos enviar prompt.
+**Problema conhecido:** O wrapper conecta ao Claude CLI mas nao recebe resposta apos enviar prompt.
 
-**Objetivo:** Interface de chat integrada no dashboard, sem abrir nova aba.
+**Solucao atual:** Usando claudecodeui (siteboon) via sidebar link. Funciona bem para acesso mobile.
 
-**Arquivos:**
+**Arquivos (arquivados):**
 - `backend/wrapper.py` - subprocess manager
 - `backend/parser.py` - output parser
 - `frontend/app.py` - Streamlit UI
@@ -22,21 +22,16 @@ Debugar e corrigir o wrapper Streamlit arquivado (`ferramentas/_archived/claude-
 
 ## Backlog
 
-### 2. Modulo de Extracao de Documentos
-- Integrar legal-text-extractor como modulo do dashboard
-- Upload de PDF, extracao automatica, preview
+### 2. UI para Prompt Library
+- Criar modulo Streamlit para `ferramentas/prompt-library`
+- Interface para busca, preview e renderizacao de prompts
 
-### 3. Modulo de Pesquisa de Jurisprudencia
-- Interface para busca em tribunais
-- Integracao com agentes de coleta
-
-### 4. Modulo de Artigos de Lei
-- Busca de artigos por citacao
-- Exibicao formatada com contexto
-
-### 5. Workspace de Caso
+### 3. Workspace de Caso
 - Tela unificada para trabalhar um caso
 - Documentos + pesquisa + agentes + chat
+
+### 4. CLI Reference para STJ Dados Abertos
+- Documentar comandos CLI (stj-init, stj-download-periodo, etc.)
 
 ---
 
@@ -45,7 +40,12 @@ Debugar e corrigir o wrapper Streamlit arquivado (`ferramentas/_archived/claude-
 - [x] Integracao claudecodeui (siteboon) para acesso mobile via Tailscale
 - [x] PM2 para persistencia do servico
 - [x] Link na sidebar do dashboard
+- [x] **Modulo Text Extractor** - Upload de PDF, extracao automatica, preview
+- [x] **Modulo Document Assembler** - Templates DOCX com merge de dados
+- [x] **Modulo STJ Dados Abertos** - Interface para busca em jurisprudencia STJ (DuckDB)
+- [x] **Modulo Trello MCP** - Integracao MCP para gestao de tarefas
+- [x] **Prompt Library** - Backend para gerenciamento de templates de prompts (sem UI)
 
 ---
 
-Ultima atualizacao: 2025-12-07
+Ultima atualizacao: 2025-12-10

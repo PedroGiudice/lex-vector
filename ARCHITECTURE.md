@@ -92,8 +92,8 @@ Python 3.11 | Node.js v22 | Ubuntu 24.04 (WSL2) | Git | Claude Code
 
 ---
 
-**Ultima atualizacao:** 2025-12-07
-- Removido diretorio `ferramentas/` (nao existe)
+**Ultima atualizacao:** 2025-12-10
+- Corrigido: `ferramentas/` existe em `legal-workbench/ferramentas/` (backends dos modulos)
 - Adicionados agentes: `legal-rag`, `jurisprudencia-collector`, `legal-articles-finder`, `aesthetic-master`
 - Adicionados diretorios: `legal-workbench/`, `docs/`
 - Comandos atualizados com lista real

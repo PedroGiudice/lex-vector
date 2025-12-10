@@ -140,7 +140,7 @@ def main():
 
     # Global Sidebar
     with st.sidebar:
-        st.caption("LEGAL WORKBENCH v2.4.0")
+        st.caption("LEGAL WORKBENCH v2.6.0")
         
         st.markdown("#### SYSTEM")
         if st.button("Dashboard", key="nav_home"):

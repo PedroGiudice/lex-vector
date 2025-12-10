@@ -30,8 +30,13 @@ ccui-status
 | Document Assembler | doc_assembler | Active | ferramentas/legal-doc-assembler |
 | STJ Dados Abertos | stj | Active | ferramentas/stj-dados-abertos |
 | Trello MCP | trello | Active | ferramentas/trello-mcp |
+| Prompt Library | prompt_library | Backend Only | ferramentas/prompt-library |
 
 **Principio:** Separacao absoluta entre frontend (`modules/`) e backend (`ferramentas/src/`).
+
+### Backends sem UI (bibliotecas internas)
+
+- **prompt-library** - Sistema de gerenciamento de templates de prompts (Pydantic + YAML)
 
 ## Tools
 
