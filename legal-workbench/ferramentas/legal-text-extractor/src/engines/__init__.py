@@ -1,28 +1,34 @@
 """
-Engines module for text processing.
+Engines module for text extraction.
 
-This module provides:
-- Base classes for extraction engines
-- PDFPlumber: For PDFs with native text (fast, lightweight)
-- Marker: For scanned PDFs (high-quality OCR, ~10GB RAM)
-- Cleaning engine for judicial system artifacts
+Architecture (Marker-only):
+- MarkerEngine: Primary and ONLY extraction engine
+  - Automatically detects native text vs scanned pages
+  - Uses pdftext for native, Surya OCR for scanned
+  - Preserves layout, tables, and structure
+
+- MarkerConfig: Configuration options for Marker
+  - disable_image_extraction: Reduces output size by ~98%
+  - paginate_output: Preserves page references
+  - drop_repeated_text: Removes headers/footers noise
+
+- CleanerEngine: Post-processing for judicial system artifacts
 """
 
 from .base import ExtractionEngine, ExtractionResult
 from .cleaning_engine import CleanerEngine, DetectionResult, get_cleaner
-from .pdfplumber_engine import PDFPlumberEngine
-from .marker_engine import MarkerEngine
+from .marker_engine import MarkerEngine, MarkerConfig
 
 __all__ = [
     # Base interfaces
     "ExtractionEngine",
     "ExtractionResult",
 
-    # Extraction engines
-    "PDFPlumberEngine",
+    # Primary extraction engine
     "MarkerEngine",
+    "MarkerConfig",
 
-    # Cleaning
+    # Post-processing
     "CleanerEngine",
     "DetectionResult",
     "get_cleaner",

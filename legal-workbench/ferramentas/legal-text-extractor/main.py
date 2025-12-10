@@ -4,8 +4,15 @@ Legal Text Extractor - Sistema de Extração de Texto Jurídico
 Entry point e API principal do sistema.
 
 Architecture (Marker-only):
-- PDFPlumberEngine: PDFs com texto nativo (rápido, leve)
-- MarkerEngine: PDFs escaneados (OCR de alta qualidade, ~10GB RAM)
+- MarkerEngine: Único engine de extração
+  - Detecta automaticamente se precisa OCR
+  - Preserva layout e estrutura
+  - Output otimizado (sem imagens base64)
+
+Pipeline:
+1. Marker extrai texto (decide internamente nativo vs OCR)
+2. DocumentCleaner remove artefatos de sistemas judiciais
+3. (Futuro) Step 04 - Bibliotecário classifica seções via LLM
 """
 import logging
 import time
@@ -13,8 +20,7 @@ from datetime import datetime
 from pathlib import Path
 from dataclasses import dataclass
 
-from src.engines.pdfplumber_engine import PDFPlumberEngine
-from src.engines.marker_engine import MarkerEngine
+from src.engines.marker_engine import MarkerEngine, MarkerConfig
 from src.core.cleaner import DocumentCleaner
 from src.exporters.text import TextExporter
 from src.exporters.markdown import MarkdownExporter
@@ -46,44 +52,44 @@ class ExtractionResult:
     final_length: int
     reduction_pct: float
     patterns_removed: list[str]
-    engine_used: str = "unknown"
+    engine_used: str = "marker"
+    native_pages: int = 0
+    ocr_pages: int = 0
 
 
 class LegalTextExtractor:
     """
     Sistema de extração de texto jurídico.
 
-    Pipeline:
-    1. Detecta tipo de PDF (nativo vs escaneado)
-    2. Se nativo → PDFPlumber (rápido)
-    3. Se escaneado → Marker (OCR de alta qualidade)
-    4. Limpeza semântica do texto extraído
+    Pipeline simplificada (Marker-only):
+    1. Marker extrai texto (detecta automaticamente nativo vs OCR)
+    2. DocumentCleaner remove artefatos de sistemas judiciais
+    3. Output em formato configurável (text/markdown/json)
+
+    O Marker é inteligente o suficiente para:
+    - Usar texto nativo quando disponível (rápido)
+    - Aplicar OCR apenas quando necessário (páginas escaneadas)
+    - Preservar layout, tabelas e estrutura
+
+    Example:
+        >>> extractor = LegalTextExtractor()
+        >>> result = extractor.process_pdf("processo.pdf")
+        >>> print(f"Extraído: {result.final_length} caracteres")
+        >>> print(f"Páginas nativas: {result.native_pages}, OCR: {result.ocr_pages}")
     """
 
-    def __init__(self):
-        self.pdfplumber_engine = PDFPlumberEngine()
-        self.marker_engine = MarkerEngine()
+    def __init__(self, marker_config: MarkerConfig | None = None):
+        """
+        Inicializa o extrator.
+
+        Args:
+            marker_config: Configuração customizada do Marker (opcional)
+        """
+        self.marker_engine = MarkerEngine(config=marker_config)
         self.cleaner = DocumentCleaner()
         self.txt_exporter = TextExporter()
         self.md_exporter = MarkdownExporter()
         self.json_exporter = JSONExporter()
-
-    def _is_scanned(self, pdf_path: Path) -> bool:
-        """
-        Detecta se PDF é escaneado (sem texto nativo).
-
-        Usa pdfplumber para verificar densidade de texto.
-        """
-        import pdfplumber
-
-        with pdfplumber.open(pdf_path) as pdf:
-            if len(pdf.pages) == 0:
-                return True
-
-            # Verifica primeira página
-            text = pdf.pages[0].extract_text()
-            # Se tem menos de 50 caracteres, provavelmente é escaneado
-            return not text or len(text.strip()) < 50
 
     def process_pdf(
         self,
@@ -101,7 +107,7 @@ class LegalTextExtractor:
             system: Sistema judicial (None = auto-detect)
             blacklist: Termos customizados a remover
             output_format: Formato de saída ("text", "markdown", "json")
-            force_ocr: Forçar uso de Marker mesmo para PDFs nativos
+            force_ocr: Forçar OCR em todas as páginas (raramente necessário)
 
         Returns:
             ExtractionResult com texto limpo e metadados
@@ -112,33 +118,33 @@ class LegalTextExtractor:
         logger.info(f"=== PROCESSANDO: {pdf_path.name} ===")
         logger.info(f"Tamanho do arquivo: {pdf_path.stat().st_size / 1024 / 1024:.2f} MB")
 
-        # 1. Detecta tipo e extrai texto
-        logger.info("1/2 Extraindo texto do PDF...")
+        # 1. Verifica disponibilidade do Marker
+        if not self.marker_engine.is_available():
+            ok, reason = self.marker_engine.check_resources()
+            raise RuntimeError(f"Marker não disponível: {reason}")
+
+        # 2. Extrai texto usando Marker
+        logger.info("1/2 Extraindo texto com Marker...")
         extract_start = time.time()
 
-        is_scanned = self._is_scanned(pdf_path)
-        use_ocr = is_scanned or force_ocr
-
-        if use_ocr:
-            logger.info("PDF escaneado detectado - usando Marker OCR")
-
-            if not self.marker_engine.is_available():
-                ok, reason = self.marker_engine.check_resources()
-                raise RuntimeError(f"Marker não disponível: {reason}")
-
-            engine_result = self.marker_engine.extract(pdf_path)
-            engine_used = "marker"
+        if force_ocr:
+            engine_result = self.marker_engine.extract_with_options(
+                pdf_path, force_ocr=True
+            )
         else:
-            logger.info("PDF com texto nativo - usando PDFPlumber")
-            engine_result = self.pdfplumber_engine.extract(pdf_path)
-            engine_used = "pdfplumber"
+            engine_result = self.marker_engine.extract(pdf_path)
 
         raw_text = engine_result.text
         extract_time = time.time() - extract_start
 
-        logger.info(f"✓ Texto extraído via {engine_used}: {len(raw_text):,} caracteres ({extract_time:.2f}s)")
+        # Get extraction stats
+        native_pages = engine_result.metadata.get('native_pages', 0)
+        ocr_pages = engine_result.metadata.get('ocr_pages', 0)
 
-        # 2. Limpa texto
+        logger.info(f"✓ Texto extraído: {len(raw_text):,} caracteres ({extract_time:.2f}s)")
+        logger.info(f"  Páginas: {native_pages} nativas + {ocr_pages} OCR")
+
+        # 3. Limpa texto (remove artefatos de sistemas judiciais)
         logger.info("2/2 Limpando documento...")
         clean_start = time.time()
 
@@ -155,7 +161,7 @@ class LegalTextExtractor:
                    f"({cleaning_result.stats.original_length:,} → {cleaning_result.stats.final_length:,} chars)")
         logger.info(f"✓ Padrões removidos: {len(cleaning_result.stats.patterns_removed)} ({clean_time:.2f}s)")
 
-        # Cria seção única para o documento
+        # Cria seção única para o documento (Step 04 fará classificação semântica)
         sections = [Section(
             type="documento_completo",
             content=cleaning_result.text,
@@ -179,7 +185,9 @@ class LegalTextExtractor:
             final_length=cleaning_result.stats.final_length,
             reduction_pct=cleaning_result.stats.reduction_pct,
             patterns_removed=cleaning_result.stats.patterns_removed,
-            engine_used=engine_used,
+            engine_used="marker",
+            native_pages=native_pages,
+            ocr_pages=ocr_pages,
         )
 
     def save(self, result: ExtractionResult, output_path: Path | str, format: str = "text"):
@@ -200,6 +208,8 @@ class LegalTextExtractor:
             "reduction_pct": result.reduction_pct,
             "patterns_removed_count": len(result.patterns_removed),
             "engine_used": result.engine_used,
+            "native_pages": result.native_pages,
+            "ocr_pages": result.ocr_pages,
         }
 
         if format == "text":
@@ -232,6 +242,13 @@ if __name__ == "__main__":
 
     if len(sys.argv) < 2:
         print("Usage: python main.py <pdf_file> [--force-ocr]")
+        print()
+        print("Options:")
+        print("  --force-ocr    Force OCR on all pages (rarely needed)")
+        print()
+        print("Example:")
+        print("  python main.py processo.pdf")
+        print("  python main.py scanned_doc.pdf --force-ocr")
         sys.exit(1)
 
     # Configurar logging (console + arquivo)
@@ -259,11 +276,12 @@ if __name__ == "__main__":
     print(f"RESULTADO - {pdf_file.name}")
     print(f"{'='*60}")
     print(f"Engine: {result.engine_used}")
+    print(f"Páginas: {result.native_pages} nativas + {result.ocr_pages} OCR")
     print(f"Sistema: {result.system_name} ({result.confidence}%)")
     print(f"Redução: {result.reduction_pct:.1f}%")
     print(f"Seções: {len(result.sections)}")
-    print(f"\nTexto limpo ({result.final_length} caracteres):")
-    print(result.text[:500] + "...")
+    print(f"\nTexto limpo ({result.final_length:,} caracteres):")
+    print(result.text[:500] + "..." if len(result.text) > 500 else result.text)
     print(f"\n{'='*60}")
     print(f"Log completo salvo em: {log_file}")
     print(f"{'='*60}")

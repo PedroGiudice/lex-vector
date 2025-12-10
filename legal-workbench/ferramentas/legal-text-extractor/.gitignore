@@ -28,6 +28,7 @@ htmlcov/
 !Mermaid-Legal-text-extractor.md
 !GEMINI_PROMPT_INTERFACE.md
 !requirements.txt
+!docs/adr/*.md
 
 # PDFs de teste (grandes)
 test-documents/*.pdf
