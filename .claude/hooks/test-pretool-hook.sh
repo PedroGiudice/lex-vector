@@ -29,7 +29,7 @@ run_test() {
   echo -n "Test: $test_name... "
 
   # Run hook with stdin
-  output=$(echo "$input_json" | node .claude/hooks/inject-tools-to-agents.js 2>&1)
+  output=$(echo "$input_json" | bun run .claude/hooks/inject-tools-to-agents.js 2>&1)
   exit_code=$?
 
   # Check exit code

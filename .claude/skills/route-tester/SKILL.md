@@ -34,13 +34,13 @@ The `test-auth-route.js` script handles all authentication complexity automatica
 #### Basic GET Request
 
 ```bash
-node scripts/test-auth-route.js http://localhost:3000/blog-api/api/endpoint
+bun run scripts/test-auth-route.js http://localhost:3000/blog-api/api/endpoint
 ```
 
 #### POST Request with JSON Data
 
 ```bash
-node scripts/test-auth-route.js \
+bun run scripts/test-auth-route.js \
     http://localhost:3000/blog-api/777/submit \
     POST \
     '{"responses":{"4577":"13295"},"submissionID":5,"stepInstanceId":"11"}'
@@ -115,7 +115,7 @@ Mock auth ONLY works when:
 ### Test Form Submission
 
 ```bash
-node scripts/test-auth-route.js \
+bun run scripts/test-auth-route.js \
     http://localhost:3000/blog-api/777/submit \
     POST \
     '{"responses":{"4577":"13295"},"submissionID":5,"stepInstanceId":"11"}'
@@ -124,7 +124,7 @@ node scripts/test-auth-route.js \
 ### Test Workflow Start
 
 ```bash
-node scripts/test-auth-route.js \
+bun run scripts/test-auth-route.js \
     http://localhost:3002/api/workflow/start \
     POST \
     '{"workflowCode":"DHS_CLOSEOUT","entityType":"Submission","entityID":123}'
@@ -133,7 +133,7 @@ node scripts/test-auth-route.js \
 ### Test Workflow Step Completion
 
 ```bash
-node scripts/test-auth-route.js \
+bun run scripts/test-auth-route.js \
     http://localhost:3002/api/workflow/step/complete \
     POST \
     '{"stepInstanceID":789,"answers":{"decision":"approved","comments":"Looks good"}}'
@@ -142,7 +142,7 @@ node scripts/test-auth-route.js \
 ### Test GET with Query Parameters
 
 ```bash
-node scripts/test-auth-route.js \
+bun run scripts/test-auth-route.js \
     "http://localhost:3002/api/workflows?status=active&limit=10"
 ```
 
@@ -239,7 +239,7 @@ mysql> SELECT * FROM WorkflowNotification WHERE recipientUserId = 'user-123';
 docker ps | grep keycloak
 
 # Regenerate token
-node scripts/test-auth-route.js http://localhost:3002/api/health
+bun run scripts/test-auth-route.js http://localhost:3002/api/health
 
 # Verify config.ini has correct jwtSecret
 ```
@@ -309,7 +309,7 @@ The agent will:
 
 ```bash
 # 1. Test with valid data
-node scripts/test-auth-route.js \
+bun run scripts/test-auth-route.js \
     http://localhost:3002/api/my-new-route \
     POST \
     '{"field1":"value1","field2":"value2"}'
@@ -319,7 +319,7 @@ docker exec -i local-mysql mysql -u root -ppassword1 blog_dev \
     -e "SELECT * FROM MyTable ORDER BY createdAt DESC LIMIT 1;"
 
 # 3. Test with invalid data
-node scripts/test-auth-route.js \
+bun run scripts/test-auth-route.js \
     http://localhost:3002/api/my-new-route \
     POST \
     '{"field1":"invalid"}'
@@ -333,13 +333,13 @@ curl http://localhost:3002/api/my-new-route
 
 ```bash
 # 1. Test existing functionality still works
-node scripts/test-auth-route.js \
+bun run scripts/test-auth-route.js \
     http://localhost:3002/api/existing-route \
     POST \
     '{"existing":"data"}'
 
 # 2. Test new functionality
-node scripts/test-auth-route.js \
+bun run scripts/test-auth-route.js \
     http://localhost:3002/api/existing-route \
     POST \
     '{"new":"field","existing":"data"}'

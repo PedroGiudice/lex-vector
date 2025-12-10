@@ -787,7 +787,7 @@ async function generateEnhancement(matches, quality, forceEnhance, projectDir) {
 ```bash
 ./.claude/hooks/test-prompt-enhancer.sh  # Todos os testes devem passar
 # Teste manual com ++:
-echo '{"userPrompt": "++baixar dados"}' | node .claude/hooks/prompt-enhancer.js
+echo '{"userPrompt": "++baixar dados"}' | bun run .claude/hooks/prompt-enhancer.js
 # Deve exibir questions
 ```
 
@@ -1360,7 +1360,7 @@ main();
 ./.claude/hooks/test-prompt-enhancer.sh
 
 # Teste manual
-echo '{"userPrompt": "baixar dados"}' | node .claude/hooks/prompt-enhancer.js
+echo '{"userPrompt": "baixar dados"}' | bun run .claude/hooks/prompt-enhancer.js
 ```
 
 ---
@@ -1418,15 +1418,15 @@ Para cada otimização implementada:
 ./.claude/hooks/test-learning.sh
 
 # Token count comparison
-node .claude/hooks/analyze-tokens.js > before.txt
+bun run .claude/hooks/analyze-tokens.js > before.txt
 # [implementar otimizações]
-node .claude/hooks/analyze-tokens.js > after.txt
+bun run .claude/hooks/analyze-tokens.js > after.txt
 diff before.txt after.txt
 
 # Validação manual
-echo '{"userPrompt": "baixar múltiplos PDFs"}' | node .claude/hooks/prompt-enhancer.js
-echo '{"userPrompt": "++baixar múltiplos PDFs"}' | node .claude/hooks/prompt-enhancer.js
-echo '{"userPrompt": "*baixar múltiplos PDFs"}' | node .claude/hooks/prompt-enhancer.js
+echo '{"userPrompt": "baixar múltiplos PDFs"}' | bun run .claude/hooks/prompt-enhancer.js
+echo '{"userPrompt": "++baixar múltiplos PDFs"}' | bun run .claude/hooks/prompt-enhancer.js
+echo '{"userPrompt": "*baixar múltiplos PDFs"}' | bun run .claude/hooks/prompt-enhancer.js
 ```
 
 ---

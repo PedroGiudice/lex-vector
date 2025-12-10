@@ -10,7 +10,7 @@ echo ""
 
 # Test 1: Plan agent (should inject WebFetch)
 echo -n "Test 1 (Plan agent): "
-OUTPUT=$(echo '{"tool_name":"Task","tool_input":{"subagent_type":"Plan","prompt":"Test"},"hook_event_name":"PreToolUse"}' | node $HOOK)
+OUTPUT=$(echo '{"tool_name":"Task","tool_input":{"subagent_type":"Plan","prompt":"Test"},"hook_event_name":"PreToolUse"}' | bun run $HOOK)
 if echo "$OUTPUT" | grep -q "WebFetch"; then
   echo "✓ PASS (WebFetch injected)"
 else
@@ -21,7 +21,7 @@ fi
 
 # Test 2: Bash tool (should pass through)
 echo -n "Test 2 (Bash tool): "
-OUTPUT=$(echo '{"tool_name":"Bash","tool_input":{"command":"ls"},"hook_event_name":"PreToolUse"}' | node $HOOK)
+OUTPUT=$(echo '{"tool_name":"Bash","tool_input":{"command":"ls"},"hook_event_name":"PreToolUse"}' | bun run $HOOK)
 if [ "$OUTPUT" = "{}" ]; then
   echo "✓ PASS (passed through)"
 else
@@ -32,7 +32,7 @@ fi
 
 # Test 3: Unknown agent (should pass through)
 echo -n "Test 3 (Unknown agent): "
-OUTPUT=$(echo '{"tool_name":"Task","tool_input":{"subagent_type":"unknown","prompt":"Test"},"hook_event_name":"PreToolUse"}' | node $HOOK)
+OUTPUT=$(echo '{"tool_name":"Task","tool_input":{"subagent_type":"unknown","prompt":"Test"},"hook_event_name":"PreToolUse"}' | bun run $HOOK)
 if [ "$OUTPUT" = "{}" ]; then
   echo "✓ PASS (passed through)"
 else
@@ -43,7 +43,7 @@ fi
 
 # Test 4: desenvolvimento agent (should inject multiple tools)
 echo -n "Test 4 (desenvolvimento agent): "
-OUTPUT=$(echo '{"tool_name":"Task","tool_input":{"subagent_type":"desenvolvimento","prompt":"Code"},"hook_event_name":"PreToolUse"}' | node $HOOK)
+OUTPUT=$(echo '{"tool_name":"Task","tool_input":{"subagent_type":"desenvolvimento","prompt":"Code"},"hook_event_name":"PreToolUse"}' | bun run $HOOK)
 if echo "$OUTPUT" | grep -q "Read, Write, Edit"; then
   echo "✓ PASS (multiple tools injected)"
 else
@@ -54,7 +54,7 @@ fi
 
 # Test 5: claude-code-guide (with critical_instruction)
 echo -n "Test 5 (critical instruction): "
-OUTPUT=$(echo '{"tool_name":"Task","tool_input":{"subagent_type":"claude-code-guide","prompt":"Help"},"hook_event_name":"PreToolUse"}' | node $HOOK)
+OUTPUT=$(echo '{"tool_name":"Task","tool_input":{"subagent_type":"claude-code-guide","prompt":"Help"},"hook_event_name":"PreToolUse"}' | bun run $HOOK)
 if echo "$OUTPUT" | grep -q "MUST use WebFetch"; then
   echo "✓ PASS (critical instruction injected)"
 else
