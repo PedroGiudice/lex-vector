@@ -11,7 +11,7 @@ Instrucoes operacionais para Claude Code neste repositorio.
 
 ### 1. Sempre Usar venv
 ```bash
-cd agentes/<nome> && source .venv/bin/activate && python main.py
+cd <projeto> && source .venv/bin/activate && python main.py
 ```
 
 ### 2. Nunca Commitar
@@ -37,11 +37,9 @@ from shared.utils.path_utils import get_data_dir
 ## Estrutura
 
 ```
-agentes/           # Agentes Python autonomos
-ferramentas/       # Ferramentas Python sob demanda
+legal-workbench/   # Dashboard juridico (projeto ativo)
+adk-agents/        # Agentes ADK
 comandos/          # CLI utilitarios
-mcp-servers/       # Servidores MCP
-legal-workbench/   # Ambiente de trabalho legal
 shared/            # Codigo compartilhado
 skills/            # Skills custom
 .claude/           # Config (agents, hooks, skills managed)
