@@ -256,6 +256,104 @@ class DocumentEngine:
             'extra': sorted(list(provided - required)),
         }
 
+    def extract_rendered_text(
+        self,
+        template_path: str | Path,
+        data: Dict[str, Any],
+        field_types: Optional[Dict[str, str]] = None,
+    ) -> Dict[str, Any]:
+        """
+        Extract rendered text from template WITHOUT saving to file.
+
+        Renders the template with data and extracts all text content,
+        useful for preview functionality.
+
+        Args:
+            template_path: Path to .docx template file
+            data: Dictionary with template variables
+            field_types: Optional dict mapping field names to normalization types
+
+        Returns:
+            Dict with:
+                - 'paragraphs': List of rendered paragraph texts
+                - 'full_text': All text joined with newlines
+                - 'tables': List of table data (rows of cells)
+                - 'sections': Dict mapping section names to text
+
+        Raises:
+            FileNotFoundError: If template doesn't exist
+            ValueError: If template is invalid
+        """
+        template_path = Path(template_path)
+
+        if not template_path.exists():
+            raise FileNotFoundError(f"Template not found: {template_path}")
+
+        # Preprocess data
+        processed_data = self._preprocess_data(data, field_types)
+
+        # Load and render template (in memory only)
+        try:
+            doc = DocxTemplate(template_path)
+            doc.render(processed_data, self.jinja_env)
+        except Exception as e:
+            raise ValueError(f"Error rendering template: {e}")
+
+        # Extract text from paragraphs
+        paragraphs = []
+        for para in doc.paragraphs:
+            text = para.text.strip()
+            if text:
+                paragraphs.append(text)
+
+        # Extract text from tables
+        tables = []
+        for table in doc.tables:
+            table_data = []
+            for row in table.rows:
+                row_data = [cell.text.strip() for cell in row.cells]
+                table_data.append(row_data)
+            if table_data:
+                tables.append(table_data)
+
+        # Build full text
+        full_text_parts = paragraphs.copy()
+
+        # Add table content to full text
+        for table_data in tables:
+            for row in table_data:
+                row_text = " | ".join(cell for cell in row if cell)
+                if row_text:
+                    full_text_parts.append(row_text)
+
+        return {
+            'paragraphs': paragraphs,
+            'full_text': '\n'.join(full_text_parts),
+            'tables': tables,
+            'paragraph_count': len(paragraphs),
+            'table_count': len(tables),
+        }
+
+    def render_preview(
+        self,
+        template_path: str | Path,
+        data: Dict[str, Any],
+        field_types: Optional[Dict[str, str]] = None,
+    ) -> str:
+        """
+        Convenience method to get rendered text as single string.
+
+        Args:
+            template_path: Path to .docx template file
+            data: Dictionary with template variables
+            field_types: Optional normalization type mapping
+
+        Returns:
+            Rendered text as single string
+        """
+        result = self.extract_rendered_text(template_path, data, field_types)
+        return result['full_text']
+
     def print_validation_report(
         self,
         template_path: str | Path,

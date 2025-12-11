@@ -6,7 +6,8 @@ import sys
 import json
 import zipfile
 import tempfile
-from typing import Dict, Any, Optional, List
+import re
+from typing import Dict, Any, Optional, List, Tuple
 
 # Setup backend path (must be done before imports)
 _backend_path = Path(__file__).parent.parent / "ferramentas" / "legal-doc-assembler"
@@ -36,6 +37,36 @@ def _setup_imports():
     return _DocumentEngine, _BatchProcessor, _normalize_all
 
 
+def identify_modified_segments(original_text: str, data: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """
+    Identify which segments of text were modified from template variables.
+
+    Returns list of dicts with:
+        - 'start': start index in text
+        - 'end': end index in text
+        - 'field': original template field name
+        - 'value': rendered value
+    """
+    segments = []
+
+    for field, value in data.items():
+        if isinstance(value, str) and value:
+            # Find all occurrences of this value in the text
+            pattern = re.escape(str(value))
+            for match in re.finditer(pattern, original_text):
+                segments.append({
+                    'start': match.start(),
+                    'end': match.end(),
+                    'field': field,
+                    'value': value,
+                    'original': f'{{{{ {field} }}}}'
+                })
+
+    # Sort by position
+    segments.sort(key=lambda x: x['start'])
+    return segments
+
+
 def render():
     """Renders the Streamlit UI for the Document Assembler module."""
     # Initialize lazy imports
@@ -51,6 +82,14 @@ def render():
         st.session_state.batch_result = None
     if "validation_result" not in st.session_state:
         st.session_state.validation_result = None
+    if "preview_result" not in st.session_state:
+        st.session_state.preview_result = None
+    if "preview_modifications" not in st.session_state:
+        st.session_state.preview_modifications = {}
+    if "current_template_path" not in st.session_state:
+        st.session_state.current_template_path = None
+    if "current_json_data" not in st.session_state:
+        st.session_state.current_json_data = None
 
     # --- Tab Navigation ---
     tab1, tab2 = st.tabs(["📄 Documento Único", "📦 Processamento em Lote"])
@@ -115,13 +154,18 @@ def render_single_document_tab():
             except json.JSONDecodeError as e:
                 st.error(f"JSON inválido: {e}")
 
-    # --- Validation Button ---
+    # --- Action Buttons ---
     if template_file and json_file:
-        col_validate, col_render = st.columns(2)
+        col_validate, col_preview, col_render = st.columns(3)
 
         with col_validate:
-            if st.button("🔍 Validar Dados", use_container_width=True, key="validate_single"):
+            if st.button("🔍 Validar", use_container_width=True, key="validate_single"):
                 validate_single_document(template_file, json_file)
+
+        with col_preview:
+            if st.button("👁️ Pré-visualizar", use_container_width=True, key="preview_single"):
+                field_types = parse_field_types(field_types_json)
+                preview_single_document(template_file, json_file, field_types)
 
         with col_render:
             if st.button("▶️ Gerar Documento", use_container_width=True, type="primary", key="render_single"):
@@ -131,6 +175,10 @@ def render_single_document_tab():
     # --- Validation Results Display ---
     if st.session_state.validation_result:
         display_validation_result(st.session_state.validation_result)
+
+    # --- Preview Display with Text Selection ---
+    if st.session_state.preview_result:
+        display_preview_with_selection()
 
     # --- Assembled Documents Display ---
     if st.session_state.assembled_docs:
@@ -327,6 +375,190 @@ def validate_single_document(template_file, json_file):
         except Exception as e:
             st.error(f"Erro durante validação: {e}")
             st.session_state.validation_result = None
+
+
+def preview_single_document(template_file, json_file, field_types: Optional[Dict[str, str]]):
+    """Generate preview of rendered document without saving to file."""
+    with st.spinner("Gerando pré-visualização..."):
+        try:
+            # Save template temporarily
+            with tempfile.NamedTemporaryFile(suffix=".docx", delete=False) as tmp_template:
+                tmp_template.write(template_file.getvalue())
+                template_path = Path(tmp_template.name)
+
+            # Load JSON data
+            json_data = json.loads(json_file.getvalue().decode("utf-8"))
+
+            # Extract rendered text (without saving to file)
+            engine = _DocumentEngine(auto_normalize=True)
+            preview_data = engine.extract_rendered_text(
+                template_path=template_path,
+                data=json_data,
+                field_types=field_types
+            )
+
+            # Identify modified segments (fields that were replaced)
+            segments = identify_modified_segments(preview_data['full_text'], json_data)
+
+            # Store preview result
+            st.session_state.preview_result = {
+                'preview_data': preview_data,
+                'json_data': json_data,
+                'segments': segments,
+                'template_path': str(template_path),
+                'field_types': field_types
+            }
+
+            # Store for later rendering with modifications
+            st.session_state.current_template_path = template_path
+            st.session_state.current_json_data = json_data.copy()
+            st.session_state.preview_modifications = {}
+
+            st.success("✅ Pré-visualização gerada!")
+
+        except Exception as e:
+            st.error(f"Erro ao gerar pré-visualização: {e}")
+            st.session_state.preview_result = None
+
+
+def display_preview_with_selection():
+    """Display preview with editable text fields for modification."""
+    st.markdown("---")
+    st.subheader("👁️ Pré-visualização do Documento")
+
+    preview_result = st.session_state.preview_result
+    preview_data = preview_result['preview_data']
+    json_data = preview_result['json_data']
+    segments = preview_result['segments']
+
+    # --- Metrics ---
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.metric("Parágrafos", preview_data['paragraph_count'])
+    with col2:
+        st.metric("Tabelas", preview_data['table_count'])
+    with col3:
+        st.metric("Campos Preenchidos", len(segments))
+
+    # --- Full Text Preview (Read-Only) ---
+    with st.expander("📄 Texto Completo (Somente Leitura)", expanded=True):
+        st.text_area(
+            "Texto Renderizado",
+            value=preview_data['full_text'],
+            height=300,
+            disabled=True,
+            key="preview_full_text"
+        )
+
+    # --- Editable Fields Section ---
+    st.markdown("### ✏️ Editar Campos Antes de Gerar")
+    st.caption("Modifique os valores abaixo. As alterações serão aplicadas ao gerar o documento final.")
+
+    # Group segments by field name (avoid duplicates)
+    fields_displayed = set()
+    modifications = st.session_state.preview_modifications.copy()
+
+    for field, value in json_data.items():
+        if isinstance(value, str) and field not in fields_displayed:
+            fields_displayed.add(field)
+
+            # Get current value (modified or original)
+            current_value = modifications.get(field, value)
+
+            col_label, col_input = st.columns([1, 3])
+
+            with col_label:
+                st.markdown(f"**{field}:**")
+                if field in modifications:
+                    st.caption("🔄 Modificado")
+
+            with col_input:
+                new_value = st.text_input(
+                    f"Valor para {field}",
+                    value=current_value,
+                    key=f"edit_field_{field}",
+                    label_visibility="collapsed"
+                )
+
+                # Track modifications
+                if new_value != value:
+                    st.session_state.preview_modifications[field] = new_value
+                elif field in st.session_state.preview_modifications:
+                    del st.session_state.preview_modifications[field]
+
+    # --- Actions ---
+    st.markdown("---")
+    col_reset, col_apply = st.columns(2)
+
+    with col_reset:
+        if st.button("🔄 Restaurar Valores Originais", use_container_width=True):
+            st.session_state.preview_modifications = {}
+            st.rerun()
+
+    with col_apply:
+        if st.button("▶️ Gerar com Modificações", use_container_width=True, type="primary"):
+            generate_with_modifications()
+
+    # Show modification summary
+    if st.session_state.preview_modifications:
+        with st.expander("📝 Resumo das Modificações", expanded=True):
+            for field, new_value in st.session_state.preview_modifications.items():
+                original = json_data.get(field, "")
+                st.markdown(f"**{field}:** `{original}` → `{new_value}`")
+
+
+def generate_with_modifications():
+    """Generate document with user modifications applied."""
+    with st.spinner("Gerando documento com modificações..."):
+        try:
+            preview_result = st.session_state.preview_result
+            template_path = st.session_state.current_template_path
+            json_data = st.session_state.current_json_data.copy()
+            modifications = st.session_state.preview_modifications
+
+            # Apply modifications
+            for field, new_value in modifications.items():
+                json_data[field] = new_value
+
+            # Create output path
+            with tempfile.NamedTemporaryFile(suffix=".docx", delete=False) as tmp_output:
+                output_path = Path(tmp_output.name)
+
+            # Render document
+            engine = _DocumentEngine(auto_normalize=True)
+            result_path = engine.render(
+                template_path=template_path,
+                data=json_data,
+                output_path=output_path,
+                field_types=preview_result.get('field_types')
+            )
+
+            # Read generated document
+            with open(result_path, 'rb') as f:
+                doc_data = f.read()
+
+            # Generate output filename
+            output_filename = f"documento_modificado_{len(st.session_state.assembled_docs) + 1}.docx"
+
+            # Store in session state
+            st.session_state.assembled_docs.append({
+                'filename': output_filename,
+                'data': doc_data,
+                'modifications': modifications.copy()
+            })
+
+            # Cleanup
+            result_path.unlink()
+
+            # Clear preview
+            st.session_state.preview_result = None
+            st.session_state.preview_modifications = {}
+
+            st.success("✅ Documento gerado com modificações!")
+            st.rerun()
+
+        except Exception as e:
+            st.error(f"Erro ao gerar documento: {e}")
 
 
 def render_single_document(template_file, json_file, field_types: Optional[Dict[str, str]]):
