@@ -12,7 +12,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy and install Python dependencies
-COPY requirements.txt .
+COPY docker/services/doc-assembler/requirements.txt .
 RUN pip wheel --no-cache-dir --wheel-dir /wheels -r requirements.txt
 
 # Stage 2: Runtime
@@ -31,13 +31,15 @@ COPY --from=builder /wheels /wheels
 RUN pip install --no-cache-dir /wheels/* && rm -rf /wheels
 
 # Copy application code
-COPY api/ ./api/
+COPY docker/services/doc-assembler/api/ ./api/
 
-# NOTE: Engine source is mounted via docker-compose volume or built from root context
-# To build from root: docker build -f docker/services/doc-assembler/Dockerfile -t doc-assembler .
-# COPY ferramentas/legal-doc-assembler/src/ ./ferramentas/legal-doc-assembler/src/
+# Copy engine source from root context
+COPY ferramentas/legal-doc-assembler/src/ ./src/
+COPY ferramentas/legal-doc-assembler/templates/ ./templates/
+COPY ferramentas/legal-doc-assembler/resources/ ./resources/
 
-# Set ownership
+# Set PYTHONPATH and ownership
+ENV PYTHONPATH=/app:/app/src
 RUN chown -R appuser:appuser /app
 
 USER appuser

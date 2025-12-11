@@ -64,6 +64,14 @@ Se um módulo quebrar:
 2. Verificar se a quebra afetou outros módulos
 3. Rollback se necessário
 
+### 5. Fixes Definitivos vs Hot-Fixes
+
+**SEMPRE** priorizar correções e fixes definitivos. "Patches" ou "hot-fixes" devem ser usados **apenas** para:
+- Situações emergenciais de produção
+- Quando explicitamente solicitado pelo usuário
+
+> **Princípio:** Resolver a causa raiz, não o sintoma.
+
 ---
 
 ## Estrutura do Projeto

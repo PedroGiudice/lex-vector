@@ -19,26 +19,43 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 
-# Import from the existing trello-mcp codebase
-# We'll copy these files into the Docker image
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../../ferramentas/trello-mcp/src"))
+# Import from the trello-mcp codebase
+# In Docker: copied to /app/trello_src/ (PYTHONPATH includes /app)
+# Locally: at ferramentas/trello-mcp/src/
+if os.path.exists("/app/trello_src"):
+    # Running in Docker
+    from trello_src.models import (
+        BatchCardsInput,
+        CreateCardInput,
+        EnvironmentSettings,
+        MoveCardInput,
+        SearchCardsInput,
+    )
+    from trello_src.trello_client import (
+        TrelloAPIError,
+        TrelloAuthError,
+        TrelloClient,
+        TrelloRateLimitError,
+    )
+else:
+    # Running locally - add path for development
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../../ferramentas/trello-mcp/src"))
+    from models import (
+        BatchCardsInput,
+        CreateCardInput,
+        EnvironmentSettings,
+        MoveCardInput,
+        SearchCardsInput,
+    )
+    from trello_client import (
+        TrelloAPIError,
+        TrelloAuthError,
+        TrelloClient,
+        TrelloRateLimitError,
+    )
 
-from models import (
-    BatchCardsInput,
-    CreateCardInput,
-    EnvironmentSettings,
-    MoveCardInput,
-    SearchCardsInput,
-)
-from trello_client import (
-    TrelloAPIError,
-    TrelloAuthError,
-    TrelloClient,
-    TrelloRateLimitError,
-)
-
-# Import API-specific models
-from .models import (
+# Import API-specific schemas (renamed to avoid conflict with trello_src.models)
+from .schemas import (
     BatchCardsRequest,
     BoardResponse,
     BoardStructureResponse,

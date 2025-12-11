@@ -48,10 +48,11 @@ services:
       trello-mcp:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8501/healthz"]
+      test: ["CMD", "python", "-c", "import requests; r = requests.get('http://127.0.0.1:8501/_stcore/health', timeout=5); exit(0 if r.status_code == 200 else 1)"]
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 40s
     restart: unless-stopped
 
   # ===========================================
@@ -89,7 +90,7 @@ services:
           memory: 4G
           cpus: '1'
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://127.0.0.1:8001/health', timeout=5).raise_for_status()"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -98,8 +99,8 @@ services:
 
   doc-assembler:
     build:
-      context: ./services/doc-assembler
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: docker/services/doc-assembler/Dockerfile
     container_name: lw-doc-assembler
     ports:
       - "8002:8002"
@@ -117,7 +118,7 @@ services:
           memory: 1G
           cpus: '1'
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8002/health"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8002/health', timeout=5)"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -129,7 +130,7 @@ services:
       dockerfile: docker/services/stj-api/Dockerfile
     container_name: lw-stj-api
     ports:
-      - "8003:8003"
+      - "8003:8000"
     environment:
       - DUCKDB_PATH=/app/data/stj.duckdb
       - CACHE_TTL_HOURS=24
@@ -144,16 +145,17 @@ services:
           memory: 2G
           cpus: '2'
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8003/health"]
+      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://127.0.0.1:8000/health', timeout=5).raise_for_status()"]
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 40s
     restart: unless-stopped
 
   trello-mcp:
     build:
-      context: ./services/trello-mcp
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: docker/services/trello-mcp/Dockerfile
     container_name: lw-trello-mcp
     ports:
       - "8004:8004"
@@ -169,10 +171,11 @@ services:
           memory: 512M
           cpus: '1'
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8004/health"]
+      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://127.0.0.1:8004/health', timeout=5).raise_for_status()"]
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 10s
     restart: unless-stopped
 
   # ===========================================

@@ -11,7 +11,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements and install dependencies
-COPY requirements.txt .
+COPY docker/services/trello-mcp/requirements.txt .
 RUN pip install --no-cache-dir --user -r requirements.txt
 
 # ============================================================================
@@ -28,17 +28,16 @@ WORKDIR /app
 COPY --from=builder /root/.local /home/appuser/.local
 
 # Copy application code
-COPY api/ /app/api/
+COPY docker/services/trello-mcp/api/ /app/api/
 
-# NOTE: Trello client code is mounted via docker-compose volume or built from root context
-# To build from root: docker build -f docker/services/trello-mcp/Dockerfile -t trello-mcp .
-# COPY ferramentas/trello-mcp/src /app/trello_src
+# Copy Trello client code from ferramentas
+COPY ferramentas/trello-mcp/src /app/trello_src
 
 # Set environment variables
 ENV PATH=/home/appuser/.local/bin:$PATH \
     PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONPATH=/app:/app/trello_src
+    PYTHONPATH=/app:/app/api:/app/trello_src
 
 # Switch to non-root user
 USER appuser

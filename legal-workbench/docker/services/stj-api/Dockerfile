@@ -44,8 +44,11 @@ COPY ferramentas/stj-dados-abertos/src /app/backend/src
 COPY ferramentas/stj-dados-abertos/config.py /app/backend/
 
 # Create data directories with proper permissions
-RUN mkdir -p /app/data/database /app/data/logs /app/data/staging /app/data/metadata \
-    && chown -R apiuser:apiuser /app/data
+# config.py uses Path(__file__).parent / "data" = /app/backend/data
+RUN mkdir -p /app/backend/data/database /app/backend/data/database/backups \
+             /app/backend/data/logs /app/backend/data/staging \
+             /app/backend/data/archive /app/backend/data/metadata \
+    && chown -R apiuser:apiuser /app/backend/data
 
 # Set environment variables
 ENV PATH=/home/apiuser/.local/bin:$PATH \

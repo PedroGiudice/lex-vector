@@ -32,17 +32,17 @@ TESTS_SKIPPED=0
 
 log_pass() {
     echo -e "  ${GREEN}✓${NC} $1"
-    ((TESTS_PASSED++))
+    ((++TESTS_PASSED))
 }
 
 log_fail() {
     echo -e "  ${RED}✗${NC} $1"
-    ((TESTS_FAILED++))
+    ((++TESTS_FAILED))
 }
 
 log_skip() {
     echo -e "  ${YELLOW}○${NC} $1 (skipped)"
-    ((TESTS_SKIPPED++))
+    ((++TESTS_SKIPPED))
 }
 
 log_info() {

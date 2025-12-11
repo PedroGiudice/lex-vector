@@ -15,19 +15,23 @@ from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-# Add parent directory to path to import from ferramentas
-# Support both local development and Docker deployment
-if os.path.exists("/app/ferramentas"):
-    # Running in Docker
-    DOC_ASSEMBLER_PATH = Path("/app/ferramentas/legal-doc-assembler/src")
+# Import DocumentEngine from the src package
+# In Docker: /app/src/engine.py (PYTHONPATH includes /app)
+# Locally: needs ferramentas/legal-doc-assembler/src in path
+import importlib
+
+if os.path.exists("/app/src"):
+    # Running in Docker - src is a package at /app/src
+    DOC_ASSEMBLER_PATH = Path("/app/src")
 else:
-    # Running locally
-    LEGAL_WORKBENCH_ROOT = Path("/home/user/Claude-Code-Projetos/legal-workbench")
+    # Running locally - add path
+    LEGAL_WORKBENCH_ROOT = Path(__file__).parent.parent.parent.parent
     DOC_ASSEMBLER_PATH = LEGAL_WORKBENCH_ROOT / "ferramentas/legal-doc-assembler/src"
+    sys.path.insert(0, str(DOC_ASSEMBLER_PATH.parent))
 
-sys.path.insert(0, str(DOC_ASSEMBLER_PATH))
-
-from engine import DocumentEngine
+# Import as package to support relative imports within engine.py
+engine_module = importlib.import_module("src.engine")
+DocumentEngine = engine_module.DocumentEngine
 
 from .models import (
     AssembleRequest,
