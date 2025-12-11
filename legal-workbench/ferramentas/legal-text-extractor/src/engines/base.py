@@ -65,6 +65,9 @@ class ExtractionEngine(ABC):
     min_ram_gb: float = 0.0
     dependencies: list[str] = []
 
+    # Low memory mode - bypass RAM check (use with caution)
+    _skip_ram_check: bool = False
+
     @abstractmethod
     def extract(self, pdf_path: Path) -> ExtractionResult:
         """
@@ -96,17 +99,21 @@ class ExtractionEngine(ABC):
         """
         pass
 
-    def check_resources(self) -> tuple[bool, str]:
+    def check_resources(self, skip_ram_check: bool = False) -> tuple[bool, str]:
         """
         Check if system has sufficient resources.
+
+        Args:
+            skip_ram_check: If True, bypass RAM requirement (use with caution)
 
         Returns:
             (available, reason) tuple:
             - available: True if resources are sufficient
             - reason: Human-readable explanation if unavailable
         """
-        # Check RAM requirement
-        if self.min_ram_gb > 0:
+        # Check RAM requirement (can be bypassed for low-memory systems)
+        should_check_ram = self.min_ram_gb > 0 and not skip_ram_check and not self._skip_ram_check
+        if should_check_ram:
             available_gb = psutil.virtual_memory().available / (1024 ** 3)
             if available_gb < self.min_ram_gb:
                 return (

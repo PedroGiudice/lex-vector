@@ -95,18 +95,32 @@ class MarkerEngine(ExtractionEngine):
     min_ram_gb = 10.0
     dependencies = ["marker"]
 
-    def __init__(self, config: Optional[MarkerConfig] = None, use_gpu: bool = False):
+    def __init__(
+        self,
+        config: Optional[MarkerConfig] = None,
+        use_gpu: bool = False,
+        low_memory_mode: bool = False,
+    ):
         """
         Inicializa Marker engine.
 
         Args:
             config: Configuração customizada (usa defaults otimizados se None)
             use_gpu: Usar GPU se disponível (padrão: False)
+            low_memory_mode: Ignorar verificação de RAM (use com cautela)
         """
         self.config = config or MarkerConfig()
         self.use_gpu = use_gpu
         self._models = None
         self._converter = None
+
+        # Low memory mode bypasses RAM check
+        if low_memory_mode:
+            self._skip_ram_check = True
+            logger.warning(
+                "⚠️  LOW MEMORY MODE: RAM check bypassed. "
+                "System may become slow or unresponsive for large PDFs."
+            )
 
     def is_available(self) -> bool:
         """

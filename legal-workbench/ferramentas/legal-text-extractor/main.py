@@ -78,18 +78,28 @@ class LegalTextExtractor:
         >>> print(f"Páginas nativas: {result.native_pages}, OCR: {result.ocr_pages}")
     """
 
-    def __init__(self, marker_config: MarkerConfig | None = None):
+    def __init__(
+        self,
+        marker_config: MarkerConfig | None = None,
+        low_memory_mode: bool = False,
+    ):
         """
         Inicializa o extrator.
 
         Args:
             marker_config: Configuração customizada do Marker (opcional)
+            low_memory_mode: Ignorar verificação de RAM (use com cautela).
+                            Útil para sistemas com <10GB RAM + swap disponível.
         """
-        self.marker_engine = MarkerEngine(config=marker_config)
+        self.marker_engine = MarkerEngine(
+            config=marker_config,
+            low_memory_mode=low_memory_mode,
+        )
         self.cleaner = DocumentCleaner()
         self.txt_exporter = TextExporter()
         self.md_exporter = MarkdownExporter()
         self.json_exporter = JSONExporter()
+        self.low_memory_mode = low_memory_mode
 
     def process_pdf(
         self,
