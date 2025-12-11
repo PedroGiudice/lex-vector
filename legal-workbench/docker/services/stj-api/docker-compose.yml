@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  stj-api:
+    build:
+      context: ../../..
+      dockerfile: docker/services/stj-api/Dockerfile
+    image: legal-workbench/stj-api:latest
+    container_name: stj-api
+    restart: unless-stopped
+
+    ports:
+      - "8000:8000"
+
+    volumes:
+      # Mount data directory for persistence
+      - stj-data:/app/data
+      # Mount backend code (development mode) - optional
+      # Uncomment for live code reloading during development
+      # - ../../../ferramentas/stj-dados-abertos/src:/app/backend/src:ro
+      # - ../../../ferramentas/stj-dados-abertos/config.py:/app/backend/config.py:ro
+
+    environment:
+      - LOG_LEVEL=INFO
+      - DUCKDB_MEMORY_LIMIT=4GB
+      - DUCKDB_THREADS=4
+
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8000/health', timeout=5).raise_for_status()"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+    labels:
+      - "com.legal-workbench.service=stj-api"
+      - "com.legal-workbench.description=STJ Dados Abertos REST API"
+
+volumes:
+  stj-data:
+    name: stj-api-data
+    driver: local

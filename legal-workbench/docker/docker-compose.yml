@@ -1,0 +1,196 @@
+version: "3.8"
+
+# Legal Workbench - Docker Compose
+# Target: 14GB RAM WSL, i5 12th gen
+
+networks:
+  legal-workbench-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
+
+volumes:
+  stj-duckdb-data:
+  text-extractor-cache:
+  app-data:
+  redis-data:
+
+services:
+  # ===========================================
+  # Frontend
+  # ===========================================
+  streamlit-hub:
+    build:
+      context: ./services/streamlit-hub
+      dockerfile: Dockerfile
+    container_name: lw-hub
+    ports:
+      - "8501:8501"
+    environment:
+      - TEXT_EXTRACTOR_URL=http://text-extractor:8001
+      - DOC_ASSEMBLER_URL=http://doc-assembler:8002
+      - STJ_API_URL=http://stj-api:8003
+      - TRELLO_MCP_URL=http://trello-mcp:8004
+      - DATA_PATH=/app/data
+    volumes:
+      - app-data:/app/data
+      - ../:/app/legal-workbench:ro  # Mount source for development
+    networks:
+      - legal-workbench-net
+    depends_on:
+      text-extractor:
+        condition: service_healthy
+      doc-assembler:
+        condition: service_healthy
+      stj-api:
+        condition: service_healthy
+      trello-mcp:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8501/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  # ===========================================
+  # Backend Services
+  # ===========================================
+
+  text-extractor:
+    build:
+      context: ./services/text-extractor
+      dockerfile: Dockerfile
+    container_name: lw-text-extractor
+    ports:
+      - "8001:8001"
+      - "5555:5555"  # Celery Flower
+    environment:
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - MARKER_CACHE_DIR=/app/cache
+      - MAX_CONCURRENT_JOBS=2
+      - JOB_TIMEOUT_SECONDS=600
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    volumes:
+      - text-extractor-cache:/app/cache
+      - app-data:/app/data
+    networks:
+      - legal-workbench-net
+    depends_on:
+      - redis
+    deploy:
+      resources:
+        limits:
+          memory: 10G
+          cpus: '4'
+        reservations:
+          memory: 6G
+          cpus: '2'
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s  # Marker model loading
+    restart: unless-stopped
+
+  doc-assembler:
+    build:
+      context: ./services/doc-assembler
+      dockerfile: Dockerfile
+    container_name: lw-doc-assembler
+    ports:
+      - "8002:8002"
+    environment:
+      - TEMPLATES_DIR=/app/templates
+      - OUTPUT_DIR=/app/output
+    volumes:
+      - app-data:/app/data
+      - ../ferramentas/legal-doc-assembler/templates:/app/templates:ro
+    networks:
+      - legal-workbench-net
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1'
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  stj-api:
+    build:
+      context: ./services/stj-api
+      dockerfile: Dockerfile
+    container_name: lw-stj-api
+    ports:
+      - "8003:8003"
+    environment:
+      - DUCKDB_PATH=/app/data/stj.duckdb
+      - CACHE_TTL_HOURS=24
+      - SYNC_INTERVAL_HOURS=6
+    volumes:
+      - stj-duckdb-data:/app/data
+    networks:
+      - legal-workbench-net
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '2'
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8003/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  trello-mcp:
+    build:
+      context: ./services/trello-mcp
+      dockerfile: Dockerfile
+    container_name: lw-trello-mcp
+    ports:
+      - "8004:8004"
+    environment:
+      - TRELLO_API_KEY=${TRELLO_API_KEY}
+      - TRELLO_API_TOKEN=${TRELLO_API_TOKEN}
+      - RATE_LIMIT_PER_MINUTE=100
+    networks:
+      - legal-workbench-net
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '1'
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8004/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  # ===========================================
+  # Infrastructure
+  # ===========================================
+
+  redis:
+    image: redis:7-alpine
+    container_name: lw-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - legal-workbench-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
