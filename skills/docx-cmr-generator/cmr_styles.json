@@ -61,6 +61,7 @@
       "description": "Endereçamento inicial (EXCELENTÍSSIMO SENHOR...)",
       "font_name": "Century Gothic",
       "font_size_pt": 12,
+      "bold": true,
       "alignment": "BOTH",
       "line_spacing_rule": "1.5"
     },

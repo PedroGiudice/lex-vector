@@ -9,10 +9,10 @@ Converte documentos Markdown para Word (.docx) seguindo o padrão de formataçã
 
 ## Localização
 
-A ferramenta está em `Word-Templates/cmr-docx-generator/`:
+A ferramenta está em `skills/docx-cmr-generator/`:
 
 ```
-Word-Templates/cmr-docx-generator/
+skills/docx-cmr-generator/
 ├── doc_builder.py       # Conversor MD → DOCX
 ├── style_extractor.py   # Extrator de DNA de templates
 ├── cmr_styles.json      # Configuração de estilos
@@ -25,7 +25,7 @@ Word-Templates/cmr-docx-generator/
 ### Ativação do ambiente
 
 ```bash
-cd Word-Templates/cmr-docx-generator
+cd skills/docx-cmr-generator
 source .venv/bin/activate
 ```
 
