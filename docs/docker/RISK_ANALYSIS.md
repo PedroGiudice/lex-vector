@@ -3,13 +3,13 @@
 **Data:** 2025-12-11
 **Sistema:** Legal Workbench - Sistema de Automação Jurídica
 **Escopo:** Análise de Riscos para Dockerização Completa
-**Autor:** Claude Code (DevOps Automation Expert)
+**Autor:** Pedro Giudice (PGR)
 
 ---
 
-## Executive Summary
+## Resumo
 
-A dockerização do Legal Workbench apresenta riscos significativos em múltiplas dimensões:
+A dockerização do Legal Workbench apresenta riscos em múltiplas dimensões:
 - **CRÍTICO:** Gerenciamento de secrets (GOOGLE_API_KEY, TRELLO_API)
 - **CRÍTICO:** Consumo de memória (~10GB para Marker PDF)
 - **ALTO:** Persistência de dados e estado entre restarts
@@ -17,7 +17,7 @@ A dockerização do Legal Workbench apresenta riscos significativos em múltipla
 - **MÉDIO:** Compatibilidade de dependências Python complexas
 - **MÉDIO:** Network latency para APIs externas
 
-Este documento fornece análise exaustiva e planos de mitigação.
+Este documento fornece análise detalhada e planos de mitigação.
 
 ---
 
@@ -40,7 +40,7 @@ Este documento fornece análise exaustiva e planos de mitigação.
 | **R02** | OOM Kill - Marker PDF consome >10GB | Alta | CRÍTICO | **CRÍTICO** | Memory limits, swap config, health checks |
 | **R03** | Perda de dados em ~/juridico-data | Baixa | CRÍTICO | **CRÍTICO** | Volume mounts read-only quando possível, backups |
 | **R04** | Container escape via vulnerabilidades | Baixa | CRÍTICO | **CRÍTICO** | Non-root user, security scanning, AppArmor/SELinux |
-| **R05** | Cold start >2min para legal-text-extractor | Alta | Alto | **ALTO** | Model caching, warm containers, readiness probes |
+| **R05** | Cold start >2min para legal-text-extractor | Alta | Alto | **ALTO** | Model caching, persistent volumes, startup optimization |
 | **R06** | Incompatibilidade GPU/CPU para Marker | Média | Alto | **ALTO** | Multi-stage build, runtime detection, fallback |
 | **R07** | DuckDB corruption em concurrent access | Média | Alto | **ALTO** | Single writer pattern, file locking, WAL mode |
 | **R08** | Rate limiting Gemini API (429 errors) | Média | Alto | **ALTO** | Retry logic, circuit breaker, request queuing |
@@ -58,7 +58,7 @@ Este documento fornece análise exaustiva e planos de mitigação.
 | **R20** | File descriptor limits atingidos | Média | Alto | **ALTO** | ulimit config, resource limits, monitoring |
 | **R21** | Deadlock em shutdown (SIGTERM ignored) | Média | Médio | **MÉDIO** | Graceful shutdown handlers, SIGTERM timeouts |
 | **R22** | Locale/encoding issues (UTF-8) | Média | Médio | **MÉDIO** | Explicit locale setting, LANG env vars |
-| **R23** | Outdated base images com CVEs | Alta | Alto | **ALTO** | Automated scanning, update policy, SBOM |
+| **R23** | Outdated base images com CVEs | Alta | Alto | **ALTO** | Manual scanning periodic, update policy |
 | **R24** | Rollback impossível (no versioning) | Alta | CRÍTICO | **CRÍTICO** | Image tagging strategy, versioned deployments |
 | **R25** | Inter-container communication failure | Média | Alto | **ALTO** | Service discovery, health checks, retry logic |
 
@@ -366,11 +366,15 @@ def process_pdf(file_path):
     return process_full(file_path)
 ```
 
-5. **Monitoring & alerting:**
+5. **Monitoring via logs:**
 ```python
-# Prometheus metrics
-from prometheus_client import Gauge
-memory_usage = Gauge('memory_usage_bytes', 'Memory usage')
+import logging
+logger = logging.getLogger(__name__)
+
+def log_memory_usage():
+    import psutil
+    mem = psutil.virtual_memory()
+    logger.info(f"Memory usage: {mem.percent}% ({mem.used // (1024**3)}GB / {mem.total // (1024**3)}GB)")
 ```
 
 #### R-OPS-02: Cold Start Latency (Model Loading)
@@ -406,11 +410,12 @@ if __name__ == "__main__":
     warmup()
 ```
 
-3. **Readiness probe:**
+3. **Health check com startup time:**
 ```yaml
 healthcheck:
-  test: ["CMD", "curl", "-f", "http://localhost:8502/health/ready"]
+  test: ["CMD", "curl", "-f", "http://localhost:8502/health"]
   start_period: 120s  # Give time for model loading
+  interval: 30s
 ```
 
 4. **Keep-alive strategy:**
@@ -1758,52 +1763,40 @@ echo ""
 echo "=== Benchmarks Complete ==="
 ```
 
-**Monitoring Setup:**
+**Log Monitoring:**
 ```bash
 #!/bin/bash
-# setup-monitoring.sh
+# monitor-logs.sh
 
-echo "Setting up monitoring..."
+echo "Monitoring logs for errors and warnings..."
 
-# 1. Prometheus metrics exporter
-docker run -d --name prometheus-exporter \
-  -p 9090:9090 \
-  -v $(pwd)/prometheus.yml:/etc/prometheus/prometheus.yml \
-  prom/prometheus
+# Check recent errors
+docker-compose logs --tail=100 | grep -i "error\|exception\|failed"
 
-# 2. Log aggregation
-docker run -d --name loki \
-  -p 3100:3100 \
-  grafana/loki
+# Monitor specific service
+docker-compose logs -f lw-text-extractor | grep -i "memory\|oom"
 
-# 3. Dashboard
-docker run -d --name grafana \
-  -p 3000:3000 \
-  -e "GF_SECURITY_ADMIN_PASSWORD=admin" \
-  grafana/grafana
-
-echo "✓ Monitoring stack available:"
-echo "  - Prometheus: http://localhost:9090"
-echo "  - Grafana: http://localhost:3000"
+# Export logs for analysis
+docker-compose logs --no-color > logs-$(date +%Y%m%d-%H%M%S).txt
+echo "✓ Logs exported to logs-$(date +%Y%m%d-%H%M%S).txt"
 ```
 
 ### 7.3 Ongoing Validation (Weekly)
 
 **Security Audit:**
 ```bash
-# Run weekly
+# Run weekly or as needed
 trivy image --severity HIGH,CRITICAL legal-workbench:latest
-docker scan legal-workbench:latest
 pip-audit
-safety check
 ```
 
-**Performance Metrics:**
+**System Health:**
 ```bash
 # Check weekly
 docker stats --no-stream
 docker system df  # Disk usage
 docker-compose logs --tail=1000 | grep -i "slow\|timeout\|oom"
+docker-compose ps  # Check all services healthy
 ```
 
 **Backup Verification:**
@@ -1856,58 +1849,57 @@ docker system prune -a --volumes  # Clean old images
 
 ---
 
-## 9. Success Criteria
+## 9. Critérios de Sucesso
 
 Dockerização será considerada bem-sucedida quando:
 
 - [ ] **Zero secrets** em images ou logs
-- [ ] **100% uptime** em testes de 72h
-- [ ] **Cold start <120s** (p95)
-- [ ] **PDF extraction <10s** para PDFs <50MB (p95)
-- [ ] **Memory stable** (no leaks após 100 requests)
+- [ ] **Estabilidade** em testes de 72h sem crashes
+- [ ] **Cold start <120s** para text-extractor
+- [ ] **PDF extraction <10s** para PDFs <50MB (maioria dos casos)
+- [ ] **Memory stable** (sem memory leaks após 100 requests)
 - [ ] **Zero data loss** em testes de rollback
-- [ ] **All services healthy** após restart
-- [ ] **Backup/restore <30min** (tested)
-- [ ] **No HIGH/CRITICAL CVEs** em production
-- [ ] **Monitoring dashboards** funcionais
+- [ ] **Todos os serviços healthy** após restart
+- [ ] **Backup/restore <30min** (testado)
+- [ ] **Sem CVEs CRÍTICOS** conhecidos
 
 ---
 
 ## 10. Conclusão
 
-A dockerização do Legal Workbench é **viável mas requer atenção crítica** em:
+A dockerização do Legal Workbench é **viável mas requer atenção** em:
 
-1. **Secrets management** - Maior risco de segurança
-2. **Memory management** - Marker PDF pode causar OOM
+1. **Secrets management** - Risco de segurança importante
+2. **Memory management** - Marker PDF pode causar OOM em 16GB RAM
 3. **Data persistence** - juridico-data é crítico
 4. **Performance** - Cold start e model loading
-5. **Rollback capability** - Essencial para production
+5. **Rollback capability** - Importante para recuperação rápida
 
 **Recomendações:**
 
-1. **Phase 1:** Implementar em dev/staging primeiro
-2. **Phase 2:** Testes de stress e disaster recovery
-3. **Phase 3:** Production deployment com canary
-4. **Phase 4:** Monitoring e otimização contínua
+1. **Fase 1:** Implementar em ambiente local primeiro
+2. **Fase 2:** Testes de stress e disaster recovery
+3. **Fase 3:** Deploy gradual, testar cada serviço
+4. **Fase 4:** Otimização contínua baseada em uso real
 
-**Red Flags para Não Prosseguir:**
+**Sinais de Alerta:**
 - Impossibilidade de eliminar secrets de images
-- Performance degradation >50% vs local
-- Inability to achieve <5min rollback
+- Degradação de performance >50% vs local
+- Rollback demora >10min
 - DuckDB corruption em testes
 
-**Go/No-Go Decision:**
+**Decisão Go/No-Go:**
 - ✓ GO se todos os riscos CRÍTICOS mitigados
 - ✗ NO-GO se >2 riscos CRÍTICOS não resolvidos
 
 ---
 
-**Next Steps:**
-1. Review este documento com time
+**Próximos Passos:**
+1. Revisar este documento
 2. Priorizar mitigações (seção 8)
-3. Implementar Phase 1 em branch separado
+3. Implementar Fase 1 em branch separado
 4. Executar todos os checklists (seção 7)
-5. Decision meeting: GO/NO-GO
+5. Decisão final: GO/NO-GO
 
 **Document Version:** 1.0
 **Last Updated:** 2025-12-11

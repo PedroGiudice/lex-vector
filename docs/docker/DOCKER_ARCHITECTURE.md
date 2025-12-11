@@ -2,7 +2,7 @@
 
 **Version:** 1.0.0
 **Last Updated:** 2025-12-11
-**Status:** Production-Ready Architecture Design
+**Status:** Docker Architecture Design
 
 ---
 
@@ -35,7 +35,7 @@ The architecture is designed for:
 - **Scalability**: Services can be scaled independently
 - **Resource Optimization**: Heavy services (text-extractor) separated from light services
 - **Development Efficiency**: Hot-reload enabled for rapid iteration
-- **Production Readiness**: Multi-stage builds, health checks, monitoring hooks
+- **Reliability**: Multi-stage builds, health checks, proper error handling
 
 ---
 
@@ -106,18 +106,20 @@ External Dependencies:
 | Container | Base Image | Ports | Memory | CPU | Volume Mounts | Restart Policy |
 |-----------|------------|-------|--------|-----|---------------|----------------|
 | **lw-hub** | `python:3.11-slim` | `8501:8501` | 512MB | 0.5 | `lw-data`, `lw-shared` | `unless-stopped` |
-| **lw-text-extractor** | `python:3.11` | `8001:8001` | 12GB | 4.0 | `lw-data`, `lw-cache`, `lw-shared` | `unless-stopped` |
+| **lw-text-extractor** | `python:3.11` | `8001:8001` | 10GB | 4.0 | `lw-data`, `lw-cache`, `lw-shared` | `unless-stopped` |
 | **lw-doc-assembler** | `python:3.11-slim` | `8002:8002` | 1GB | 1.0 | `lw-data`, `lw-templates`, `lw-shared` | `unless-stopped` |
 | **lw-stj** | `python:3.11-slim` | `8003:8003` | 1GB | 1.0 | `lw-duckdb`, `lw-shared` | `unless-stopped` |
 | **lw-trello-mcp** | `python:3.11-slim` | `8004:8004` | 512MB | 0.5 | `lw-shared` | `unless-stopped` |
 
 ### Resource Justification
 
-- **lw-text-extractor (12GB)**: Marker-PDF requires ~10GB RAM for OCR processing + 2GB buffer for Gemini CLI operations
+- **lw-text-extractor (10GB)**: Marker-PDF requires ~8-9GB RAM for OCR processing + buffer for Gemini operations
 - **lw-hub (512MB)**: Lightweight Streamlit router, minimal state management
 - **lw-doc-assembler (1GB)**: DOCX generation can spike during template rendering
 - **lw-stj (1GB)**: DuckDB in-memory operations for query optimization
 - **lw-trello-mcp (512MB)**: Stateless MCP server, minimal overhead
+
+**Total System RAM**: ~13GB allocated, fits comfortably in 16GB with 3GB headroom for OS and other processes
 
 ---
 
@@ -500,10 +502,10 @@ services:
       resources:
         limits:
           cpus: '4.0'
-          memory: 12G
+          memory: 10G
         reservations:
           cpus: '2.0'
-          memory: 8G
+          memory: 7G
 
     # Optional GPU support
     # runtime: nvidia
@@ -964,7 +966,7 @@ depends_on:
     condition: service_healthy
 ```
 
-### Monitoring Integration
+### Monitoring via Health Checks
 
 ```bash
 # Health check all services
@@ -975,6 +977,9 @@ docker inspect --format='{{.State.Health.Status}}' lw-text-extractor
 
 # Health check logs
 docker inspect --format='{{range .State.Health.Log}}{{.Output}}{{end}}' lw-hub
+
+# View logs
+docker-compose logs -f --tail=100 lw-text-extractor
 ```
 
 ---
@@ -1090,14 +1095,17 @@ docker tag lw-hub:v1.0.0 lw-hub:latest
 docker-compose up -d --no-deps hub
 ```
 
-### Monitoring & Logging
+### Logging
 
 ```bash
-# Centralized logging with ELK stack
-docker-compose -f docker-compose.yml -f docker-compose.monitoring.yml up -d
+# View logs from all services
+docker-compose logs -f
 
-# Metrics with Prometheus + Grafana
-# Expose container metrics on :9090
+# View specific service logs
+docker-compose logs -f lw-text-extractor
+
+# Export logs for analysis
+docker-compose logs --no-color > logs-$(date +%Y%m%d).txt
 ```
 
 ### CI/CD Integration
@@ -1138,7 +1146,7 @@ jobs:
 
 ---
 
-## Production Checklist
+## Deployment Checklist
 
 - [ ] Multi-stage Dockerfiles implemented for all services
 - [ ] Health checks configured with appropriate timeouts
@@ -1150,9 +1158,7 @@ jobs:
 - [ ] Service dependencies configured (depends_on)
 - [ ] Restart policies set to `unless-stopped`
 - [ ] Images tagged with version numbers
-- [ ] Registry push configured for CI/CD
-- [ ] Backup strategy documented and automated
-- [ ] Monitoring/alerting integrated
+- [ ] Backup strategy documented
 - [ ] Documentation updated with deployment procedures
 
 ---
@@ -1160,8 +1166,8 @@ jobs:
 **Next Steps:**
 1. Implement Dockerfiles based on specifications above
 2. Create `docker-compose.dev.yml` for hot-reload development
-3. Set up CI/CD pipeline for automated builds
-4. Configure monitoring with Prometheus/Grafana
+3. Test resource limits on target hardware (16GB RAM, i5 13th gen)
+4. Set up automated backups
 5. Document disaster recovery procedures
 
 ---

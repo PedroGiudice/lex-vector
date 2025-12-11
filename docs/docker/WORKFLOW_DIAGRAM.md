@@ -1,11 +1,11 @@
 # Legal Workbench - Docker Workflow Diagrams
 
-**Autor**: Architecture Team
+**Autor**: Pedro Giudice
 **Data**: 2025-12-11
 **Versão**: 1.0.0
-**Status**: Production-Ready
+**Status**: Draft
 
-Este documento contém os diagramas completos do workflow de dockerização do Legal Workbench, mostrando a arquitetura de containers, deploy, fluxo de dados e topologia de rede.
+Este documento contém os diagramas do workflow de dockerização do Legal Workbench, mostrando a arquitetura de containers, deploy, fluxo de dados e topologia de rede.
 
 ---
 
@@ -722,5 +722,5 @@ iptables -A FORWARD -i docker0 -o docker0 -j ACCEPT
 ---
 
 **Última atualização**: 2025-12-11
-**Revisado por**: Architecture Team
+**Autor**: Pedro Giudice (PGR)
 **Versão do documento**: 1.0.0

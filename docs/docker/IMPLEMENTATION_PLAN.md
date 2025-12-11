@@ -3,20 +3,21 @@
 
 **Version**: 1.0
 **Created**: 2025-12-11
-**Status**: Draft for Review
+**Status**: Draft
 **Estimated Total Duration**: 18-22 working days
+**Target Environment**: 16GB RAM, i5 13th gen (10 cores), 260GB SSD NVMe, WSL2
 
 ---
 
-## 1. Executive Summary
+## 1. Resumo
 
-This plan outlines the transformation of Legal Workbench from a monolithic Streamlit application into a production-grade microservices architecture using Docker and Docker Compose. The current system consists of a Streamlit hub that directly imports Python modules from five backend tools. The target architecture will containerize each component as an independent service with REST APIs, enabling horizontal scaling, isolated deployments, and improved fault tolerance.
+Este plano detalha a transformação do Legal Workbench de uma aplicação Streamlit monolítica para uma arquitetura de microserviços usando Docker e Docker Compose. O sistema atual consiste em um hub Streamlit que importa diretamente módulos Python de cinco ferramentas backend. A arquitetura alvo irá containerizar cada componente como um serviço independente com APIs REST, permitindo escalabilidade, deploys isolados e melhor tolerância a falhas.
 
-**Key Objectives**:
-- Zero functionality degradation during migration
-- Production-ready from day one (monitoring, logging, health checks)
-- Gradual rollout with rollback capability at each phase
-- Preserve all existing complexity (Marker OCR, Gemini API, DuckDB, MCP Server)
+**Objetivos Principais**:
+- Zero degradação de funcionalidade durante migração
+- Confiável desde o dia um (logging, health checks)
+- Rollout gradual com capacidade de rollback em cada fase
+- Preservar toda a complexidade existente (Marker OCR, Gemini API, DuckDB, MCP Server)
 
 **Architecture Shift**:
 ```
@@ -72,8 +73,7 @@ The system will consist of 6 containerized services:
 │  ┌──────────────────────────────────────────────────┐     │      │
 │  │ Observability Layer                              │     │      │
 │  ├──────────────────────────────────────────────────┤     │      │
-│  │  Prometheus (9090) + Grafana (3000)              │     │      │
-│  │  Loki (3100) - Centralized Logging               │     │      │
+│  │  Basic Logging (docker logs + health checks)     │     │      │
 │  └──────────────────────────────────────────────────┘     │      │
 │                                                            │      │
 │  ┌──────────────────────────────────────────────────┐     │      │
@@ -95,13 +95,13 @@ External Dependencies:                                              │
 ### 2.2 Communication Patterns
 
 - **Synchronous**: REST APIs (FastAPI) for CRUD operations
-- **Asynchronous**: Background jobs for long-running tasks (text extraction)
-- **Service Discovery**: Docker DNS resolution (service names)
-- **API Versioning**: `/api/v1` prefix for all endpoints
+- **Asynchronous**: Background jobs para tarefas longas (text extraction)
+- **Service Discovery**: Resolução DNS do Docker (service names)
+- **API Versioning**: Prefixo `/api/v1` para todos os endpoints
 
 ---
 
-## 3. Service Definitions
+## 3. Definição dos Serviços
 
 ### 3.1 Streamlit Hub Service (`streamlit-hub`)
 
@@ -140,7 +140,7 @@ DATA_PATH=/app/data
 - External API: Google Gemini API
 
 **Resource Requirements**:
-- RAM: 12GB minimum (Marker PDF models)
+- RAM: 10GB limit (Marker PDF models + processing buffer)
 - CPU: 4 cores recommended
 - Disk: 20GB (model cache + temp files)
 
@@ -273,22 +273,17 @@ RATE_LIMIT_PER_MINUTE=100
 
 ---
 
-### 3.6 Observability Stack
+### 3.6 Logging e Monitoramento
 
-**Prometheus** (metrics collection):
-- Port: 9090
-- Scrapes: All services expose `/metrics` endpoint
-- Retention: 15 days
+**Docker Logs** (logging básico):
+- Todos os serviços usam stdout/stderr
+- Logs acessíveis via `docker-compose logs`
+- Rotação configurada (max-size, max-file)
 
-**Grafana** (visualization):
-- Port: 3000
-- Preconfigured dashboards for each service
-- Alerts for high RAM usage, API errors, slow responses
-
-**Loki** (log aggregation):
-- Port: 3100
-- Centralizes logs from all containers
-- Retention: 7 days
+**Health Checks** (disponibilidade):
+- Todos os serviços expõem `/health` endpoint
+- Docker monitora automaticamente
+- Restart automático se unhealthy
 
 ---
 
@@ -1048,60 +1043,57 @@ ab -n 100 -c 10 http://localhost:8501/
 
 ---
 
-### Phase 6: Observability & Production Hardening (Days 18-20)
+### Phase 6: Logging & Hardening (Days 18-20)
 
-**Objective**: Add monitoring, logging, and operational tooling
+**Objective**: Adicionar logging estruturado e ferramentas operacionais
 
 **Tasks**:
-1. Deploy Prometheus + Grafana stack
-2. Configure service discovery (Prometheus scrapes all `/metrics`)
-3. Create Grafana dashboards:
-   - System overview (CPU, RAM, disk)
-   - Per-service metrics (request rate, latency, errors)
-   - Business metrics (jobs processed, documents generated)
-4. Deploy Loki for log aggregation
-5. Configure structured logging (JSON) in all services
-6. Add correlation IDs to trace requests across services
-7. Setup alerting rules (Prometheus Alertmanager)
-8. Create runbooks for common incidents
-9. Add `/health` and `/ready` endpoints to all services
-10. Implement graceful shutdown (SIGTERM handling)
+1. Configurar structured logging (JSON) em todos os serviços
+2. Adicionar correlation IDs para rastrear requests entre serviços
+3. Configurar log rotation (max-size, max-file)
+4. Criar scripts de análise de logs
+5. Adicionar `/health` endpoint a todos os serviços
+6. Implementar graceful shutdown (SIGTERM handling)
+7. Criar runbooks para incidentes comuns
+8. Testes de stress e disaster recovery
+9. Documentar troubleshooting comum
+10. Validar backups e restore
 
 **Deliverables**:
-- [ ] `docker-compose.observability.yml`
-- [ ] Grafana dashboards in `docker/observability/dashboards/`
-- [ ] Prometheus rules in `docker/observability/prometheus.yml`
-- [ ] Alertmanager config (Slack/email notifications)
-- [ ] Runbooks in `docs/runbooks/`
-- [ ] Health check endpoints (Kubernetes-ready)
+- [ ] Structured logging em todos os serviços
+- [ ] Log rotation configurado no `docker-compose.yml`
+- [ ] Scripts de análise em `docker/scripts/`
+- [ ] Runbooks em `docs/runbooks/`
+- [ ] Health check endpoints implementados
+- [ ] Graceful shutdown testado
 
 **Acceptance Criteria**:
-- Grafana accessible at http://localhost:3000
-- All 5 services appear in Prometheus targets (healthy)
-- At least 3 dashboards created (system, services, business)
-- Logs searchable in Loki (e.g., `{service="text-extractor", level="error"}`)
-- Alerts fire correctly (test with deliberate failure)
-- All services handle SIGTERM gracefully (no data loss)
+- Logs em formato JSON consistente
+- Log rotation funcional (não enche disco)
+- Health checks retornam status correto
+- Logs facilmente analisáveis (grep, jq)
+- Shutdown graceful (sem perda de dados)
+- Backups testados e funcionais
 
 **Testing Checklist**:
 ```bash
-# 1. Prometheus targets
-curl http://localhost:9090/api/v1/targets | jq '.data.activeTargets[] | {job, health}'
+# 1. Verificar formato de logs
+docker-compose logs text-extractor | tail -10 | jq '.'
 
-# 2. Grafana dashboards
-curl -u admin:admin http://localhost:3000/api/dashboards/home
+# 2. Testar log rotation
+docker inspect lw-text-extractor | jq '.[0].HostConfig.LogConfig'
 
-# 3. Loki query
-curl -G http://localhost:3100/loki/api/v1/query \
-  --data-urlencode 'query={service="text-extractor"}' | jq '.data.result'
+# 3. Health check
+for svc in hub text-extractor doc-assembler stj trello-mcp; do
+  curl http://localhost:850X/health && echo " - $svc OK"
+done
 
-# 4. Alert testing
-docker-compose stop doc-assembler
-# Check Alertmanager: http://localhost:9093
-
-# 5. Graceful shutdown
+# 4. Graceful shutdown
 docker-compose kill -s SIGTERM text-extractor
 docker logs text-extractor | grep "Shutting down gracefully"
+
+# 5. Análise de logs
+docker-compose logs --no-color | grep -i "error\|exception" > errors.log
 ```
 
 **Estimated Time**: 3 days
@@ -1207,9 +1199,10 @@ graph TD
 ### 9.1 Development Environment
 
 **Hardware**:
-- RAM: 24GB minimum (12GB for text-extractor + 8GB for other services + 4GB OS)
-- CPU: 6 cores (4 for text-extractor, 2 for other services)
+- RAM: 16GB (10GB for text-extractor + 3GB for other services + 3GB OS/buffer)
+- CPU: 10 cores (i5 13th gen ou similar)
 - Disk: 100GB free space (Docker images + volumes + build cache)
+- WSL2: Configurado com swap robusto (8GB recommended)
 
 **Software**:
 - Docker Engine 24.0+
@@ -1217,19 +1210,18 @@ graph TD
 - Python 3.11+ (for local testing)
 - Git
 
-### 9.2 Production Environment (Single Host)
+### 9.2 Ambiente de Deploy (Single Host)
 
-**Minimum Specs**:
-- RAM: 32GB (20GB for services + 12GB buffer)
-- CPU: 8 cores
-- Disk: 200GB SSD
-- Network: 100 Mbps
+**Target Specs** (ambiente do projeto):
+- RAM: 16GB
+- CPU: i5 13th gen (10 cores)
+- Disk: 260GB SSD NVMe
+- WSL2: Swap configurado (8GB+)
 
-**Recommended Specs**:
-- RAM: 64GB
-- CPU: 16 cores
-- Disk: 500GB NVMe SSD
-- Network: 1 Gbps
+**Specs Futuras** (se necessário escalar):
+- RAM: 32GB+
+- CPU: i7 ou superior
+- Disk: 500GB+ NVMe SSD
 
 ### 9.3 Build Time Estimates
 
@@ -1238,20 +1230,19 @@ graph TD
 | doc-assembler | 2 min | 15 sec | 280 MB |
 | stj-api | 3 min | 20 sec | 350 MB |
 | trello-mcp | 2 min | 15 sec | 180 MB |
-| text-extractor | 15 min | 2 min | 1.8 GB |
+| text-extractor | 15 min | 2 min | 1.6 GB |
 | streamlit-hub | 4 min | 30 sec | 450 MB |
-| **Total** | **26 min** | **3.5 min** | **3.06 GB** |
+| **Total** | **26 min** | **3.5 min** | **2.86 GB** |
 
 ### 9.4 Storage Requirements
 
 **Docker Volumes**:
-- `stj-duckdb-data`: 5-50 GB (grows with data)
-- `text-extractor-cache`: 15 GB (Marker models)
-- `app-data`: 10 GB (shared uploads/outputs)
-- Prometheus data: 10 GB (15 days retention)
-- Loki logs: 5 GB (7 days retention)
+- `stj-duckdb-data`: 5-50 GB (cresce com dados)
+- `text-extractor-cache`: 15 GB (modelos Marker)
+- `app-data`: 10 GB (uploads/outputs compartilhados)
+- Logs: 2-5 GB (com rotação configurada)
 
-**Total Storage**: 100-150 GB
+**Total Storage**: 50-100 GB
 
 ---
 
@@ -1439,11 +1430,11 @@ docker run -t owasp/zap2docker-stable zap-baseline.py \
 **Impact**: Critical (service crashes)
 
 **Mitigation**:
-1. Set Docker memory limit to 12GB (hard cap)
+1. Set Docker memory limit to 10GB (hard cap)
 2. Configure Marker to process 1 page at a time (reduce batch size)
-3. Add swap space (8GB) as safety buffer
+3. Ensure WSL2 has 8GB+ swap configured
 4. Implement job timeout (10 minutes max)
-5. Monitor RAM usage via Prometheus alerts
+5. Log RAM usage periodically
 
 **Contingency**: If OOM persists, split into separate containers (Marker worker + Gemini worker).
 
@@ -1551,55 +1542,55 @@ docker run -t owasp/zap2docker-stable zap-baseline.py \
 
 ## 14. Success Metrics
 
-### Technical Metrics
+### Métricas Técnicas
 
 | Metric | Target | Measurement |
 |--------|--------|-------------|
-| Container startup time | <30s (all services) | `docker-compose up` logs |
-| API response time (p95) | <500ms | Prometheus histogram |
-| Memory usage (steady state) | <20GB total | Grafana dashboard |
+| Container startup time | <30s (maioria serviços) | `docker-compose up` logs |
+| API response time (p95) | <500ms | Testes manuais/load test |
+| Memory usage (steady state) | <14GB total | `docker stats` |
 | Test coverage | >80% | pytest-cov report |
-| Build time (cached) | <5 min | CI pipeline duration |
+| Build time (cached) | <5 min | Tempo local |
 | Image vulnerabilities | 0 CRITICAL | Trivy scan |
 
-### Business Metrics
+### Métricas de Negócio
 
 | Metric | Target | Measurement |
 |--------|--------|-------------|
-| Feature parity | 100% | Manual testing checklist |
+| Feature parity | 100% | Checklist de testes manual |
 | User-reported bugs | 0 blocking | Issue tracker |
-| Deployment frequency | 1/week | Git tag count |
-| Mean time to recovery | <10 min | Incident log |
+| Deployment frequency | Conforme necessário | Git tag count |
+| Mean time to recovery | <10 min | Log de incidentes |
 
 ### Developer Experience
 
 | Metric | Target | Measurement |
 |--------|--------|-------------|
-| Onboarding time (new dev) | <1 hour | Time to `docker-compose up` |
+| Onboarding time | <1 hora | Tempo até `docker-compose up` |
 | Documentation completeness | 100% | README checklist |
-| Service debugging ease | <5 min to identify issue | Developer survey |
+| Service debugging ease | <5 min para identificar issue | Experiência prática |
 
 ---
 
 ## 15. Post-Implementation Roadmap
 
-### Month 1: Stabilization
-- Monitor production metrics daily
-- Fix bugs and performance issues
-- Tune resource limits based on real usage
-- Conduct developer training sessions
+### Mês 1: Estabilização
+- Monitorar logs diariamente
+- Corrigir bugs e problemas de performance
+- Ajustar resource limits baseado em uso real
+- Documentar aprendizados
 
-### Month 2: Optimization
-- Implement horizontal scaling (Kubernetes migration)
-- Add Redis cache for STJ API
-- Optimize Text Extractor (GPU acceleration if feasible)
+### Mês 2: Otimização
+- Adicionar cache Redis para STJ API (se necessário)
+- Otimizar Text Extractor baseado em uso real
 - Setup automated backup verification
+- Refinar configurações de memória
 
-### Month 3: Advanced Features
-- Add WebSocket support (real-time job progress)
-- Implement API rate limiting (per-user quotas)
-- Setup multi-region deployment (if needed)
-- Integrate with secrets manager (Vault/AWS Secrets Manager)
+### Mês 3: Features Avançadas
+- Adicionar WebSocket support (real-time job progress) se necessário
+- Implementar rate limiting (se tráfego justificar)
+- Considerar GPU acceleration para Marker (se viável)
+- Melhorias incrementais baseadas em feedback
 
 ---
 
@@ -1745,17 +1736,17 @@ docker exec -it <service> py-spy top --pid 1
 
 ---
 
-## Conclusion
+## Conclusão
 
-This implementation plan provides a comprehensive, phased approach to dockerizing Legal Workbench with zero functionality loss. The microservices architecture enables independent scaling, fault isolation, and modern DevOps practices.
+Este plano de implementação fornece uma abordagem abrangente e faseada para dockerizar o Legal Workbench sem perda de funcionalidade. A arquitetura de microserviços permite scaling independente, isolamento de falhas e práticas modernas de desenvolvimento.
 
-**Next Steps**:
-1. Review and approve this plan with stakeholders
-2. Create GitHub project board with all tasks
-3. Begin Phase 0 (Foundation) on agreed start date
-4. Schedule weekly progress reviews at each checkpoint
+**Próximos Passos**:
+1. Revisar e aprovar este plano
+2. Criar GitHub project board com todas as tasks
+3. Começar Phase 0 (Foundation) na data acordada
+4. Reviews semanais em cada checkpoint
 
-**Questions or Concerns**: Contact [Your Name] or open an issue in the repository.
+**Dúvidas**: Abrir issue no repositório ou contatar PGR.
 
 ---
 
