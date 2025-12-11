@@ -332,9 +332,9 @@ services:
     deploy:
       resources:
         limits:
-          memory: 12G  # 10GB + 2GB buffer
+          memory: 9G  # 10GB + 2GB buffer
         reservations:
-          memory: 8G
+          memory: 6G
 ```
 
 2. **Swap configuration:**
@@ -1870,7 +1870,7 @@ Dockerização será considerada bem-sucedida quando:
 A dockerização do Legal Workbench é **viável mas requer atenção** em:
 
 1. **Secrets management** - Risco de segurança importante
-2. **Memory management** - Marker PDF pode causar OOM em 16GB RAM
+2. **Memory management** - Marker PDF pode causar OOM em 12GB RAM (WSL limit)
 3. **Data persistence** - juridico-data é crítico
 4. **Performance** - Cold start e model loading
 5. **Rollback capability** - Importante para recuperação rápida

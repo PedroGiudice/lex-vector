@@ -502,7 +502,7 @@ services:
       resources:
         limits:
           cpus: '4.0'
-          memory: 10G
+          memory: 9G
         reservations:
           cpus: '2.0'
           memory: 7G
@@ -1002,10 +1002,10 @@ deploy:
   resources:
     limits:      # Hard cap (container killed if exceeded)
       cpus: '4.0'
-      memory: 12G
+      memory: 9G
     reservations:  # Guaranteed resources
       cpus: '2.0'
-      memory: 8G
+      memory: 6G
 ```
 
 ### Auto-Scaling with Docker Swarm
@@ -1166,7 +1166,7 @@ jobs:
 **Next Steps:**
 1. Implement Dockerfiles based on specifications above
 2. Create `docker-compose.dev.yml` for hot-reload development
-3. Test resource limits on target hardware (16GB RAM, i5 13th gen)
+3. Test resource limits on target hardware (12GB RAM (WSL limit), i5 12th gen)
 4. Set up automated backups
 5. Document disaster recovery procedures
 

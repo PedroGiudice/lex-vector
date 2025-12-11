@@ -5,7 +5,7 @@
 **Created**: 2025-12-11
 **Status**: Draft
 **Estimated Total Duration**: 18-22 working days
-**Target Environment**: 16GB RAM, i5 13th gen (10 cores), 260GB SSD NVMe, WSL2
+**Target Environment**: 12GB RAM (WSL limit), i5 12th gen (6 cores (3 no WSL)), 260GB SSD NVMe, WSL2
 
 ---
 
@@ -970,10 +970,10 @@ services:
     deploy:
       resources:
         limits:
-          memory: 12G
+          memory: 9G
           cpus: '4'
         reservations:
-          memory: 8G
+          memory: 6G
           cpus: '2'
 ```
 
@@ -1200,7 +1200,7 @@ graph TD
 
 **Hardware**:
 - RAM: 16GB (10GB for text-extractor + 3GB for other services + 3GB OS/buffer)
-- CPU: 10 cores (i5 13th gen ou similar)
+- CPU: 6 cores (3 no WSL) (i5 12th gen ou similar)
 - Disk: 100GB free space (Docker images + volumes + build cache)
 - WSL2: Configurado com swap robusto (8GB recommended)
 
@@ -1214,7 +1214,7 @@ graph TD
 
 **Target Specs** (ambiente do projeto):
 - RAM: 16GB
-- CPU: i5 13th gen (10 cores)
+- CPU: i5 12th gen (6 cores (3 no WSL))
 - Disk: 260GB SSD NVMe
 - WSL2: Swap configurado (8GB+)
 
@@ -1430,7 +1430,7 @@ docker run -t owasp/zap2docker-stable zap-baseline.py \
 **Impact**: Critical (service crashes)
 
 **Mitigation**:
-1. Set Docker memory limit to 10GB (hard cap)
+1. Set Docker memory limit to 9GB (hard cap, WSL tem 12GB)
 2. Configure Marker to process 1 page at a time (reduce batch size)
 3. Ensure WSL2 has 8GB+ swap configured
 4. Implement job timeout (10 minutes max)
