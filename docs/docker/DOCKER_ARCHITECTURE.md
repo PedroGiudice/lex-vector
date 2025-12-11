@@ -39,6 +39,36 @@ The architecture is designed for:
 
 ---
 
+## WSL2 Configuration (Recommended)
+
+Arquivo: `%UserProfile%\.wslconfig`
+
+```ini
+[wsl2]
+memory=14GB
+processors=3
+swap=8GB
+
+[experimental]
+autoMemoryReclaim=gradual
+networkingMode=mirrored
+dnsTunneling=true
+firewall=true
+sparseVhd=true
+```
+
+**Por que esses valores:**
+- **memory=14GB**: De 16GB total, deixa 2GB pro Windows
+- **processors=3**: Suficiente pra builds e runtime
+- **swap=8GB**: Cobre picos do Marker quando carrega modelos
+- **autoMemoryReclaim=gradual**: Libera memória não usada automaticamente
+- **networkingMode=mirrored**: Simplifica acesso aos containers
+- **sparseVhd=true**: Reduz uso de disco do WSL
+
+Após editar, reinicie o WSL: `wsl --shutdown`
+
+---
+
 ## Architecture Diagram
 
 ```
@@ -502,7 +532,7 @@ services:
       resources:
         limits:
           cpus: '4.0'
-          memory: 9G
+          memory: 10G
         reservations:
           cpus: '2.0'
           memory: 7G
@@ -1002,7 +1032,7 @@ deploy:
   resources:
     limits:      # Hard cap (container killed if exceeded)
       cpus: '4.0'
-      memory: 9G
+      memory: 10G
     reservations:  # Guaranteed resources
       cpus: '2.0'
       memory: 6G
@@ -1166,7 +1196,7 @@ jobs:
 **Next Steps:**
 1. Implement Dockerfiles based on specifications above
 2. Create `docker-compose.dev.yml` for hot-reload development
-3. Test resource limits on target hardware (12GB RAM (WSL limit), i5 12th gen)
+3. Test resource limits on target hardware (14GB RAM (WSL), i5 12th gen)
 4. Set up automated backups
 5. Document disaster recovery procedures
 

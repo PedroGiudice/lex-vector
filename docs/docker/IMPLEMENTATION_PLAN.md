@@ -5,7 +5,7 @@
 **Created**: 2025-12-11
 **Status**: Draft
 **Estimated Total Duration**: 18-22 working days
-**Target Environment**: 12GB RAM (WSL limit), i5 12th gen (6 cores (3 no WSL)), 260GB SSD NVMe, WSL2
+**Target Environment**: 14GB RAM (WSL), i5 12th gen (6 cores (3 no WSL)), 260GB SSD NVMe, WSL2
 
 ---
 
@@ -970,7 +970,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 9G
+          memory: 10G
           cpus: '4'
         reservations:
           memory: 6G
@@ -1430,7 +1430,7 @@ docker run -t owasp/zap2docker-stable zap-baseline.py \
 **Impact**: Critical (service crashes)
 
 **Mitigation**:
-1. Set Docker memory limit to 9GB (hard cap, WSL tem 12GB)
+1. Set Docker memory limit to 10GB (hard cap)
 2. Configure Marker to process 1 page at a time (reduce batch size)
 3. Ensure WSL2 has 8GB+ swap configured
 4. Implement job timeout (10 minutes max)
