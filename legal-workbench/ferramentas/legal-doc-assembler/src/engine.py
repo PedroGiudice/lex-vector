@@ -81,8 +81,27 @@ class DocumentEngine:
         self.jinja_env.filters['texto'] = lambda x: normalize_punctuation(
             normalize_whitespace(x)
         )
+        self.jinja_env.filters['valor'] = self._format_valor
+        self.jinja_env.filters['data'] = lambda x: x  # Pass through
+        self.jinja_env.filters['telefone'] = lambda x: x  # Pass through
 
         return self.jinja_env
+
+    @staticmethod
+    def _format_valor(value: str) -> str:
+        """Format currency value to Brazilian format."""
+        if value is None:
+            return ""
+        value = str(value).strip()
+        # If already formatted (R$ X.XXX,XX), return as-is
+        if 'R$' in value:
+            return value
+        # Try to convert numeric string to currency format
+        try:
+            num = float(value.replace('.', '').replace(',', '.'))
+            return f"R$ {num:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
+        except (ValueError, AttributeError):
+            return value
 
     def _preprocess_data(
         self,

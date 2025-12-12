@@ -12,8 +12,8 @@ def test_detect_cpf_formatted():
     cpf_match = next((m for m in matches if m['type'] == 'cpf'), None)
     assert cpf_match is not None
     assert cpf_match['value'] == '123.456.789-01'
-    assert cpf_match['start'] == 21
-    assert cpf_match['end'] == 35
+    assert cpf_match['start'] == 20  # "O cliente João, CPF " = 20 chars
+    assert cpf_match['end'] == 34    # 20 + 14 = 34
 
 def test_detect_cpf_unformatted():
     """Detector should find unformatted CPF patterns."""

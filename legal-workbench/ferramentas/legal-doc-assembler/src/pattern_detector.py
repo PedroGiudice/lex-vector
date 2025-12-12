@@ -46,24 +46,29 @@ class PatternDetector:
     """
 
     # Pattern definitions with corresponding Jinja2 filters
+    # Order matters: more specific patterns should come first
     PATTERNS = {
         'cpf': {
-            'regex': r'\d{3}\.?\d{3}\.?\d{3}-?\d{2}',
+            # CPF: XXX.XXX.XXX-XX (formatted) or XXXXXXXXXXX (unformatted)
+            'regex': r'(?<!\d)(\d{3}\.\d{3}\.\d{3}-\d{2}|\d{11})(?!\d)',
             'filter': 'cpf',
             'description': 'CPF (Cadastro de Pessoa Física)'
         },
         'cnpj': {
-            'regex': r'\d{2}\.?\d{3}\.?\d{3}/?\.?\d{4}-?\d{2}',
+            # CNPJ: XX.XXX.XXX/XXXX-XX (formatted) or XXXXXXXXXXXXXX (unformatted)
+            'regex': r'(?<!\d)(\d{2}\.\d{3}\.\d{3}/\d{4}-\d{2}|\d{14})(?!\d)',
             'filter': 'cnpj',
             'description': 'CNPJ (Cadastro Nacional de Pessoa Jurídica)'
         },
         'oab': {
-            'regex': r'(?:OAB/?)?([A-Z]{2})\s*\.?\s*(\d{1,6}\.?\d{0,3})|(\d{1,6}\.?\d{0,3})\s*/?([A-Z]{2})',
+            # OAB/SP 123.456 or SP 123456 or 123.456/SP
+            'regex': r'OAB[/\s]*[A-Z]{2}\s*\d{1,6}\.?\d{0,3}|\d{1,6}\.?\d{0,3}\s*/?\s*[A-Z]{2}',
             'filter': 'oab',
             'description': 'Registro OAB'
         },
         'cep': {
-            'regex': r'\d{5}-?\d{3}',
+            # CEP: XXXXX-XXX or XXXXXXXX
+            'regex': r'(?<!\d)(\d{5}-\d{3}|\d{8})(?!\d)',
             'filter': 'cep',
             'description': 'CEP (Código de Endereçamento Postal)'
         },

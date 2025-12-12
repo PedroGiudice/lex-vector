@@ -81,7 +81,7 @@ class TestFullWorkflow:
 
         # 7. Use template with new data
         engine = DocumentEngine()
-        template_path = templates_dir / "contrato_de_servicos.docx"
+        template_path = Path(result['docx_path'])  # Use actual saved path
 
         new_data = {
             "nome_contratante": "João Carlos Santos",
