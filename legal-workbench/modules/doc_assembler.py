@@ -16,11 +16,17 @@ _backend_path = Path(__file__).parent.parent / "ferramentas" / "legal-doc-assemb
 _DocumentEngine = None
 _BatchProcessor = None
 _normalize_all = None
+_TemplateBuilder = None
+_TemplateManager = None
+_PatternDetector = None
+
+# Templates directory path
+TEMPLATES_DIR = Path(__file__).parent.parent / "ferramentas" / "legal-doc-assembler" / "templates"
 
 
 def _setup_imports():
     """Lazy import setup to avoid module resolution issues."""
-    global _DocumentEngine, _BatchProcessor, _normalize_all
+    global _DocumentEngine, _BatchProcessor, _normalize_all, _TemplateBuilder, _TemplateManager, _PatternDetector
 
     if _DocumentEngine is None:
         if str(_backend_path) not in sys.path:
@@ -29,10 +35,16 @@ def _setup_imports():
         from src.engine import DocumentEngine
         from src.batch_engine import BatchProcessor
         from src.normalizers import normalize_all
+        from src.template_builder import TemplateBuilder
+        from src.template_manager import TemplateManager
+        from src.pattern_detector import PatternDetector
 
         _DocumentEngine = DocumentEngine
         _BatchProcessor = BatchProcessor
         _normalize_all = normalize_all
+        _TemplateBuilder = TemplateBuilder
+        _TemplateManager = TemplateManager
+        _PatternDetector = PatternDetector
 
     return _DocumentEngine, _BatchProcessor, _normalize_all
 
@@ -92,7 +104,12 @@ def render():
         st.session_state.current_json_data = None
 
     # --- Tab Navigation ---
-    tab1, tab2 = st.tabs(["📄 Documento Único", "📦 Processamento em Lote"])
+    tab1, tab2, tab3, tab4 = st.tabs([
+        "📄 Documento Único",
+        "📦 Processamento em Lote",
+        "🔧 Criar Template",
+        "📚 Galeria de Templates"
+    ])
 
     # ===== TAB 1: SINGLE DOCUMENT =====
     with tab1:
@@ -101,6 +118,14 @@ def render():
     # ===== TAB 2: BATCH PROCESSING =====
     with tab2:
         render_batch_processing_tab()
+
+    # ===== TAB 3: TEMPLATE CREATOR =====
+    with tab3:
+        render_template_creator_tab()
+
+    # ===== TAB 4: TEMPLATE GALLERY =====
+    with tab4:
+        render_template_gallery_tab()
 
 
 def render_single_document_tab():
@@ -854,3 +879,286 @@ def display_batch_result(batch_result):
         display_summary = {k: v for k, v in summary.items() if k not in ['outputs']}
         display_summary['output_count'] = len(summary['outputs'])
         st.json(display_summary)
+
+
+def render_template_creator_tab():
+    """Render template creation UI."""
+    st.subheader("Criar Template")
+    st.caption("Transforme um documento DOCX comum em template Jinja2 reutilizável")
+
+    # Initialize session state for template creator
+    if 'template_builder' not in st.session_state:
+        st.session_state.template_builder = None
+    if 'detected_patterns' not in st.session_state:
+        st.session_state.detected_patterns = []
+    if 'selected_patterns' not in st.session_state:
+        st.session_state.selected_patterns = []
+    if 'manual_fields' not in st.session_state:
+        st.session_state.manual_fields = []
+
+    # --- STEP 1: Upload Source Document ---
+    st.markdown("### 1. Carregar Documento Fonte")
+
+    source_file = st.file_uploader(
+        "Selecione um documento DOCX",
+        type=['docx'],
+        key='template_source',
+        help="O documento será analisado para criar um template"
+    )
+
+    if source_file:
+        # Save to temp and create builder
+        with tempfile.NamedTemporaryFile(suffix='.docx', delete=False) as tmp:
+            tmp.write(source_file.read())
+            tmp_path = tmp.name
+
+        try:
+            st.session_state.template_builder = _TemplateBuilder(tmp_path)
+            st.success(f"✅ Documento carregado: {source_file.name}")
+
+            # Show structure summary
+            structure = st.session_state.template_builder.get_structure()
+            col1, col2, col3 = st.columns(3)
+            col1.metric("Parágrafos", structure['paragraphs'])
+            col2.metric("Tabelas", structure['tables'])
+            col3.metric("Seções", structure['sections'])
+
+        except Exception as e:
+            st.error(f"Erro ao carregar documento: {e}")
+            st.session_state.template_builder = None
+
+    if st.session_state.template_builder:
+        builder = st.session_state.template_builder
+
+        st.markdown("---")
+
+        # --- STEP 2: Preview ---
+        st.markdown("### 2. Visualizar Conteúdo")
+
+        with st.expander("📖 Preview do Documento", expanded=True):
+            preview_text = builder.get_modified_text()
+            st.text_area(
+                "Conteúdo atual",
+                value=preview_text,
+                height=300,
+                disabled=True,
+                key='template_preview'
+            )
+
+        st.markdown("---")
+
+        # --- STEP 3A: Automatic Detection ---
+        st.markdown("### 3A. Detecção Automática de Padrões")
+        st.caption("Detecta CPF, CNPJ, OAB, CEP, valores monetários automaticamente")
+
+        col1, col2 = st.columns([1, 3])
+
+        with col1:
+            if st.button("🔍 Detectar Padrões", use_container_width=True):
+                st.session_state.detected_patterns = builder.detect_patterns()
+                st.rerun()
+
+        with col2:
+            if st.session_state.detected_patterns:
+                st.info(f"Encontrados {len(st.session_state.detected_patterns)} padrões")
+
+        if st.session_state.detected_patterns:
+            st.markdown("**Padrões Detectados:**")
+
+            for i, pattern in enumerate(st.session_state.detected_patterns):
+                col1, col2, col3, col4 = st.columns([2, 2, 2, 1])
+
+                with col1:
+                    st.code(pattern['value'], language=None)
+
+                with col2:
+                    st.caption(f"Tipo: {pattern['type'].upper()}")
+
+                with col3:
+                    # Allow editing field name
+                    field_name = st.text_input(
+                        "Campo",
+                        value=pattern['suggested_field'],
+                        key=f"field_{i}",
+                        label_visibility="collapsed"
+                    )
+                    pattern['custom_field'] = field_name
+
+                with col4:
+                    if st.checkbox("✓", key=f"apply_{i}", value=True):
+                        if pattern not in st.session_state.selected_patterns:
+                            st.session_state.selected_patterns.append(pattern)
+
+            if st.button("✅ Aplicar Selecionados", type="primary"):
+                for pattern in st.session_state.selected_patterns:
+                    field_name = pattern.get('custom_field', pattern['suggested_field'])
+                    builder.add_field_replacement(
+                        pattern['value'],
+                        field_name,
+                        pattern['filter']
+                    )
+                st.session_state.selected_patterns = []
+                st.session_state.detected_patterns = []
+                st.success("Padrões aplicados!")
+                st.rerun()
+
+        st.markdown("---")
+
+        # --- STEP 3B: Manual Selection ---
+        st.markdown("### 3B. Seleção Manual")
+        st.caption("Selecione qualquer texto para transformar em campo")
+
+        col1, col2, col3 = st.columns(3)
+
+        with col1:
+            manual_text = st.text_input(
+                "Texto a substituir",
+                placeholder="Cole o texto exato do documento",
+                key='manual_text'
+            )
+
+        with col2:
+            manual_field = st.text_input(
+                "Nome do campo",
+                placeholder="Ex: nome_cliente",
+                key='manual_field'
+            )
+
+        with col3:
+            manual_filter = st.selectbox(
+                "Filtro",
+                options=['', 'nome', 'endereco', 'cpf', 'cnpj', 'cep', 'oab', 'valor', 'data'],
+                key='manual_filter'
+            )
+
+        if st.button("➕ Adicionar Campo Manual"):
+            if manual_text and manual_field:
+                success = builder.add_field_replacement(
+                    manual_text,
+                    manual_field,
+                    manual_filter
+                )
+                if success:
+                    st.success(f"Campo '{manual_field}' adicionado!")
+                    st.rerun()
+                else:
+                    st.error("Texto não encontrado no documento")
+            else:
+                st.warning("Preencha o texto e o nome do campo")
+
+        # Show current fields
+        fields = builder.get_fields()
+        if fields:
+            st.markdown("**Campos Configurados:**")
+            for field in fields:
+                col1, col2, col3 = st.columns([3, 2, 1])
+                col1.code(field['jinja'])
+                col2.caption(f"Original: {field['original_sample']}...")
+                if col3.button("🗑️", key=f"del_{field['name']}"):
+                    builder.remove_replacement(field['name'])
+                    st.rerun()
+
+        st.markdown("---")
+
+        # --- STEP 4: Save Template ---
+        st.markdown("### 4. Salvar Template")
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            template_name = st.text_input(
+                "Nome do Template",
+                placeholder="Ex: Contrato de Locação",
+                key='template_name'
+            )
+
+        with col2:
+            template_desc = st.text_input(
+                "Descrição",
+                placeholder="Breve descrição do template",
+                key='template_desc'
+            )
+
+        template_tags = st.text_input(
+            "Tags (separadas por vírgula)",
+            placeholder="Ex: contrato, locacao, imobiliario",
+            key='template_tags'
+        )
+
+        if st.button("💾 Salvar Template", type="primary", use_container_width=True):
+            if not template_name:
+                st.error("Informe o nome do template")
+            elif not fields:
+                st.error("Adicione pelo menos um campo ao template")
+            else:
+                tags = [t.strip() for t in template_tags.split(',') if t.strip()]
+                result = builder.save_template(
+                    output_dir=TEMPLATES_DIR,
+                    template_name=template_name,
+                    description=template_desc,
+                    tags=tags
+                )
+
+                if result['success']:
+                    st.success(f"✅ Template salvo com {result['fields_count']} campos!")
+                    st.balloons()
+                    # Reset builder
+                    st.session_state.template_builder = None
+                    st.session_state.detected_patterns = []
+                else:
+                    st.error(f"Erro ao salvar: {result.get('error')}")
+
+
+def render_template_gallery_tab():
+    """Render template gallery UI."""
+    st.subheader("Galeria de Templates")
+    st.caption("Templates salvos prontos para uso")
+
+    manager = _TemplateManager(TEMPLATES_DIR)
+    templates = manager.list_templates()
+
+    if not templates:
+        st.info("Nenhum template salvo. Use a aba 'Criar Template' para criar seu primeiro template.")
+    else:
+        # Stats
+        stats = manager.get_stats()
+        col1, col2, col3 = st.columns(3)
+        col1.metric("Total de Templates", stats['total_templates'])
+        col2.metric("Total de Campos", stats['total_fields'])
+        col3.metric("Tags", len(stats['tags']))
+
+        st.markdown("---")
+
+        # Search
+        search_query = st.text_input("🔍 Buscar templates", placeholder="Nome, descrição ou tag...")
+
+        if search_query:
+            templates = manager.search(search_query)
+
+        # Display templates
+        for template in templates:
+            with st.expander(f"📄 {template['name']}", expanded=False):
+                col1, col2 = st.columns([3, 1])
+
+                with col1:
+                    st.markdown(f"**Descrição:** {template.get('description', 'N/A')}")
+                    st.markdown(f"**Tags:** {', '.join(template.get('tags', []))}")
+                    st.markdown(f"**Criado em:** {template.get('created_at', 'N/A')[:10]}")
+
+                    # Show fields
+                    st.markdown("**Campos:**")
+                    for field in template.get('fields', []):
+                        st.code(field['jinja'])
+
+                with col2:
+                    # Use template button
+                    if st.button("📋 Usar", key=f"use_{template['safe_name']}"):
+                        # Copy template path to session for Tab 1
+                        st.session_state.current_template_path = template['docx_path']
+                        st.success("Template carregado! Vá para 'Documento Único'")
+
+                    # Delete button
+                    if st.button("🗑️ Excluir", key=f"del_{template['safe_name']}"):
+                        if manager.delete_template(template['safe_name']):
+                            st.success("Template excluído")
+                            st.rerun()
