@@ -1,225 +1,73 @@
-# modules/trello.py
+# Trello-MCP Data Extraction Implementation Plan
 
-import streamlit as st
-import asyncio
-import sys
-import re
-import os
-from pathlib import Path
-from typing import Dict, List, Any, Optional, Tuple, Set
+> **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
+
+**Goal:** Add granular data extraction functionality to Trello-MCP module, allowing users to select specific cards/boards for extraction, view data in a clean format, and export to multiple formats.
+
+**Architecture:** Refactor `modules/trello.py` to add 3 tabs: (1) Boards & Cards view with selection, (2) Data Extraction with granular control, (3) Card Management (create/move). Backend already has all methods in `trello_client.py`.
+
+**Tech Stack:** Python 3.12, Streamlit, asyncio, pandas, existing TrelloClient
+
+---
+
+## Current State
+
+| Component | Status | Issue |
+|-----------|--------|-------|
+| Backend `trello_client.py` | ✅ Complete | 38+ async methods available |
+| Frontend `modules/trello.py` | ⚠️ Limited | Only regex extraction, no granular control |
+| Card selection | ❌ Missing | Cannot select individual cards |
+| Batch extraction | ❌ Missing | No batch mode with selection |
+| Data visualization | ⚠️ Limited | Only pattern matches, not raw card data |
+| Card creation | ❌ Not exposed | Backend has it, UI doesn't |
+
+## Requirements (from PGR)
+
+1. ✅ Keep card creation/manipulation (add to UI)
+2. ➕ Add primary function: EXTRACT DATA from cards/boards
+3. ➕ Granular control: individual to batch
+4. ➕ Clean data visualization for verification
+
+---
+
+## Task 1: Restructure UI with 3 Tabs
+
+**Files:**
+- Modify: `legal-workbench/modules/trello.py:1-50`
+
+**Step 1: Update imports and tab structure**
+
+Add at top of file after existing imports:
+
+```python
+# Add these imports
 import pandas as pd
-from dotenv import load_dotenv
+from typing import Set
 
 # Tab structure
 TAB_BOARDS = "📋 Boards & Seleção"
 TAB_EXTRACT = "📥 Extração de Dados"
 TAB_MANAGE = "🔧 Gerenciar Cards"
+```
 
-# Adiciona o diretório de ferramentas ao path para importação do backend
-tool_path = Path(__file__).parent.parent / "ferramentas" / "trello-mcp"
-sys.path.insert(0, str(tool_path / "src"))
+**Step 2: Replace single render() with tabbed structure**
 
-# Import backend
-from models import EnvironmentSettings
-from trello_client import TrelloClient, TrelloAuthError, TrelloAPIError
+Change the render() function to start with:
 
-# Load environment variables
-load_dotenv(tool_path / ".env")
-
-# --- REGEX PATTERNS (BRAZILIAN LEGAL) ---
-REGEX_MAP = {
-    "cpf": r"\d{3}\.?\d{3}\.?\d{3}-?\d{2}",
-    "cnpj": r"\d{2}\.?\d{3}\.?\d{3}/?\d{4}-?\d{2}",
-    "oab": r"\d{1,6}/?[A-Z]{2}",
-    "valor": r"R\$\s?(\d{1,3}(?:\.\d{3})*,\d{2})",
-}
-
-
-def get_credentials_from_session() -> Tuple[Optional[str], Optional[str]]:
-    """Get credentials from session state if available."""
-    return (
-        st.session_state.get("trello_api_key"),
-        st.session_state.get("trello_api_token")
-    )
-
-
-def save_credentials_to_env(api_key: str, api_token: str) -> bool:
-    """Save credentials to .env file for persistence."""
-    env_path = tool_path / ".env"
-    try:
-        content = f"""# Trello API Credentials
-# Generated via Legal Workbench UI
-TRELLO_API_KEY={api_key}
-TRELLO_API_TOKEN={api_token}
-LOG_LEVEL=INFO
-RATE_LIMIT_PER_10_SECONDS=90
-"""
-        env_path.write_text(content)
-        return True
-    except Exception as e:
-        st.warning(f"Não foi possível salvar credenciais: {e}")
-        return False
-
-
-def check_api_configured() -> Tuple[bool, str, Optional[str], Optional[str]]:
-    """
-    Check if Trello API credentials are configured.
-
-    Returns:
-        Tuple of (is_configured, message, api_key, api_token)
-    """
-    # First check session state (UI input)
-    session_key, session_token = get_credentials_from_session()
-    if session_key and session_token:
-        return True, "", session_key, session_token
-
-    # Then check environment variables
-    api_key = os.getenv("TRELLO_API_KEY")
-    api_token = os.getenv("TRELLO_API_TOKEN")
-
-    if api_key and api_token:
-        return True, "", api_key, api_token
-
-    env_path = tool_path / ".env"
-    message = "Credenciais não encontradas"
-    return False, message, None, None
-
-
-def render_credentials_form():
-    """Render the credentials input form."""
-    st.markdown("### 🔐 Configurar Credenciais do Trello")
-    st.info(
-        "Insira suas credenciais abaixo. Elas serão salvas localmente para uso futuro.\n\n"
-        "**Obtenha suas credenciais em:** https://trello.com/power-ups/admin"
-    )
-
-    with st.form("trello_credentials_form"):
-        api_key = st.text_input(
-            "API Key",
-            type="password",
-            help="Sua API Key do Trello (mínimo 32 caracteres)",
-            placeholder="Cole sua API Key aqui..."
-        )
-
-        api_token = st.text_input(
-            "API Token",
-            type="password",
-            help="Seu Token de API do Trello (mínimo 64 caracteres)",
-            placeholder="Cole seu Token aqui..."
-        )
-
-        col1, col2 = st.columns(2)
-
-        with col1:
-            save_to_file = st.checkbox(
-                "Salvar em arquivo .env",
-                value=True,
-                help="Salva as credenciais para uso futuro (recomendado)"
-            )
-
-        with col2:
-            submitted = st.form_submit_button(
-                "✅ Conectar",
-                use_container_width=True,
-                type="primary"
-            )
-
-        if submitted:
-            # Validate inputs
-            if not api_key or len(api_key) < 32:
-                st.error("API Key deve ter pelo menos 32 caracteres")
-                return False
-
-            if not api_token or len(api_token) < 64:
-                st.error("API Token deve ter pelo menos 64 caracteres")
-                return False
-
-            # Store in session state
-            st.session_state.trello_api_key = api_key
-            st.session_state.trello_api_token = api_token
-
-            # Optionally save to file
-            if save_to_file:
-                if save_credentials_to_env(api_key, api_token):
-                    st.success("✅ Credenciais salvas em .env")
-
-            # Test connection
-            with st.spinner("Testando conexão..."):
-                try:
-                    settings = EnvironmentSettings(
-                        trello_api_key=api_key,
-                        trello_api_token=api_token
-                    )
-                    client = TrelloClient(settings)
-
-                    # Quick validation
-                    async def test_connection():
-                        async with client:
-                            return await client.validate_credentials()
-
-                    user_data = asyncio.run(test_connection())
-                    st.success(f"✅ Conectado como: {user_data.get('fullName', 'Usuário')}")
-                    st.rerun()
-
-                except TrelloAuthError as e:
-                    st.error(f"❌ Falha na autenticação: {e}")
-                    st.session_state.trello_api_key = None
-                    st.session_state.trello_api_token = None
-                    return False
-
-                except Exception as e:
-                    st.error(f"❌ Erro de conexão: {e}")
-                    return False
-
-    return False
-
-
-async def load_boards_async(client: TrelloClient) -> List[Any]:
-    """Load boards from Trello API."""
-    async with client:
-        boards = await client.get_all_boards()
-        return boards
-
-
-async def load_board_cards_async(client: TrelloClient, board_id: str) -> List[Any]:
-    """Load cards from a specific board."""
-    async with client:
-        cards = await client.get_board_cards_with_custom_fields(board_id)
-        return cards
-
-
-def extract_patterns_from_text(text: str, patterns: Dict[str, str]) -> Dict[str, List[str]]:
-    """
-    Extract patterns from text using regex.
-
-    Args:
-        text: Text to search
-        patterns: Dict of pattern_name -> regex_pattern
-
-    Returns:
-        Dict of pattern_name -> list of matches
-    """
-    results = {}
-    for name, pattern in patterns.items():
-        matches = re.findall(pattern, text, re.IGNORECASE)
-        if matches:
-            results[name] = list(set(matches))  # Remove duplicates
-    return results
-
-
+```python
 def render():
     """Renders the Streamlit UI for the Trello MCP module."""
     st.header("Trello MCP")
     st.caption("Extração e gerenciamento de dados jurídicos em boards Trello.")
 
-    # --- Check API Configuration ---
+    # Check API configuration first
     is_configured, config_message, api_key, api_token = check_api_configured()
 
     if not is_configured:
         render_credentials_form()
         return
 
-    # --- Initialize Client with credentials ---
+    # Initialize client
     try:
         settings = EnvironmentSettings(
             trello_api_key=api_key,
@@ -231,7 +79,7 @@ def render():
         render_credentials_form()
         return
 
-    # --- Initialize Session State ---
+    # Initialize session state
     if "trello_selected_cards" not in st.session_state:
         st.session_state.trello_selected_cards = set()
     if "trello_extraction_mode" not in st.session_state:
@@ -239,7 +87,7 @@ def render():
     if "trello_extracted_data" not in st.session_state:
         st.session_state.trello_extracted_data = None
 
-    # --- Show connected status with logout option ---
+    # Sidebar status
     with st.sidebar:
         st.success("🟢 Trello Conectado")
         if st.button("🔓 Desconectar", use_container_width=True):
@@ -248,9 +96,32 @@ def render():
                     del st.session_state[key]
             st.rerun()
 
-    # --- Tabs ---
+    # Tabs
     tab1, tab2, tab3 = st.tabs([TAB_BOARDS, TAB_EXTRACT, TAB_MANAGE])
+```
 
+**Step 3: Verify structure compiles**
+
+Run: `cd legal-workbench && python -c "from modules import trello; print('OK')"`
+Expected: "OK"
+
+**Step 4: Commit**
+
+```bash
+git add legal-workbench/modules/trello.py
+git commit -m "refactor(trello): restructure UI with 3 tabs"
+```
+
+---
+
+## Task 2: Implement Tab 1 - Boards & Card Selection
+
+**Files:**
+- Modify: `legal-workbench/modules/trello.py`
+
+**Step 1: Add Tab 1 content after tabs declaration**
+
+```python
     # ==========================================================================
     # TAB 1: BOARDS & CARD SELECTION
     # ==========================================================================
@@ -355,7 +226,30 @@ def render():
             # Selection summary
             if st.session_state.trello_selected_cards:
                 st.info(f"📌 {len(st.session_state.trello_selected_cards)} cards selecionados. Vá para 'Extração de Dados' para extrair.")
+```
 
+**Step 2: Verify UI renders**
+
+Run: `cd legal-workbench && streamlit run app.py --server.port 8502`
+Expected: Tab 1 shows boards and card selection
+
+**Step 3: Commit**
+
+```bash
+git add legal-workbench/modules/trello.py
+git commit -m "feat(trello): add board and card selection UI"
+```
+
+---
+
+## Task 3: Implement Tab 2 - Data Extraction
+
+**Files:**
+- Modify: `legal-workbench/modules/trello.py`
+
+**Step 1: Add Tab 2 content**
+
+```python
     # ==========================================================================
     # TAB 2: DATA EXTRACTION
     # ==========================================================================
@@ -574,7 +468,7 @@ def render():
 
             with col2:
                 # CSV export
-                if view_mode == "table" and df_data:
+                if df_data:
                     csv = pd.DataFrame(df_data).to_csv(index=False)
                     st.download_button(
                         "📥 CSV",
@@ -588,19 +482,41 @@ def render():
                 # Excel export (if openpyxl available)
                 try:
                     import io
-                    if view_mode == "table" and df_data:
-                        buffer = io.BytesIO()
-                        pd.DataFrame(df_data).to_excel(buffer, index=False)
-                        st.download_button(
-                            "📥 Excel",
-                            data=buffer.getvalue(),
-                            file_name="trello_extraction.xlsx",
-                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                            use_container_width=True
-                        )
+                    buffer = io.BytesIO()
+                    pd.DataFrame(df_data).to_excel(buffer, index=False)
+                    st.download_button(
+                        "📥 Excel",
+                        data=buffer.getvalue(),
+                        file_name="trello_extraction.xlsx",
+                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                        use_container_width=True
+                    )
                 except ImportError:
                     st.caption("Excel export requer openpyxl")
+```
 
+**Step 2: Verify extraction works**
+
+Run: `cd legal-workbench && streamlit run app.py --server.port 8502`
+Expected: Tab 2 allows extraction with different modes
+
+**Step 3: Commit**
+
+```bash
+git add legal-workbench/modules/trello.py
+git commit -m "feat(trello): add granular data extraction with multiple modes"
+```
+
+---
+
+## Task 4: Implement Tab 3 - Card Management
+
+**Files:**
+- Modify: `legal-workbench/modules/trello.py`
+
+**Step 1: Add Tab 3 content**
+
+```python
     # ==========================================================================
     # TAB 3: CARD MANAGEMENT
     # ==========================================================================
@@ -738,3 +654,63 @@ def render():
                     # TODO: Implement batch_archive in backend
         else:
             st.caption("Selecione cards na aba 'Boards & Seleção' para ações em lote")
+```
+
+**Step 2: Commit**
+
+```bash
+git add legal-workbench/modules/trello.py
+git commit -m "feat(trello): add card management UI (create, move)"
+```
+
+---
+
+## Task 5: Run Tests and Final Commit
+
+**Step 1: Verify module imports**
+
+Run: `cd legal-workbench && python -c "from modules.trello import render; print('OK')"`
+Expected: "OK"
+
+**Step 2: Test UI manually**
+
+Run: `cd legal-workbench && streamlit run app.py --server.port 8502`
+Expected: All 3 tabs functional
+
+**Step 3: Final commit**
+
+```bash
+git add -A
+git commit -m "feat(trello): complete data extraction and management overhaul
+
+- Restructure UI into 3 tabs: Boards, Extraction, Management
+- Add granular card selection with checkboxes
+- Add multiple extraction modes: selected, all, pattern
+- Add clean data visualization (table, JSON, cards view)
+- Add export options: JSON, CSV, Excel
+- Add card creation and move functionality
+- Maintain existing pattern extraction (CPF, CNPJ, OAB, values)
+
+Closes #XX"
+```
+
+---
+
+## Summary
+
+| Task | Description | Files |
+|------|-------------|-------|
+| 1 | Restructure with 3 tabs | `modules/trello.py` |
+| 2 | Card selection UI | `modules/trello.py` |
+| 3 | Data extraction | `modules/trello.py` |
+| 4 | Card management | `modules/trello.py` |
+| 5 | Tests & final commit | - |
+
+**Total Estimated Time:** 1-2 hours
+
+**Key Features:**
+- Granular card selection (individual checkboxes)
+- Multiple extraction modes (selected/all/pattern)
+- Clean data visualization (table, JSON, expandable cards)
+- Export to JSON, CSV, Excel
+- Card creation and move functionality
