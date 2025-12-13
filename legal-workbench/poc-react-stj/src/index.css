@@ -1,0 +1,94 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply border-terminal-border;
+  }
+
+  body {
+    @apply bg-terminal-bg text-terminal-text font-sans antialiased;
+    overflow-x: hidden;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-terminal-bg;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-terminal-muted rounded;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-terminal-accent;
+  }
+}
+
+@layer components {
+  /* Terminal Button */
+  .btn-terminal {
+    @apply px-4 py-2 bg-terminal-accent/10 border border-terminal-accent/30
+           text-terminal-accent font-mono text-sm rounded
+           hover:bg-terminal-accent/20 hover:border-terminal-accent/50
+           transition-all duration-200 cursor-pointer
+           active:scale-95;
+  }
+
+  .btn-terminal:disabled {
+    @apply opacity-50 cursor-not-allowed;
+  }
+
+  /* Terminal Input */
+  .input-terminal {
+    @apply w-full px-3 py-2 bg-terminal-bg border border-terminal-border
+           text-terminal-text font-mono text-sm rounded
+           focus:outline-none focus:border-terminal-accent/50 focus:ring-1 focus:ring-terminal-accent/30
+           placeholder:text-terminal-muted
+           transition-all duration-200;
+  }
+
+  /* Terminal Select */
+  .select-terminal {
+    @apply w-full px-3 py-2 bg-terminal-bg border border-terminal-border
+           text-terminal-text font-mono text-sm rounded
+           focus:outline-none focus:border-terminal-accent/50 focus:ring-1 focus:ring-terminal-accent/30
+           cursor-pointer transition-all duration-200;
+  }
+
+  /* Terminal Card */
+  .card-terminal {
+    @apply bg-terminal-bg border border-terminal-border rounded-lg p-6
+           shadow-terminal hover:shadow-terminal-lg
+           transition-all duration-300;
+  }
+
+  /* Badge */
+  .badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+
+  .badge-success {
+    @apply badge bg-terminal-success/10 text-terminal-success border border-terminal-success/30;
+  }
+
+  .badge-danger {
+    @apply badge bg-terminal-danger/10 text-terminal-danger border border-terminal-danger/30;
+  }
+
+  .badge-warning {
+    @apply badge bg-terminal-warning/10 text-terminal-warning border border-terminal-warning/30;
+  }
+
+  .badge-info {
+    @apply badge bg-terminal-accent/10 text-terminal-accent border border-terminal-accent/30;
+  }
+}
