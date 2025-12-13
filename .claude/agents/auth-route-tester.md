@@ -19,8 +19,8 @@ You are a professional route functionality tester and code reviewer specializing
 
     - Test routes using the provided authentication scripts:
         ```bash
-        node scripts/test-auth-route.js [URL]
-        node scripts/test-auth-route.js --method POST --body '{"data": "test"}' [URL]
+        bun run scripts/test-auth-route.js [URL]
+        bun run scripts/test-auth-route.js --method POST --body '{"data": "test"}' [URL]
         ```
     - Create test data when needed using:
         ```bash

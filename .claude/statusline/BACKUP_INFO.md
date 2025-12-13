@@ -9,7 +9,7 @@
 ```json
 {
   "type": "command",
-  "command": "cd \"$CLAUDE_PROJECT_DIR\" && node .claude/statusline/professional-statusline.js",
+  "command": "cd \"$CLAUDE_PROJECT_DIR\" && bun run .claude/statusline/professional-statusline.js",
   "padding": 0
 }
 ```
@@ -24,9 +24,9 @@
 ### Hooks Active (UserPromptSubmit)
 1. `.claude/monitoring/hooks/log_hook.sh UserPromptSubmit`
 2. `.claude/monitoring/hooks/detect_agents.sh`
-3. `node .claude/hooks/hook-wrapper.js .claude/hooks/prompt-enhancer.js`
-4. `node .claude/hooks/hook-wrapper.js .claude/hooks/context-collector.js`
-5. `node .claude/hooks/hook-wrapper.js .claude/hooks/vibe-analyze-prompt.js` ⚠️ (broken - calls non-existent command)
+3. `bun run .claude/hooks/hook-wrapper.js .claude/hooks/prompt-enhancer.js`
+4. `bun run .claude/hooks/hook-wrapper.js .claude/hooks/context-collector.js`
+5. `bun run .claude/hooks/hook-wrapper.js .claude/hooks/vibe-analyze-prompt.js` ⚠️ (broken - calls non-existent command)
 6. `.claude/monitoring/hooks/detect_skills.sh`
 
 ## What to Restore (if needed)
@@ -39,7 +39,7 @@ cp .claude/settings.json.backup .claude/settings.json
 ### Option 2: Activate hybrid-powerline (manual)
 Edit `.claude/settings.json`:
 ```json
-"command": "cd \"$CLAUDE_PROJECT_DIR\" && node .claude/statusline/hybrid-powerline-statusline.js"
+"command": "cd \"$CLAUDE_PROJECT_DIR\" && bun run .claude/statusline/hybrid-powerline-statusline.js"
 ```
 
 ## Expected Changes from vibe-log installation

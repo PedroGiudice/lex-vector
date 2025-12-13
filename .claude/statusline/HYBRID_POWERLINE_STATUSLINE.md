@@ -82,32 +82,32 @@
 ### Modos Explícitos
 ```bash
 # Minimal (ultra-compacto)
-node .claude/statusline/hybrid-powerline-statusline.js minimal
+bun run .claude/statusline/hybrid-powerline-statusline.js minimal
 
 # Compact (padrão 80-120 cols)
-node .claude/statusline/hybrid-powerline-statusline.js compact
+bun run .claude/statusline/hybrid-powerline-statusline.js compact
 
 # Comfortable (detalhado 120-160 cols)
-node .claude/statusline/hybrid-powerline-statusline.js comfortable
+bun run .claude/statusline/hybrid-powerline-statusline.js comfortable
 
 # Wide (máximo detalhe >160 cols)
-node .claude/statusline/hybrid-powerline-statusline.js wide
+bun run .claude/statusline/hybrid-powerline-statusline.js wide
 ```
 
 ### Auto-detect (recomendado)
 ```bash
 # Seleciona modo automaticamente baseado em terminal width
-node .claude/statusline/hybrid-powerline-statusline.js
+bun run .claude/statusline/hybrid-powerline-statusline.js
 ```
 
 ### Performance Test
 ```bash
 # Cache cold (primeira execução)
 rm .claude/cache/statusline-cache.json
-time node .claude/statusline/hybrid-powerline-statusline.js
+time bun run .claude/statusline/hybrid-powerline-statusline.js
 
 # Cache warm (execuções subsequentes)
-time node .claude/statusline/hybrid-powerline-statusline.js
+time bun run .claude/statusline/hybrid-powerline-statusline.js
 ```
 
 ---

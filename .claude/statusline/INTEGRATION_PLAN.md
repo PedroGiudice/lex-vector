@@ -356,7 +356,7 @@ function getTrackerData() {
 **Task 3.1: Teste de latência**
 ```bash
 # Benchmark: latência total deve ser < 200ms
-time cat /tmp/test-payload.json | node /home/user/Claude-Code-Projetos/.claude/statusline/hybrid-statusline.js
+time cat /tmp/test-payload.json | bun run /home/user/Claude-Code-Projetos/.claude/statusline/hybrid-statusline.js
 
 # Expected:
 # real    0m0.150s  (ccstatusline: ~100ms + nossa lógica: ~50ms)
@@ -374,7 +374,7 @@ time cat /tmp/test-payload.json | node /home/user/Claude-Code-Projetos/.claude/s
 # 3. Verificar output contém \x1b[5m (blinking ANSI code)
 
 # Manual check:
-node hybrid-statusline.js | cat -A
+bun run hybrid-statusline.js | cat -A
 # Look for: ^[[5m●  (blinking indicator)
 ```
 
@@ -382,7 +382,7 @@ node hybrid-statusline.js | cat -A
 ```bash
 # Executar statusline 10x consecutivas
 for i in {1..10}; do
-  time cat /tmp/test-payload.json | node hybrid-statusline.js > /dev/null
+  time cat /tmp/test-payload.json | bun run hybrid-statusline.js > /dev/null
 done
 
 # Primeira execução: ~150ms (cache MISS)
@@ -460,7 +460,7 @@ try {
 {
   "statusLine": {
     "type": "command",
-    "command": "node /home/user/Claude-Code-Projetos/.claude/statusline/hybrid-statusline.js",
+    "command": "bun run /home/user/Claude-Code-Projetos/.claude/statusline/hybrid-statusline.js",
     "padding": 0
   }
 }
@@ -561,7 +561,7 @@ chmod +x /home/user/Claude-Code-Projetos/.claude/statusline/hybrid-statusline.js
 
 ### Comando 3: Testar esqueleto
 ```bash
-cat /tmp/test-payload.json | node /home/user/Claude-Code-Projetos/.claude/statusline/hybrid-statusline.js
+cat /tmp/test-payload.json | bun run /home/user/Claude-Code-Projetos/.claude/statusline/hybrid-statusline.js
 ```
 
 ---

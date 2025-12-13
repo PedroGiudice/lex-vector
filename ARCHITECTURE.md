@@ -72,6 +72,9 @@ Hooks com timeout <500ms. Usar async, caching, graceful degradation.
 ### ADR-004: Skills em Duas Camadas
 `skills/` = custom, `.claude/skills/` = managed. Nunca misturar.
 
+### ADR-005: Bun para Hooks JS
+Hooks JS usam `bun run` em vez de `node` (~25% mais rapido). Bun 1.3.4 instalado em `~/.bun`.
+
 ---
 
 ## Restricoes (Blocking)
@@ -88,13 +91,11 @@ Hooks com timeout <500ms. Usar async, caching, graceful degradation.
 
 ## Stack
 
-Python 3.11 | Node.js v22 | Ubuntu 24.04 (WSL2) | Git | Claude Code
+Python 3.11 | Bun 1.3.4 | Node.js v22 | Ubuntu 24.04 (WSL2) | Git | Claude Code
 
 ---
 
-**Ultima atualizacao:** 2025-12-07
-- Removido diretorio `ferramentas/` (nao existe)
-- Adicionados agentes: `legal-rag`, `jurisprudencia-collector`, `legal-articles-finder`, `aesthetic-master`
-- Adicionados diretorios: `legal-workbench/`, `docs/`
-- Comandos atualizados com lista real
-- Condensado ADRs para <100 linhas
+**Ultima atualizacao:** 2025-12-10
+- ADR-005: Bun 1.3.4 para hooks JS (~25% mais rapido que Node.js)
+- Stack atualizada: Bun adicionado
+- Hooks migrados de `node` para `bun run` em settings.json

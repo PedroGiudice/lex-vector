@@ -5,12 +5,13 @@
   "_docs": "Ver .claude/hooks/lib/ para scripts independentes",
   "_strategy": "Hooks independentes: validations, skill-content-injector, inject-tools-to-agents",
   "_path_fix": "2025-11-28: Todos hooks corrigidos para usar $CLAUDE_PROJECT_DIR (caminhos absolutos) conforme documentação Anthropic",
+  "_bun_migration": "2025-12-10: Hooks JS migrados de node para bun run (~25% mais rápido). Bun 1.3.4 adquirido pela Anthropic.",
 
   "_statusLine_DISABLED_FOR_VIBE_LOG": {
     "_comment": "TEMPORARILY DISABLED to test vibe-log Gordon Co-pilot statusline",
     "_backup": "See settings.json.backup to restore",
     "type": "command",
-    "command": "cd \"$CLAUDE_PROJECT_DIR\" && node .claude/statusline/professional-statusline.js",
+    "command": "cd \"$CLAUDE_PROJECT_DIR\" && bun run .claude/statusline/professional-statusline.js",
     "padding": 0,
     "_note": "Professional statusline v4.0 - horizontal layout with ANSI colors, bash spinner, last-used tracking"
   },
@@ -49,7 +50,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "cd \"$CLAUDE_PROJECT_DIR\" && node .claude/hooks/session-end-git-safety.js",
+            "command": "cd \"$CLAUDE_PROJECT_DIR\" && bun run .claude/hooks/session-end-git-safety.js",
             "_note": "Auto-saves uncommitted changes to timestamped branch if session > 2.5h"
           }
         ]
@@ -82,7 +83,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "cd \"$CLAUDE_PROJECT_DIR\" && node .claude/hooks/inject-tools-to-agents.js",
+            "command": "cd \"$CLAUDE_PROJECT_DIR\" && bun run .claude/hooks/inject-tools-to-agents.js",
             "_note": "Reads agent-tools-mapping.json and injects available tools instruction into agent prompt"
           }
         ]
@@ -109,22 +110,22 @@
           },
           {
             "type": "command",
-            "command": "cd \"$CLAUDE_PROJECT_DIR\" && node .claude/hooks/context-collector-lite.js",
+            "command": "cd \"$CLAUDE_PROJECT_DIR\" && bun run .claude/hooks/context-collector-lite.js",
             "_note": "Context collector lite: validations + aesthetic enforcement (no orchestration)"
           },
           {
             "type": "command",
-            "command": "cd \"$CLAUDE_PROJECT_DIR\" && node .claude/hooks/lib/skill-content-injector.js",
+            "command": "cd \"$CLAUDE_PROJECT_DIR\" && bun run .claude/hooks/lib/skill-content-injector.js",
             "_note": "Skill Auto-Activation: Injects top 3 matched skills content into context"
           },
           {
             "type": "command",
-            "command": "cd \"$CLAUDE_PROJECT_DIR\" && node .claude/hooks/lib/agent-suggester.js",
+            "command": "cd \"$CLAUDE_PROJECT_DIR\" && bun run .claude/hooks/lib/agent-suggester.js",
             "_note": "Agent Auto-Suggestion: Suggests relevant agents based on prompt context"
           },
           {
             "type": "command",
-            "command": "cd \"$CLAUDE_PROJECT_DIR\" && node .claude/hooks/hook-wrapper.js .claude/hooks/vibe-analyze-prompt.js",
+            "command": "cd \"$CLAUDE_PROJECT_DIR\" && bun run .claude/hooks/hook-wrapper.js .claude/hooks/vibe-analyze-prompt.js",
             "_note": "Gordon AI Coach: Real-time prompt quality analysis via Claude SDK (background, non-blocking) [WRAPPED]"
           },
           {
