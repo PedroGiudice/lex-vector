@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Optional
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, File, UploadFile, HTTPException, BackgroundTasks, Form
+from fastapi import FastAPI, File, UploadFile, HTTPException, Form
 from fastapi.responses import RedirectResponse, JSONResponse
 from celery.result import AsyncResult
 import redis.asyncio as aioredis
@@ -126,15 +126,6 @@ async def get_job(job_id: str) -> Optional[dict]:
             return dict(row) if row else None
 
 
-def cleanup_temp_file(filepath: str):
-    """Background task to clean up temporary files."""
-    try:
-        if os.path.exists(filepath):
-            os.remove(filepath)
-    except Exception:
-        pass  # Silent cleanup failure
-
-
 @app.get("/", include_in_schema=False)
 async def root():
     """Redirect root to API docs."""
@@ -188,7 +179,6 @@ async def health_check():
 
 @app.post("/api/v1/extract", response_model=ExtractionResponse, status_code=202)
 async def extract_text(
-    background_tasks: BackgroundTasks,
     file: Optional[UploadFile] = File(None),
     file_base64: Optional[str] = Form(None),
     engine: EngineType = Form(EngineType.MARKER),
@@ -259,8 +249,8 @@ async def extract_text(
             task_id=job_id
         )
 
-        # Schedule temp file cleanup (delayed to ensure Celery picks it up)
-        background_tasks.add_task(cleanup_temp_file, temp_path)
+        # NOTE: Temp file cleanup is handled by the Celery worker in its finally block
+        # Do NOT cleanup here - causes race condition where file is deleted before worker reads it
 
         return ExtractionResponse(
             job_id=job_id,
