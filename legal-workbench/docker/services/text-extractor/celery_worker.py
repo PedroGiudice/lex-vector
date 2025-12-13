@@ -41,25 +41,25 @@ celery_app.conf.update(
     result_expires=3600,  # 1 hour
 )
 
-# Singleton for Marker model (lazy loading)
-_marker_model = None
+# Singleton for Marker model artifacts (lazy loading)
+_marker_artifacts = None
 
 
-def get_marker_model():
-    """Get or initialize Marker model (singleton pattern)."""
-    global _marker_model
+def get_marker_artifacts():
+    """Get or initialize Marker model artifacts (singleton pattern)."""
+    global _marker_artifacts
 
-    if _marker_model is None:
+    if _marker_artifacts is None:
         try:
-            from marker.models import load_all_models
+            from marker.models import create_model_dict
             print("Loading Marker models... (this may take a while)")
-            _marker_model = load_all_models()
+            _marker_artifacts = create_model_dict()
             print("Marker models loaded successfully")
         except Exception as e:
             print(f"Failed to load Marker models: {e}")
             raise
 
-    return _marker_model
+    return _marker_artifacts
 
 
 def update_job_db(job_id: str, **fields):
@@ -80,38 +80,32 @@ def update_job_db(job_id: str, **fields):
 
 
 def extract_with_marker(pdf_path: str, options: Dict[str, Any]) -> tuple[str, int, Dict]:
-    """Extract text using Marker engine."""
+    """Extract text using Marker engine (v1.x API)."""
     try:
-        from marker.convert import convert_single_pdf
-        from marker.output import save_markdown
+        from marker.converters.pdf import PdfConverter
+        from marker.output import text_from_rendered
 
-        # Get Marker model
-        model_lst = get_marker_model()
+        # Get Marker model artifacts
+        artifact_dict = get_marker_artifacts()
 
-        # Default options
-        marker_options = {
-            "max_pages": None,
-            "start_page": None,
-            "langs": options.get("langs"),
-            "batch_multiplier": 1,
-            "low_memory_mode": options.get("low_memory_mode", True)
-        }
+        print(f"Starting Marker extraction for: {pdf_path}")
 
-        print(f"Starting Marker extraction with options: {marker_options}")
+        # Create converter
+        converter = PdfConverter(artifact_dict=artifact_dict)
 
         # Convert PDF
-        full_text, images, metadata = convert_single_pdf(
-            pdf_path,
-            model_lst,
-            **marker_options
-        )
+        rendered = converter(pdf_path)
 
-        pages_processed = metadata.get("pages", 0)
+        # Extract text from rendered output
+        full_text, _, images = text_from_rendered(rendered)
+
+        # Get metadata from rendered document
+        pages_processed = len(rendered.children) if hasattr(rendered, 'children') else 1
 
         extraction_metadata = {
-            "ocr_applied": metadata.get("ocr", False),
-            "languages": metadata.get("languages", []),
-            "file_size_bytes": os.path.getsize(pdf_path)
+            "ocr_applied": True,  # Marker always uses OCR when needed
+            "file_size_bytes": os.path.getsize(pdf_path),
+            "images_extracted": len(images) if images else 0
         }
 
         print(f"Marker extraction completed: {pages_processed} pages")

@@ -10,7 +10,9 @@ flower==2.0.1
 redis>=4.5.2,<5.0.0  # celery[redis] 5.3.4 requires redis<5.0.0
 
 # PDF processing
-marker-pdf==0.2.11
+# marker-pdf 1.x requires surya-ocr>=0.16.0,<0.18.0
+# See: https://github.com/VikParuchuri/marker/issues/247
+marker-pdf>=1.0.0,<2.0.0
 pdfplumber==0.10.3
 
 # HTTP client
