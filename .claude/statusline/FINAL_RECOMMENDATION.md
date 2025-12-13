@@ -178,7 +178,7 @@ Target                  < 200ms                 < 200ms  ✅
 {
   "statusLine": {
     "type": "command",
-    "command": "node /home/user/Claude-Code-Projetos/.claude/statusline/professional-statusline.js",
+    "command": "bun run /home/user/Claude-Code-Projetos/.claude/statusline/professional-statusline.js",
     "padding": 0
   }
 }
@@ -267,7 +267,7 @@ cat /home/user/Claude-Code-Projetos/.claude/settings.json | grep -A 3 statusLine
 
 **Comando 2:** Testar professional-statusline.js standalone
 ```bash
-cat /tmp/test-payload.json | node /home/user/Claude-Code-Projetos/.claude/statusline/professional-statusline.js
+cat /tmp/test-payload.json | bun run /home/user/Claude-Code-Projetos/.claude/statusline/professional-statusline.js
 ```
 
 **Comando 3:** Atualizar settings.json (se necessário)

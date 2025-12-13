@@ -30,7 +30,7 @@ echo ""
 # TESTE 1: Sintaxe JavaScript
 # ============================================================================
 echo "[1/5] Verificando sintaxe JavaScript..."
-node --check "$HOOK_PATH" 2>&1
+bun run --bun "$HOOK_PATH" --check 2>/dev/null || node --check "$HOOK_PATH" 2>&1
 if [ $? -eq 0 ]; then
   echo "   ✅ Sintaxe válida"
 else
@@ -43,7 +43,7 @@ fi
 # ============================================================================
 echo ""
 echo "[2/5] Testando execução com timeout (1s máximo)..."
-timeout 1s node "$HOOK_PATH" > /tmp/hook-output.json 2>&1
+timeout 1s bun run "$HOOK_PATH" > /tmp/hook-output.json 2>&1
 EXIT_CODE=$?
 
 if [ $EXIT_CODE -eq 124 ]; then
@@ -103,11 +103,11 @@ unset CLAUDE_ERRORS_CHECKED
 unset CLAUDE_LEGAL_CONTEXT_INJECTED
 
 # Primeira execução
-node "$HOOK_PATH" > /tmp/hook-first.json 2>&1
+bun run "$HOOK_PATH" > /tmp/hook-first.json 2>&1
 
 # Segunda execução (deve ser instantânea se run-once guard funciona)
 START_TIME=$(date +%s%N)
-node "$HOOK_PATH" > /tmp/hook-second.json 2>&1
+bun run "$HOOK_PATH" > /tmp/hook-second.json 2>&1
 END_TIME=$(date +%s%N)
 
 ELAPSED_MS=$(( (END_TIME - START_TIME) / 1000000 ))

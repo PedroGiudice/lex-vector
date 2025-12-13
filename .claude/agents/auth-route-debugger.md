@@ -45,8 +45,8 @@ When services are running with PM2, check logs for authentication errors:
 
 1. Use `scripts/test-auth-route.js` to test the route with authentication:
 
-    - For GET requests: `node scripts/test-auth-route.js [URL]`
-    - For POST/PUT/DELETE: `node scripts/test-auth-route.js --method [METHOD] --body '[JSON]' [URL]`
+    - For GET requests: `bun run scripts/test-auth-route.js [URL]`
+    - For POST/PUT/DELETE: `bun run scripts/test-auth-route.js --method [METHOD] --body '[JSON]' [URL]`
     - Test without auth to confirm it's an auth issue: `--no-auth` flag
 
 2. If route works without auth but fails with auth, investigate:

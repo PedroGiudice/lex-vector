@@ -108,7 +108,7 @@ Implementamos um wrapper híbrido (`hybrid-statusline.js`) que:
 {
   "statusLine": {
     "type": "command",
-    "command": "node /home/user/Claude-Code-Projetos/.claude/statusline/professional-statusline.js",
+    "command": "bun run /home/user/Claude-Code-Projetos/.claude/statusline/professional-statusline.js",
     "padding": 0
   }
 }
@@ -161,7 +161,7 @@ Toda análise técnica está documentada em:
 {
   "statusLine": {
     "type": "command",
-    "command": "node /home/user/Claude-Code-Projetos/.claude/statusline/professional-statusline.js",
+    "command": "bun run /home/user/Claude-Code-Projetos/.claude/statusline/professional-statusline.js",
     "padding": 0
   }
 }
@@ -176,7 +176,7 @@ cat > /tmp/test-payload.json << 'EOF'
 EOF
 
 # Testar statusline
-cat /tmp/test-payload.json | node .claude/statusline/professional-statusline.js
+cat /tmp/test-payload.json | bun run .claude/statusline/professional-statusline.js
 ```
 
 ### Verificar Cache
@@ -196,7 +196,7 @@ cat .claude/cache/statusline-cache.json | jq
 echo '{"legal-braniac-loader": {"timestamp": "'$(date -Iseconds)'"}}' > .claude/statusline/hooks-status.json
 
 # Executar statusline
-cat /tmp/test-payload.json | node .claude/statusline/professional-statusline.js
+cat /tmp/test-payload.json | bun run .claude/statusline/professional-statusline.js
 
 # Procurar por ANSI blinking code: \x1b[5m
 ```
@@ -225,11 +225,11 @@ const CACHE_TTL = {
 
 ```bash
 # Primeira execução (cache MISS)
-time cat /tmp/test-payload.json | node professional-statusline.js
+time cat /tmp/test-payload.json | bun run professional-statusline.js
 # Expected: ~150ms
 
 # Segunda execução (cache HIT)
-time cat /tmp/test-payload.json | node professional-statusline.js
+time cat /tmp/test-payload.json | bun run professional-statusline.js
 # Expected: ~50ms
 ```
 
@@ -237,7 +237,7 @@ time cat /tmp/test-payload.json | node professional-statusline.js
 
 ```bash
 # Ativar profiling detalhado
-NODE_ENV=development cat /tmp/test-payload.json | node professional-statusline.js
+NODE_ENV=development cat /tmp/test-payload.json | bun run professional-statusline.js
 
 # Ver logs estruturados
 tail -f .claude/monitoring/logs/hybrid-statusline.log
@@ -261,7 +261,7 @@ chmod +x .claude/statusline/professional-statusline.js
 
 **Check 3:** Testar manualmente
 ```bash
-echo '{}' | node .claude/statusline/professional-statusline.js
+echo '{}' | bun run .claude/statusline/professional-statusline.js
 ```
 
 ### Latência alta (> 200ms)
@@ -280,7 +280,7 @@ rm -f .claude/cache/statusline-cache.json
 
 **Check 3:** Profiling
 ```bash
-time cat /tmp/test-payload.json | node professional-statusline.js
+time cat /tmp/test-payload.json | bun run professional-statusline.js
 # Se > 200ms, há problema
 ```
 
