@@ -1,389 +1,488 @@
 # FRAMEWORK-AGNOSTIC MODULE ARCHITECTURE
 
-**Version:** 2.0
+**Version:** 2.1
 **Date:** 2025-12-14
 **Status:** Architecture Design
+**Pattern:** API Gateway / Backends for Frontends (BFF)
 
 ---
 
-## CORE PRINCIPLE
+## CORE ARCHITECTURE
 
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│                    FASTHTML HUB (IMMUTABLE)                         │
-│                                                                     │
-│   • Server-side rendered                                            │
-│   • Zero build step                                                 │
-│   • Sub-100ms page loads                                            │
-│   • Python-native simplicity                                        │
-│   • HTMX for interactivity                                          │
-│                                                                     │
-│   Responsibilities:                                                 │
-│   - Authentication & session                                        │
-│   - Navigation & routing                                            │
-│   - Theme injection                                                 │
-│   - Module orchestration                                            │
-│   - Layout (sidebar + workspace)                                    │
-│                                                                     │
-└─────────────────────────────────────────────────────────────────────┘
-                              │
-                              │ Loads modules via
-                              │ iframe / embed / API proxy
-                              ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│                    MODULES (ANY FRAMEWORK)                          │
-│                                                                     │
-│   Client A: React SPA          ──→ iframe src="/m/stj-react/"       │
-│   Client B: FastHTML (native)  ──→ HTMX hx-get="/m/stj/"            │
-│   Client C: Vue 3              ──→ iframe src="/m/stj-vue/"         │
-│   Client D: Reflex             ──→ iframe src="/m/stj-reflex/"      │
-│   Client E: Static HTML        ──→ HTMX hx-get="/m/stj-static/"     │
-│                                                                     │
-│   ALL modules receive:                                              │
-│   - Theme contract (CSS variables)                                  │
-│   - API endpoints (same backend)                                    │
-│   - User context (auth token)                                       │
-│                                                                     │
-└─────────────────────────────────────────────────────────────────────┘
+                              ┌─────────────────┐
+                              │     TRAEFIK     │
+                              │  (Port 80/443)  │
+                              │   Dashboard:    │
+                              │   :8080         │
+                              └────────┬────────┘
+                                       │
+              ┌────────────────────────┼────────────────────────┐
+              │                        │                        │
+              ▼                        ▼                        ▼
+    PathPrefix(`/`)         PathPrefix(`/api/stj`)    PathPrefix(`/api/text`)
+              │                        │                        │
+              ▼                        ▼                        ▼
+    ┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
+    │  FASTHTML HUB   │     │   STJ SERVICE   │     │ TEXT EXTRACTOR  │
+    │   (frontend)    │     │   (FastAPI)     │     │   (FastAPI)     │
+    │   Port 5001     │     │   Port 8000     │     │   Port 8000     │
+    └─────────────────┘     └─────────────────┘     └─────────────────┘
+              │                        │                        │
+              └────────────────────────┴────────────────────────┘
+                                       │
+                              ┌────────┴────────┐
+                              │  SHARED VOLUME  │
+                              │    /data        │
+                              └─────────────────┘
 ```
 
 ---
 
-## WHY FASTHTML FOR THE HUB
+## WHY THIS ARCHITECTURE
 
-| Requirement | FastHTML Advantage |
-|-------------|-------------------|
-| **Fast loads** | SSR = no JS bundle to download/parse |
-| **Versatility** | Python functions return HTML directly |
-| **Simplicity** | No webpack, no npm, no build step |
-| **HTMX native** | First-class hypermedia support |
-| **Theme injection** | CSS variables injected server-side |
-| **Auth handling** | Session management in Python |
+### The "Honda Civic" Problem: SOLVED
 
-**The Hub is NOT a POC. It's production infrastructure.**
+| Problem | Old Way (Streamlit) | New Way (Traefik + FastHTML) |
+|---------|---------------------|------------------------------|
+| 20-min PDF processing | UI freezes, re-renders | Backend processes, frontend polls |
+| Service location | Hardcoded `localhost:8001` | Just `/api/text/process` |
+| Swap backend tech | Rewrite frontend | Frontend never knows |
+| Service discovery | Manual, error-prone | Traefik dashboard |
+
+### FastHTML + Docker + Traefik = "Low Floor, No Ceiling"
+
+| Framework | Floor | Ceiling | Verdict |
+|-----------|-------|---------|---------|
+| Streamlit | Low | Low (re-render hell) | Outgrown |
+| Reflex | High | Low (abstraction trap) | Avoid |
+| FastHTML | Low | **None** | ✅ Production |
 
 ---
 
-## MODULE LOADING STRATEGIES
+## DOCKER-COMPOSE.YML (PRODUCTION)
 
-### Strategy 1: Native FastHTML Modules (Recommended Default)
+```yaml
+version: "3.8"
+
+services:
+  # ============================================================
+  # 1. TRAEFIK - The Invisible Router
+  # ============================================================
+  reverse-proxy:
+    image: traefik:v3.0
+    command:
+      - "--api.insecure=true"                    # Dashboard at :8080
+      - "--providers.docker=true"                # Auto-discover containers
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+    ports:
+      - "80:80"       # Main entry point
+      - "8080:8080"   # Traefik Dashboard
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - legal-network
+
+  # ============================================================
+  # 2. FASTHTML HUB - The Frontend (SSR, HTMX)
+  # ============================================================
+  frontend-hub:
+    build: ./hub
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.hub.rule=PathPrefix(`/`)"
+      - "traefik.http.routers.hub.entrypoints=web"
+      - "traefik.http.routers.hub.priority=1"    # Lowest priority (catch-all)
+      - "traefik.http.services.hub.loadbalancer.server.port=5001"
+    volumes:
+      - shared-data:/data                        # Shared with backends
+    environment:
+      - DATA_PATH=/data
+    networks:
+      - legal-network
+    depends_on:
+      - reverse-proxy
+
+  # ============================================================
+  # 3. STJ SERVICE - Jurisprudence API
+  # ============================================================
+  api-stj:
+    build: ./api/stj
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.stj.rule=PathPrefix(`/api/stj`)"
+      - "traefik.http.routers.stj.entrypoints=web"
+      - "traefik.http.routers.stj.priority=10"   # Higher priority than hub
+      - "traefik.http.middlewares.stj-strip.stripprefix.prefixes=/api/stj"
+      - "traefik.http.routers.stj.middlewares=stj-strip"
+      - "traefik.http.services.stj.loadbalancer.server.port=8000"
+    volumes:
+      - shared-data:/data
+      - stj-db:/app/db                           # Persistent DuckDB
+    environment:
+      - DATA_PATH=/data
+      - DB_PATH=/app/db/stj.duckdb
+    networks:
+      - legal-network
+
+  # ============================================================
+  # 4. TEXT EXTRACTOR SERVICE - PDF Processing
+  # ============================================================
+  api-text-extractor:
+    build: ./api/text-extractor
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.text.rule=PathPrefix(`/api/text`)"
+      - "traefik.http.routers.text.entrypoints=web"
+      - "traefik.http.routers.text.priority=10"
+      - "traefik.http.middlewares.text-strip.stripprefix.prefixes=/api/text"
+      - "traefik.http.routers.text.middlewares=text-strip"
+      - "traefik.http.services.text.loadbalancer.server.port=8000"
+    volumes:
+      - shared-data:/data
+    environment:
+      - DATA_PATH=/data
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+    networks:
+      - legal-network
+
+  # ============================================================
+  # 5. DOC ASSEMBLER SERVICE - Document Generation
+  # ============================================================
+  api-doc-assembler:
+    build: ./api/doc-assembler
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.doc.rule=PathPrefix(`/api/doc`)"
+      - "traefik.http.routers.doc.entrypoints=web"
+      - "traefik.http.routers.doc.priority=10"
+      - "traefik.http.middlewares.doc-strip.stripprefix.prefixes=/api/doc"
+      - "traefik.http.routers.doc.middlewares=doc-strip"
+      - "traefik.http.services.doc.loadbalancer.server.port=8000"
+    volumes:
+      - shared-data:/data
+      - templates:/app/templates
+    environment:
+      - DATA_PATH=/data
+      - TEMPLATES_PATH=/app/templates
+    networks:
+      - legal-network
+
+  # ============================================================
+  # 6. TRELLO MCP SERVICE - Task Integration
+  # ============================================================
+  api-trello:
+    build: ./api/trello-mcp
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.trello.rule=PathPrefix(`/api/trello`)"
+      - "traefik.http.routers.trello.entrypoints=web"
+      - "traefik.http.routers.trello.priority=10"
+      - "traefik.http.middlewares.trello-strip.stripprefix.prefixes=/api/trello"
+      - "traefik.http.routers.trello.middlewares=trello-strip"
+      - "traefik.http.services.trello.loadbalancer.server.port=8000"
+    environment:
+      - TRELLO_API_KEY=${TRELLO_API_KEY}
+      - TRELLO_API_TOKEN=${TRELLO_API_TOKEN}
+    networks:
+      - legal-network
+
+# ============================================================
+# VOLUMES - Persistent Storage
+# ============================================================
+volumes:
+  shared-data:     # Files shared between frontend and backends
+  stj-db:          # DuckDB persistence for STJ
+  templates:       # Document templates
+
+# ============================================================
+# NETWORKS
+# ============================================================
+networks:
+  legal-network:
+    driver: bridge
+```
+
+---
+
+## HTMX INTEGRATION (No Hardcoded URLs)
+
+### In FastHTML Hub:
 
 ```python
-# Hub loads FastHTML module directly via HTMX
-Button(
-    "STJ Dados",
-    hx_get="/m/stj/",
-    hx_target="#workspace",
-    hx_swap="innerHTML"
-)
+# OLD WAY (BAD)
+Form(hx_post="http://localhost:8001/process", ...)
 
-# Module returns HTML fragment (not full page)
-@rt("/m/stj/")
-def stj_module():
+# NEW WAY (GOOD) - Traefik handles routing
+Form(hx_post="/api/text/process", ...)
+```
+
+### Example: Upload PDF for Processing
+
+```python
+# hub/modules/text_extractor/components.py
+
+def upload_form() -> FT:
+    return Form(
+        Input(type="file", name="pdf", accept=".pdf"),
+        Button("Processar PDF", type="submit"),
+
+        # Traefik routes /api/text/* to text-extractor service
+        hx_post="/api/text/upload",
+        hx_target="#results",
+        hx_indicator="#loading",
+        hx_encoding="multipart/form-data",
+    )
+
+def poll_status(job_id: str) -> FT:
     return Div(
-        module_header("🔭", "STJ Dados Abertos"),
-        search_form(),
-        results_container(),
+        # Poll for long-running job status
+        hx_get=f"/api/text/status/{job_id}",
+        hx_trigger="every 2s",
+        hx_swap="innerHTML",
+        id="job-status",
     )
 ```
 
-**Best for:** Internal tools, simple UIs, maximum performance
-
-### Strategy 2: Iframe Embed (For React/Vue/Svelte/etc)
+### Backend Never Knows About Frontend
 
 ```python
-# Hub loads external framework via iframe
-@rt("/m/stj-react/")
-def stj_react_embed():
-    return Div(
-        Iframe(
-            src="http://localhost:3001/stj",  # React app
-            cls="module-iframe",
-            style="width:100%; height:calc(100vh - 60px); border:none;",
-        ),
-        Script("""
-            // Pass theme to iframe
-            const iframe = document.querySelector('.module-iframe');
-            iframe.onload = () => {
-                iframe.contentWindow.postMessage({
-                    type: 'THEME_UPDATE',
-                    theme: getCurrentTheme()
-                }, '*');
-            };
-        """),
-    )
+# api/text-extractor/main.py (FastAPI)
+
+@app.post("/upload")  # NOT /api/text/upload - Traefik strips prefix
+async def upload_pdf(pdf: UploadFile):
+    job_id = str(uuid.uuid4())
+    # Save to shared volume
+    path = Path("/data/uploads") / f"{job_id}.pdf"
+    path.write_bytes(await pdf.read())
+
+    # Start background processing
+    background_tasks.add_task(process_pdf, job_id)
+
+    return {"job_id": job_id, "status": "processing"}
+
+@app.get("/status/{job_id}")
+async def get_status(job_id: str):
+    # Check job status
+    result_path = Path("/data/results") / f"{job_id}.json"
+    if result_path.exists():
+        return {"status": "complete", "result": json.loads(result_path.read_text())}
+    return {"status": "processing"}
 ```
-
-**Best for:** Client-specific UI requirements, complex SPAs
-
-### Strategy 3: API Proxy (Module consumes backend only)
-
-```python
-# Hub serves static shell, module fetches data directly
-@rt("/m/stj-custom/")
-def stj_custom():
-    return Div(
-        H1("STJ Custom Module"),
-        Div(id="custom-root"),
-        Script(src="/static/modules/stj-custom/bundle.js"),
-    )
-```
-
-**Best for:** Third-party integrations, client-developed modules
 
 ---
 
-## THEME CONTRACT
+## SHARED VOLUME WORKFLOW
 
-### Definition (JSON Schema)
-
-```json
-{
-  "$schema": "theme-contract-v1",
-  "base": {
-    "bg_primary": "#0a0f1a",
-    "bg_secondary": "#0f172a",
-    "text_primary": "#e2e8f0",
-    "text_secondary": "#94a3b8",
-    "border": "#1e293b",
-    "success": "#22c55e",
-    "danger": "#dc2626",
-    "warning": "#eab308"
-  },
-  "modules": {
-    "stj": {
-      "accent": "#8b5cf6",
-      "accent_secondary": "#7c3aed",
-      "accent_glow": "rgba(139, 92, 246, 0.15)",
-      "icon": "🔭",
-      "name": "STJ Dados Abertos"
-    },
-    "text_extractor": {
-      "accent": "#d97706",
-      "accent_secondary": "#b45309",
-      "accent_glow": "rgba(217, 119, 6, 0.15)",
-      "icon": "⚙️",
-      "name": "Text Extractor"
-    }
-  }
-}
+```
+┌──────────────┐       ┌──────────────┐       ┌──────────────┐
+│   FRONTEND   │       │   BACKEND    │       │   BACKEND    │
+│   (Hub)      │       │ (Extractor)  │       │ (Assembler)  │
+└──────┬───────┘       └──────┬───────┘       └──────┬───────┘
+       │                      │                      │
+       │  Upload PDF          │                      │
+       │─────────────────────▶│                      │
+       │                      │                      │
+       │                      │ Save to /data/uploads│
+       │                      │────────────┐         │
+       │                      │            ▼         │
+       │               ┌──────┴──────────────────────┴──────┐
+       │               │         SHARED VOLUME              │
+       │               │            /data                   │
+       │               │  ┌─────────────────────────────┐   │
+       │               │  │ /uploads/abc123.pdf         │   │
+       │               │  │ /results/abc123.json        │   │
+       │               │  │ /templates/contrato.docx    │   │
+       │               │  │ /output/contrato_final.docx │   │
+       │               │  └─────────────────────────────┘   │
+       │               └────────────────────────────────────┘
+       │                      │                      │
+       │  Poll /status        │                      │
+       │─────────────────────▶│                      │
+       │                      │                      │
+       │  {status: complete}  │                      │
+       │◀─────────────────────│                      │
+       │                      │                      │
+       │  Download from       │                      │
+       │  /data/results       │                      │
+       │◀─────────────────────┘                      │
 ```
 
-### CSS Variables (Generated from contract)
+---
+
+## DIRECTORY STRUCTURE (FINAL)
+
+```
+legal-workbench/
+├── docker-compose.yml          ← Production orchestration
+├── .env                        ← Secrets (GEMINI_API_KEY, etc.)
+│
+├── hub/                        ← FastHTML Frontend (SSR)
+│   ├── Dockerfile
+│   ├── main.py                 # Entry point
+│   ├── requirements.txt
+│   ├── core/
+│   │   ├── themes.py           # Theme system
+│   │   └── loader.py           # Module registry
+│   ├── layouts/
+│   │   ├── shell.py            # Main layout
+│   │   └── sidebar.py          # Navigation
+│   ├── modules/                # UI modules (FastHTML native)
+│   │   ├── stj/
+│   │   ├── text_extractor/
+│   │   ├── doc_assembler/
+│   │   └── trello/
+│   └── static/
+│       ├── theme-contract.json
+│       └── styles.css
+│
+├── api/                        ← Backend Services (FastAPI)
+│   ├── stj/
+│   │   ├── Dockerfile
+│   │   ├── main.py
+│   │   ├── requirements.txt
+│   │   └── src/
+│   ├── text-extractor/
+│   │   ├── Dockerfile
+│   │   ├── main.py
+│   │   └── src/
+│   ├── doc-assembler/
+│   │   ├── Dockerfile
+│   │   ├── main.py
+│   │   └── src/
+│   └── trello-mcp/
+│       ├── Dockerfile
+│       ├── main.py
+│       └── src/
+│
+├── themes/                     ← Framework-agnostic themes
+│   ├── contract.json           # Universal theme schema
+│   └── modules.json            # Module → theme mapping
+│
+└── docs/
+    └── plans/
+```
+
+---
+
+## ROUTE MAPPING
+
+| URL Pattern | Routed To | Service |
+|-------------|-----------|---------|
+| `/` | `frontend-hub:5001` | FastHTML Hub |
+| `/m/*` | `frontend-hub:5001` | Module UI |
+| `/api/stj/*` | `api-stj:8000` | STJ Service |
+| `/api/text/*` | `api-text-extractor:8000` | Text Extractor |
+| `/api/doc/*` | `api-doc-assembler:8000` | Doc Assembler |
+| `/api/trello/*` | `api-trello:8000` | Trello MCP |
+| `:8080` | Traefik Dashboard | Service Monitor |
+
+---
+
+## THEME INJECTION
+
+### CSS Variables (Hub injects to all pages)
 
 ```css
 :root {
   /* Base (always present) */
   --bg-primary: #0a0f1a;
-  --bg-secondary: #0f172a;
   --text-primary: #e2e8f0;
   --success: #22c55e;
   --danger: #dc2626;
 
   /* Module-specific (switched on navigation) */
   --accent: #8b5cf6;
-  --accent-secondary: #7c3aed;
-  --accent-glow: rgba(139, 92, 246, 0.15);
 }
 ```
 
-### Framework Adapters
+### Theme Switch on Module Load
 
-**For React/Vue/etc (iframe):**
-```javascript
-// Listen for theme from parent Hub
-window.addEventListener('message', (event) => {
-  if (event.data.type === 'THEME_UPDATE') {
-    const theme = event.data.theme;
-    document.documentElement.style.setProperty('--accent', theme.accent);
-    // ... apply other variables
-  }
-});
-```
-
-**For FastHTML (native):**
 ```python
-# Already injected via CSS in page head
-# Just use: cls="text-accent" or style="color: var(--accent)"
-```
-
-**For Tailwind projects:**
-```javascript
-// tailwind.config.js
-module.exports = {
-  theme: {
-    extend: {
-      colors: {
-        accent: 'var(--accent)',
-        'accent-secondary': 'var(--accent-secondary)',
-      }
-    }
-  }
-}
+# Hub sidebar navigation
+Button(
+    "🔭 STJ Dados",
+    hx_get="/m/stj/",
+    hx_target="#workspace",
+    # Trigger theme switch client-side
+    hx_on__htmx_before_request="switchTheme('stj')",
+)
 ```
 
 ---
 
-## DIRECTORY STRUCTURE
+## FRAMEWORK FLEXIBILITY (CLIENT MODULES)
 
-```
-legal-workbench/
-├── hub/                          ← FastHTML Hub (PRODUCTION)
-│   ├── main.py                   # Entry point
-│   ├── core/
-│   │   ├── loader.py             # Module registry
-│   │   ├── themes.py             # Theme system
-│   │   └── auth.py               # Session management
-│   ├── layouts/
-│   │   ├── shell.py              # Main layout
-│   │   └── sidebar.py            # Navigation
-│   ├── static/
-│   │   ├── theme-contract.json   # The contract
-│   │   └── theme-bridge.js       # iframe communication
-│   └── requirements.txt
-│
-├── modules/                      ← Production modules
-│   ├── stj/                      # FastHTML native
-│   │   ├── __init__.py
-│   │   ├── routes.py
-│   │   └── components.py
-│   ├── text-extractor/           # FastHTML native
-│   └── doc-assembler/            # FastHTML native
-│
-├── modules-external/             ← Client-specific frameworks
-│   ├── stj-react/                # React version (if client wants)
-│   ├── stj-vue/                  # Vue version (if client wants)
-│   └── README.md                 # "How to add framework module"
-│
-├── api/                          ← Backend services (framework-agnostic)
-│   ├── stj-service/
-│   ├── text-extractor-service/
-│   └── doc-assembler-service/
-│
-├── themes/                       ← Theme definitions
-│   ├── contract.json             # Universal schema
-│   ├── modules.json              # Module assignments
-│   └── generator.py              # CSS generation
-│
-└── docker/                       ← Deployment
-    ├── docker-compose.yml
-    └── services/
-```
+If a client requires React/Vue/etc:
 
----
-
-## MODULE REGISTRATION
-
-### For FastHTML Modules (Native)
+### Option A: Iframe in Hub
 
 ```python
-# modules/stj/__init__.py
+# hub/modules/custom_react/__init__.py
 
-from .routes import app
-
-meta = {
-    "id": "stj",
-    "name": "STJ Dados Abertos",
-    "icon": "🔭",
-    "type": "fasthtml",              # Native integration
-    "theme_id": "stj",
-    "mount_path": "/m/stj",
-}
+@rt("/m/custom-react/")
+def custom_react_module():
+    return Div(
+        Iframe(
+            src="/api/custom-react/",  # Separate React container
+            style="width:100%; height:100vh; border:none;",
+        ),
+        # Pass theme via postMessage
+        Script("passThemeToIframe('custom-react')"),
+    )
 ```
 
-### For External Framework Modules
+### Option B: Standalone Container
 
-```python
-# modules-external/stj-react/module.json
-{
-    "id": "stj-react",
-    "name": "STJ Dados Abertos (React)",
-    "icon": "🔭",
-    "type": "iframe",                 # Iframe integration
-    "theme_id": "stj",
-    "source": "http://localhost:3001",
-    "mount_path": "/m/stj-react"
-}
+```yaml
+# Add to docker-compose.yml
+custom-react-module:
+  build: ./modules-external/custom-react
+  labels:
+    - "traefik.enable=true"
+    - "traefik.http.routers.custom.rule=PathPrefix(`/m/custom-react`)"
+    - "traefik.http.services.custom.loadbalancer.server.port=3000"
 ```
-
-### Hub Module Loader
-
-```python
-# hub/core/loader.py
-
-def load_module(module_meta: dict):
-    if module_meta["type"] == "fasthtml":
-        # Mount directly to app
-        app.mount(module_meta["mount_path"], module_meta["app"])
-
-    elif module_meta["type"] == "iframe":
-        # Create iframe wrapper route
-        @rt(f"{module_meta['mount_path']}/")
-        def iframe_wrapper():
-            return IframeEmbed(
-                src=module_meta["source"],
-                theme_id=module_meta["theme_id"]
-            )
-```
-
----
-
-## CLIENT FLEXIBILITY MATRIX
-
-| Client Request | Solution | Integration |
-|----------------|----------|-------------|
-| "We want simple, fast UI" | FastHTML module | Native HTMX |
-| "Our team knows React" | React module | Iframe + theme bridge |
-| "We need Vue ecosystem" | Vue module | Iframe + theme bridge |
-| "We're Python-only shop" | Reflex module | Iframe + theme bridge |
-| "Custom internal framework" | Any JS framework | Iframe + API contract |
-| "Static HTML + vanilla JS" | Static module | HTMX + CSS vars |
-
----
-
-## MIGRATION PATH FROM POCS
-
-### POCs → Production
-
-| POC | Status | Migration |
-|-----|--------|-----------|
-| `poc-fasthtml-stj/` | Most mature | → `modules/stj/` (native) |
-| `poc-react-stj/` | Reference | → `modules-external/stj-react/` (optional) |
-| `poc-reflex-stj/` | Reference | → Archive or client-specific |
-
-### Action Plan
-
-1. **Extract** FastHTML POC → Production `modules/stj/`
-2. **Build** Hub using patterns from POC
-3. **Archive** React/Reflex POCs (available if client requests)
-4. **Document** "How to add framework module"
 
 ---
 
 ## BENEFITS SUMMARY
 
-| Benefit | How Achieved |
-|---------|--------------|
-| **Fast loads** | FastHTML Hub = SSR, no JS bundle |
-| **Any framework** | Iframe integration + theme bridge |
-| **Theme consistency** | CSS variables contract |
-| **Code simplicity** | Hub is pure Python |
-| **Client flexibility** | "What framework do you want?" |
-| **Maintainability** | Native modules in FastHTML, external are isolated |
+| Benefit | Implementation |
+|---------|----------------|
+| **No hardcoded URLs** | Traefik path routing |
+| **Backend swappable** | Rewrite in Rust, frontend unchanged |
+| **Long tasks work** | Separate containers, polling |
+| **Service visibility** | Traefik dashboard :8080 |
+| **File sharing** | Shared volume /data |
+| **Theme consistency** | CSS variables everywhere |
+| **Client flexibility** | Iframe or container for any framework |
+
+---
+
+## STARTUP COMMANDS
+
+```bash
+# Start everything
+docker-compose up -d
+
+# View logs
+docker-compose logs -f frontend-hub
+
+# View Traefik dashboard
+open http://localhost:8080
+
+# Access application
+open http://localhost
+```
 
 ---
 
 ## NON-NEGOTIABLES
 
-1. **Hub is FastHTML** — No exceptions
-2. **Theme contract is universal** — All modules respect CSS variables
-3. **Backends are framework-agnostic** — API services don't care about frontend
-4. **Native modules preferred** — External frameworks only when client requires
-
----
-
-**Next Steps:**
-1. Approve this architecture
-2. Build the FastHTML Hub (based on existing execution plan)
-3. Extract STJ module from POC to production
-4. Document the iframe integration pattern
+1. **Traefik is the entry point** — All traffic through port 80
+2. **FastHTML Hub** — SSR frontend, no exceptions
+3. **Path-based routing** — `/api/*` → backends, `/` → frontend
+4. **Shared volume** — `/data` mounted to all services
+5. **No hardcoded URLs** — Frontend uses `/api/*` paths only
