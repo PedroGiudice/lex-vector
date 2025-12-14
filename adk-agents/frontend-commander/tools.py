@@ -83,6 +83,61 @@ def inspect_container(container_name: str) -> str:
 
 
 @tool
+def read_file(file_path: str) -> str:
+    """
+    Read any file from the project. Use for docs, plans, configs, or code.
+
+    Args:
+        file_path: Relative path from project root or absolute path.
+                   Examples: "docs/plans/architecture.md", "docker-compose.yml"
+
+    Returns:
+        File contents as string
+    """
+    # Try as relative to project root first
+    path = PROJECT_ROOT / file_path
+    if not path.exists():
+        # Try as absolute
+        path = Path(file_path)
+
+    if not path.exists():
+        return json.dumps({"error": f"File not found: {file_path}"})
+
+    try:
+        return path.read_text()
+    except Exception as e:
+        return json.dumps({"error": f"Failed to read {file_path}: {e}"})
+
+
+@tool
+def write_file(file_path: str, content: str) -> str:
+    """
+    Write content to any file in the project.
+    Creates parent directories if needed.
+
+    Args:
+        file_path: Relative path from project root.
+                   Examples: "legal-workbench/docker-compose.yml", "hub/main.py"
+        content: File contents to write
+
+    Returns:
+        Success message or error
+    """
+    path = PROJECT_ROOT / file_path
+
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(content)
+        return json.dumps({
+            "success": True,
+            "path": str(path.relative_to(PROJECT_ROOT)),
+            "message": f"File written: {file_path}"
+        })
+    except Exception as e:
+        return json.dumps({"error": str(e)})
+
+
+@tool
 def read_backend_code(service_name: str) -> str:
     """
     Read all Python source code from a backend service.
