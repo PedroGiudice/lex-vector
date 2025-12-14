@@ -8,7 +8,11 @@ from typing import List, Optional
 import asyncio
 
 # Local imports
-import mock_data
+# Use backend_adapter in Docker, falls back to mock if engines unavailable
+try:
+    import backend_adapter as mock_data
+except ImportError:
+    import mock_data
 from styles import TERMINAL_STYLE, TAILWIND_CDN
 from components import query_builder, results, terminal
 
@@ -35,8 +39,14 @@ def app_header() -> FT:
     )
 
 
-@rt("/")
+@rt("/health")
 def get():
+    """Health check endpoint for Docker"""
+    return {"status": "healthy", "service": "fasthtml-stj"}
+
+
+@rt("/")
+def get_main():
     """Main page"""
 
     stats = mock_data.get_quick_stats()
@@ -248,25 +258,22 @@ async def get(start_date: str = "", end_date: str = ""):
 
 
 @rt("/stream-logs")
-async def get():
+async def get(start_date: str = "", end_date: str = ""):
     """
-    SSE endpoint: Stream logs in real-time
+    SSE endpoint: Stream download logs from real backend
     This demonstrates the server-side proxy pattern
     """
 
     async def event_generator():
         """Generate SSE events"""
 
-        logs = mock_data.get_streaming_logs()
-
-        # Skip first 3 lines (already displayed)
-        for log_line in logs[3:]:
-            await asyncio.sleep(0.4)  # Simulate real-time delay
+        async for log_line in mock_data.stream_download(start_date, end_date):
+            await asyncio.sleep(0.3)
 
             # Determine CSS class based on content
             if "ERROR" in log_line or "FALHA" in log_line:
                 cls = "terminal-line terminal-error"
-            elif "WARNING" in log_line or "AVISO" in log_line:
+            elif "WARNING" in log_line:
                 cls = "terminal-line terminal-warning"
             else:
                 cls = "terminal-line"
@@ -275,8 +282,7 @@ async def get():
             yield f'event: message\ndata: <div class="{cls}">{log_line}</div>\n\n'
 
         # Send close event
-        await asyncio.sleep(0.5)
-        yield f'event: close\ndata: <div class="terminal-line text-green-400">[SYSTEM] Download concluído com sucesso.</div>\n\n'
+        yield 'event: close\ndata: <div class="terminal-line text-green-400">[SYSTEM] Processo finalizado.</div>\n\n'
 
     return EventStream(event_generator())
 

@@ -159,6 +159,41 @@ services:
       start_period: 40s
     restart: unless-stopped
 
+  # ===========================================
+  # FastHTML BFF (STJ PoC)
+  # ===========================================
+
+  fasthtml-stj:
+    build:
+      context: ..
+      dockerfile: docker/services/fasthtml-stj/Dockerfile
+    container_name: lw-fasthtml-stj
+    ports:
+      - "5001:5001"
+    environment:
+      - STJ_API_URL=http://stj-api:8000
+      - DUCKDB_PATH=/app/data/stj.duckdb
+      - LOG_LEVEL=info
+    volumes:
+      - stj-duckdb-data:/app/data
+    networks:
+      - legal-workbench-net
+    depends_on:
+      stj-api:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1'
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    restart: unless-stopped
+
   trello-mcp:
     build:
       context: ..
