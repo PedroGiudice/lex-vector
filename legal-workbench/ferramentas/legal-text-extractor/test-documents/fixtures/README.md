@@ -102,3 +102,14 @@ pdftk input.pdf cat 1 output fixture_single.pdf
 - **fixture_dirty**: Tem marcas d'água visíveis, ideal para testar engine de limpeza
 - **Páginas do meio/final**: Geralmente contêm decisões, sentenças, despachos
 - **Páginas iniciais**: Geralmente contêm petição inicial, procuração
+
+---
+
+## Git
+
+**OBRIGATÓRIO:**
+
+1. **Branch para alterações significativas** — >3 arquivos OU mudança estrutural = criar branch
+2. **Pull antes de trabalhar** — `git pull origin main`
+3. **Commit ao finalizar** — Nunca deixar trabalho não commitado
+4. **Deletar branch após merge** — Local e remota

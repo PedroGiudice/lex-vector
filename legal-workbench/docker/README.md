@@ -967,3 +967,14 @@ pip-audit -r requirements.txt
 **Última atualização:** 2025-12-11
 **Versão:** 1.0.0
 **Autor:** Pedro Giudice (PGR)
+
+---
+
+## Git
+
+**OBRIGATÓRIO:**
+
+1. **Branch para alterações significativas** — >3 arquivos OU mudança estrutural = criar branch
+2. **Pull antes de trabalhar** — `git pull origin main`
+3. **Commit ao finalizar** — Nunca deixar trabalho não commitado
+4. **Deletar branch após merge** — Local e remota

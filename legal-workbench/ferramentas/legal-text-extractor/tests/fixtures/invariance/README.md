@@ -61,3 +61,14 @@ Os textos base foram extraidos de documentos reais processados pelo pipeline, ga
 ## Artefatos Simulados
 
 Os artefatos adicionados sao baseados em `src/schemas/validation_artifacts.json`, que documenta todos os padroes conhecidos por sistema.
+
+---
+
+## Git
+
+**OBRIGATÓRIO:**
+
+1. **Branch para alterações significativas** — >3 arquivos OU mudança estrutural = criar branch
+2. **Pull antes de trabalhar** — `git pull origin main`
+3. **Commit ao finalizar** — Nunca deixar trabalho não commitado
+4. **Deletar branch após merge** — Local e remota

@@ -331,3 +331,14 @@ For issues or questions, refer to:
 - Trello API docs: https://developer.atlassian.com/cloud/trello/
 - FastAPI docs: https://fastapi.tiangolo.com/
 - Project CHANGELOG: `../../ferramentas/trello-mcp/CHANGELOG.md`
+
+---
+
+## Git
+
+**OBRIGATÓRIO:**
+
+1. **Branch para alterações significativas** — >3 arquivos OU mudança estrutural = criar branch
+2. **Pull antes de trabalhar** — `git pull origin main`
+3. **Commit ao finalizar** — Nunca deixar trabalho não commitado
+4. **Deletar branch após merge** — Local e remota

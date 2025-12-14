@@ -413,3 +413,14 @@ from processador_texto import (
 **Desenvolvido para:** Coleta automatizada de jurisprudência do STJ
 **Stack:** Python 3.12 + DuckDB + Typer + Rich
 **Armazenamento:** HD externo (50GB+)
+
+---
+
+## Git
+
+**OBRIGATÓRIO:**
+
+1. **Branch para alterações significativas** — >3 arquivos OU mudança estrutural = criar branch
+2. **Pull antes de trabalhar** — `git pull origin main`
+3. **Commit ao finalizar** — Nunca deixar trabalho não commitado
+4. **Deletar branch após merge** — Local e remota
