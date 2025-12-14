@@ -56,6 +56,10 @@ def get_main():
             Title("STJ - FastHTML PoC"),
             Meta(charset="utf-8"),
             Meta(name="viewport", content="width=device-width, initial-scale=1"),
+            Script(src=TAILWIND_CDN),
+            Script(src="https://unpkg.com/htmx.org@2.0.3"),
+            Script(src="https://unpkg.com/htmx-ext-sse@2.2.2/sse.js"),
+            NotStr(TERMINAL_STYLE),
         ),
         Body(
             app_header(),
