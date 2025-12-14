@@ -8,9 +8,9 @@ __pycache__/
 .vscode/
 *.swp
 
+# Secrets
+.env
+
 # State files
 .processed_containers.json
 *.log
-
-# NOTE: .env will be added here after initial setup
-# For now it's tracked to allow remote editing
