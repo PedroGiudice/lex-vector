@@ -153,8 +153,8 @@
           },
           {
             "type": "command",
-            "command": "cd \"$CLAUDE_PROJECT_DIR\" && bun run .claude/hooks/hook-wrapper.js .claude/hooks/vibe-analyze-prompt.js",
-            "_note": "Gordon AI Coach: Real-time prompt quality analysis via Claude SDK (background, non-blocking) [WRAPPED]"
+            "command": "cd \"$CLAUDE_PROJECT_DIR\" && node .claude/hooks/hook-wrapper.js .claude/hooks/vibe-analyze-prompt.js",
+            "_note": "Gordon AI Coach: Real-time prompt quality analysis via Claude SDK (background, non-blocking) [WRAPPED] - Uses node instead of bun due to spawn compatibility"
           },
           {
             "type": "command",
