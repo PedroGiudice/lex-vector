@@ -19,7 +19,32 @@ Regras específicas para desenvolvimento no Legal Workbench.
 
 ## Regras Obrigatórias
 
-### 0. Docker Health Check PRIMEIRO
+### 0. UMA ÚNICA ARQUITETURA (CRÍTICO)
+
+**NUNCA manter duas arquiteturas ou stacks concomitantemente.**
+
+Esta regra existe porque:
+- Múltiplos `docker-compose.yml` causam confusão sobre qual está ativo
+- Portas conflitantes levam a comportamento inesperado
+- Documentação fica desatualizada quando há duplicação
+- Debugging se torna exponencialmente mais difícil
+
+**Ao migrar de arquitetura:**
+1. **DEPRECAR** explicitamente a arquitetura antiga (renomear para `*.deprecated`)
+2. **MIGRAR** completamente antes de commitar
+3. **REMOVER** arquivos obsoletos após validação
+4. **ATUALIZAR** toda documentação relevante
+
+**Se encontrar múltiplas stacks:**
+1. PARAR imediatamente
+2. Identificar qual é a arquitetura OFICIAL (North Star)
+3. Consolidar antes de prosseguir com qualquer trabalho
+
+> **"Uma arquitetura. Um docker-compose. Uma fonte de verdade."**
+
+---
+
+### 1. Docker Health Check PRIMEIRO
 
 **ANTES de qualquer trabalho no Legal Workbench**, verificar status dos containers:
 
@@ -43,7 +68,7 @@ docker compose ps
 
 > **Regra:** Não iniciar trabalho com infraestrutura quebrada.
 
-### 1. UI-First Validation
+### 2. UI-First Validation
 
 Toda alteração em `ferramentas/` DEVE ser validada em `modules/`:
 
@@ -59,7 +84,7 @@ ferramentas/trello-mcp/            →  modules/trello.py
 - [ ] `render()` executa sem exceção?
 - [ ] Resultado aparece na UI?
 
-### 2. Teste End-to-End Obrigatório
+### 3. Teste End-to-End Obrigatório
 
 Antes de commitar alterações que afetam módulos:
 
@@ -73,7 +98,7 @@ streamlit run app.py
 # 3. Verificar que módulos NÃO alterados continuam funcionando
 ```
 
-### 3. Teste Empírico via Streamlit
+### 4. Teste Empírico via Streamlit
 
 **Regra:** Testes empíricos (com dados reais) SEMPRE via Streamlit.
 
@@ -81,14 +106,14 @@ streamlit run app.py
 - Testes empíricos = verificam fluxo completo do usuário
 - **Ambos são necessários, mas empírico via UI é obrigatório**
 
-### 4. Isolamento de Erros
+### 5. Isolamento de Erros
 
 Se um módulo quebrar:
 1. **NÃO** commitar até corrigir
 2. Verificar se a quebra afetou outros módulos
 3. Rollback se necessário
 
-### 5. Fixes Definitivos vs Hot-Fixes
+### 6. Fixes Definitivos vs Hot-Fixes
 
 **SEMPRE** priorizar correções e fixes definitivos. "Patches" ou "hot-fixes" devem ser usados **apenas** para:
 - Situações emergenciais de produção
@@ -152,7 +177,7 @@ streamlit run app.py
 
 ## Regras de Frontend (OBRIGATÓRIO)
 
-### 6. Sempre Usar Subagente Especializado
+### 7. Sempre Usar Subagente Especializado
 
 **QUALQUER tarefa de frontend DEVE usar um subagente especializado:**
 
@@ -165,7 +190,7 @@ streamlit run app.py
 
 > **"Não importa quão simples pareça a tarefa - SEMPRE usar especialista."**
 
-### 7. Clareza de Output ANTES de Implementar
+### 8. Clareza de Output ANTES de Implementar
 
 **ANTES de escrever qualquer código frontend:**
 
@@ -177,7 +202,7 @@ streamlit run app.py
 
 > **"Se não está 100% claro o que o usuário espera, PERGUNTE."**
 
-### 8. FastHTML BFF Pattern (Novo Stack)
+### 9. FastHTML BFF Pattern (Novo Stack)
 
 **Arquitetura aprovada para substituir Streamlit:**
 
@@ -198,4 +223,4 @@ Browser (HTMX) ←→ FastHTML BFF ←→ FastAPI Services (Docker)
 
 ---
 
-*Última atualização: 2025-12-13*
+*Última atualização: 2025-12-16*
