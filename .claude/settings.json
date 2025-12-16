@@ -40,6 +40,11 @@
             "type": "command",
             "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/doc-validator.py\" 2>/dev/null || true",
             "_note": "Doc Governance: Validates line limits and README accuracy (non-blocking)"
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/context-memory-inject.py\" 2>/dev/null || true",
+            "_note": "Context Memory: Inject recent observations from past sessions (non-blocking)"
           }
         ]
       }
@@ -74,6 +79,16 @@
             "_note": "Remove tracking data older than 7 days"
           }
         ]
+      },
+      {
+        "_comment": "Context Memory: generate session summary for next session",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/context-memory-summary.py\" 2>/dev/null || true",
+            "_note": "Context Memory: Generate and store session summary (non-blocking)"
+          }
+        ]
       }
     ],
     "PreToolUse": [
@@ -85,6 +100,19 @@
             "type": "command",
             "command": "cd \"$CLAUDE_PROJECT_DIR\" && bun run .claude/hooks/inject-tools-to-agents.js",
             "_note": "Reads agent-tools-mapping.json and injects available tools instruction into agent prompt"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "_comment": "Context Memory: Capture high-value tool outputs (Write, Edit, Bash)",
+        "matcher": "Write|Edit|MultiEdit|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/context-memory-capture.py\" 2>/dev/null || true",
+            "_note": "Context Memory: Compress and store observations from tool outputs (non-blocking)"
           }
         ]
       }
