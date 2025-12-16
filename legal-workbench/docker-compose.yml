@@ -1,0 +1,139 @@
+version: "3.8"
+
+services:
+  # ============================================================
+  # 1. TRAEFIK - The Invisible Router
+  # ============================================================
+  reverse-proxy:
+    image: traefik:v3.0
+    command:
+      - "--api.insecure=true"                    # Dashboard at :8080
+      - "--providers.docker=true"                # Auto-discover containers
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+    ports:
+      - "80:80"       # Main entry point
+      - "8080:8080"   # Traefik Dashboard
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - legal-network
+
+  # ============================================================
+  # 2. FASTHTML HUB - The Frontend (SSR, HTMX)
+  # ============================================================
+  frontend-hub:
+    build: ./hub
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.hub.rule=PathPrefix(`/`)"
+      - "traefik.http.routers.hub.entrypoints=web"
+      - "traefik.http.routers.hub.priority=1"    # Lowest priority (catch-all)
+      - "traefik.http.services.hub.loadbalancer.server.port=5001"
+    volumes:
+      - shared-data:/data                        # Shared with backends
+    environment:
+      - DATA_PATH=/data
+    networks:
+      - legal-network
+    depends_on:
+      - reverse-proxy
+
+  # ============================================================
+  # 3. STJ SERVICE - Jurisprudence API
+  # ============================================================
+  api-stj:
+    build: ./docker/services/stj-api
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.stj.rule=PathPrefix(`/api/stj`)"
+      - "traefik.http.routers.stj.entrypoints=web"
+      - "traefik.http.routers.stj.priority=10"   # Higher priority than hub
+      - "traefik.http.middlewares.stj-strip.stripprefix.prefixes=/api/stj"
+      - "traefik.http.routers.stj.middlewares=stj-strip"
+      - "traefik.http.services.stj.loadbalancer.server.port=8000"
+    volumes:
+      - shared-data:/data
+      - stj-db:/app/db                           # Persistent DuckDB
+    environment:
+      - DATA_PATH=/data
+      - DB_PATH=/app/db/stj.duckdb
+    networks:
+      - legal-network
+
+  # ============================================================
+  # 4. TEXT EXTRACTOR SERVICE - PDF Processing
+  # ============================================================
+  api-text-extractor:
+    build: ./docker/services/text-extractor
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.text.rule=PathPrefix(`/api/text`)"
+      - "traefik.http.routers.text.entrypoints=web"
+      - "traefik.http.routers.text.priority=10"
+      - "traefik.http.middlewares.text-strip.stripprefix.prefixes=/api/text"
+      - "traefik.http.routers.text.middlewares=text-strip"
+      - "traefik.http.services.text.loadbalancer.server.port=8000"
+    volumes:
+      - shared-data:/data
+    environment:
+      - DATA_PATH=/data
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+    networks:
+      - legal-network
+
+  # ============================================================
+  # 5. DOC ASSEMBLER SERVICE - Document Generation
+  # ============================================================
+  api-doc-assembler:
+    build: ./docker/services/doc-assembler
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.doc.rule=PathPrefix(`/api/doc`)"
+      - "traefik.http.routers.doc.entrypoints=web"
+      - "traefik.http.routers.doc.priority=10"
+      - "traefik.http.middlewares.doc-strip.stripprefix.prefixes=/api/doc"
+      - "traefik.http.routers.doc.middlewares=doc-strip"
+      - "traefik.http.services.doc.loadbalancer.server.port=8000"
+    volumes:
+      - shared-data:/data
+      - templates:/app/templates
+    environment:
+      - DATA_PATH=/data
+      - TEMPLATES_PATH=/app/templates
+    networks:
+      - legal-network
+
+  # ============================================================
+  # 6. TRELLO MCP SERVICE - Task Integration
+  # ============================================================
+  api-trello:
+    build: ./docker/services/trello-mcp
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.trello.rule=PathPrefix(`/api/trello`)"
+      - "traefik.http.routers.trello.entrypoints=web"
+      - "traefik.http.routers.trello.priority=10"
+      - "traefik.http.middlewares.trello-strip.stripprefix.prefixes=/api/trello"
+      - "traefik.http.routers.trello.middlewares=trello-strip"
+      - "traefik.http.services.trello.loadbalancer.server.port=8000"
+    environment:
+      - TRELLO_API_KEY=${TRELLO_API_KEY}
+      - TRELLO_API_TOKEN=${TRELLO_API_TOKEN}
+    networks:
+      - legal-network
+
+# ============================================================
+# VOLUMES - Persistent Storage
+# ============================================================
+volumes:
+  shared-data:     # Files shared between frontend and backends
+  stj-db:          # DuckDB persistence for STJ
+  templates:       # Document templates
+
+# ============================================================
+# NETWORKS
+# ============================================================
+networks:
+  legal-network:
+    driver: bridge
