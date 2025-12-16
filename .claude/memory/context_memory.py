@@ -3,7 +3,7 @@ Context Memory - DuckDB-based persistent memory for Claude Code sessions.
 
 Inspired by claude-mem but simplified:
 - Uses DuckDB (existing project infrastructure)
-- Uses Gemini Flash for compression (existing ADK)
+- Uses Gemini SDK for compression (google-generativeai)
 - Integrates with existing hook system
 
 Storage: ~/.claude/context_memory.duckdb
@@ -15,9 +15,7 @@ import hashlib
 import json
 import logging
 import os
-import subprocess
 import threading
-from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
@@ -381,8 +379,40 @@ class ContextMemoryDB:
 
 
 # =============================================================================
-# COMPRESSION UTILITIES (using Gemini)
+# COMPRESSION UTILITIES (using Gemini SDK)
 # =============================================================================
+
+# Lazy import for Gemini SDK (optional dependency)
+_genai_module = None
+_genai_configured = False
+
+
+def _get_genai():
+    """Lazy load and configure google.generativeai SDK."""
+    global _genai_module, _genai_configured
+
+    if _genai_module is not None:
+        return _genai_module
+
+    try:
+        import google.generativeai as genai
+        _genai_module = genai
+
+        if not _genai_configured:
+            # Try to get API key from environment
+            api_key = os.environ.get("GOOGLE_API_KEY")
+            if api_key:
+                genai.configure(api_key=api_key)
+                _genai_configured = True
+            else:
+                logger.warning("GOOGLE_API_KEY not set - Gemini compression unavailable")
+                return None
+
+        return genai
+    except ImportError:
+        logger.warning("google-generativeai not installed - using fallback compression")
+        return None
+
 
 def compress_with_gemini(
     tool_output: str,
@@ -391,11 +421,15 @@ def compress_with_gemini(
     timeout: int = 30
 ) -> Optional[Dict]:
     """
-    Use Gemini Flash to compress tool output into an observation.
+    Use Gemini Flash SDK to compress tool output into an observation.
 
     Returns:
         Dict with 'type', 'summary', 'tags' or None on failure
     """
+    genai = _get_genai()
+    if genai is None:
+        return None
+
     # Truncate large outputs
     output = tool_output[:4000] if len(tool_output) > 4000 else tool_output
     files_str = ', '.join(files[:5]) if files else 'N/A'
@@ -411,36 +445,36 @@ Respond ONLY with valid JSON (no markdown, no explanation):
 {{"type": "decision|bugfix|feature|refactor|discovery|change", "summary": "2-3 sentences max", "tags": ["tag1", "tag2"]}}"""
 
     try:
-        result = subprocess.run(
-            ["gemini", "-m", "gemini-2.5-flash", prompt],
-            capture_output=True,
-            text=True,
-            timeout=timeout
+        # Use Gemini 2.5 Flash for fast compression
+        model = genai.GenerativeModel("gemini-2.5-flash")
+
+        # Generate with timeout-friendly settings
+        response = model.generate_content(
+            prompt,
+            generation_config=genai.GenerationConfig(
+                temperature=0.1,  # Low temperature for consistent JSON
+                max_output_tokens=256,  # Short response expected
+            ),
+            request_options={"timeout": timeout}
         )
 
-        if result.returncode == 0:
+        if response and response.text:
             # Extract JSON from response (handle potential markdown wrapping)
-            response = result.stdout.strip()
-            if response.startswith("```"):
+            text = response.text.strip()
+            if text.startswith("```"):
                 # Remove markdown code blocks
-                lines = response.split('\n')
-                response = '\n'.join(lines[1:-1])
-            return json.loads(response)
+                lines = text.split('\n')
+                text = '\n'.join(lines[1:-1])
+            return json.loads(text)
         else:
-            logger.warning(f"Gemini compression failed: {result.stderr}")
+            logger.warning("Empty response from Gemini")
             return None
 
-    except subprocess.TimeoutExpired:
-        logger.warning("Gemini compression timed out")
-        return None
     except json.JSONDecodeError as e:
         logger.warning(f"Invalid JSON from Gemini: {e}")
         return None
-    except FileNotFoundError:
-        logger.warning("Gemini CLI not found - using fallback compression")
-        return None
     except Exception as e:
-        logger.error(f"Compression error: {e}")
+        logger.warning(f"Gemini SDK error: {e}")
         return None
 
 
