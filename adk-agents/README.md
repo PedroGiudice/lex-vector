@@ -46,7 +46,7 @@ cp .env.example .env
 
 | Modelo | ID | Uso |
 |--------|-----|-----|
-| **Gemini 3 Pro** | `gemini-3-pro` | Raciocínio, agentes (default) |
+| **Gemini 3 Pro** | `gemini-3-pro-preview` | Raciocínio, agentes (default) |
 | **Gemini 2.5 Pro** | `gemini-2.5-pro` | Long context (>200k tokens) |
 | **Gemini 2.5 Flash** | `gemini-2.5-flash` | Fast, bulk (50k-200k tokens) |
 | **Embedding** | `gemini-embedding-001` | RAG, semantic search |

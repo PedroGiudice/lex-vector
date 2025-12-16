@@ -61,7 +61,7 @@ python -m frontend-commander.watcher --once
 
 | Contexto | Modelo | Razão |
 |----------|--------|-------|
-| < 50k tokens | `gemini-3-pro` | Melhor raciocínio |
+| < 50k tokens | `gemini-3-pro-preview` | Melhor raciocínio |
 | 50k-200k tokens | `gemini-2.5-flash` | Rápido, bom contexto |
 | > 200k tokens | `gemini-2.5-pro` | Melhor long context |
 

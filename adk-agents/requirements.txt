@@ -1,8 +1,8 @@
 # Google ADK - Agent Development Kit
 google-adk[all]>=1.0.0
 
-# Gemini API (included in adk, but explicit for clarity)
-google-generativeai>=0.8.0
+# Gemini API (google-genai is the current SDK per Pyrules)
+google-genai>=1.0.0
 
 # Docker integration (for Frontend Commander)
 docker>=7.0.0

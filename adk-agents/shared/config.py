@@ -14,7 +14,7 @@ class Models:
     """Available Gemini models (Dec 2025)"""
 
     # Primary - for reasoning, agentic tasks
-    GEMINI_3_PRO = "gemini-3-pro"
+    GEMINI_3_PRO = "gemini-3-pro-preview"
 
     # Long context - for large files
     GEMINI_25_PRO = "gemini-2.5-pro"      # 1M tokens, complex reasoning

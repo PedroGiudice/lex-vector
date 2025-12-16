@@ -334,10 +334,52 @@
         "intentPatterns": ["(write|refactor).*?typescript", "typescript.*?(type|interface|pattern)"]
       },
       "fileTriggers": ["\\.ts$", "\\.tsx$"]
+    },
+    "frontend-commander": {
+      "priority": "high",
+      "description": "ADK agent for frontend generation from backends/architecture plans",
+      "promptTriggers": {
+        "keywords": ["frontend commander", "generate frontend", "generate ui", "fasthtml", "traefik", "hub", "docker-compose", "frontend module", "htmx"],
+        "intentPatterns": [
+          "(generate|create|implement).*?(frontend|ui|interface)",
+          "(implement|build).*?(traefik|fasthtml|hub)",
+          "(docker-compose|architecture).*?(frontend|hub)",
+          "(frontend|ui).*?(for|from).*?(backend|service|api)",
+          "(adk|agent).*?(frontend|generate)"
+        ]
+      },
+      "fileTriggers": ["hub/", "frontend-commander/"],
+      "_note": "ADK agent (Gemini-powered) - runs via adk run/web/api_server"
+    },
+    "fasthtml-bff-developer": {
+      "priority": "high",
+      "description": "FastHTML + HTMX specialist (BFF pattern)",
+      "promptTriggers": {
+        "keywords": ["fasthtml", "htmx", "bff", "ssr", "server side rendering", "hx_"],
+        "intentPatterns": [
+          "(create|build).*?(fasthtml|htmx)",
+          "(fasthtml|htmx).*?(component|page|route)",
+          "(bff|backend for frontend).*?(pattern|implementation)"
+        ]
+      },
+      "fileTriggers": [".*fasthtml.*\\.py$", "hub/"]
+    },
+    "streamlit-ui-integrator": {
+      "priority": "medium",
+      "description": "Streamlit UI integration specialist",
+      "promptTriggers": {
+        "keywords": ["streamlit", "st.", "streamlit ui", "streamlit component"],
+        "intentPatterns": [
+          "(create|build|integrate).*?streamlit",
+          "streamlit.*?(module|component|page)"
+        ]
+      },
+      "fileTriggers": [".*streamlit.*\\.py$", "modules/"]
     }
   },
   "_metadata": {
-    "lastUpdated": "2025-12-03",
-    "totalAgents": 40
+    "lastUpdated": "2025-12-14",
+    "totalAgents": 43,
+    "_note": "Added frontend-commander (ADK), fasthtml-bff-developer, streamlit-ui-integrator"
   }
 }
