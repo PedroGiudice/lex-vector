@@ -183,6 +183,13 @@ function logDetection(prompt, considered, matched, suggested) {
 }
 
 /**
+ * Check if agent is an ADK (Gemini-powered) agent
+ */
+function isAdkAgent(config) {
+  return config._note && config._note.toLowerCase().includes('adk');
+}
+
+/**
  * Format agent suggestions for output
  */
 function formatAgentSuggestions(detection) {
@@ -195,11 +202,18 @@ function formatAgentSuggestions(detection) {
   for (const agent of detection.topAgents.slice(0, 3)) {
     const priority = agent.config.priority || 'medium';
     const desc = agent.config.description || '';
-    lines.push(`- ${agent.agentName} (${priority}) - ${desc.substring(0, 50)}`);
+    const adkTag = isAdkAgent(agent.config) ? ' [ADK/Gemini]' : '';
+    lines.push(`- ${agent.agentName}${adkTag} (${priority}) - ${desc.substring(0, 50)}`);
   }
 
   lines.push('');
   lines.push('Para usar: "Use o agente [nome] para [tarefa]"');
+
+  // Check if any suggested agent is ADK
+  const hasAdkAgent = detection.topAgents.slice(0, 3).some(a => isAdkAgent(a.config));
+  if (hasAdkAgent) {
+    lines.push('⚡ ADK agents require: cd adk-agents && adk run [agent-name]');
+  }
 
   return lines.join('\n');
 }

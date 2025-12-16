@@ -322,3 +322,14 @@ RuntimeError: All 3 engines failed:
 - **Marker**: https://github.com/VikParuchuri/marker
 - **Surya**: https://github.com/VikParuchuri/surya
 - **Docling**: https://github.com/DS4SD/docling
+
+---
+
+## Git
+
+**OBRIGATÓRIO:**
+
+1. **Branch para alterações significativas** — >3 arquivos OU mudança estrutural = criar branch
+2. **Pull antes de trabalhar** — `git pull origin main`
+3. **Commit ao finalizar** — Nunca deixar trabalho não commitado
+4. **Deletar branch após merge** — Local e remota

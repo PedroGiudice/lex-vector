@@ -449,3 +449,14 @@ Before adopting FastHTML for production:
 5. **Maintenance**: Who will maintain this long-term?
 
 Answer these honestly before committing to FastHTML. It's powerful, but not always the right choice.
+
+---
+
+## Git
+
+**OBRIGATÓRIO:**
+
+1. **Branch para alterações significativas** — >3 arquivos OU mudança estrutural = criar branch
+2. **Pull antes de trabalhar** — `git pull origin main`
+3. **Commit ao finalizar** — Nunca deixar trabalho não commitado
+4. **Deletar branch após merge** — Local e remota

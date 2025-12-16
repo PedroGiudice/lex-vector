@@ -1,0 +1,420 @@
+---
+# ==========================
+# Linux Development Environment Setup
+# Ansible Playbook
+# ==========================
+#
+# Usage:
+#   ansible-playbook ansible-setup.yml
+#
+# Requirements:
+#   - Ansible 2.9+
+#   - sudo access
+
+- name: Linux Development Environment Setup
+  hosts: localhost
+  connection: local
+  become: false
+
+  vars:
+    python_versions:
+      - 3.12.1
+      - 3.11.7
+    node_versions:
+      - 20
+      - 18
+    python_default: 3.12.1
+    node_default: 20
+
+  pre_tasks:
+    - name: Gather OS facts
+      ansible.builtin.setup:
+        gather_subset:
+          - '!all'
+          - '!min'
+          - distribution
+
+    - name: Display detected OS
+      ansible.builtin.debug:
+        msg: "Detected: {{ ansible_distribution }} {{ ansible_distribution_version }}"
+
+  tasks:
+    # ==========================
+    # Essential Tools
+    # ==========================
+    - name: Install essential tools (Ubuntu/Debian)
+      ansible.builtin.apt:
+        name:
+          - build-essential
+          - git
+          - curl
+          - wget
+          - ca-certificates
+          - gnupg
+          - vim
+          - neovim
+          - htop
+          - btop
+          - ripgrep
+          - fd-find
+          - fzf
+          - bat
+          - exa
+          - jq
+          - tree
+          - unzip
+          - zip
+        state: present
+        update_cache: yes
+        cache_valid_time: 3600
+      become: yes
+      when: ansible_distribution in ['Ubuntu', 'Debian']
+
+    - name: Install essential tools (Fedora)
+      ansible.builtin.dnf:
+        name:
+          - '@Development Tools'
+          - git
+          - curl
+          - wget
+          - ca-certificates
+          - gnupg2
+          - vim
+          - neovim
+          - htop
+          - btop
+          - ripgrep
+          - fd-find
+          - fzf
+          - bat
+          - exa
+          - jq
+          - tree
+          - unzip
+          - zip
+        state: present
+      become: yes
+      when: ansible_distribution == 'Fedora'
+
+    - name: Create symlinks for fd and bat (Ubuntu/Debian)
+      ansible.builtin.file:
+        src: "{{ item.src }}"
+        dest: "{{ item.dest }}"
+        state: link
+      become: yes
+      loop:
+        - { src: '/usr/bin/fdfind', dest: '/usr/local/bin/fd' }
+        - { src: '/usr/bin/batcat', dest: '/usr/local/bin/bat' }
+      when: ansible_distribution in ['Ubuntu', 'Debian']
+      ignore_errors: yes
+
+    # ==========================
+    # Python (pyenv)
+    # ==========================
+    - name: Install pyenv dependencies (Ubuntu/Debian)
+      ansible.builtin.apt:
+        name:
+          - libssl-dev
+          - zlib1g-dev
+          - libbz2-dev
+          - libreadline-dev
+          - libsqlite3-dev
+          - llvm
+          - libncursesw5-dev
+          - xz-utils
+          - tk-dev
+          - libxml2-dev
+          - libxmlsec1-dev
+          - libffi-dev
+          - liblzma-dev
+        state: present
+      become: yes
+      when: ansible_distribution in ['Ubuntu', 'Debian']
+
+    - name: Install pyenv dependencies (Fedora)
+      ansible.builtin.dnf:
+        name:
+          - zlib-devel
+          - bzip2
+          - bzip2-devel
+          - readline-devel
+          - sqlite
+          - sqlite-devel
+          - openssl-devel
+          - tk-devel
+          - libffi-devel
+          - xz-devel
+        state: present
+      become: yes
+      when: ansible_distribution == 'Fedora'
+
+    - name: Check if pyenv is installed
+      ansible.builtin.stat:
+        path: "{{ ansible_env.HOME }}/.pyenv"
+      register: pyenv_installed
+
+    - name: Install pyenv
+      ansible.builtin.shell: |
+        curl https://pyenv.run | bash
+      args:
+        creates: "{{ ansible_env.HOME }}/.pyenv"
+      when: not pyenv_installed.stat.exists
+
+    - name: Add pyenv to shell configs
+      ansible.builtin.blockinfile:
+        path: "{{ item }}"
+        block: |
+          # Pyenv configuration
+          export PYENV_ROOT="$HOME/.pyenv"
+          command -v pyenv >/dev/null || export PATH="$PYENV_ROOT/bin:$PATH"
+          eval "$(pyenv init -)"
+        marker: "# {mark} ANSIBLE MANAGED BLOCK - PYENV"
+        create: yes
+      loop:
+        - "{{ ansible_env.HOME }}/.bashrc"
+        - "{{ ansible_env.HOME }}/.zshrc"
+
+    # ==========================
+    # Node.js (fnm)
+    # ==========================
+    - name: Check if fnm is installed
+      ansible.builtin.stat:
+        path: "{{ ansible_env.HOME }}/.local/share/fnm"
+      register: fnm_installed
+
+    - name: Install fnm
+      ansible.builtin.shell: |
+        curl -fsSL https://fnm.vercel.app/install | bash
+      args:
+        creates: "{{ ansible_env.HOME }}/.local/share/fnm"
+      when: not fnm_installed.stat.exists
+
+    - name: Add fnm to shell configs
+      ansible.builtin.lineinfile:
+        path: "{{ item }}"
+        line: 'eval "$(fnm env --use-on-cd)"'
+        create: yes
+      loop:
+        - "{{ ansible_env.HOME }}/.bashrc"
+        - "{{ ansible_env.HOME }}/.zshrc"
+
+    # ==========================
+    # Docker
+    # ==========================
+    - name: Install Docker (Ubuntu/Debian)
+      block:
+        - name: Remove old Docker versions
+          ansible.builtin.apt:
+            name:
+              - docker.io
+              - docker-doc
+              - docker-compose
+              - podman-docker
+              - containerd
+              - runc
+            state: absent
+
+        - name: Create keyrings directory
+          ansible.builtin.file:
+            path: /etc/apt/keyrings
+            state: directory
+            mode: '0755'
+
+        - name: Add Docker GPG key
+          ansible.builtin.apt_key:
+            url: https://download.docker.com/linux/ubuntu/gpg
+            keyring: /etc/apt/keyrings/docker.gpg
+            state: present
+
+        - name: Add Docker repository
+          ansible.builtin.apt_repository:
+            repo: "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+            state: present
+
+        - name: Install Docker packages
+          ansible.builtin.apt:
+            name:
+              - docker-ce
+              - docker-ce-cli
+              - containerd.io
+              - docker-buildx-plugin
+              - docker-compose-plugin
+            state: present
+            update_cache: yes
+
+        - name: Add user to docker group
+          ansible.builtin.user:
+            name: "{{ ansible_env.USER }}"
+            groups: docker
+            append: yes
+      become: yes
+      when: ansible_distribution in ['Ubuntu', 'Debian']
+
+    - name: Install Docker (Fedora)
+      block:
+        - name: Add Docker repository
+          ansible.builtin.shell: |
+            dnf config-manager --add-repo https://download.docker.com/linux/fedora/docker-ce.repo
+
+        - name: Install Docker packages
+          ansible.builtin.dnf:
+            name:
+              - docker-ce
+              - docker-ce-cli
+              - containerd.io
+              - docker-buildx-plugin
+              - docker-compose-plugin
+            state: present
+
+        - name: Start and enable Docker
+          ansible.builtin.systemd:
+            name: docker
+            state: started
+            enabled: yes
+
+        - name: Add user to docker group
+          ansible.builtin.user:
+            name: "{{ ansible_env.USER }}"
+            groups: docker
+            append: yes
+      become: yes
+      when: ansible_distribution == 'Fedora'
+
+    # ==========================
+    # Zsh + Oh-My-Zsh
+    # ==========================
+    - name: Install Zsh
+      ansible.builtin.package:
+        name: zsh
+        state: present
+      become: yes
+
+    - name: Check if Oh-My-Zsh is installed
+      ansible.builtin.stat:
+        path: "{{ ansible_env.HOME }}/.oh-my-zsh"
+      register: ohmyzsh_installed
+
+    - name: Install Oh-My-Zsh
+      ansible.builtin.shell: |
+        sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
+      args:
+        creates: "{{ ansible_env.HOME }}/.oh-my-zsh"
+      when: not ohmyzsh_installed.stat.exists
+
+    - name: Install Zsh plugins
+      ansible.builtin.git:
+        repo: "{{ item.repo }}"
+        dest: "{{ ansible_env.HOME }}/.oh-my-zsh/custom/plugins/{{ item.name }}"
+        update: no
+      loop:
+        - { name: 'zsh-autosuggestions', repo: 'https://github.com/zsh-users/zsh-autosuggestions' }
+        - { name: 'zsh-syntax-highlighting', repo: 'https://github.com/zsh-users/zsh-syntax-highlighting.git' }
+        - { name: 'zsh-completions', repo: 'https://github.com/zsh-users/zsh-completions' }
+
+    # ==========================
+    # Starship
+    # ==========================
+    - name: Check if Starship is installed
+      ansible.builtin.command: which starship
+      register: starship_installed
+      ignore_errors: yes
+      changed_when: false
+
+    - name: Install Starship
+      ansible.builtin.shell: |
+        curl -sS https://starship.rs/install.sh | sh -s -- -y
+      become: yes
+      when: starship_installed.rc != 0
+
+    - name: Add Starship to shell configs
+      ansible.builtin.lineinfile:
+        path: "{{ item.path }}"
+        line: "{{ item.line }}"
+        create: yes
+      loop:
+        - { path: "{{ ansible_env.HOME }}/.bashrc", line: 'eval "$(starship init bash)"' }
+        - { path: "{{ ansible_env.HOME }}/.zshrc", line: 'eval "$(starship init zsh)"' }
+
+    # ==========================
+    # Tmux
+    # ==========================
+    - name: Install Tmux
+      ansible.builtin.package:
+        name: tmux
+        state: present
+      become: yes
+
+    - name: Check if TPM is installed
+      ansible.builtin.stat:
+        path: "{{ ansible_env.HOME }}/.tmux/plugins/tpm"
+      register: tpm_installed
+
+    - name: Install TPM (Tmux Plugin Manager)
+      ansible.builtin.git:
+        repo: https://github.com/tmux-plugins/tpm
+        dest: "{{ ansible_env.HOME }}/.tmux/plugins/tpm"
+        update: no
+      when: not tpm_installed.stat.exists
+
+    # ==========================
+    # VS Code
+    # ==========================
+    - name: Install VS Code (Ubuntu/Debian)
+      block:
+        - name: Add Microsoft GPG key
+          ansible.builtin.apt_key:
+            url: https://packages.microsoft.com/keys/microsoft.asc
+            keyring: /etc/apt/keyrings/packages.microsoft.gpg
+            state: present
+
+        - name: Add VS Code repository
+          ansible.builtin.apt_repository:
+            repo: "deb [arch=amd64,arm64,armhf signed-by=/etc/apt/keyrings/packages.microsoft.gpg] https://packages.microsoft.com/repos/code stable main"
+            state: present
+
+        - name: Install VS Code
+          ansible.builtin.apt:
+            name: code
+            state: present
+            update_cache: yes
+      become: yes
+      when: ansible_distribution in ['Ubuntu', 'Debian']
+
+    - name: Install VS Code (Fedora)
+      block:
+        - name: Add Microsoft GPG key
+          ansible.builtin.rpm_key:
+            key: https://packages.microsoft.com/keys/microsoft.asc
+            state: present
+
+        - name: Add VS Code repository
+          ansible.builtin.yum_repository:
+            name: code
+            description: Visual Studio Code
+            baseurl: https://packages.microsoft.com/yumrepos/vscode
+            gpgcheck: yes
+            gpgkey: https://packages.microsoft.com/keys/microsoft.asc
+            enabled: yes
+
+        - name: Install VS Code
+          ansible.builtin.dnf:
+            name: code
+            state: present
+      become: yes
+      when: ansible_distribution == 'Fedora'
+
+  post_tasks:
+    - name: Display completion message
+      ansible.builtin.debug:
+        msg:
+          - "╔═══════════════════════════════════════════════════════════╗"
+          - "║                                                           ║"
+          - "║  Setup Complete!                                          ║"
+          - "║                                                           ║"
+          - "╚═══════════════════════════════════════════════════════════╝"
+          - ""
+          - "Next steps:"
+          - "1. Restart your terminal or run: exec $SHELL"
+          - "2. For Docker to work without sudo, log out and back in"
+          - "3. Configure your dotfiles"
+          - "4. Set up Git: git config --global user.name 'Your Name'"

@@ -48,8 +48,11 @@ async function main() {
     // Registrar início da execução
     await updateHookStatus(statusFile, hookName, 'running', Date.now());
 
+    // Read stdin first (to pass to child process)
+    const stdinData = await readStdin();
+
     // Executar o hook original
-    const result = await executeHook(hookPath, projectDir);
+    const result = await executeHook(hookPath, projectDir, stdinData);
 
     // Registrar resultado
     if (result.exitCode === 0) {
@@ -81,19 +84,58 @@ async function main() {
 }
 
 /**
+ * Read stdin with timeout (non-blocking)
+ */
+function readStdin(timeout = 500) {
+  return new Promise((resolve) => {
+    let data = '';
+    let hasData = false;
+
+    const timer = setTimeout(() => {
+      if (!hasData) resolve('');
+    }, timeout);
+
+    process.stdin.setEncoding('utf8');
+    process.stdin.on('readable', () => {
+      let chunk;
+      while ((chunk = process.stdin.read()) !== null) {
+        hasData = true;
+        data += chunk;
+      }
+    });
+    process.stdin.on('end', () => {
+      clearTimeout(timer);
+      resolve(data);
+    });
+    process.stdin.on('error', () => {
+      clearTimeout(timer);
+      resolve('');
+    });
+  });
+}
+
+/**
  * Executa o hook original e captura output
  */
-async function executeHook(hookPath, projectDir) {
+async function executeHook(hookPath, projectDir, stdinData) {
   return new Promise((resolve) => {
     let stdout = '';
     let stderr = '';
 
     // Executar hook como subprocesso
-    const child = spawn('node', [hookPath], {
-      stdio: ['inherit', 'pipe', 'pipe'],
+    // Use pipe for all stdio to avoid permission issues with stdin inheritance
+    // Use absolute path to node to ensure it's found
+    const child = spawn('/usr/bin/node', [hookPath], {
+      stdio: ['pipe', 'pipe', 'pipe'],
       env: process.env,
       cwd: projectDir  // CRITICAL: Execute from project root, not .claude/hooks/
     });
+
+    // Pass stdin data to child process
+    if (stdinData) {
+      child.stdin.write(stdinData);
+    }
+    child.stdin.end();
 
     // Capturar stdout
     child.stdout.on('data', (data) => {

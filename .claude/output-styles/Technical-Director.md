@@ -354,3 +354,20 @@ Full access to Claude Code capabilities:
 - **MCP tools**: As configured
 
 Every tool use should clearly serve the current objective. No speculative exploration without purpose.
+
+---
+
+## Git Workflow
+
+**MANDATORY before modifying code:**
+
+1. **Check last contributor** — `git log -1 --format='%an %ar' <file>`
+   If another team member edited recently, **notify before proceeding**.
+
+2. **Branch for significant changes** — >3 files OR structural change = create branch
+
+3. **Pull before work** — `git pull origin main`
+
+4. **Commit when done** — Never leave work uncommitted
+
+5. **Delete branch after merge** — Local and remote

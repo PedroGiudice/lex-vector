@@ -1,0 +1,16 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# Secrets
+.env
+
+# State files
+.processed_containers.json
+*.log

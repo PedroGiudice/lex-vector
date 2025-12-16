@@ -418,3 +418,14 @@ For issues or questions, check:
 1. `/home/user/Claude-Code-Projetos/legal-workbench/CLAUDE.md` - Project rules
 2. `/home/user/Claude-Code-Projetos/ARCHITECTURE.md` - System architecture
 3. Container logs: `docker-compose logs doc-assembler`
+
+---
+
+## Git
+
+**OBRIGATÓRIO:**
+
+1. **Branch para alterações significativas** — >3 arquivos OU mudança estrutural = criar branch
+2. **Pull antes de trabalhar** — `git pull origin main`
+3. **Commit ao finalizar** — Nunca deixar trabalho não commitado
+4. **Deletar branch após merge** — Local e remota

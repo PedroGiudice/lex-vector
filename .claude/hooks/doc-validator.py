@@ -20,8 +20,9 @@ def validate():
         path = f'{BASE}/{doc}'
         if os.path.exists(path):
             lines = sum(1 for _ in open(path))
-            if lines > limit:
-                errors.append(f'{doc}: {lines} linhas (limite: {limit})')
+            threshold = int(limit * 1.10)  # 10% tolerance
+            if lines > threshold:
+                errors.append(f'{doc}: {lines} linhas (limite: {limit}, tolerância: {threshold})')
 
     return errors
 

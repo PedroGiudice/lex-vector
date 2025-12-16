@@ -44,3 +44,14 @@ cd legal-workbench && source .venv/bin/activate && streamlit run app.py
 
 - **Swarm**: Medium-complex tasks with parallel subagents
 - **Breakdown**: Decompose large tasks into atomic units before execution
+
+---
+
+## Git
+
+**OBRIGATÓRIO:**
+
+1. **Branch para alterações significativas** — >3 arquivos OU mudança estrutural = criar branch
+2. **Pull antes de trabalhar** — `git pull origin main`
+3. **Commit ao finalizar** — Nunca deixar trabalho não commitado
+4. **Deletar branch após merge** — Local e remota
