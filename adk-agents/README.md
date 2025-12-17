@@ -40,7 +40,6 @@ cp .env.example .env
 | `dpp-agent` | Pré-processamento forense | Dinâmico (3 Pro default) | ✅ Ready |
 | `gemini-assistant` | Context offloading | **Flash Fixo** | ✅ Ready |
 | `refactor-planner` | Planos de refatoração | Dinâmico (3 Pro default) | ✅ Ready |
-| `streamlit-frontend-specialist` | UIs Streamlit | Dinâmico (3 Pro default) | ✅ Ready |
 | `test-writer-fixer` | Testes automatizados | Dinâmico (3 Pro default) | ✅ Ready |
 
 ### Seleção de Modelo
