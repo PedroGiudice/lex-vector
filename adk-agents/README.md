@@ -28,19 +28,41 @@ cp .env.example .env
 
 ## Agentes Disponíveis
 
-| Agente | Função | Status |
-|--------|--------|--------|
-| `frontend-commander` | Gera UI para novos backends | ✅ Ready |
-| `legal-tech-frontend-specialist` | React/TS para legal tech | ✅ Updated |
-| `ai-engineer` | LLM/RAG systems | 🔄 Needs update |
-| `backend-architect` | Design de backend | 🔄 Needs update |
-| `code-reviewer-superpowers` | Code review | 🔄 Needs update |
-| `devops-automator` | CI/CD, infra | 🔄 Needs update |
-| `documentation-architect` | Documentação | 🔄 Needs update |
-| `gemini-assistant` | Context offloading | 🔄 Needs update |
-| `refactor-planner` | Planos de refatoração | 🔄 Needs update |
-| `streamlit-frontend-specialist` | UIs Streamlit | 🔄 Needs update |
-| `test-writer-fixer` | Testes automatizados | 🔄 Needs update |
+| Agente | Função | Modelo | Status |
+|--------|--------|--------|--------|
+| `frontend-commander` | Gera UI para novos backends | Dinâmico (3 Pro default) | ✅ Ready |
+| `legal-tech-frontend-specialist` | React/TS para legal tech | Dinâmico (3 Pro default) | ✅ Ready |
+| `ai-engineer` | LLM/RAG systems | Dinâmico (3 Pro default) | ✅ Ready |
+| `backend-architect` | Design de backend | Dinâmico (3 Pro default) | ✅ Ready |
+| `code-reviewer-superpowers` | Code review | Dinâmico (3 Pro default) | ✅ Ready |
+| `devops-automator` | CI/CD, infra | Dinâmico (3 Pro default) | ✅ Ready |
+| `documentation-architect` | Documentação | Dinâmico (3 Pro default) | ✅ Ready |
+| `dpp-agent` | Pré-processamento forense | Dinâmico (3 Pro default) | ✅ Ready |
+| `gemini-assistant` | Context offloading | **Flash Fixo** | ✅ Ready |
+| `refactor-planner` | Planos de refatoração | Dinâmico (3 Pro default) | ✅ Ready |
+| `streamlit-frontend-specialist` | UIs Streamlit | Dinâmico (3 Pro default) | ✅ Ready |
+| `test-writer-fixer` | Testes automatizados | Dinâmico (3 Pro default) | ✅ Ready |
+
+### Seleção de Modelo
+
+Todos os agentes (exceto `gemini-assistant`) usam **seleção dinâmica**:
+- **<50k tokens**: Gemini 3 Pro (melhor raciocínio)
+- **50k-200k tokens**: Gemini 2.5 Flash (velocidade)
+- **>200k tokens**: Gemini 2.5 Pro (contexto longo)
+
+Cada agente expõe `get_agent_for_large_context()` para operações com contexto extenso:
+
+```python
+from ai_engineer.agent import root_agent, get_agent_for_large_context
+
+# Default: Gemini 3 Pro
+agent = root_agent
+
+# Para contexto grande: modelo selecionado automaticamente
+agent = get_agent_for_large_context(file_paths=["large1.py", "large2.py"])
+```
+
+O `gemini-assistant` usa **Flash fixo** porque sua função é context offloading - velocidade é prioridade.
 
 ## Modelos Gemini (Dez 2025)
 
