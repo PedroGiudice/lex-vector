@@ -25,7 +25,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 try:
     from memory.context_memory import (
         ContextMemoryDB, Observation,
-        compress_with_gemini, fallback_compress
+        compress_with_gemini
     )
 except ImportError:
     ContextMemoryDB = None
@@ -129,14 +129,16 @@ def main():
         session_id = stdin_data.get('session_id', os.environ.get('CLAUDE_SESSION_ID', 'unknown'))
         files = extract_files_from_result(tool_name, stdin_data.get('tool_input', {}))
 
-        # Try Gemini compression (with short timeout)
+        # Gemini compression - NO FALLBACK
+        # If Gemini fails, observation is NOT saved (intentional)
         compressed = compress_with_gemini(
             tool_output, tool_name, files, timeout=10
         )
 
-        # Fallback if Gemini fails
         if not compressed:
-            compressed = fallback_compress(tool_output, tool_name, files)
+            # Gemini failed - skip this observation
+            print(json.dumps(output))
+            return
 
         # Create observation
         obs = Observation(

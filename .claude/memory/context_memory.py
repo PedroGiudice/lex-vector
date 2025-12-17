@@ -379,38 +379,35 @@ class ContextMemoryDB:
 
 
 # =============================================================================
-# COMPRESSION UTILITIES (using Gemini SDK)
+# COMPRESSION UTILITIES (using google.genai SDK - the new official library)
 # =============================================================================
 
-# Lazy import for Gemini SDK (optional dependency)
-_genai_module = None
-_genai_configured = False
+_genai_client = None
 
 
-def _get_genai():
-    """Lazy load and configure google.generativeai SDK."""
-    global _genai_module, _genai_configured
+def _get_genai_client():
+    """
+    Get configured Google GenAI client.
 
-    if _genai_module is not None:
-        return _genai_module
+    Uses the new google.genai library (replaces deprecated google.generativeai).
+    REQUIRES GOOGLE_API_KEY to be set - no fallback.
+    """
+    global _genai_client
+
+    if _genai_client is not None:
+        return _genai_client
+
+    api_key = os.environ.get("GOOGLE_API_KEY")
+    if not api_key:
+        logger.error("GOOGLE_API_KEY not set - context memory compression DISABLED")
+        return None
 
     try:
-        import google.generativeai as genai
-        _genai_module = genai
-
-        if not _genai_configured:
-            # Try to get API key from environment
-            api_key = os.environ.get("GOOGLE_API_KEY")
-            if api_key:
-                genai.configure(api_key=api_key)
-                _genai_configured = True
-            else:
-                logger.warning("GOOGLE_API_KEY not set - Gemini compression unavailable")
-                return None
-
-        return genai
+        from google import genai
+        _genai_client = genai.Client(api_key=api_key)
+        return _genai_client
     except ImportError:
-        logger.warning("google-generativeai not installed - using fallback compression")
+        logger.error("google-genai not installed. Run: pip install google-genai")
         return None
 
 
@@ -421,50 +418,51 @@ def compress_with_gemini(
     timeout: int = 30
 ) -> Optional[Dict]:
     """
-    Use Gemini Flash SDK to compress tool output into an observation.
+    Use Gemini Flash to compress tool output into a semantic observation.
+
+    NO FALLBACK - if Gemini fails, returns None and observation is NOT saved.
+    This is intentional: bad compression is worse than no compression.
 
     Returns:
         Dict with 'type', 'summary', 'tags' or None on failure
     """
-    genai = _get_genai()
-    if genai is None:
+    client = _get_genai_client()
+    if client is None:
         return None
 
     # Truncate large outputs
     output = tool_output[:4000] if len(tool_output) > 4000 else tool_output
     files_str = ', '.join(files[:5]) if files else 'N/A'
 
-    prompt = f"""Compress this {tool_name} output into a semantic observation.
+    prompt = f"""Compress this {tool_name} output into a semantic observation for a Claude Code session memory.
 
 Files involved: {files_str}
 
 Output:
 {output}
 
-Respond ONLY with valid JSON (no markdown, no explanation):
-{{"type": "decision|bugfix|feature|refactor|discovery|change", "summary": "2-3 sentences max", "tags": ["tag1", "tag2"]}}"""
+Respond ONLY with valid JSON (no markdown, no code blocks, no explanation):
+{{"type": "decision|bugfix|feature|refactor|discovery|change", "summary": "2-3 sentences describing WHAT was done and WHY", "tags": ["relevant", "tags"]}}"""
 
     try:
-        # Use Gemini 2.5 Flash for fast compression
-        model = genai.GenerativeModel("gemini-2.5-flash")
-
-        # Generate with timeout-friendly settings
-        response = model.generate_content(
-            prompt,
-            generation_config=genai.GenerationConfig(
-                temperature=0.1,  # Low temperature for consistent JSON
-                max_output_tokens=256,  # Short response expected
-            ),
-            request_options={"timeout": timeout}
+        response = client.models.generate_content(
+            model="gemini-2.0-flash",
+            contents=prompt,
+            config={
+                "temperature": 0.1,
+                "max_output_tokens": 256,
+            }
         )
 
         if response and response.text:
-            # Extract JSON from response (handle potential markdown wrapping)
             text = response.text.strip()
+            # Handle markdown code blocks if present
             if text.startswith("```"):
-                # Remove markdown code blocks
                 lines = text.split('\n')
-                text = '\n'.join(lines[1:-1])
+                # Find content between ``` markers
+                start = 1 if lines[0].startswith("```") else 0
+                end = len(lines) - 1 if lines[-1].strip() == "```" else len(lines)
+                text = '\n'.join(lines[start:end])
             return json.loads(text)
         else:
             logger.warning("Empty response from Gemini")
@@ -474,53 +472,13 @@ Respond ONLY with valid JSON (no markdown, no explanation):
         logger.warning(f"Invalid JSON from Gemini: {e}")
         return None
     except Exception as e:
-        logger.warning(f"Gemini SDK error: {e}")
+        logger.warning(f"Gemini error: {e}")
         return None
 
 
-def fallback_compress(
-    tool_output: str,
-    tool_name: str,
-    files: List[str] = None
-) -> Dict:
-    """
-    Simple fallback compression without AI.
-
-    Extracts key information heuristically.
-    """
-    # Determine type based on tool and content
-    type_map = {
-        'Write': 'feature',
-        'Edit': 'change',
-        'MultiEdit': 'refactor',
-        'Bash': 'change',
-        'Task': 'discovery'
-    }
-    obs_type = type_map.get(tool_name, 'change')
-
-    # Check for bug-related keywords
-    if any(kw in tool_output.lower() for kw in ['fix', 'bug', 'error', 'issue']):
-        obs_type = 'bugfix'
-    elif any(kw in tool_output.lower() for kw in ['decide', 'choice', 'option', 'selected']):
-        obs_type = 'decision'
-
-    # Truncate summary
-    summary = tool_output[:300].replace('\n', ' ')
-    if len(tool_output) > 300:
-        summary += '...'
-
-    # Extract potential tags
-    tags = []
-    if files:
-        # Extract file extensions as tags
-        exts = set(Path(f).suffix[1:] for f in files if '.' in f)
-        tags.extend(list(exts)[:3])
-
-    return {
-        'type': obs_type,
-        'summary': summary,
-        'tags': tags
-    }
+# NOTE: fallback_compress was REMOVED intentionally.
+# The user decided: "Sem fallback - sem compressão Gemini o sistema fica burro e inútil"
+# If Gemini fails, the observation is simply not saved.
 
 
 # =============================================================================
