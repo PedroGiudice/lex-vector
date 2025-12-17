@@ -3,7 +3,7 @@ services:
   # 1. TRAEFIK - The Invisible Router
   # ============================================================
   reverse-proxy:
-    image: traefik:v3.0
+    image: traefik:v3.6.5
     command:
       - "--api.insecure=true"                    # Dashboard at :8080
       - "--providers.docker=true"                # Auto-discover containers
@@ -110,7 +110,7 @@ services:
       - "traefik.http.routers.doc.priority=10"
       - "traefik.http.middlewares.doc-strip.stripprefix.prefixes=/api/doc"
       - "traefik.http.routers.doc.middlewares=doc-strip"
-      - "traefik.http.services.doc.loadbalancer.server.port=8000"
+      - "traefik.http.services.doc.loadbalancer.server.port=8002"
     volumes:
       - shared-data:/data
       - templates:/app/templates
@@ -134,7 +134,7 @@ services:
       - "traefik.http.routers.trello.priority=10"
       - "traefik.http.middlewares.trello-strip.stripprefix.prefixes=/api/trello"
       - "traefik.http.routers.trello.middlewares=trello-strip"
-      - "traefik.http.services.trello.loadbalancer.server.port=8000"
+      - "traefik.http.services.trello.loadbalancer.server.port=8004"
     environment:
       - TRELLO_API_KEY=${TRELLO_API_KEY}
       - TRELLO_API_TOKEN=${TRELLO_API_TOKEN}

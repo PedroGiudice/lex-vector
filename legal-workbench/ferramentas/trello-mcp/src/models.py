@@ -159,7 +159,7 @@ class TrelloBoard(BaseModel):
 
     model_config = {
         "strict": True,
-        "extra": "forbid",
+        "extra": "ignore",  # Trello API returns extra fields (shortUrl, prefs, etc.)
     }
 
 

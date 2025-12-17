@@ -131,7 +131,8 @@
   },
   "enabledPlugins": {
     "feature-dev@claude-code-plugins": true,
-    "agent-sdk-dev@claude-code-plugins": true
+    "agent-sdk-dev@claude-code-plugins": true,
+    "vercel@claude-plugins-official": true
   },
   "outputStyle": "Technical Director",
   "_comment": "Configuração SIMPLIFICADA - Legal-Braniac removido (2025-11-30)",
