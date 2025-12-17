@@ -132,7 +132,7 @@ def {service_name}_component():
 
 # Agent definition
 root_agent = Agent(
-    name="frontend-commander",
+    name="frontend_commander",
     model=Config.MODELS.GEMINI_3_PRO,  # gemini-3-pro for reasoning
     instruction=INSTRUCTION,
     description=(
@@ -163,7 +163,7 @@ def get_agent_for_large_context(file_paths: list) -> Agent:
     """
     model = get_model_for_context(file_paths=file_paths)
     return Agent(
-        name="frontend-commander-large-context",
+        name="frontend_commander_large_context",
         model=model,
         instruction=INSTRUCTION,
         description="Frontend Commander with dynamic model for large files",
