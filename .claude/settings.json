@@ -9,7 +9,7 @@
           },
           {
             "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.venv/bin/python $CLAUDE_PROJECT_DIR/.claude/hooks/context-memory-inject.py"
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/context-memory-inject.sh"
           },
           {
             "type": "command",
