@@ -9,25 +9,18 @@ import json
 import re
 from pathlib import Path
 from typing import Optional
-from google.adk.tools import tool
-
+from google.adk.tools.function_tool import FunctionTool
 
 # Project paths
-PROJECT_ROOT = Path("/home/user/Claude-Code-Projetos")
+PROJECT_ROOT = Path("/home/cmr-auto/claude-work/repos/Claude-Code-Projetos")
 
 
-@tool
-def read_file(file_path: str) -> str:
-    """
-    Read any file from the project. Use for code, configs, docs, or any text file.
+# =============================================================================
+# Internal Implementation Functions (not wrapped as FunctionTools)
+# =============================================================================
 
-    Args:
-        file_path: Relative path from project root or absolute path.
-                   Examples: "src/main.py", "docker-compose.yml", "ARCHITECTURE.md"
-
-    Returns:
-        File contents as string
-    """
+def _read_file_impl(file_path: str) -> str:
+    """Internal: Read any file from the project."""
     # Try as relative to project root first
     path = PROJECT_ROOT / file_path
     if not path.exists():
@@ -43,20 +36,8 @@ def read_file(file_path: str) -> str:
         return json.dumps({"error": f"Failed to read {file_path}: {e}"})
 
 
-@tool
-def write_file(file_path: str, content: str) -> str:
-    """
-    Write content to any file in the project.
-    Creates parent directories if needed.
-
-    Args:
-        file_path: Relative path from project root.
-                   Examples: "docs/architecture.md", "src/new_service.py"
-        content: File contents to write
-
-    Returns:
-        Success message or error
-    """
+def _write_file_impl(file_path: str, content: str) -> str:
+    """Internal: Write content to any file in the project."""
     path = PROJECT_ROOT / file_path
 
     try:
@@ -71,19 +52,8 @@ def write_file(file_path: str, content: str) -> str:
         return json.dumps({"error": str(e)})
 
 
-@tool
-def list_directory(dir_path: str, pattern: str = "*") -> str:
-    """
-    List files in a directory with optional pattern matching.
-
-    Args:
-        dir_path: Directory path relative to project root or absolute
-        pattern: Glob pattern to filter files (default: "*")
-                 Examples: "*.py", "**/*.ts", "*.md"
-
-    Returns:
-        JSON list of file paths
-    """
+def _list_directory_impl(dir_path: str, pattern: str = "*") -> str:
+    """Internal: List files in a directory with optional pattern matching."""
     path = PROJECT_ROOT / dir_path
     if not path.exists():
         path = Path(dir_path)
@@ -108,19 +78,8 @@ def list_directory(dir_path: str, pattern: str = "*") -> str:
         return json.dumps({"error": str(e)})
 
 
-@tool
-def search_code(pattern: str, file_pattern: str = "*.py", directory: str = ".") -> str:
-    """
-    Search for a pattern in code files using grep.
-
-    Args:
-        pattern: Text or regex pattern to search for
-        file_pattern: Glob pattern for files to search (default: "*.py")
-        directory: Directory to search in (relative to project root)
-
-    Returns:
-        JSON with matches: file, line number, content
-    """
+def _search_code_impl(pattern: str, file_pattern: str = "*.py", directory: str = ".") -> str:
+    """Internal: Search for a pattern in code files using grep."""
     search_path = PROJECT_ROOT / directory
 
     try:
@@ -142,26 +101,15 @@ def search_code(pattern: str, file_pattern: str = "*.py", directory: str = ".") 
                         "content": parts[2].strip()[:200]
                     })
 
-        return json.dumps(matches[:50], indent=2)  # Limit to 50 results
+        return json.dumps(matches[:50], indent=2)
     except subprocess.TimeoutExpired:
         return json.dumps({"error": "Search timed out"})
     except Exception as e:
         return json.dumps({"error": str(e)})
 
 
-@tool
-def run_command(command: str, working_dir: str = ".") -> str:
-    """
-    Execute a shell command and return output.
-    Use for validation, testing, and analysis tasks.
-
-    Args:
-        command: Shell command to execute
-        working_dir: Working directory (relative to project root)
-
-    Returns:
-        JSON with stdout, stderr, and return code
-    """
+def _run_command_impl(command: str, working_dir: str = ".") -> str:
+    """Internal: Execute a shell command and return output."""
     work_path = PROJECT_ROOT / working_dir
 
     try:
@@ -175,7 +123,7 @@ def run_command(command: str, working_dir: str = ".") -> str:
         )
 
         return json.dumps({
-            "stdout": result.stdout[:10000],  # Limit output
+            "stdout": result.stdout[:10000],
             "stderr": result.stderr[:5000],
             "return_code": result.returncode,
             "success": result.returncode == 0
@@ -186,18 +134,9 @@ def run_command(command: str, working_dir: str = ".") -> str:
         return json.dumps({"error": str(e)})
 
 
-@tool
-def analyze_python_structure(file_path: str) -> str:
-    """
-    Analyze Python file structure: classes, functions, imports.
-
-    Args:
-        file_path: Path to Python file
-
-    Returns:
-        JSON with classes, functions, imports found in the file
-    """
-    content = read_file(file_path)
+def _analyze_python_structure_impl(file_path: str) -> str:
+    """Internal: Analyze Python file structure."""
+    content = _read_file_impl(file_path)  # Use internal function
     if "error" in content:
         return content
 
@@ -210,19 +149,15 @@ def analyze_python_structure(file_path: str) -> str:
             "async_functions": []
         }
 
-        # Find imports
         import_pattern = r'^(?:from\s+[\w.]+\s+)?import\s+.+$'
         result["imports"] = re.findall(import_pattern, content, re.MULTILINE)
 
-        # Find classes
         class_pattern = r'^class\s+(\w+)(?:\([^)]*\))?:'
         result["classes"] = re.findall(class_pattern, content, re.MULTILINE)
 
-        # Find functions
         func_pattern = r'^def\s+(\w+)\s*\([^)]*\)'
         result["functions"] = re.findall(func_pattern, content, re.MULTILINE)
 
-        # Find async functions
         async_pattern = r'^async\s+def\s+(\w+)\s*\([^)]*\)'
         result["async_functions"] = re.findall(async_pattern, content, re.MULTILINE)
 
@@ -231,18 +166,8 @@ def analyze_python_structure(file_path: str) -> str:
         return json.dumps({"error": str(e)})
 
 
-@tool
-def get_directory_tree(dir_path: str, max_depth: int = 3) -> str:
-    """
-    Get a tree view of directory structure.
-
-    Args:
-        dir_path: Directory path to analyze
-        max_depth: Maximum depth to traverse (default: 3)
-
-    Returns:
-        Tree-like string representation of directory structure
-    """
+def _get_directory_tree_impl(dir_path: str, max_depth: int = 3) -> str:
+    """Internal: Get a tree view of directory structure."""
     path = PROJECT_ROOT / dir_path
     if not path.exists():
         path = Path(dir_path)
@@ -257,13 +182,12 @@ def get_directory_tree(dir_path: str, max_depth: int = 3) -> str:
         items = []
         try:
             entries = sorted(current_path.iterdir(), key=lambda x: (x.is_file(), x.name))
-            # Filter out common noise
             entries = [e for e in entries if e.name not in [
                 "__pycache__", ".git", "node_modules", ".venv", "venv",
                 ".pytest_cache", ".mypy_cache"
             ]]
 
-            for i, entry in enumerate(entries[:30]):  # Limit entries
+            for i, entry in enumerate(entries[:30]):
                 is_last = i == len(entries) - 1
                 connector = "└── " if is_last else "├── "
 
@@ -284,7 +208,127 @@ def get_directory_tree(dir_path: str, max_depth: int = 3) -> str:
     return "\n".join(tree)
 
 
-@tool
+def _read_multiple_files_impl(file_paths: str) -> str:
+    """Internal: Read multiple files at once."""
+    paths = [p.strip() for p in file_paths.split(",")]
+    results = []
+
+    for file_path in paths:
+        content = _read_file_impl(file_path)  # Use internal function
+        if "error" not in content:
+            results.append(f"\n### FILE: {file_path}\n```\n{content}\n```\n")
+        else:
+            results.append(f"\n### FILE: {file_path}\n[ERROR: Could not read file]\n")
+
+    return "\n".join(results)
+
+
+# =============================================================================
+# FunctionTool Wrappers (these are what the agent uses)
+# =============================================================================
+
+def read_file(file_path: str) -> str:
+    """
+    Read any file from the project. Use for code, configs, docs, or any text file.
+
+    Args:
+        file_path: Relative path from project root or absolute path.
+                   Examples: "src/main.py", "docker-compose.yml", "ARCHITECTURE.md"
+
+    Returns:
+        File contents as string
+    """
+    return _read_file_impl(file_path)
+
+
+def write_file(file_path: str, content: str) -> str:
+    """
+    Write content to any file in the project.
+    Creates parent directories if needed.
+
+    Args:
+        file_path: Relative path from project root.
+                   Examples: "docs/architecture.md", "src/new_service.py"
+        content: File contents to write
+
+    Returns:
+        Success message or error
+    """
+    return _write_file_impl(file_path, content)
+
+
+def list_directory(dir_path: str, pattern: str = "*") -> str:
+    """
+    List files in a directory with optional pattern matching.
+
+    Args:
+        dir_path: Directory path relative to project root or absolute
+        pattern: Glob pattern to filter files (default: "*")
+                 Examples: "*.py", "**/*.ts", "*.md"
+
+    Returns:
+        JSON list of file paths
+    """
+    return _list_directory_impl(dir_path, pattern)
+
+
+def search_code(pattern: str, file_pattern: str = "*.py", directory: str = ".") -> str:
+    """
+    Search for a pattern in code files using grep.
+
+    Args:
+        pattern: Text or regex pattern to search for
+        file_pattern: Glob pattern for files to search (default: "*.py")
+        directory: Directory to search in (relative to project root)
+
+    Returns:
+        JSON with matches: file, line number, content
+    """
+    return _search_code_impl(pattern, file_pattern, directory)
+
+
+def run_command(command: str, working_dir: str = ".") -> str:
+    """
+    Execute a shell command and return output.
+    Use for validation, testing, and analysis tasks.
+
+    Args:
+        command: Shell command to execute
+        working_dir: Working directory (relative to project root)
+
+    Returns:
+        JSON with stdout, stderr, and return code
+    """
+    return _run_command_impl(command, working_dir)
+
+
+def analyze_python_structure(file_path: str) -> str:
+    """
+    Analyze Python file structure: classes, functions, imports.
+
+    Args:
+        file_path: Path to Python file
+
+    Returns:
+        JSON with classes, functions, imports found in the file
+    """
+    return _analyze_python_structure_impl(file_path)
+
+
+def get_directory_tree(dir_path: str, max_depth: int = 3) -> str:
+    """
+    Get a tree view of directory structure.
+
+    Args:
+        dir_path: Directory path to analyze
+        max_depth: Maximum depth to traverse (default: 3)
+
+    Returns:
+        Tree-like string representation of directory structure
+    """
+    return _get_directory_tree_impl(dir_path, max_depth)
+
+
 def read_multiple_files(file_paths: str) -> str:
     """
     Read multiple files at once. Useful for analyzing related code.
@@ -296,17 +340,21 @@ def read_multiple_files(file_paths: str) -> str:
     Returns:
         Combined content with file markers
     """
-    paths = [p.strip() for p in file_paths.split(",")]
-    results = []
+    return _read_multiple_files_impl(file_paths)
 
-    for file_path in paths:
-        content = read_file(file_path)
-        if "error" not in content:
-            results.append(f"\n### FILE: {file_path}\n```\n{content}\n```\n")
-        else:
-            results.append(f"\n### FILE: {file_path}\n[ERROR: Could not read file]\n")
 
-    return "\n".join(results)
+# =============================================================================
+# Create FunctionTool instances for the agent
+# =============================================================================
+
+read_file = FunctionTool(func=read_file)
+write_file = FunctionTool(func=write_file)
+list_directory = FunctionTool(func=list_directory)
+search_code = FunctionTool(func=search_code)
+run_command = FunctionTool(func=run_command)
+analyze_python_structure = FunctionTool(func=analyze_python_structure)
+get_directory_tree = FunctionTool(func=get_directory_tree)
+read_multiple_files = FunctionTool(func=read_multiple_files)
 
 
 # Export all tools

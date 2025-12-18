@@ -44,6 +44,25 @@ services:
       - reverse-proxy
 
   # ============================================================
+  # 2.5. REACT FRONTEND - Template Builder UI
+  # ============================================================
+  frontend-react:
+    build: ./frontend
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.react.rule=PathPrefix(`/app`)"
+      - "traefik.http.routers.react.entrypoints=web"
+      - "traefik.http.routers.react.priority=5"    # Between APIs (10) and hub (1)
+      - "traefik.http.middlewares.react-strip.stripprefix.prefixes=/app"
+      - "traefik.http.routers.react.middlewares=react-strip"
+      - "traefik.http.services.react.loadbalancer.server.port=3000"
+    networks:
+      - legal-network
+    depends_on:
+      - reverse-proxy
+      - api-doc-assembler
+
+  # ============================================================
   # 3. STJ SERVICE - Jurisprudence API
   # ============================================================
   api-stj:

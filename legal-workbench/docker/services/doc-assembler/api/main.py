@@ -48,6 +48,9 @@ from .models import (
     ErrorResponse,
 )
 
+# Import builder router
+from .builder_routes import router as builder_router
+
 
 # ============================================================================
 # Configuration
@@ -446,6 +449,13 @@ async def assemble_document(request: AssembleRequest):
         filename=result_path.name,
         message="Document generated successfully"
     )
+
+
+# ============================================================================
+# Include Builder Router
+# ============================================================================
+
+app.include_router(builder_router, prefix="/api/v1/builder", tags=["builder"])
 
 
 # ============================================================================

@@ -5,14 +5,14 @@ Generates React/TypeScript frontends for legal tech applications.
 Uses Gemini 3 Pro for reasoning, dynamic model selection for large contexts.
 """
 from google.adk.agents import Agent
-from google.adk.tools import google_search
+# google_search not compatible with custom FunctionTools
 
 import sys
 from pathlib import Path
 
 # Add shared module to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from shared.config import Config
+from shared.config import Config, Models
 from shared.tools import read_file, write_file, list_directory, search_code, run_command, analyze_python_structure, get_directory_tree, read_multiple_files
 
 INSTRUCTION = """# Legal Tech Frontend Specialist
@@ -63,11 +63,11 @@ Structured markdown with:
 5. **Security Checklist** - Data handling compliance
 """
 
-# Agent definition using Gemini 3 Pro (best reasoning)
+# Agent definition using Gemini 2.5 Flash (best for agentic tasks with tools)
 root_agent = Agent(
     name="legal_tech_frontend_specialist",
-    model=Config.MODELS.GEMINI_3_PRO,  # gemini-3-pro
+    model=Config.MODELS.BEST_AGENTIC,  # gemini-2.5-flash - supports function calling
     instruction=INSTRUCTION,
     description="Senior Frontend Engineer for Legal Tech. Builds React/TypeScript UIs for document analysis, case management, and legal data visualization.",
-    tools=[google_search, read_file, write_file, list_directory, search_code, run_command, analyze_python_structure, get_directory_tree, read_multiple_files],
+    tools=[read_file, write_file, list_directory, search_code, run_command, analyze_python_structure, get_directory_tree, read_multiple_files],
 )
