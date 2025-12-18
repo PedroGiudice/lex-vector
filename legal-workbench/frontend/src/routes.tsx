@@ -23,4 +23,4 @@ export const router = createBrowserRouter([
       { path: 'stj', element: <LazyPage><STJModule /></LazyPage> },
     ],
   },
-], { basename: '/app' });
+]); // Root path - no basename needed

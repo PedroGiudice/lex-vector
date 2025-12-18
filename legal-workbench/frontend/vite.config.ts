@@ -4,7 +4,7 @@ import path from 'path'
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  base: '/app/',  // Base path for Traefik routing
+  base: '/',  // Root path - React is the only frontend
   plugins: [react()],
   resolve: {
     alias: {

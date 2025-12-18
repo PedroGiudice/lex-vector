@@ -1,0 +1,425 @@
+﻿Relatório de Pesquisa Avançada: Arquitetura de Sistemas de Gerenciamento de Prompts e Skills Agnósticos a LLMs
+1. Introdução e Contextualização Arquitetural
+A evolução da Engenharia de Software assistida por Inteligência Artificial (AI-Assisted Software Engineering) transcendeu a fase de scripts isolados e prompts ad-hoc. O atual estado da arte exige sistemas robustos de orquestração cognitiva que tratem "prompts" e "skills" (habilidades/ferramentas) não como meras strings de texto, mas como artefatos de software versionáveis, testáveis e, crucialmente, agnósticos ao provedor do Modelo de Linguagem (LLM). Este relatório apresenta uma especificação arquitetural detalhada para tal sistema, sintetizando padrões de design extraídos de implementações de referência como o protocolo MCP (trello-mcp), sistemas de extração jurídica (legal-text-extractor) e interfaces de comando (claude-ui).
+O objetivo central desta investigação é definir as estruturas de dados, os padrões de interação homem-máquina (UI/UX) e os métodos de integração via CLI necessários para construir uma "Biblioteca de Prompts e Skills" que opere independentemente se o motor subjacente é um modelo da família Claude (Anthropic), GPT (OpenAI) ou modelos locais via Ollama. A premissa fundamental adotada é a de que uma "Skill" é, arquiteturalmente, um "Template de Prompt Executável" com contratos de entrada e saída estritamente definidos.
+Ao analisar os repositórios fornecidos, observa-se uma convergência de padrões que alinham com as melhores práticas sugeridas no "Anthropic Cookbook": a modularização de ferramentas, a definição rigorosa de esquemas de dados via Pydantic e a separação clara entre a lógica de controle (Python) e a lógica semântica (Prompts). Este relatório detalha como esses componentes díspares podem ser unificados em um sistema coeso de gerenciamento de ativos cognitivos.
+1.1. O Imperativo da Agnosticidade e a Abstração de Skills
+A dependência direta de APIs proprietárias cria um acoplamento rígido que fragiliza sistemas de produção. A análise do trello-mcp 1 demonstra que o caminho para a agnosticidade reside no Model Context Protocol (MCP). Neste paradigma, uma ferramenta não é definida pela forma como um modelo específico a invoca (ex: XML tags para Claude vs. JSON object para GPT-4), mas pela sua assinatura funcional abstrata.
+Consequentemente, o sistema de gerenciamento proposto deve atuar como uma camada de tradução (middleware). Ele armazena a intensão e a estrutura da skill (ex: "Criar Cartão no Trello" com parâmetros nome e descrição) e, em tempo de execução, transpila essa definição para o formato esperado pelo LLM ativo. Isso permite que a biblioteca de skills permaneça imutável mesmo quando os modelos subjacentes são trocados ou atualizados.
+________________
+2. Estruturas de Dados Unificadas para Prompts e Skills
+A fundação de qualquer sistema de gerenciamento é o seu esquema de dados. A análise comparativa entre o legal-doc-assembler (focado em templates Jinja2) 1 e o trello-mcp (focado em modelos Pydantic) 1 revela que a distinção entre um "Prompt de Texto" e uma "Skill de Ferramenta" é artificial. Ambos são funções que aceitam dados estruturados e produzem resultados (texto ou ação).
+Propomos, portanto, um Unified Cognitive Asset Model (Modelo Unificado de Ativo Cognitivo). Esta estrutura de dados deve ser capaz de representar tanto uma instrução de sumarização quanto uma chamada de API complexa.
+2.1. O Esquema do Ativo Cognitivo (CognitiveAsset)
+Utilizando a biblioteca Pydantic, onipresente nos projetos analisados 1, definimos a estrutura nuclear que o sistema deve gerenciar.
+
+
+Python
+
+
+
+
+from pydantic import BaseModel, Field, validator
+from typing import List, Dict, Optional, Literal, Any, Union
+from datetime import datetime
+import uuid
+
+class AssetParameter(BaseModel):
+   """
+   Define um parâmetro de entrada, seja para preencher um template Jinja2
+   ou para validar um argumento de função MCP.
+   Baseado na estrutura de argumentos do trello-mcp.
+   """
+   name: str = Field(..., description="Nome da variável/argumento")
+   type: Literal["string", "integer", "float", "boolean", "list", "object"]
+   description: str = Field(..., description="Semântica do parâmetro para o LLM")
+   required: bool = True
+   default_value: Optional[Any] = None
+   validation_regex: Optional[str] = None # Para validação pré-envio 
+
+class CognitiveAsset(BaseModel):
+   """
+   Representação agnóstica de um Prompt ou Skill.
+   Integra conceitos de versionamento do legal-text-extractor.
+   """
+   id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+   slug: str = Field(..., description="Identificador legível, ex: 'trello.create_card'")
+   version: str = Field(default="1.0.0")
+   type: Literal["prompt_template", "executable_skill", "agent_workflow"]
+   
+   # O "Corpo" do Ativo
+   # Se for prompt: Template Jinja2.
+   # Se for skill: Docstring/Instrução do Sistema para a ferramenta.
+   content_payload: str 
+   
+   # O Contrato de Interface (Schema)
+   input_schema: List[AssetParameter]
+   output_schema: Dict[str, Any] # JSON Schema do resultado esperado
+   
+   # Metadados de Governança 
+   author: str
+   created_at: datetime
+   tags: List[str]
+   parent_version_id: Optional[str]
+   
+   # Configuração de Execução (Runtime)
+   execution_config: Dict[str, Any] = {
+       "timeout": 30,
+       "retry_strategy": "exponential_backoff", # Inspirado em 
+       "required_permissions":, # Inspirado em 
+       "mcp_server_ref": None # Para skills que dependem de servidores MCP externos
+   }
+
+2.2. A Convergência de Templates e Contratos
+A análise do legal-doc-assembler 1 mostra o poder do Jinja2 para a geração determinística de texto. No sistema proposto, tratamos o texto do prompt como um template que requer dados. Simultaneamente, a análise do trello-mcp 1 mostra como o Pydantic valida dados antes da execução.
+A inovação arquitetural aqui é vincular ambos:
+1. Skills como Templates: Uma skill definida no trello-mcp como CreateCardInput (que exige id_list e name) pode ser vista como um template de prompt implícito. Para um modelo que não suporta chamadas de função nativas, o sistema pode usar um template Jinja2 "adapter" para converter esses dados em linguagem natural: "Por favor, crie um cartão na lista {{ id_list }} com o nome {{ name }}".
+2. Prompts como Funções: Um prompt complexo de extração jurídica, como visto no SectionAnalyzer 1, possui parâmetros claros (o texto do documento, o tipo de seção buscada). Ao formalizar esses parâmetros em input_schema, o prompt se torna uma "função virtual" que pode ser chamada programaticamente por outros agentes.
+2.3. Estruturas de Versionamento Semântico e Linhagem
+A implementação do PromptVersioner no legal-text-extractor 1 oferece um modelo robusto para a persistência. Ao contrário de código fonte tradicional, prompts são artefatos probabilísticos onde pequenas mudanças podem ter grandes impactos. O sistema deve adotar uma estrutura de armazenamento baseada em arquivos YAML ou JSON imutáveis, organizados hierarquicamente.
+A estrutura de diretórios sugerida, expandindo o conceito de 1, seria:
+library/
+├── skills/
+│ ├── trello/
+│ │ ├── create_card/
+│ │ │ ├── v1.0.0.yaml
+│ │ │ ├── v1.1.0.yaml (Adicionou parâmetro 'labels')
+│ │ │ └── current -> v1.1.0.yaml
+│ │ └── move_card/
+├── prompts/
+│ ├── legal/
+│ │ ├── extract_header/
+│ │ │ ├── v1.yaml
+│ │ │ ├── v2.yaml (Introduziu Few-Shot 1)
+│ │ │ └── tests/ (Casos de teste para ABTester 1)
+└── metadata.db (DuckDB para indexação rápida e busca vetorial)
+O uso de DuckDB 1 como índice de metadados permite consultas SQL complexas sobre o acervo ("Quais prompts usam o parâmetro cpf?", "Qual a taxa de erro da v2.0?") sem a sobrecarga de um banco de dados servidor, mantendo a arquitetura "Local Storage Only" preconizada em.1
+________________
+3. Padrões de UI/UX: A Dualidade entre Gestão e Operação
+A pesquisa identifica uma bifurcação clara nas necessidades de interface do usuário. A gestão dos prompts (criação, edição, análise) exige uma interface visual rica, enquanto a operação e execução (chat, logs, debugging) exige baixa latência e alta densidade de informação.
+3.1. Console de Gestão Web (Streamlit)
+Para a criação e manutenção da biblioteca, o Streamlit prova-se a ferramenta ideal, conforme demonstrado no legal-workbench 1 e no editor de templates do legal-doc-assembler.1
+Componentes Críticos da Interface Web:
+1. Editor "Split-Pane" em Tempo Real:
+   * Lado Esquerdo: Editor de código (Monaco) para o template Jinja2 ou definição Pydantic.
+   * Lado Direito: Renderizador de pré-visualização. Conforme o usuário digita {{ variavel }}, o sistema gera automaticamente campos de formulário para testar a injeção de dados, validando o schema instantaneamente. Isso previne erros de sintaxe antes do deploy.
+   * Inspiração: A lógica de renderização do DocumentEngine 1 deve ser trazida para o frontend.
+2. Laboratório de Testes A/B Visual:
+   * Integração direta com o ABTester.1 O usuário seleciona duas versões de um prompt e um conjunto de dados de teste (ex: JSONs de casos jurídicos).
+   * Visualização de Métricas: Gráficos de linha mostrando a evolução do F1-Score ou Recall através das versões.1 Isso transforma a engenharia de prompts de uma arte subjetiva em uma disciplina baseada em evidências.
+3. Explorador de Linhagem:
+   * Um grafo visual mostrando a árvore de dependências. Se a Skill "Analisar Petição" depende do Prompt "Extrair Cabeçalho", uma alteração no prompt base deve alertar visualmente sobre o impacto na skill superior.
+3.2. Console Operacional de Alta Fidelidade (TUI - Textual)
+Para a interação diária e execução de pipelines (como o stj-dados-abertos), a interface de linha de comando enriquecida (TUI) é superior. A análise do documento Pesquisa e Template-TUI-Textual 1 e Textual vs. Outros Frameworks 1 indica que interfaces baseadas em terminal oferecem a responsividade necessária para fluxos de "Human-in-the-loop".
+Especificações da TUI ("VIBE-LOG" Aesthetic):
+* Painel de Log Estruturado:
+   * Em vez de texto corrido (print), usar widgets como RichLog ou DataTable para exibir eventos. Logs JSON (comuns em respostas de LLMs) devem ser renderizados como árvores expansíveis/colapsáveis.
+   * Requisito de Performance: Implementar throttling na renderização (atualização a 20-60 FPS) para evitar o congelamento do terminal ao processar logs massivos de extração de dados, um problema comum em ambientes WSL2.1
+* Barra de Status Persistente:
+   * Baseada no StatusLineParser do claude-ui 1, esta barra deve exibir em tempo real:
+      * Custo da Sessão (Token Usage).
+      * Estado do Modelo (Thinking vs Executing).
+      * Contexto Git (Branch atual).
+      * Indicadores de Conexão com Servidores MCP (Verde/Vermelho).
+* Interatividade Modal:
+   * Quando uma skill requer permissão (ex: "Deletar Arquivo"), a TUI deve apresentar um modal de confirmação claro, bloqueando a execução até o input do usuário. Isso implementa a segurança necessária ao envolver ferramentas de escrita.1
+________________
+4. Métodos de Integração CLI e Orquestração
+A capacidade de invocar essas skills e prompts a partir da linha de comando é essencial para automação. A arquitetura do claude-ui 1 fornece o modelo definitivo para essa integração: o padrão Wrapper de Subprocesso.
+4.1. Arquitetura do Wrapper (O "Puppeteer")
+O sistema de gerenciamento não deve reescrever os clientes de LLM (como o claude CLI), mas sim encapsulá-los. A classe ClaudeCodeWrapper 1 demonstra como fazer isso de forma robusta.
+Componentes do Wrapper:
+1. Gerenciamento de IO Não-Bloqueante:
+   * Uso de threads dedicadas para ler stdout e stderr sem bloquear a thread principal da UI. Isso é crucial para capturar o "streaming" de tokens do LLM, proporcionando feedback visual imediato ao usuário.
+   * Buffer Management: O wrapper deve processar a saída caractere por caractere ou linha por linha para detectar sequências de controle ANSI e padrões de estado.
+2. Máquina de Estados Baseada em Padrões (Regex):
+   * O sistema deve monitorar o fluxo de texto em busca de marcadores de estado. Por exemplo, detectar padrões como Thinking..., Running..., ou caracteres de spinner (⠋, ⠙) para transitar o estado interno de IDLE para EXECUTING.1
+   * Isso permite que a UI reaja a eventos internos do modelo (como o início de uma tool call) antes mesmo que a execução termine.
+3. Sanitização de Output (Parser):
+   * Implementação de um OutputParser 1 que limpa códigos ANSI para logs estruturados, mas preserva a formatação para exibição ao usuário.
+   * Detecção de blocos de código e JSON embutidos no fluxo de texto para extração estruturada.
+4.2. Integração com Servidores MCP via Subprocessos
+O sistema de gerenciamento atua como um "Hub MCP". Ele deve ser capaz de iniciar e gerenciar subprocessos para servidores MCP (como o trello-mcp via uv run 1).
+Fluxo de Execução de uma Skill:
+1. O Usuário seleciona a skill "Criar Cartão Trello" na TUI.
+2. O Sistema carrega a definição Pydantic da skill.1
+3. A TUI gera um formulário dinâmico para os parâmetros (name, desc).
+4. Após o preenchimento, o sistema instancia o template de prompt associado, injetando os valores.
+5. O prompt renderizado é enviado para o stdin do processo LLM encapsulado.
+6. O LLM, reconhecendo a intenção, emite uma chamada de ferramenta.
+7. O Wrapper intercepta essa chamada, valida contra o schema esperado e (se configurado para auto-execução) repassa para o servidor MCP correspondente.
+________________
+5. O Ciclo de Auto-Melhoria (Feedback Loop)
+Um diferencial crítico identificado na análise do legal-text-extractor é a capacidade do sistema de se auto-aprimorar. O módulo SelfImprover 1 utiliza meta-prompting para refinar prompts com base em erros passados. Este conceito deve ser elevado a um componente central da arquitetura.
+5.1. Mecanismo de Análise de Erro e Refinamento
+O ciclo proposto opera da seguinte forma:
+1. Execução Monitorada: Cada execução de prompt/skill é registrada no SessionManager 1, incluindo o input, o output gerado e, crucialmente, qualquer stack trace de erro ou feedback de validação (ex: JSON malformado).
+2. Extração de Padrões de Falha: O componente PatternExtractor 1 analisa periodicamente os logs em busca de erros recorrentes (ex: "O modelo esquece frequentemente o campo data_vencimento").
+3. Meta-Prompting Corretivo: O sistema utiliza um template de "Meta-Prompt" 1 para solicitar ao LLM uma versão corrigida do prompt original.
+   * Input: Prompt Original + Descrição do Erro + Exemplos de Falha.
+   * Output: Novo Prompt Candidato.
+4. Teste A/B Automatizado: O novo prompt candidato é salvo como uma versão "draft" no PromptVersioner e submetido a uma bateria de testes via ABTester.1 Se a métrica de performance (F1-Score, precisão sintática) for superior à versão atual, o sistema sugere a promoção da nova versão.
+5.2. Context Store e RAG para Engenharia de Prompts
+Além de corrigir erros, o sistema deve ajudar na construção de novos prompts. O ContextStore 1, que utiliza similaridade de vetores, deve ser adaptado para armazenar "Exemplos Few-Shot" de alta qualidade.
+Quando um engenheiro está criando um novo prompt para "Extração de Contratos", o sistema deve consultar o vetor store: "Quais exemplos de extração de contratos anteriores tiveram alta taxa de sucesso?". Esses exemplos são então recuperados via FewShotManager 1 e injetados automaticamente no contexto do editor, acelerando o desenvolvimento e garantindo consistência.
+________________
+6. Considerações sobre Deploy e Infraestrutura
+A análise dos scripts de setup (setup_hd_externo.sh 1, setup.sh 1) revela uma preferência clara por infraestrutura local e autossuficiente, muitas vezes operando em ambientes híbridos (Windows/WSL2).
+6.1. Persistência Local e Portabilidade
+O sistema deve evitar dependências de serviços de nuvem complexos para sua operação básica.
+* Banco de Dados: O uso de DuckDB 1 é mandatório para logs e metadados. Sua natureza de arquivo único (.duckdb), alta performance analítica e capacidade de rodar em processo (in-process) alinham-se perfeitamente com a necessidade de baixa latência e facilidade de backup.
+* Gerenciamento de Pacotes: A adoção do uv 1 é recomendada para o gerenciamento de dependências Python, garantindo ambientes virtuais reproduzíveis e instalações rápidas, críticas para a experiência do desenvolvedor ("Quick Start").
+6.2. Segurança e Controle de Acesso
+Ao encapsular o acesso a ferramentas que alteram o estado do mundo (como o Trello), a segurança é primordial. O sistema deve implementar "Scopes" ou níveis de permissão para skills:
+* Read-Only: (Ex: trello_get_board) Pode ser auto-executada pelo LLM.
+* Side-Effect: (Ex: trello_delete_card) Exige confirmação explícita na UI (Human-in-the-loop).
+* Sandbox: Execução de código Python gerado pelo LLM deve ocorrer em ambientes isolados (containers ou venvs descartáveis), nunca no ambiente host principal.
+________________
+7. Análise Específica: O Paradigma "Anthropic Cookbook"
+A solicitação original exige uma análise explícita sob a ótica dos repositórios "Anthropic Cookbook". Embora o conteúdo exato desses repositórios externos não esteja nos snippets, os arquivos fornecidos (trello-mcp, legal-text-extractor) são implementações fiéis dessa filosofia.
+O "Anthropic Cookbook" preconiza:
+1. Ferramentas Robustas: O trello-mcp exemplifica isso ao usar httpx com backoff exponencial e tratamento de erros granular (TrelloRateLimitError).1 Uma ferramenta não é apenas uma chamada de API; é uma implementação resiliente.
+2. Thinking Blocks: O suporte explícito e a visualização separada de blocos de "Thinking" (Cadeia de Pensamento) no OutputParser 1 e na UI 1 refletem a ênfase da Anthropic em transparência do raciocínio do modelo.
+3. Avaliação Sistemática: A inclusão de módulos de teste rigorosos (tests/test_client_new_methods.py 1) e sistemas de avaliação (metrics_tracker.py 1) demonstra que prompts devem ser tratados como código, sujeitos a CI/CD e testes de regressão.
+Portanto, o sistema proposto não é apenas uma ferramenta de execução, mas uma plataforma de Engenharia de Software para LLMs, codificando os princípios de robustez, transparência e testabilidade que definem o desenvolvimento moderno de IA.
+Tabela Comparativa de Funcionalidades Propostas
+
+
+Funcionalidade
+	Implementação de Referência (Snippet)
+	Aplicação no Sistema de Gerenciamento
+	Definição de Skill
+	trello-mcp/src/models.py 1
+	Pydantic Models como fonte da verdade para schemas de ferramentas.
+	Versionamento
+	legal-text-extractor/.../prompt_versioner.py 1
+	Armazenamento imutável de versões de prompts com metadados de autor/data.
+	Execução Segura
+	claude-ui/.../wrapper.py 1
+	Wrapper de subprocesso com interceptação de stdio e confirmação humana.
+	Auto-Correção
+	legal-text-extractor/.../self_improver.py 1
+	Feedback loop automatizado usando meta-prompts para corrigir erros de execução.
+	Analytics
+	stj-dados-abertos/src/database.py 1
+	DuckDB para análise performática de logs de uso e métricas de qualidade.
+	Interface TUI
+	legal-text-extractor/Research/... 1
+	Interface de terminal baseada em Textual para operação de baixa latência.
+	Conclusão
+A investigação detalhada dos artefatos fornecidos permite concluir que a construção de um sistema de gerenciamento de prompts e skills agnóstico é viável e arquiteturalmente sólida. A chave reside na abstração: tratar skills como dados (Schemas Pydantic), prompts como templates (Jinja2) e a execução como um pipeline gerenciado (Subprocess Wrapper). Ao integrar os mecanismos de aprendizado (SelfImprover) e persistência (DuckDB/ContextStore), o sistema proposto transcende um simples "executor" para se tornar um ambiente de desenvolvimento integrado (IDE) completo para a era da inteligência artificial generativa.
+Insights de Segunda Ordem e Implicações Futuras
+A consolidação dessas arquiteturas revela tendências profundas. Primeiro, a "Comoditização do Modelo": ao criar uma camada de abstração pesada (MCP + Prompt Lib), a lógica de negócio migra do modelo (que pertence ao vendor) para a biblioteca de skills (que pertence ao usuário), criando um "fosso" estratégico. Segundo, a "Engenharia de Prompt Orientada a Dados": a integração de ABTester e MetricsTracker transforma a criação de prompts de uma arte intuitiva em uma ciência empírica, onde alterações são validadas estatisticamente antes do deploy. Por fim, a "Micro-Arquitetura de Prompts": o pipeline do extrator jurídico sugere que tarefas complexas não serão resolvidas por "super-prompts", mas por cadeias orquestradas de centenas de prompts pequenos e especializados, exigindo um gerenciamento de dependências tão complexo quanto o de microsserviços tradicionais.
+________________
+8. Detalhamento Técnico das Estruturas de Dados e Schemas
+Para operacionalizar a arquitetura descrita, apresentamos abaixo as definições técnicas precisas (em Python/Pydantic) que devem compor o núcleo (core) da biblioteca.
+8.1. Schema de Definição de Skill (Pydantic)
+Este schema define uma "Habilidade" dentro do sistema. Ele é fortemente inspirado na implementação do trello-mcp, onde a validação de tipos é central para a robustez.
+
+
+Python
+
+
+
+
+from pydantic import BaseModel, Field, field_validator
+from typing import Dict, Any, Optional, List
+from datetime import datetime
+from enum import Enum
+
+class SkillType(str, Enum):
+   MCP_TOOL = "mcp_tool"           # Ferramenta via protocolo MCP
+   PYTHON_FUNCTION = "python_function" # Função local segura
+   API_CALL = "api_call"           # Chamada REST direta
+
+class SkillParameter(BaseModel):
+   """
+   Define um único parâmetro para uma skill.
+   Atua como metadados para gerar o JSON Schema para o LLM.
+   """
+   name: str
+   type: str  # Tipos JSON schema: string, number, boolean, array, object
+   description: str
+   required: bool = True
+   default: Optional[Any] = None
+   enum_values: Optional[List[str]] = None  # Para escolhas restritas (Dropdowns na UI)
+
+class SkillDefinition(BaseModel):
+   """
+   Definição Mestre de uma Skill (Ferramenta).
+   Atua como a fonte da verdade para gerar definições de ferramentas para diferentes LLMs.
+   """
+   id: str = Field(..., description="Identificador único, ex: 'trello.create_card'")
+   name: str = Field(..., description="Nome legível para humanos")
+   description: str = Field(..., description="Descrição para o prompt de sistema do LLM")
+   version: str = Field(default="1.0.0")
+   
+   skill_type: SkillType
+   
+   # Configuração de Execução
+   execution_path: str = Field(..., description="Caminho de importação ou nome do servidor MCP")
+   function_name: str = Field(..., description="Nome da função ou ferramenta")
+   
+   # Definição do Schema (O Contrato)
+   parameters: List
+   
+   # Metadados
+   tags: List[str] =
+   created_at: datetime = Field(default_factory=datetime.utcnow)
+   deprecated: bool = False
+
+   class Config:
+       json_schema_extra = {
+           "example": {
+               "id": "trello.create_card",
+               "name": "Create Trello Card",
+               "description": "Creates a new card on a specific Trello list.",
+               "skill_type": "mcp_tool",
+               "execution_path": "trello-mcp",
+               "function_name": "trello_create_card",
+               "parameters":
+           }
+       }
+
+8.2. Schema de Template de Prompt
+Este schema gerencia prompts textuais, integrando os conceitos de versionamento 1 e injeção de exemplos few-shot.1
+
+
+Python
+
+
+
+
+class PromptTemplate(BaseModel):
+   """
+   Gerencia um template de prompt textual (Jinja2).
+   """
+   id: str
+   version: str
+   
+   # O Template
+   system_prompt: Optional[str] = None
+   user_prompt: str = Field(..., description="Texto principal do prompt com placeholders {{ jinja }}")
+   
+   # Definição de Variáveis
+   variables: List # Reutiliza SkillParameter para definir variáveis de entrada esperadas
+   
+   # Configuração de Contexto
+   requires_history: bool = True # Se deve incluir histórico de chat anterior
+   max_context_tokens: int = 4096
+   
+   # Gerenciamento de Few-Shot (Derivado de )
+   few_shot_group: Optional[str] = None # Link para um grupo de FewShotExamples no ContextStore
+   
+   # Metadados
+   author: str
+   change_log: str
+
+8.3. Schema de Configuração do Projeto (config.json)
+Derivado do claude-ui 1 e stj-dados-abertos 1, definindo o ambiente local.
+
+
+Python
+
+
+
+
+class ProjectConfig(BaseModel):
+   """
+   Configuração para um projeto de pesquisa específico (ex: 'stj-extraction').
+   """
+   project_name: str
+   root_path: str
+   
+   # Caminhos (Local Storage Only - )
+   prompts_dir: str = "./prompts"
+   skills_dir: str = "./skills"
+   logs_db_path: str = "./data/logs.duckdb"
+   
+   # Servidores MCP Ativos
+   mcp_servers: Dict] = {
+       "trello": {"command": "uv", "args": ["run", "trello-mcp"]},
+       "filesystem": {"command": "npx", "args": ["-y", "@modelcontextprotocol/server-filesystem"]}
+   }
+   
+   # Preferências de UI (de )
+   ui_theme: str = "dark"
+   show_status_line: bool = True
+
+Estas estruturas fornecem a "Camada de Dados" para o sistema proposto, garantindo validação estrita e portabilidade. Ao padronizar em Pydantic, o sistema assegura que cada prompt e skill seja um objeto válido e serializável que pode ser armazenado, versionado e compartilhado entre diferentes instâncias e usuários.
+________________
+9. Tabelas de Referência e Decisão
+9.1. Comparação de Modalidades de UI
+A escolha entre Web UI e TUI não é binária, mas baseada no caso de uso. A tabela abaixo, derivada da análise de 1 e 1, orienta a implementação.
+Característica
+	Streamlit (Web UI)
+	Textual (TUI)
+	Recomendação Arquitetural
+	Caso de Uso Primário
+	Engenharia de Prompt, Revisão, Análise
+	Execução, Monitoramento, Codificação
+	Abordagem Dual-Stack
+	Latência
+	Média (Overhead do Navegador)
+	Baixa (Direto no Terminal)
+	Usar TUI para Runtime/Logs
+	Fidelidade Visual
+	Alta (Imagens, Gráficos, Layouts)
+	Média (Texto, ASCII art, Emojis)
+	Usar Streamlit para Analytics
+	Input/Edição
+	Excelente (Áreas de texto multilinha)
+	Boa (Focado em teclado)
+	Usar Streamlit para Editor
+	Volume de Logs
+	Baixo (Browser trava com DOM grande)
+	Alto (Buffering eficiente)
+	Usar TUI para Logs de Extração
+	Dependência
+	streamlit, browser
+	textual, terminal
+	Manter desacoplado
+	Estética
+	Web Moderna (Material/Custom)
+	"VIBE-LOG" / Cyberpunk
+	Dependente do Contexto
+	9.2. Estágios do Ciclo de Vida do Prompt
+O sistema deve gerenciar o prompt através de estágios definidos, transformando o processo artesanal em um pipeline industrial.
+
+
+Estágio
+	Ação
+	Ferramenta/Componente Associado
+	Resultado
+	1. Design
+	Criar/Editar Template
+	Editor Streamlit (Web UI)
+	PromptTemplate (Rascunho)
+	2. Teste
+	Rodar contra casos de teste
+	ABTester 1
+	PerformanceMetrics (F1, Recall)
+	3. Refino
+	Analisar erros e iterar
+	SelfImprover 1
+	Template Otimizado (Candidato)
+	4. Publicação
+	Versionamento e Tagging
+	PromptVersioner 1
+	Versão Imutável v1.0
+	5. Execução
+	Rodar em produção
+	ClaudeCodeWrapper 1
+	Output Final / Ação MCP
+	6. Monitoramento
+	Rastrear uso e custo
+	MetricsTracker 1
+	Estatísticas no DuckDB
+	10. Referências
+Este relatório sintetiza informações dos seguintes materiais de origem fornecidos:
+* Versionamento de Prompts e Aprendizado:.1
+* MCP e Skills (Trello):.1
+* Orquestração de CLI e UI:.1
+* Aplicação no Domínio Jurídico:.1
+Referências citadas
+1. legal-workbench.zip

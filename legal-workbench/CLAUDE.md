@@ -1,125 +1,40 @@
 # CLAUDE.md - Legal Workbench
 
-Regras específicas para desenvolvimento no Legal Workbench.
+Regras para desenvolvimento no Legal Workbench.
 
 ---
 
-## Definition of Done (DoD)
+## Arquitetura Atual (2025-12-18)
 
-**Uma tarefa SÓ está CONCLUÍDA quando:**
+**Stack: All-React SPA + FastAPI Services**
 
-1. ✅ Backend testado e funcional (testes unitários passando)
-2. ✅ Integração com UI/Streamlit verificada
-3. ✅ Funcionalidade testável via `lw` (alias Streamlit)
-4. ✅ Alterações não quebraram outros módulos
+```
+Browser ──> React SPA (/) ──> FastAPI Services (/api/*)
+                │
+                └── Traefik reverse proxy (:80)
+```
 
-> **"Se não funciona na UI, não está pronto."**
+### Servicos Docker
+| Servico | Rota | Porta |
+|---------|------|-------|
+| frontend-react | `/` | 3000 |
+| api-stj | `/api/stj` | 8000 |
+| api-text-extractor | `/api/text` | 8001 |
+| api-doc-assembler | `/api/doc` | 8002 |
+| api-trello | `/api/trello` | 8004 |
+| redis | - | 6379 |
 
 ---
 
-## Regras Obrigatórias
+## RULE 0: UMA UNICA ARQUITETURA
 
-### 0. UMA ÚNICA ARQUITETURA (CRÍTICO)
+**NUNCA manter duas arquiteturas concomitantemente.**
 
-**NUNCA manter duas arquiteturas ou stacks concomitantemente.**
+- Um `docker-compose.yml`
+- Um frontend (React)
+- Uma fonte de verdade
 
-Esta regra existe porque:
-- Múltiplos `docker-compose.yml` causam confusão sobre qual está ativo
-- Portas conflitantes levam a comportamento inesperado
-- Documentação fica desatualizada quando há duplicação
-- Debugging se torna exponencialmente mais difícil
-
-**Ao migrar de arquitetura:**
-1. **DEPRECAR** explicitamente a arquitetura antiga (renomear para `*.deprecated`)
-2. **MIGRAR** completamente antes de commitar
-3. **REMOVER** arquivos obsoletos após validação
-4. **ATUALIZAR** toda documentação relevante
-
-**Se encontrar múltiplas stacks:**
-1. PARAR imediatamente
-2. Identificar qual é a arquitetura OFICIAL (North Star)
-3. Consolidar antes de prosseguir com qualquer trabalho
-
-> **"Uma arquitetura. Um docker-compose. Uma fonte de verdade."**
-
----
-
-### 1. Docker Health Check PRIMEIRO
-
-**ANTES de qualquer trabalho no Legal Workbench**, verificar status dos containers:
-
-```bash
-cd ~/claude-work/repos/Claude-Code-Projetos/legal-workbench/docker
-docker compose ps
-```
-
-**Todos os 6 serviços devem estar "healthy":**
-- `lw-hub` (Streamlit) - porta 8501
-- `lw-text-extractor` - porta 8001
-- `lw-doc-assembler` - porta 8002
-- `lw-stj-api` - porta 8003
-- `lw-trello-mcp` - porta 8004
-- `lw-redis` - porta 6379
-
-**Se algum container não estiver healthy:**
-1. Verificar logs: `docker logs <container_name>`
-2. Reiniciar: `docker compose up -d`
-3. Investigar causa raiz antes de prosseguir
-
-> **Regra:** Não iniciar trabalho com infraestrutura quebrada.
-
-### 2. UI-First Validation
-
-Toda alteração em `ferramentas/` DEVE ser validada em `modules/`:
-
-```
-ferramentas/legal-text-extractor/  →  modules/text_extractor.py
-ferramentas/legal-doc-assembler/   →  modules/doc_assembler.py
-ferramentas/stj-dados-abertos/     →  modules/stj.py
-ferramentas/trello-mcp/            →  modules/trello.py
-```
-
-**Checklist pós-alteração de backend:**
-- [ ] Wrapper em `modules/` importa corretamente?
-- [ ] `render()` executa sem exceção?
-- [ ] Resultado aparece na UI?
-
-### 3. Teste End-to-End Obrigatório
-
-Antes de commitar alterações que afetam módulos:
-
-```bash
-# 1. Rodar Streamlit
-cd ~/claude-work/repos/Claude-Code-Projetos/legal-workbench
-source .venv/bin/activate
-streamlit run app.py
-
-# 2. Testar CADA módulo alterado na UI
-# 3. Verificar que módulos NÃO alterados continuam funcionando
-```
-
-### 4. Teste Empírico via Streamlit
-
-**Regra:** Testes empíricos (com dados reais) SEMPRE via Streamlit.
-
-- Testes unitários = verificam lógica isolada
-- Testes empíricos = verificam fluxo completo do usuário
-- **Ambos são necessários, mas empírico via UI é obrigatório**
-
-### 5. Isolamento de Erros
-
-Se um módulo quebrar:
-1. **NÃO** commitar até corrigir
-2. Verificar se a quebra afetou outros módulos
-3. Rollback se necessário
-
-### 6. Fixes Definitivos vs Hot-Fixes
-
-**SEMPRE** priorizar correções e fixes definitivos. "Patches" ou "hot-fixes" devem ser usados **apenas** para:
-- Situações emergenciais de produção
-- Quando explicitamente solicitado pelo usuário
-
-> **Princípio:** Resolver a causa raiz, não o sintoma.
+> Arquiteturas antigas estao em `_archived/`
 
 ---
 
@@ -127,100 +42,68 @@ Se um módulo quebrar:
 
 ```
 legal-workbench/
-├── app.py              # Entry point Streamlit
-├── config.yaml         # Configuração de módulos
-├── modules/            # Wrappers UI (Streamlit)
-│   ├── text_extractor.py
-│   ├── doc_assembler.py
-│   ├── stj.py
-│   └── trello.py
-└── ferramentas/        # Backends independentes
-    ├── legal-text-extractor/
-    ├── legal-doc-assembler/
-    ├── stj-dados-abertos/
-    └── trello-mcp/
+├── frontend/           # React SPA (Vite + TypeScript)
+│   └── src/
+│       ├── pages/      # HubHome, TrelloModule, DocAssembler, STJ
+│       ├── components/ # Componentes React
+│       ├── store/      # Zustand stores
+│       └── routes.tsx  # React Router config
+├── docker/             # Dockerfiles dos servicos
+├── ferramentas/        # Backends Python (legado, usar docker/)
+├── docs/               # Documentacao
+└── _archived/          # POCs e arquiteturas antigas
 ```
 
 ---
 
-## Comandos Úteis
+## Comandos
 
 ```bash
-# Iniciar Legal Workbench
-lw  # alias definido em ~/.bashrc
+# Subir ambiente completo
+cd legal-workbench
+docker compose up -d
 
-# Ou manualmente:
-cd ~/claude-work/repos/Claude-Code-Projetos/legal-workbench
-source .venv/bin/activate
-streamlit run app.py
+# Ver logs
+docker compose logs -f frontend-react
+
+# Rebuild apos mudancas
+docker compose build frontend-react && docker compose up -d
+
+# Acessar
+http://localhost/           # Hub Home
+http://localhost/trello     # Trello Command Center
+http://localhost/doc-assembler
+http://localhost/stj
 ```
 
 ---
 
-## Workflow de Desenvolvimento
+## Definition of Done
 
-```
-1. Alterar backend em ferramentas/
-       ↓
-2. Rodar testes unitários do backend
-       ↓
-3. Atualizar wrapper em modules/ (se necessário)
-       ↓
-4. Testar via `lw` (Streamlit)
-       ↓
-5. Verificar outros módulos não quebraram
-       ↓
-6. Commitar
-```
+1. Backend funcionando (teste via curl ou E2E)
+2. Frontend renderiza corretamente
+3. Testes E2E com `qa_commander` passam
+4. Build Docker funciona
 
 ---
 
-## Regras de Frontend (OBRIGATÓRIO)
+## Regras de Frontend
 
-### 7. Sempre Usar Subagente Especializado
+### Sempre Usar Subagente Especializado
 
-**QUALQUER tarefa de frontend DEVE usar um subagente especializado:**
+| Tarefa | Subagente |
+|--------|-----------|
+| React/TypeScript | `frontend-developer` |
+| UI/Design | `ui-designer` |
+| E2E Testing | `qa_commander` |
+| Review | `code-reviewer-superpowers` |
 
-| Tarefa | Subagente | Quando Usar |
-|--------|-----------|-------------|
-| FastHTML/HTMX | `fasthtml-bff-developer` | **SEMPRE** para FastHTML |
-| React/TypeScript | `frontend-developer` | Componentes React |
-| UI/Design | `ui-designer` | Layout, estética, cores |
-| Review | `code-reviewer-superpowers` | Após implementação |
+### Antes de Implementar
 
-> **"Não importa quão simples pareça a tarefa - SEMPRE usar especialista."**
-
-### 8. Clareza de Output ANTES de Implementar
-
-**ANTES de escrever qualquer código frontend:**
-
-1. ✅ Confirmar expectativa de UI com usuário (mockup/referência)
-2. ✅ Definir interações HTMX (o que dispara o quê?)
-3. ✅ Identificar endpoints backend necessários
-4. ✅ Definir estados de erro e loading
-5. ✅ Confirmar paleta de cores e estética
-
-> **"Se não está 100% claro o que o usuário espera, PERGUNTE."**
-
-### 9. FastHTML BFF Pattern (Novo Stack)
-
-**Arquitetura aprovada para substituir Streamlit:**
-
-```
-Browser (HTMX) ←→ FastHTML BFF ←→ FastAPI Services (Docker)
-                       ↑
-               Tokens ficam AQUI
-               Browser NUNCA vê
-```
-
-**Regras do BFF Pattern:**
-- Tokens/secrets NUNCA no browser
-- Componentes NUNCA chamam API diretamente
-- Usar `services/*.py` para proxy de backend
-- SSE para streaming de logs
-
-**PoC de referência:** `poc-fasthtml-stj/`
+1. Confirmar expectativa de UI
+2. Identificar endpoints necessarios
+3. Definir estados de erro/loading
 
 ---
 
-*Última atualização: 2025-12-16*
+*Ultima atualizacao: 2025-12-18*

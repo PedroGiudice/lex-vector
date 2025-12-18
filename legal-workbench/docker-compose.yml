@@ -18,43 +18,15 @@ services:
       - legal-network
 
   # ============================================================
-  # 2. FASTHTML HUB - The Frontend (SSR, HTMX)
-  # ============================================================
-  frontend-hub:
-    build: ./hub
-    environment:
-      - DATA_PATH=/data
-      - NO_PROXY=localhost,127.0.0.1,reverse-proxy,api-stj,api-text-extractor,api-doc-assembler,api-trello,redis,frontend-hub
-      - no_proxy=localhost,127.0.0.1,reverse-proxy,api-stj,api-text-extractor,api-doc-assembler,api-trello,redis,frontend-hub
-      - HTTP_PROXY=
-      - HTTPS_PROXY=
-      - http_proxy=
-      - https_proxy=
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.hub.rule=PathPrefix(`/`)"
-      - "traefik.http.routers.hub.entrypoints=web"
-      - "traefik.http.routers.hub.priority=1"    # Lowest priority (catch-all)
-      - "traefik.http.services.hub.loadbalancer.server.port=5001"
-    volumes:
-      - shared-data:/data                        # Shared with backends
-    networks:
-      - legal-network
-    depends_on:
-      - reverse-proxy
-
-  # ============================================================
-  # 2.5. REACT FRONTEND - Template Builder UI
+  # 2. REACT FRONTEND - Legal Workbench SPA
   # ============================================================
   frontend-react:
     build: ./frontend
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.react.rule=PathPrefix(`/app`)"
+      - "traefik.http.routers.react.rule=PathPrefix(`/`)"
       - "traefik.http.routers.react.entrypoints=web"
-      - "traefik.http.routers.react.priority=5"    # Between APIs (10) and hub (1)
-      - "traefik.http.middlewares.react-strip.stripprefix.prefixes=/app"
-      - "traefik.http.routers.react.middlewares=react-strip"
+      - "traefik.http.routers.react.priority=1"    # Catch-all (lowest priority)
       - "traefik.http.services.react.loadbalancer.server.port=3000"
     networks:
       - legal-network
