@@ -3,16 +3,30 @@
 @tailwind utilities;
 
 :root {
-  --bg-primary: #0d1117;
-  --bg-secondary: #161b22;
-  --bg-tertiary: #21262d;
-  --text-primary: #c9d1d9;
-  --text-secondary: #8b949e;
-  --accent-primary: #58a6ff;
-  --accent-success: #3fb950;
-  --accent-danger: #f85149;
-  --border-default: #30363d;
-  --highlight-bg: #388bfd33;
+  /* Color Palette - Updated to Dark Tech Aesthetic */
+  --bg-main: #09090b; /* Main background */
+  --bg-panel: #0c0c0e; /* Used for side panels, etc. */
+  --bg-input: #18181b; /* Used for input fields, darker cards */
+  --border-default: #27272a; /* General borders (zinc-800) */
+  --border-light: #3f3f46; /* Lighter borders (zinc-700) */
+  
+  --text-primary: #d4d4d8; /* Primary text (zinc-300) */
+  --text-secondary: #a1a1aa; /* Secondary text (zinc-400) */
+  --text-muted: #71717a;   /* Muted text, labels (zinc-500) */
+  --text-dark: #52525b;    /* Very dark text, placeholders (zinc-600) */
+  
+  --accent-indigo: #6366f1; /* Main accent color (indigo-500) */
+  --accent-indigo-light: #818cf8; /* Lighter indigo for hovers/active (indigo-400) */
+  --accent-violet: #7c3aed; /* Secondary accent (violet-600) */
+  
+  --status-red: #ef4444; /* Danger/error (red-500) */
+  --status-emerald: #10b981; /* Success (emerald-500) */
+  --status-yellow: #facc15; /* Warning (yellow-400, for muted feel) */
+  
+  --selection-bg: rgba(99, 102, 241, 0.2); /* Selection background from accent-indigo */
+
+  /* Typography (Using Tailwind's font families directly) */
+  /* Assuming 'JetBrains Mono' and 'Inter' are loaded globally or via Tailwind */
 }
 
 * {
@@ -23,18 +37,17 @@
 
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  font-family: 'Inter', system-ui, sans-serif; /* Default UI font */
+  font-size: 0.875rem; /* text-sm by default */
+  line-height: 1.6; /* Slightly softer feel */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: var(--bg-primary);
+  background-color: var(--bg-main);
   color: var(--text-primary);
 }
 
 code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace; /* Default Mono font */
 }
 
 #root {
@@ -49,42 +62,42 @@ code {
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--bg-secondary);
+  background: var(--bg-panel);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--bg-tertiary);
+  background: var(--border-default);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #30363d;
+  background: var(--border-light);
 }
 
 /* Text selection highlight */
 ::selection {
-  background-color: var(--highlight-bg);
-  color: var(--accent-primary);
+  background-color: var(--selection-bg);
+  color: var(--text-primary);
 }
 
-/* Field annotation styles */
+/* Existing styles, updated to new variables */
 .field-annotation {
-  background-color: var(--highlight-bg);
-  border-bottom: 2px solid var(--accent-primary);
+  background-color: var(--selection-bg);
+  border-bottom: 2px solid var(--accent-indigo);
   cursor: pointer;
   position: relative;
 }
 
 .field-annotation:hover {
-  background-color: #58a6ff44;
+  background-color: rgba(99, 102, 241, 0.3); /* Slightly more opaque hover */
 }
 
 .detected-pattern {
-  background-color: rgba(251, 211, 141, 0.2);
-  border-bottom: 2px dashed #fbd38d;
+  background-color: rgba(250, 204, 21, 0.2); /* yellow-400 with opacity */
+  border-bottom: 2px dashed var(--status-yellow);
 }
 
-/* Toast animation */
+/* Toast animation - kept as is, as it's functional */
 @keyframes slide-in-right {
   from {
     transform: translateX(100%);

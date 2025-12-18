@@ -71,7 +71,7 @@ class TrelloLabel(BaseModel):
 
     model_config = {
         "strict": True,
-        "extra": "forbid",
+        "extra": "ignore",  # Trello API returns extra fields
     }
 
 
@@ -95,7 +95,7 @@ class CustomFieldItem(BaseModel):
     model_config = {
         "populate_by_name": True,
         "strict": True,
-        "extra": "forbid",
+        "extra": "ignore",  # Trello API returns extra fields
     }
 
 
@@ -127,7 +127,7 @@ class TrelloCard(BaseModel):
     model_config = {
         "populate_by_name": True,
         "strict": True,
-        "extra": "forbid",
+        "extra": "ignore",  # Trello API returns extra fields (shortLink, badges, etc.)
     }
 
 
@@ -141,7 +141,7 @@ class TrelloList(BaseModel):
     model_config = {
         "populate_by_name": True,
         "strict": True,
-        "extra": "forbid",
+        "extra": "ignore",  # Trello API returns extra fields (color, pos, subscribed, softLimit, type, datasource)
     }
 
 

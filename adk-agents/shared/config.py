@@ -11,19 +11,29 @@ load_dotenv()
 
 @dataclass(frozen=True)
 class Models:
-    """Available Gemini models (Dec 2025)"""
+    """Available Gemini models (Dec 2025)
 
-    # Latest - Gemini 3 Pro Preview (best reasoning, limited function calling)
-    GEMINI_3_PRO_PREVIEW = "gemini-3-pro-preview"
+    Timeline:
+    - Gemini 1.5: Desativado em 29/Set/2025
+    - Gemini 2.5: Versão estável atual (Jun/2025)
+    - Gemini 3.0 Flash: Lançado 17/Dez/2025
+    """
 
-    # Primary - for agentic tasks WITH function calling
+    # Gemini 3.0 - Latest (Dec 2025)
+    GEMINI_3_FLASH = "gemini-3-flash"                 # New default, fast
+    GEMINI_3_FLASH_PREVIEW = "gemini-3-flash-preview" # If stable not propagated
+    GEMINI_3_PRO_PREVIEW = "gemini-3-pro-preview"     # Best reasoning
+    GEMINI_3_PRO = "gemini-3-pro-preview"             # Alias for convenience
+
+    # Gemini 2.5 - Stable (Jun 2025)
     GEMINI_25_FLASH = "gemini-2.5-flash"  # 1M tokens, fast, supports tools
     GEMINI_25_PRO = "gemini-2.5-pro"      # 1M tokens, complex reasoning, supports tools
 
-    # Aliases for clarity
-    BEST_REASONING = "gemini-3-pro-preview"       # Best reasoning but limited tool support
-    BEST_AGENTIC = "gemini-2.5-flash"             # Best for agents with tools
-    BEST_LONG_CONTEXT = "gemini-2.5-pro"          # Best for large files + reasoning
+    # Aliases for task-based selection
+    BEST_REASONING = "gemini-3-pro-preview"    # Best reasoning (may have limited tool support)
+    BEST_AGENTIC = "gemini-2.5-flash"          # Most reliable for agents with tools
+    BEST_AGENTIC_NEW = "gemini-3-flash"        # New default for agents (Dec 2025)
+    BEST_LONG_CONTEXT = "gemini-2.5-pro"       # Best for large files + reasoning
 
     # Embedding - for RAG, semantic search
     EMBEDDING = "gemini-embedding-001"

@@ -3,7 +3,7 @@ import { useDocumentStore } from '@/store/documentStore';
 import type { FieldAnnotation } from '@/types';
 
 export function useAnnotations() {
-  const annotations = useDocumentStore(state => state.annotations);
+  const annotations = useDocumentStore(state => state.annotations || []); // Provide a default empty array
   const addAnnotation = useDocumentStore(state => state.addAnnotation);
   const removeAnnotation = useDocumentStore(state => state.removeAnnotation);
   const updateAnnotation = useDocumentStore(state => state.updateAnnotation);

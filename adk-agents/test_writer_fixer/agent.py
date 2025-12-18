@@ -112,13 +112,13 @@ Fix failing tests by:
 # Agent definition using dynamic model (Gemini 3 Pro for reasoning by default)
 root_agent = Agent(
     name="test_writer_fixer",
-    model=Config.MODELS.GEMINI_3_PRO,  # Default: best reasoning model
+    model=Config.MODELS.GEMINI_25_PRO,  # Default: best reasoning model
     instruction=INSTRUCTION,
     description=(
         "Elite test automation expert for writing comprehensive tests and "
         "maintaining test suite integrity through intelligent execution and repair."
     ),
-    tools=[google_search, read_file, write_file, list_directory, search_code, run_command, analyze_python_structure, get_directory_tree, read_multiple_files],
+    tools=[read_file, write_file, list_directory, search_code, run_command, analyze_python_structure, get_directory_tree, read_multiple_files],
 )
 
 

@@ -9,7 +9,6 @@ These tools enable the agent to:
 - Run npm/bun commands for frontend tooling
 - Test APIs and fetch resources
 - Analyze and format code
-- Take screenshots for visual testing
 """
 import subprocess
 import json
@@ -18,15 +17,14 @@ import urllib.request
 import urllib.error
 from pathlib import Path
 from typing import Optional
-from google.adk.tools import tool
+from google.adk.tools.function_tool import FunctionTool
 
 
 # Project paths - configurable base
-PROJECT_ROOT = Path("/home/user/Claude-Code-Projetos")
+PROJECT_ROOT = Path("/home/cmr-auto/claude-work/repos/Claude-Code-Projetos")
 
 
-@tool
-def list_docker_containers() -> str:
+def _list_docker_containers() -> str:
     """
     List all running Docker containers with their details.
 
@@ -57,7 +55,6 @@ def list_docker_containers() -> str:
         return json.dumps({"error": str(e)})
 
 
-@tool
 def inspect_container(container_name: str) -> str:
     """
     Get detailed information about a specific container.
@@ -85,7 +82,6 @@ def inspect_container(container_name: str) -> str:
         return json.dumps({"error": str(e)})
 
 
-@tool
 def read_file(file_path: str) -> str:
     """
     Read any file from the project. Use for docs, plans, configs, or code.
@@ -112,7 +108,6 @@ def read_file(file_path: str) -> str:
         return json.dumps({"error": f"Failed to read {file_path}: {e}"})
 
 
-@tool
 def write_file(file_path: str, content: str) -> str:
     """
     Write content to any file in the project.
@@ -140,7 +135,6 @@ def write_file(file_path: str, content: str) -> str:
         return json.dumps({"error": str(e)})
 
 
-@tool
 def read_backend_code(directory: str) -> str:
     """
     Read all Python source code from a directory.
@@ -197,7 +191,6 @@ def read_backend_code(directory: str) -> str:
     return "\n".join(code_content)
 
 
-@tool
 def read_openapi_spec(directory: str) -> str:
     """
     Read OpenAPI/Swagger specification from a directory.
@@ -228,7 +221,6 @@ def read_openapi_spec(directory: str) -> str:
     return json.dumps({"error": f"No OpenAPI spec found in: {directory}"})
 
 
-@tool
 def list_existing_modules(directory: str = "src/components") -> str:
     """
     List existing UI modules/components in a directory.
@@ -274,7 +266,6 @@ def list_existing_modules(directory: str = "src/components") -> str:
     return json.dumps(modules, indent=2)
 
 
-@tool
 def write_frontend_module(
     file_path: str,
     code: str,
@@ -303,7 +294,6 @@ def write_frontend_module(
         return json.dumps({"error": str(e)})
 
 
-@tool
 def get_service_endpoints(directory: str) -> str:
     """
     Extract API endpoints from a backend service by analyzing its code.
@@ -347,7 +337,6 @@ def get_service_endpoints(directory: str) -> str:
 # ADVANCED FRONTEND TOOLS
 # =============================================================================
 
-@tool
 def run_npm_command(command: str, working_dir: str = ".") -> str:
     """
     Execute npm, bun, or yarn commands for frontend tooling.
@@ -383,7 +372,6 @@ def run_npm_command(command: str, working_dir: str = ".") -> str:
         return json.dumps({"error": str(e)})
 
 
-@tool
 def fetch_api(url: str, method: str = "GET", headers: str = "{}", body: str = "") -> str:
     """
     Make HTTP requests to test APIs or fetch resources.
@@ -426,7 +414,6 @@ def fetch_api(url: str, method: str = "GET", headers: str = "{}", body: str = ""
         return json.dumps({"error": str(e), "success": False})
 
 
-@tool
 def run_typescript_check(directory: str = ".") -> str:
     """
     Run TypeScript type checking on a directory.
@@ -459,7 +446,6 @@ def run_typescript_check(directory: str = ".") -> str:
         return json.dumps({"error": str(e)})
 
 
-@tool
 def format_code(file_path: str, formatter: str = "prettier") -> str:
     """
     Format code using Prettier, ESLint, or Black.
@@ -496,7 +482,6 @@ def format_code(file_path: str, formatter: str = "prettier") -> str:
         return json.dumps({"error": str(e)})
 
 
-@tool
 def analyze_package_json(directory: str = ".") -> str:
     """
     Analyze package.json to understand project dependencies and scripts.
@@ -526,7 +511,6 @@ def analyze_package_json(directory: str = ".") -> str:
         return json.dumps({"error": str(e)})
 
 
-@tool
 def search_npm_packages(query: str, limit: int = 5) -> str:
     """
     Search npm registry for packages.
@@ -560,7 +544,6 @@ def search_npm_packages(query: str, limit: int = 5) -> str:
         return json.dumps({"error": str(e)})
 
 
-@tool
 def run_linter(directory: str = ".", linter: str = "eslint") -> str:
     """
     Run linting on frontend code.
@@ -601,7 +584,6 @@ def run_linter(directory: str = ".", linter: str = "eslint") -> str:
         return json.dumps({"error": str(e)})
 
 
-@tool
 def git_operations(operation: str, args: str = "") -> str:
     """
     Execute git operations for version control.
@@ -639,7 +621,6 @@ def git_operations(operation: str, args: str = "") -> str:
         return json.dumps({"error": str(e)})
 
 
-@tool
 def list_directory_tree(directory: str = ".", max_depth: int = 3, pattern: str = "*") -> str:
     """
     List directory structure with filtering.
@@ -685,7 +666,6 @@ def list_directory_tree(directory: str = ".", max_depth: int = 3, pattern: str =
     return json.dumps({"root": directory, "tree": tree}, indent=2)
 
 
-@tool
 def analyze_component_structure(file_path: str) -> str:
     """
     Analyze a React/Vue/Svelte component structure.
@@ -738,3 +718,51 @@ def analyze_component_structure(file_path: str) -> str:
         return json.dumps(analysis, indent=2)
     except Exception as e:
         return json.dumps({"error": str(e)})
+
+
+# =============================================================================
+# FunctionTool Wrappers
+# =============================================================================
+
+list_docker_containers = FunctionTool(func=_list_docker_containers)
+inspect_container = FunctionTool(func=inspect_container)
+read_file = FunctionTool(func=read_file)
+write_file = FunctionTool(func=write_file)
+read_backend_code = FunctionTool(func=read_backend_code)
+read_openapi_spec = FunctionTool(func=read_openapi_spec)
+list_existing_modules = FunctionTool(func=list_existing_modules)
+write_frontend_module = FunctionTool(func=write_frontend_module)
+get_service_endpoints = FunctionTool(func=get_service_endpoints)
+run_npm_command = FunctionTool(func=run_npm_command)
+fetch_api = FunctionTool(func=fetch_api)
+run_typescript_check = FunctionTool(func=run_typescript_check)
+format_code = FunctionTool(func=format_code)
+analyze_package_json = FunctionTool(func=analyze_package_json)
+search_npm_packages = FunctionTool(func=search_npm_packages)
+run_linter = FunctionTool(func=run_linter)
+git_operations = FunctionTool(func=git_operations)
+list_directory_tree = FunctionTool(func=list_directory_tree)
+analyze_component_structure = FunctionTool(func=analyze_component_structure)
+
+
+__all__ = [
+    "list_docker_containers",
+    "inspect_container",
+    "read_file",
+    "write_file",
+    "read_backend_code",
+    "read_openapi_spec",
+    "list_existing_modules",
+    "write_frontend_module",
+    "get_service_endpoints",
+    "run_npm_command",
+    "fetch_api",
+    "run_typescript_check",
+    "format_code",
+    "analyze_package_json",
+    "search_npm_packages",
+    "run_linter",
+    "git_operations",
+    "list_directory_tree",
+    "analyze_component_structure",
+]

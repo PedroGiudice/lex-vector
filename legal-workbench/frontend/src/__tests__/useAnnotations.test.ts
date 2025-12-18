@@ -2,18 +2,25 @@ import { renderHook, act } from '@testing-library/react';
 import { useAnnotations } from '@/hooks/useAnnotations';
 import { useDocumentStore } from '@/store/documentStore';
 
-// Mock the store
-jest.mock('@/store/documentStore');
+// Mock the store correctly for Zustand
+jest.mock('@/store/documentStore', () => ({
+  useDocumentStore: jest.fn(selector => selector({
+    annotations: [], // Default mock state for annotations
+    addAnnotation: jest.fn(),
+    removeAnnotation: jest.fn(),
+    updateAnnotation: jest.fn(),
+  })),
+}));
 
 describe('useAnnotations Hook', () => {
   beforeEach(() => {
-    // Reset store before each test
-    (useDocumentStore as jest.Mock).mockReturnValue({
+    // Reset store before each test. Ensure it returns a function.
+    (useDocumentStore as jest.Mock).mockImplementation(selector => selector({
       annotations: [],
       addAnnotation: jest.fn(),
       removeAnnotation: jest.fn(),
       updateAnnotation: jest.fn(),
-    });
+    }));
   });
 
   it('validates field names correctly', () => {
@@ -42,14 +49,14 @@ describe('useAnnotations Hook', () => {
   });
 
   it('checks for field name existence', () => {
-    (useDocumentStore as jest.Mock).mockReturnValue({
+    (useDocumentStore as jest.Mock).mockImplementation(selector => selector({
       annotations: [
         { fieldName: 'nome_autor', text: 'John Doe', start: 0, end: 8, paragraphIndex: 0 },
       ],
       addAnnotation: jest.fn(),
       removeAnnotation: jest.fn(),
       updateAnnotation: jest.fn(),
-    });
+    }));
 
     const { result } = renderHook(() => useAnnotations());
 
@@ -58,7 +65,7 @@ describe('useAnnotations Hook', () => {
   });
 
   it('gets annotations for specific paragraph', () => {
-    (useDocumentStore as jest.Mock).mockReturnValue({
+    (useDocumentStore as jest.Mock).mockImplementation(selector => selector({
       annotations: [
         { fieldName: 'campo1', text: 'text1', start: 0, end: 5, paragraphIndex: 0 },
         { fieldName: 'campo2', text: 'text2', start: 0, end: 5, paragraphIndex: 1 },
@@ -67,7 +74,7 @@ describe('useAnnotations Hook', () => {
       addAnnotation: jest.fn(),
       removeAnnotation: jest.fn(),
       updateAnnotation: jest.fn(),
-    });
+    }));
 
     const { result } = renderHook(() => useAnnotations());
 

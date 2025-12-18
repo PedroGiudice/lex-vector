@@ -20,6 +20,9 @@
     "noUnusedParameters": false,
     "noFallthroughCasesInSwitch": true,
 
+    /* Added for module interoperability with Jest/ts-jest */
+    "esModuleInterop": true,
+
     /* Path mapping */
     "baseUrl": ".",
     "paths": {
@@ -30,6 +33,6 @@
     "types": ["jest", "node"]
   },
   "include": ["src"],
-  "exclude": ["src/__tests__", "src/setupTests.ts"],
+  "exclude": ["src/__tests__", "**/*.test.ts", "**/*.test.tsx"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }
