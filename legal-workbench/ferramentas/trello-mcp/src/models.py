@@ -313,6 +313,435 @@ class SearchCardsInput(BaseModel):
         return v
 
 
+# =============================================================================
+# NEW INPUT MODELS - Cards CRUD
+# =============================================================================
+
+
+class UpdateCardInput(BaseModel):
+    """Input schema for updating a Trello card."""
+    card_id: str = Field(
+        ...,
+        min_length=24,
+        max_length=24,
+        description="The ID of the card to update"
+    )
+    name: Optional[str] = Field(
+        default=None,
+        max_length=16384,
+        description="New card title"
+    )
+    desc: Optional[str] = Field(
+        default=None,
+        max_length=16384,
+        description="New card description in Markdown format"
+    )
+    due: Optional[str] = Field(
+        default=None,
+        description="Due date in ISO 8601 format (e.g., '2025-12-31T23:59:59Z')"
+    )
+    id_members: Optional[list[str]] = Field(
+        default=None,
+        alias="idMembers",
+        description="List of member IDs to assign"
+    )
+    id_labels: Optional[list[str]] = Field(
+        default=None,
+        alias="idLabels",
+        description="List of label IDs to apply"
+    )
+    closed: Optional[bool] = Field(
+        default=None,
+        description="Set to true to archive, false to unarchive"
+    )
+
+    model_config = {
+        "populate_by_name": True,
+    }
+
+
+class ArchiveCardInput(BaseModel):
+    """Input schema for archiving/unarchiving a card."""
+    card_id: str = Field(
+        ...,
+        min_length=24,
+        max_length=24,
+        description="The ID of the card to archive/unarchive"
+    )
+    closed: bool = Field(
+        ...,
+        description="True to archive, False to unarchive"
+    )
+
+
+class DeleteCardInput(BaseModel):
+    """Input schema for deleting a card (PERMANENT!)."""
+    card_id: str = Field(
+        ...,
+        min_length=24,
+        max_length=24,
+        description="The ID of the card to delete"
+    )
+
+
+# =============================================================================
+# NEW INPUT MODELS - Checklists
+# =============================================================================
+
+
+class CreateChecklistInput(BaseModel):
+    """Input schema for creating a checklist on a card."""
+    card_id: str = Field(
+        ...,
+        min_length=24,
+        max_length=24,
+        description="The ID of the card to add checklist to"
+    )
+    name: str = Field(
+        ...,
+        min_length=1,
+        max_length=16384,
+        description="Checklist name"
+    )
+    pos: Optional[str] = Field(
+        default="bottom",
+        description="Position: 'top', 'bottom', or a positive number"
+    )
+
+
+class AddCheckItemInput(BaseModel):
+    """Input schema for adding an item to a checklist."""
+    checklist_id: str = Field(
+        ...,
+        min_length=24,
+        max_length=24,
+        description="The ID of the checklist"
+    )
+    name: str = Field(
+        ...,
+        min_length=1,
+        max_length=16384,
+        description="Check item name"
+    )
+    checked: bool = Field(
+        default=False,
+        description="Initial state (checked or not)"
+    )
+    pos: Optional[str] = Field(
+        default="bottom",
+        description="Position: 'top', 'bottom', or a positive number"
+    )
+
+
+class UpdateCheckItemInput(BaseModel):
+    """Input schema for updating a check item state."""
+    card_id: str = Field(
+        ...,
+        min_length=24,
+        max_length=24,
+        description="The ID of the card containing the checklist"
+    )
+    check_item_id: str = Field(
+        ...,
+        min_length=24,
+        max_length=24,
+        description="The ID of the check item to update"
+    )
+    state: Optional[str] = Field(
+        default=None,
+        description="State: 'complete' or 'incomplete'"
+    )
+    name: Optional[str] = Field(
+        default=None,
+        max_length=16384,
+        description="New name for the check item"
+    )
+
+    @field_validator("state")
+    @classmethod
+    def validate_state(cls, v: Optional[str]) -> Optional[str]:
+        """Ensure state is valid if provided."""
+        if v is not None and v not in {"complete", "incomplete"}:
+            raise ValueError("state must be 'complete' or 'incomplete'")
+        return v
+
+
+class DeleteChecklistInput(BaseModel):
+    """Input schema for deleting a checklist."""
+    checklist_id: str = Field(
+        ...,
+        min_length=24,
+        max_length=24,
+        description="The ID of the checklist to delete"
+    )
+
+
+class DeleteCheckItemInput(BaseModel):
+    """Input schema for deleting a check item."""
+    checklist_id: str = Field(
+        ...,
+        min_length=24,
+        max_length=24,
+        description="The ID of the checklist"
+    )
+    check_item_id: str = Field(
+        ...,
+        min_length=24,
+        max_length=24,
+        description="The ID of the check item to delete"
+    )
+
+
+# =============================================================================
+# NEW INPUT MODELS - Attachments
+# =============================================================================
+
+
+class AddAttachmentInput(BaseModel):
+    """Input schema for adding an attachment to a card."""
+    card_id: str = Field(
+        ...,
+        min_length=24,
+        max_length=24,
+        description="The ID of the card"
+    )
+    url: Optional[str] = Field(
+        default=None,
+        description="URL to attach (use this OR file, not both)"
+    )
+    name: Optional[str] = Field(
+        default=None,
+        max_length=256,
+        description="Name for the attachment"
+    )
+    set_cover: bool = Field(
+        default=False,
+        alias="setCover",
+        description="Set this attachment as the card cover"
+    )
+
+    model_config = {
+        "populate_by_name": True,
+    }
+
+
+class DeleteAttachmentInput(BaseModel):
+    """Input schema for removing an attachment from a card."""
+    card_id: str = Field(
+        ...,
+        min_length=24,
+        max_length=24,
+        description="The ID of the card"
+    )
+    attachment_id: str = Field(
+        ...,
+        min_length=24,
+        max_length=24,
+        description="The ID of the attachment to remove"
+    )
+
+
+# =============================================================================
+# NEW INPUT MODELS - Comments
+# =============================================================================
+
+
+class AddCommentInput(BaseModel):
+    """Input schema for adding a comment to a card."""
+    card_id: str = Field(
+        ...,
+        min_length=24,
+        max_length=24,
+        description="The ID of the card"
+    )
+    text: str = Field(
+        ...,
+        min_length=1,
+        max_length=16384,
+        description="Comment text (supports Markdown)"
+    )
+
+
+class UpdateCommentInput(BaseModel):
+    """Input schema for editing a comment."""
+    action_id: str = Field(
+        ...,
+        min_length=24,
+        max_length=24,
+        description="The ID of the comment action to edit"
+    )
+    text: str = Field(
+        ...,
+        min_length=1,
+        max_length=16384,
+        description="New comment text"
+    )
+
+
+class DeleteCommentInput(BaseModel):
+    """Input schema for deleting a comment."""
+    card_id: str = Field(
+        ...,
+        min_length=24,
+        max_length=24,
+        description="The ID of the card"
+    )
+    action_id: str = Field(
+        ...,
+        min_length=24,
+        max_length=24,
+        description="The ID of the comment action to delete"
+    )
+
+
+# =============================================================================
+# NEW INPUT MODELS - Custom Fields
+# =============================================================================
+
+
+class UpdateCustomFieldInput(BaseModel):
+    """
+    Input schema for updating a custom field value on a card.
+
+    Value format depends on field type:
+    - text: {"text": "some value"}
+    - number: {"number": "42"}
+    - date: {"date": "2025-12-31T00:00:00.000Z"}
+    - checkbox: {"checked": "true"}
+    - dropdown: use id_value instead of value
+    """
+    card_id: str = Field(
+        ...,
+        min_length=24,
+        max_length=24,
+        description="The ID of the card"
+    )
+    custom_field_id: str = Field(
+        ...,
+        min_length=24,
+        max_length=24,
+        description="The ID of the custom field definition"
+    )
+    value: Optional[dict] = Field(
+        default=None,
+        description="Value object for text/number/date/checkbox types"
+    )
+    id_value: Optional[str] = Field(
+        default=None,
+        alias="idValue",
+        description="Option ID for dropdown type fields"
+    )
+
+    model_config = {
+        "populate_by_name": True,
+    }
+
+
+# =============================================================================
+# NEW INPUT MODELS - Advanced Search
+# =============================================================================
+
+
+class AdvancedSearchInput(BaseModel):
+    """
+    Input schema for server-side advanced search using Trello operators.
+
+    Operators:
+    - @member or member:name - Cards assigned to member
+    - board:name - Cards in specific board
+    - list:name - Cards in specific list
+    - #label or label:name - Cards with label
+    - due:day|week|month - Cards by due date
+    - created:N - Cards created in last N days
+    - has:attachments|members - Cards with specific features
+    - is:open|archived - Card status
+    - -operator - Negation
+    """
+    query: str = Field(
+        ...,
+        min_length=1,
+        max_length=1000,
+        description="Search query with operators (e.g., '@me #urgent due:week')"
+    )
+    model_types: str = Field(
+        default="cards",
+        description="Types to search: 'cards', 'boards', 'organizations'"
+    )
+    cards_limit: int = Field(
+        default=50,
+        ge=1,
+        le=1000,
+        description="Maximum number of cards to return"
+    )
+    partial: bool = Field(
+        default=True,
+        description="Return partial matches"
+    )
+
+
+# =============================================================================
+# NEW RESPONSE MODELS
+# =============================================================================
+
+
+class TrelloChecklist(BaseModel):
+    """Trello checklist model."""
+    id: str
+    name: str
+    id_card: str = Field(..., alias="idCard")
+    pos: float
+    check_items: list["TrelloCheckItem"] = Field(default=[], alias="checkItems")
+
+    model_config = {
+        "populate_by_name": True,
+        "extra": "ignore",
+    }
+
+
+class TrelloCheckItem(BaseModel):
+    """Trello check item model."""
+    id: str
+    name: str
+    state: str  # 'complete' or 'incomplete'
+    id_checklist: str = Field(..., alias="idChecklist")
+    pos: float
+
+    model_config = {
+        "populate_by_name": True,
+        "extra": "ignore",
+    }
+
+
+class TrelloAttachment(BaseModel):
+    """Trello attachment model."""
+    id: str
+    name: str
+    url: str
+    bytes: Optional[int] = None
+    date: str
+    is_upload: bool = Field(default=False, alias="isUpload")
+    mime_type: Optional[str] = Field(default=None, alias="mimeType")
+
+    model_config = {
+        "populate_by_name": True,
+        "extra": "ignore",
+    }
+
+
+class TrelloComment(BaseModel):
+    """Trello comment (action) model."""
+    id: str
+    type: str = "commentCard"
+    date: str
+    member_creator: Optional[dict] = Field(default=None, alias="memberCreator")
+    data: dict  # Contains text in data.text
+
+    model_config = {
+        "populate_by_name": True,
+        "extra": "ignore",
+    }
+
+
 class RateLimitState(BaseModel):
     """
     Rate limit state tracking.

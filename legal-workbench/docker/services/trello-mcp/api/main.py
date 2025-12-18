@@ -25,11 +25,26 @@ from slowapi.util import get_remote_address
 if os.path.exists("/app/trello_src"):
     # Running in Docker
     from trello_src.models import (
+        AddAttachmentInput,
+        AddCheckItemInput,
+        AddCommentInput,
+        AdvancedSearchInput,
+        ArchiveCardInput,
         BatchCardsInput,
         CreateCardInput,
+        CreateChecklistInput,
+        DeleteAttachmentInput,
+        DeleteCardInput,
+        DeleteCheckItemInput,
+        DeleteChecklistInput,
+        DeleteCommentInput,
         EnvironmentSettings,
         MoveCardInput,
         SearchCardsInput,
+        UpdateCardInput,
+        UpdateCheckItemInput,
+        UpdateCommentInput,
+        UpdateCustomFieldInput,
     )
     from trello_src.trello_client import (
         TrelloAPIError,
@@ -41,11 +56,26 @@ else:
     # Running locally - add path for development
     sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../../ferramentas/trello-mcp/src"))
     from models import (
+        AddAttachmentInput,
+        AddCheckItemInput,
+        AddCommentInput,
+        AdvancedSearchInput,
+        ArchiveCardInput,
         BatchCardsInput,
         CreateCardInput,
+        CreateChecklistInput,
+        DeleteAttachmentInput,
+        DeleteCardInput,
+        DeleteCheckItemInput,
+        DeleteChecklistInput,
+        DeleteCommentInput,
         EnvironmentSettings,
         MoveCardInput,
         SearchCardsInput,
+        UpdateCardInput,
+        UpdateCheckItemInput,
+        UpdateCommentInput,
+        UpdateCustomFieldInput,
     )
     from trello_client import (
         TrelloAPIError,
@@ -56,11 +86,22 @@ else:
 
 # Import API-specific schemas (renamed to avoid conflict with trello_src.models)
 from .schemas import (
+    AddAttachmentRequest,
+    AddCheckItemRequest,
+    AddCommentRequest,
+    AdvancedSearchRequest,
+    ArchiveCardRequest,
+    AttachmentResponse,
     BatchCardsRequest,
     BoardResponse,
     BoardStructureResponse,
     CardResponse,
+    CheckItemResponse,
+    ChecklistResponse,
+    CommentResponse,
     CreateCardRequest,
+    CreateChecklistRequest,
+    DeleteResponse,
     ErrorResponse,
     HealthResponse,
     MCPToolCallRequest,
@@ -68,6 +109,10 @@ from .schemas import (
     MCPToolsListResponse,
     MoveCardRequest,
     SearchCardsRequest,
+    UpdateCardRequest,
+    UpdateCheckItemRequest,
+    UpdateCommentRequest,
+    UpdateCustomFieldRequest,
 )
 
 # ============================================================================
@@ -429,6 +474,672 @@ async def search_cards(
     )
 
     cards = await client.search_cards(input_data)
+
+    return [
+        CardResponse(
+            id=card.id,
+            name=card.name,
+            desc=card.desc,
+            idList=card.id_list,
+            url=card.url,
+            labels=[lbl.model_dump() for lbl in card.labels],
+            due=card.due,
+            dueComplete=card.due_complete,
+            idMembers=card.id_members,
+            customFieldItems=[item.model_dump() for item in card.custom_field_items]
+        )
+        for card in cards
+    ]
+
+
+# ============================================================================
+# NEW Card Endpoints - CRUD Operations
+# ============================================================================
+
+
+@app.get(
+    "/api/v1/cards/{card_id}",
+    response_model=CardResponse,
+    tags=["Cards"],
+    summary="Get a single card"
+)
+@limiter.limit("100/minute")
+async def get_card(request: Request, card_id: str) -> CardResponse:
+    """
+    Get a single card by ID with all details.
+
+    **Rate limit**: 100 requests per minute per IP.
+    """
+    client = get_client()
+    card = await client.get_card(card_id)
+
+    return CardResponse(
+        id=card.id,
+        name=card.name,
+        desc=card.desc,
+        idList=card.id_list,
+        url=card.url,
+        labels=[lbl.model_dump() for lbl in card.labels],
+        due=card.due,
+        dueComplete=card.due_complete,
+        idMembers=card.id_members,
+        customFieldItems=[item.model_dump() for item in card.custom_field_items]
+    )
+
+
+@app.put(
+    "/api/v1/cards/{card_id}",
+    response_model=CardResponse,
+    tags=["Cards"],
+    summary="Update a card"
+)
+@limiter.limit("100/minute")
+async def update_card(
+    request: Request,
+    card_id: str,
+    update_request: UpdateCardRequest
+) -> CardResponse:
+    """
+    Update an existing card's properties.
+
+    **Rate limit**: 100 requests per minute per IP.
+    """
+    client = get_client()
+
+    input_data = UpdateCardInput(
+        card_id=card_id,
+        name=update_request.name,
+        desc=update_request.desc,
+        due=update_request.due,
+        id_members=update_request.id_members,
+        id_labels=update_request.id_labels,
+        closed=update_request.closed
+    )
+
+    card = await client.update_card(input_data)
+
+    return CardResponse(
+        id=card.id,
+        name=card.name,
+        desc=card.desc,
+        idList=card.id_list,
+        url=card.url,
+        labels=[lbl.model_dump() for lbl in card.labels],
+        due=card.due,
+        dueComplete=card.due_complete,
+        idMembers=card.id_members,
+        customFieldItems=[item.model_dump() for item in card.custom_field_items]
+    )
+
+
+@app.put(
+    "/api/v1/cards/{card_id}/archive",
+    response_model=CardResponse,
+    tags=["Cards"],
+    summary="Archive or unarchive a card"
+)
+@limiter.limit("100/minute")
+async def archive_card(
+    request: Request,
+    card_id: str,
+    archive_request: ArchiveCardRequest
+) -> CardResponse:
+    """
+    Archive (closed=true) or unarchive (closed=false) a card.
+
+    **Rate limit**: 100 requests per minute per IP.
+    """
+    client = get_client()
+
+    input_data = ArchiveCardInput(
+        card_id=card_id,
+        closed=archive_request.closed
+    )
+
+    card = await client.archive_card(input_data)
+
+    return CardResponse(
+        id=card.id,
+        name=card.name,
+        desc=card.desc,
+        idList=card.id_list,
+        url=card.url,
+        labels=[lbl.model_dump() for lbl in card.labels],
+        due=card.due,
+        dueComplete=card.due_complete,
+        idMembers=card.id_members,
+        customFieldItems=[item.model_dump() for item in card.custom_field_items]
+    )
+
+
+@app.delete(
+    "/api/v1/cards/{card_id}",
+    response_model=DeleteResponse,
+    tags=["Cards"],
+    summary="Permanently delete a card"
+)
+@limiter.limit("100/minute")
+async def delete_card(request: Request, card_id: str) -> DeleteResponse:
+    """
+    Permanently delete a card. THIS CANNOT BE UNDONE!
+
+    Use archive endpoint instead for safe removal.
+
+    **Rate limit**: 100 requests per minute per IP.
+    """
+    client = get_client()
+
+    input_data = DeleteCardInput(card_id=card_id)
+    await client.delete_card(input_data)
+
+    return DeleteResponse(
+        success=True,
+        message=f"Card {card_id} permanently deleted"
+    )
+
+
+# ============================================================================
+# Checklist Endpoints
+# ============================================================================
+
+
+@app.get(
+    "/api/v1/cards/{card_id}/checklists",
+    response_model=list[ChecklistResponse],
+    tags=["Checklists"],
+    summary="Get all checklists for a card"
+)
+@limiter.limit("100/minute")
+async def get_card_checklists(request: Request, card_id: str) -> list[ChecklistResponse]:
+    """
+    Get all checklists and their items for a card.
+
+    **Rate limit**: 100 requests per minute per IP.
+    """
+    client = get_client()
+    checklists = await client.get_card_checklists(card_id)
+
+    return [
+        ChecklistResponse(
+            id=cl.id,
+            name=cl.name,
+            idCard=cl.id_card,
+            pos=cl.pos,
+            checkItems=[item.model_dump() for item in cl.check_items]
+        )
+        for cl in checklists
+    ]
+
+
+@app.post(
+    "/api/v1/cards/{card_id}/checklists",
+    response_model=ChecklistResponse,
+    status_code=status.HTTP_201_CREATED,
+    tags=["Checklists"],
+    summary="Create a checklist on a card"
+)
+@limiter.limit("100/minute")
+async def create_checklist(
+    request: Request,
+    card_id: str,
+    checklist_request: CreateChecklistRequest
+) -> ChecklistResponse:
+    """
+    Create a new checklist on a card.
+
+    **Rate limit**: 100 requests per minute per IP.
+    """
+    client = get_client()
+
+    input_data = CreateChecklistInput(
+        card_id=card_id,
+        name=checklist_request.name,
+        pos=checklist_request.pos
+    )
+
+    checklist = await client.create_checklist(input_data)
+
+    return ChecklistResponse(
+        id=checklist.id,
+        name=checklist.name,
+        idCard=checklist.id_card,
+        pos=checklist.pos,
+        checkItems=[item.model_dump() for item in checklist.check_items]
+    )
+
+
+@app.delete(
+    "/api/v1/checklists/{checklist_id}",
+    response_model=DeleteResponse,
+    tags=["Checklists"],
+    summary="Delete a checklist"
+)
+@limiter.limit("100/minute")
+async def delete_checklist(request: Request, checklist_id: str) -> DeleteResponse:
+    """
+    Delete a checklist and all its items.
+
+    **Rate limit**: 100 requests per minute per IP.
+    """
+    client = get_client()
+
+    input_data = DeleteChecklistInput(checklist_id=checklist_id)
+    await client.delete_checklist(input_data)
+
+    return DeleteResponse(
+        success=True,
+        message=f"Checklist {checklist_id} deleted"
+    )
+
+
+@app.post(
+    "/api/v1/checklists/{checklist_id}/checkItems",
+    response_model=CheckItemResponse,
+    status_code=status.HTTP_201_CREATED,
+    tags=["Checklists"],
+    summary="Add an item to a checklist"
+)
+@limiter.limit("100/minute")
+async def add_check_item(
+    request: Request,
+    checklist_id: str,
+    item_request: AddCheckItemRequest
+) -> CheckItemResponse:
+    """
+    Add a new item to a checklist.
+
+    **Rate limit**: 100 requests per minute per IP.
+    """
+    client = get_client()
+
+    input_data = AddCheckItemInput(
+        checklist_id=checklist_id,
+        name=item_request.name,
+        checked=item_request.checked,
+        pos=item_request.pos
+    )
+
+    item = await client.add_check_item(input_data)
+
+    return CheckItemResponse(
+        id=item.id,
+        name=item.name,
+        state=item.state,
+        idChecklist=item.id_checklist,
+        pos=item.pos
+    )
+
+
+@app.put(
+    "/api/v1/cards/{card_id}/checkItem/{check_item_id}",
+    response_model=CheckItemResponse,
+    tags=["Checklists"],
+    summary="Update a check item"
+)
+@limiter.limit("100/minute")
+async def update_check_item(
+    request: Request,
+    card_id: str,
+    check_item_id: str,
+    item_request: UpdateCheckItemRequest
+) -> CheckItemResponse:
+    """
+    Update a check item (mark complete/incomplete or rename).
+
+    **Rate limit**: 100 requests per minute per IP.
+    """
+    client = get_client()
+
+    input_data = UpdateCheckItemInput(
+        card_id=card_id,
+        check_item_id=check_item_id,
+        state=item_request.state,
+        name=item_request.name
+    )
+
+    item = await client.update_check_item(input_data)
+
+    return CheckItemResponse(
+        id=item.id,
+        name=item.name,
+        state=item.state,
+        idChecklist=item.id_checklist,
+        pos=item.pos
+    )
+
+
+@app.delete(
+    "/api/v1/checklists/{checklist_id}/checkItems/{check_item_id}",
+    response_model=DeleteResponse,
+    tags=["Checklists"],
+    summary="Delete a check item"
+)
+@limiter.limit("100/minute")
+async def delete_check_item(
+    request: Request,
+    checklist_id: str,
+    check_item_id: str
+) -> DeleteResponse:
+    """
+    Delete a check item from a checklist.
+
+    **Rate limit**: 100 requests per minute per IP.
+    """
+    client = get_client()
+
+    input_data = DeleteCheckItemInput(
+        checklist_id=checklist_id,
+        check_item_id=check_item_id
+    )
+    await client.delete_check_item(input_data)
+
+    return DeleteResponse(
+        success=True,
+        message=f"Check item {check_item_id} deleted"
+    )
+
+
+# ============================================================================
+# Attachment Endpoints
+# ============================================================================
+
+
+@app.get(
+    "/api/v1/cards/{card_id}/attachments",
+    response_model=list[AttachmentResponse],
+    tags=["Attachments"],
+    summary="Get all attachments for a card"
+)
+@limiter.limit("100/minute")
+async def get_card_attachments(request: Request, card_id: str) -> list[AttachmentResponse]:
+    """
+    Get all attachments for a card.
+
+    **Rate limit**: 100 requests per minute per IP.
+    """
+    client = get_client()
+    attachments = await client.get_card_attachments(card_id)
+
+    return [
+        AttachmentResponse(
+            id=att.id,
+            name=att.name,
+            url=att.url,
+            bytes=att.bytes,
+            date=att.date,
+            isUpload=att.is_upload,
+            mimeType=att.mime_type
+        )
+        for att in attachments
+    ]
+
+
+@app.post(
+    "/api/v1/cards/{card_id}/attachments",
+    response_model=AttachmentResponse,
+    status_code=status.HTTP_201_CREATED,
+    tags=["Attachments"],
+    summary="Add an attachment to a card"
+)
+@limiter.limit("100/minute")
+async def add_attachment(
+    request: Request,
+    card_id: str,
+    attachment_request: AddAttachmentRequest
+) -> AttachmentResponse:
+    """
+    Add a URL attachment to a card.
+
+    **Rate limit**: 100 requests per minute per IP.
+    """
+    client = get_client()
+
+    input_data = AddAttachmentInput(
+        card_id=card_id,
+        url=attachment_request.url,
+        name=attachment_request.name,
+        set_cover=attachment_request.set_cover
+    )
+
+    attachment = await client.add_attachment(input_data)
+
+    return AttachmentResponse(
+        id=attachment.id,
+        name=attachment.name,
+        url=attachment.url,
+        bytes=attachment.bytes,
+        date=attachment.date,
+        isUpload=attachment.is_upload,
+        mimeType=attachment.mime_type
+    )
+
+
+@app.delete(
+    "/api/v1/cards/{card_id}/attachments/{attachment_id}",
+    response_model=DeleteResponse,
+    tags=["Attachments"],
+    summary="Remove an attachment from a card"
+)
+@limiter.limit("100/minute")
+async def delete_attachment(
+    request: Request,
+    card_id: str,
+    attachment_id: str
+) -> DeleteResponse:
+    """
+    Remove an attachment from a card.
+
+    **Rate limit**: 100 requests per minute per IP.
+    """
+    client = get_client()
+
+    input_data = DeleteAttachmentInput(
+        card_id=card_id,
+        attachment_id=attachment_id
+    )
+    await client.delete_attachment(input_data)
+
+    return DeleteResponse(
+        success=True,
+        message=f"Attachment {attachment_id} deleted"
+    )
+
+
+# ============================================================================
+# Comment Endpoints
+# ============================================================================
+
+
+@app.post(
+    "/api/v1/cards/{card_id}/comments",
+    response_model=CommentResponse,
+    status_code=status.HTTP_201_CREATED,
+    tags=["Comments"],
+    summary="Add a comment to a card"
+)
+@limiter.limit("100/minute")
+async def add_comment(
+    request: Request,
+    card_id: str,
+    comment_request: AddCommentRequest
+) -> CommentResponse:
+    """
+    Add a comment to a card.
+
+    **Rate limit**: 100 requests per minute per IP.
+    """
+    client = get_client()
+
+    input_data = AddCommentInput(
+        card_id=card_id,
+        text=comment_request.text
+    )
+
+    comment = await client.add_comment(input_data)
+
+    return CommentResponse(
+        id=comment.id,
+        type=comment.type,
+        date=comment.date,
+        memberCreator=comment.member_creator,
+        data=comment.data
+    )
+
+
+@app.put(
+    "/api/v1/comments/{action_id}",
+    response_model=CommentResponse,
+    tags=["Comments"],
+    summary="Edit a comment"
+)
+@limiter.limit("100/minute")
+async def update_comment(
+    request: Request,
+    action_id: str,
+    comment_request: UpdateCommentRequest
+) -> CommentResponse:
+    """
+    Edit an existing comment.
+
+    **Rate limit**: 100 requests per minute per IP.
+    """
+    client = get_client()
+
+    input_data = UpdateCommentInput(
+        action_id=action_id,
+        text=comment_request.text
+    )
+
+    comment = await client.update_comment(input_data)
+
+    return CommentResponse(
+        id=comment.id,
+        type=comment.type,
+        date=comment.date,
+        memberCreator=comment.member_creator,
+        data=comment.data
+    )
+
+
+@app.delete(
+    "/api/v1/cards/{card_id}/comments/{action_id}",
+    response_model=DeleteResponse,
+    tags=["Comments"],
+    summary="Delete a comment"
+)
+@limiter.limit("100/minute")
+async def delete_comment(
+    request: Request,
+    card_id: str,
+    action_id: str
+) -> DeleteResponse:
+    """
+    Delete a comment from a card.
+
+    **Rate limit**: 100 requests per minute per IP.
+    """
+    client = get_client()
+
+    input_data = DeleteCommentInput(
+        card_id=card_id,
+        action_id=action_id
+    )
+    await client.delete_comment(input_data)
+
+    return DeleteResponse(
+        success=True,
+        message=f"Comment {action_id} deleted"
+    )
+
+
+# ============================================================================
+# Custom Field Endpoints
+# ============================================================================
+
+
+@app.put(
+    "/api/v1/cards/{card_id}/customField/{custom_field_id}",
+    tags=["Custom Fields"],
+    summary="Update a custom field value on a card"
+)
+@limiter.limit("100/minute")
+async def update_custom_field(
+    request: Request,
+    card_id: str,
+    custom_field_id: str,
+    field_request: UpdateCustomFieldRequest
+):
+    """
+    Update a custom field value on a card.
+
+    Value format depends on field type:
+    - text: {"value": {"text": "some value"}}
+    - number: {"value": {"number": "42"}}
+    - date: {"value": {"date": "2025-12-31T00:00:00.000Z"}}
+    - checkbox: {"value": {"checked": "true"}}
+    - dropdown: {"idValue": "option_id"}
+
+    **Rate limit**: 100 requests per minute per IP.
+    """
+    client = get_client()
+
+    input_data = UpdateCustomFieldInput(
+        card_id=card_id,
+        custom_field_id=custom_field_id,
+        value=field_request.value,
+        id_value=field_request.id_value
+    )
+
+    result = await client.update_custom_field(input_data)
+    return result
+
+
+# ============================================================================
+# Advanced Search Endpoints
+# ============================================================================
+
+
+@app.post(
+    "/api/v1/search/advanced",
+    response_model=list[CardResponse],
+    tags=["Search"],
+    summary="Advanced search with Trello operators"
+)
+@limiter.limit("100/minute")
+async def advanced_search(
+    request: Request,
+    search_request: AdvancedSearchRequest
+) -> list[CardResponse]:
+    """
+    Server-side search using Trello operators.
+
+    **Operators**:
+    - @me or @username - Cards assigned to member
+    - #label - Cards with label
+    - due:day|week|month - Cards by due date
+    - created:N - Cards created in last N days
+    - has:attachments - Cards with attachments
+    - is:open|archived - Card status
+    - board:name - Search in specific board
+    - list:name - Search in specific list
+
+    **Examples**:
+    - `@me #urgent due:week` - My urgent cards due this week
+    - `board:Projetos is:open` - Open cards in Projetos board
+    - `-has:members due:day` - Unassigned cards due today
+
+    **Rate limit**: 100 requests per minute per IP.
+    """
+    client = get_client()
+
+    input_data = AdvancedSearchInput(
+        query=search_request.query,
+        model_types=search_request.model_types,
+        cards_limit=search_request.cards_limit,
+        partial=search_request.partial
+    )
+
+    cards = await client.advanced_search(input_data)
 
     return [
         CardResponse(

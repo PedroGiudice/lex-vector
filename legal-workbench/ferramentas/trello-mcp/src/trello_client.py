@@ -15,17 +15,36 @@ import httpx
 from pydantic import ValidationError
 
 from models import (
+    AddAttachmentInput,
+    AddCheckItemInput,
+    AddCommentInput,
+    AdvancedSearchInput,
+    ArchiveCardInput,
     BatchCardsInput,
     BoardStructure,
     CreateCardInput,
+    CreateChecklistInput,
     CustomFieldItem,
+    DeleteAttachmentInput,
+    DeleteCardInput,
+    DeleteCheckItemInput,
+    DeleteChecklistInput,
+    DeleteCommentInput,
     EnvironmentSettings,
     MoveCardInput,
     RateLimitState,
     SearchCardsInput,
+    TrelloAttachment,
     TrelloBoard,
     TrelloCard,
+    TrelloChecklist,
+    TrelloCheckItem,
+    TrelloComment,
     TrelloList,
+    UpdateCardInput,
+    UpdateCheckItemInput,
+    UpdateCommentInput,
+    UpdateCustomFieldInput,
 )
 
 
@@ -634,3 +653,587 @@ class TrelloClient:
         )
 
         return all_cards
+
+    # =========================================================================
+    # NEW METHODS - Cards CRUD
+    # =========================================================================
+
+    async def get_card(self, card_id: str) -> TrelloCard:
+        """
+        Get a single card by ID.
+
+        Args:
+            card_id: Trello card ID
+
+        Returns:
+            TrelloCard object
+
+        Raises:
+            TrelloAPIError: If card doesn't exist
+        """
+        print(f"[TrelloClient] Fetching card {card_id}", file=sys.stderr)
+
+        card_data = await self._request(
+            "GET",
+            f"/cards/{card_id}",
+            params={
+                "fields": "id,name,desc,idList,url,labels,due,dueComplete,idMembers,closed",
+                "customFieldItems": "true"
+            }
+        )
+
+        try:
+            return TrelloCard(**card_data)
+        except ValidationError as e:
+            raise TrelloAPIError(f"Invalid card data: {e}") from e
+
+    async def update_card(self, input_data: UpdateCardInput) -> TrelloCard:
+        """
+        Update an existing card.
+
+        Args:
+            input_data: Validated update parameters
+
+        Returns:
+            Updated TrelloCard
+
+        Raises:
+            TrelloAPIError: If card doesn't exist or update fails
+        """
+        print(
+            f"[TrelloClient] Updating card {input_data.card_id}",
+            file=sys.stderr
+        )
+
+        params = {}
+        if input_data.name is not None:
+            params["name"] = input_data.name
+        if input_data.desc is not None:
+            params["desc"] = input_data.desc
+        if input_data.due is not None:
+            params["due"] = input_data.due
+        if input_data.id_members is not None:
+            params["idMembers"] = ",".join(input_data.id_members)
+        if input_data.id_labels is not None:
+            params["idLabels"] = ",".join(input_data.id_labels)
+        if input_data.closed is not None:
+            params["closed"] = str(input_data.closed).lower()
+
+        card_data = await self._request(
+            "PUT",
+            f"/cards/{input_data.card_id}",
+            params=params
+        )
+
+        try:
+            return TrelloCard(**card_data)
+        except ValidationError as e:
+            raise TrelloAPIError(f"Invalid card data: {e}") from e
+
+    async def archive_card(self, input_data: ArchiveCardInput) -> TrelloCard:
+        """
+        Archive or unarchive a card.
+
+        Args:
+            input_data: Card ID and closed state
+
+        Returns:
+            Updated TrelloCard
+
+        Raises:
+            TrelloAPIError: If card doesn't exist
+        """
+        action = "Archiving" if input_data.closed else "Unarchiving"
+        print(
+            f"[TrelloClient] {action} card {input_data.card_id}",
+            file=sys.stderr
+        )
+
+        card_data = await self._request(
+            "PUT",
+            f"/cards/{input_data.card_id}",
+            params={"closed": str(input_data.closed).lower()}
+        )
+
+        try:
+            return TrelloCard(**card_data)
+        except ValidationError as e:
+            raise TrelloAPIError(f"Invalid card data: {e}") from e
+
+    async def delete_card(self, input_data: DeleteCardInput) -> bool:
+        """
+        Permanently delete a card. THIS CANNOT BE UNDONE!
+
+        Args:
+            input_data: Card ID to delete
+
+        Returns:
+            True if deletion was successful
+
+        Raises:
+            TrelloAPIError: If card doesn't exist or deletion fails
+        """
+        print(
+            f"[TrelloClient] ⚠️ PERMANENTLY DELETING card {input_data.card_id}",
+            file=sys.stderr
+        )
+
+        await self._request("DELETE", f"/cards/{input_data.card_id}")
+        print(f"[TrelloClient] ✓ Card deleted", file=sys.stderr)
+        return True
+
+    # =========================================================================
+    # NEW METHODS - Checklists
+    # =========================================================================
+
+    async def create_checklist(self, input_data: CreateChecklistInput) -> TrelloChecklist:
+        """
+        Create a new checklist on a card.
+
+        Args:
+            input_data: Checklist creation parameters
+
+        Returns:
+            Created TrelloChecklist
+
+        Raises:
+            TrelloAPIError: If card doesn't exist
+        """
+        print(
+            f"[TrelloClient] Creating checklist '{input_data.name}' on card {input_data.card_id}",
+            file=sys.stderr
+        )
+
+        params = {
+            "idCard": input_data.card_id,
+            "name": input_data.name,
+        }
+        if input_data.pos:
+            params["pos"] = input_data.pos
+
+        checklist_data = await self._request("POST", "/checklists", params=params)
+
+        try:
+            return TrelloChecklist(**checklist_data)
+        except ValidationError as e:
+            raise TrelloAPIError(f"Invalid checklist data: {e}") from e
+
+    async def add_check_item(self, input_data: AddCheckItemInput) -> TrelloCheckItem:
+        """
+        Add an item to a checklist.
+
+        Args:
+            input_data: Check item parameters
+
+        Returns:
+            Created TrelloCheckItem
+
+        Raises:
+            TrelloAPIError: If checklist doesn't exist
+        """
+        print(
+            f"[TrelloClient] Adding item '{input_data.name}' to checklist {input_data.checklist_id}",
+            file=sys.stderr
+        )
+
+        params = {
+            "name": input_data.name,
+            "checked": str(input_data.checked).lower(),
+        }
+        if input_data.pos:
+            params["pos"] = input_data.pos
+
+        item_data = await self._request(
+            "POST",
+            f"/checklists/{input_data.checklist_id}/checkItems",
+            params=params
+        )
+
+        try:
+            return TrelloCheckItem(**item_data)
+        except ValidationError as e:
+            raise TrelloAPIError(f"Invalid check item data: {e}") from e
+
+    async def update_check_item(self, input_data: UpdateCheckItemInput) -> TrelloCheckItem:
+        """
+        Update a check item (mark complete/incomplete or rename).
+
+        Args:
+            input_data: Update parameters
+
+        Returns:
+            Updated TrelloCheckItem
+
+        Raises:
+            TrelloAPIError: If card or check item doesn't exist
+        """
+        print(
+            f"[TrelloClient] Updating check item {input_data.check_item_id} on card {input_data.card_id}",
+            file=sys.stderr
+        )
+
+        params = {}
+        if input_data.state is not None:
+            params["state"] = input_data.state
+        if input_data.name is not None:
+            params["name"] = input_data.name
+
+        item_data = await self._request(
+            "PUT",
+            f"/cards/{input_data.card_id}/checkItem/{input_data.check_item_id}",
+            params=params
+        )
+
+        try:
+            return TrelloCheckItem(**item_data)
+        except ValidationError as e:
+            raise TrelloAPIError(f"Invalid check item data: {e}") from e
+
+    async def delete_checklist(self, input_data: DeleteChecklistInput) -> bool:
+        """
+        Delete a checklist.
+
+        Args:
+            input_data: Checklist ID to delete
+
+        Returns:
+            True if deletion was successful
+
+        Raises:
+            TrelloAPIError: If checklist doesn't exist
+        """
+        print(
+            f"[TrelloClient] Deleting checklist {input_data.checklist_id}",
+            file=sys.stderr
+        )
+
+        await self._request("DELETE", f"/checklists/{input_data.checklist_id}")
+        print(f"[TrelloClient] ✓ Checklist deleted", file=sys.stderr)
+        return True
+
+    async def delete_check_item(self, input_data: DeleteCheckItemInput) -> bool:
+        """
+        Delete a check item from a checklist.
+
+        Args:
+            input_data: Checklist and check item IDs
+
+        Returns:
+            True if deletion was successful
+
+        Raises:
+            TrelloAPIError: If checklist or item doesn't exist
+        """
+        print(
+            f"[TrelloClient] Deleting check item {input_data.check_item_id} from checklist {input_data.checklist_id}",
+            file=sys.stderr
+        )
+
+        await self._request(
+            "DELETE",
+            f"/checklists/{input_data.checklist_id}/checkItems/{input_data.check_item_id}"
+        )
+        print(f"[TrelloClient] ✓ Check item deleted", file=sys.stderr)
+        return True
+
+    # =========================================================================
+    # NEW METHODS - Attachments
+    # =========================================================================
+
+    async def get_card_attachments(self, card_id: str) -> list[TrelloAttachment]:
+        """
+        Get all attachments for a card.
+
+        Args:
+            card_id: Trello card ID
+
+        Returns:
+            List of TrelloAttachment objects
+
+        Raises:
+            TrelloAPIError: If card doesn't exist
+        """
+        print(f"[TrelloClient] Fetching attachments for card {card_id}", file=sys.stderr)
+
+        attachments_data = await self._request(
+            "GET",
+            f"/cards/{card_id}/attachments"
+        )
+
+        try:
+            attachments = [TrelloAttachment(**att) for att in attachments_data]
+            print(f"[TrelloClient] ✓ Found {len(attachments)} attachments", file=sys.stderr)
+            return attachments
+        except ValidationError as e:
+            raise TrelloAPIError(f"Invalid attachment data: {e}") from e
+
+    async def add_attachment(self, input_data: AddAttachmentInput) -> TrelloAttachment:
+        """
+        Add an attachment to a card via URL.
+
+        Args:
+            input_data: Attachment parameters (URL-based)
+
+        Returns:
+            Created TrelloAttachment
+
+        Raises:
+            TrelloAPIError: If card doesn't exist or URL is invalid
+        """
+        print(
+            f"[TrelloClient] Adding attachment to card {input_data.card_id}",
+            file=sys.stderr
+        )
+
+        params = {}
+        if input_data.url:
+            params["url"] = input_data.url
+        if input_data.name:
+            params["name"] = input_data.name
+        if input_data.set_cover:
+            params["setCover"] = "true"
+
+        attachment_data = await self._request(
+            "POST",
+            f"/cards/{input_data.card_id}/attachments",
+            params=params
+        )
+
+        try:
+            return TrelloAttachment(**attachment_data)
+        except ValidationError as e:
+            raise TrelloAPIError(f"Invalid attachment data: {e}") from e
+
+    async def delete_attachment(self, input_data: DeleteAttachmentInput) -> bool:
+        """
+        Remove an attachment from a card.
+
+        Args:
+            input_data: Card and attachment IDs
+
+        Returns:
+            True if deletion was successful
+
+        Raises:
+            TrelloAPIError: If card or attachment doesn't exist
+        """
+        print(
+            f"[TrelloClient] Deleting attachment {input_data.attachment_id} from card {input_data.card_id}",
+            file=sys.stderr
+        )
+
+        await self._request(
+            "DELETE",
+            f"/cards/{input_data.card_id}/attachments/{input_data.attachment_id}"
+        )
+        print(f"[TrelloClient] ✓ Attachment deleted", file=sys.stderr)
+        return True
+
+    # =========================================================================
+    # NEW METHODS - Comments
+    # =========================================================================
+
+    async def add_comment(self, input_data: AddCommentInput) -> TrelloComment:
+        """
+        Add a comment to a card.
+
+        Args:
+            input_data: Comment text and card ID
+
+        Returns:
+            Created TrelloComment (action)
+
+        Raises:
+            TrelloAPIError: If card doesn't exist
+        """
+        print(
+            f"[TrelloClient] Adding comment to card {input_data.card_id}",
+            file=sys.stderr
+        )
+
+        comment_data = await self._request(
+            "POST",
+            f"/cards/{input_data.card_id}/actions/comments",
+            params={"text": input_data.text}
+        )
+
+        try:
+            return TrelloComment(**comment_data)
+        except ValidationError as e:
+            raise TrelloAPIError(f"Invalid comment data: {e}") from e
+
+    async def update_comment(self, input_data: UpdateCommentInput) -> TrelloComment:
+        """
+        Edit an existing comment.
+
+        Args:
+            input_data: Action ID and new text
+
+        Returns:
+            Updated TrelloComment (action)
+
+        Raises:
+            TrelloAPIError: If comment action doesn't exist
+        """
+        print(
+            f"[TrelloClient] Updating comment {input_data.action_id}",
+            file=sys.stderr
+        )
+
+        comment_data = await self._request(
+            "PUT",
+            f"/actions/{input_data.action_id}",
+            params={"text": input_data.text}
+        )
+
+        try:
+            return TrelloComment(**comment_data)
+        except ValidationError as e:
+            raise TrelloAPIError(f"Invalid comment data: {e}") from e
+
+    async def delete_comment(self, input_data: DeleteCommentInput) -> bool:
+        """
+        Delete a comment from a card.
+
+        Args:
+            input_data: Card and action IDs
+
+        Returns:
+            True if deletion was successful
+
+        Raises:
+            TrelloAPIError: If card or comment doesn't exist
+        """
+        print(
+            f"[TrelloClient] Deleting comment {input_data.action_id} from card {input_data.card_id}",
+            file=sys.stderr
+        )
+
+        await self._request(
+            "DELETE",
+            f"/cards/{input_data.card_id}/actions/{input_data.action_id}/comments"
+        )
+        print(f"[TrelloClient] ✓ Comment deleted", file=sys.stderr)
+        return True
+
+    # =========================================================================
+    # NEW METHODS - Custom Fields
+    # =========================================================================
+
+    async def update_custom_field(self, input_data: UpdateCustomFieldInput) -> dict:
+        """
+        Update a custom field value on a card.
+
+        Args:
+            input_data: Card ID, field ID, and value
+
+        Returns:
+            Updated custom field item data
+
+        Raises:
+            TrelloAPIError: If card or field doesn't exist
+        """
+        print(
+            f"[TrelloClient] Updating custom field {input_data.custom_field_id} on card {input_data.card_id}",
+            file=sys.stderr
+        )
+
+        # Build request body based on value type
+        json_body = {}
+        if input_data.value is not None:
+            json_body["value"] = input_data.value
+        if input_data.id_value is not None:
+            json_body["idValue"] = input_data.id_value
+
+        result = await self._request(
+            "PUT",
+            f"/cards/{input_data.card_id}/customField/{input_data.custom_field_id}/item",
+            json=json_body
+        )
+
+        print(f"[TrelloClient] ✓ Custom field updated", file=sys.stderr)
+        return result
+
+    # =========================================================================
+    # NEW METHODS - Advanced Search
+    # =========================================================================
+
+    async def advanced_search(self, input_data: AdvancedSearchInput) -> list[TrelloCard]:
+        """
+        Server-side search using Trello operators.
+
+        Operators:
+        - @me or @username - Cards assigned to member
+        - #label - Cards with label
+        - due:day|week|month - Cards by due date
+        - created:N - Cards created in last N days
+        - has:attachments - Cards with attachments
+        - is:open|archived - Card status
+        - board:name - Search in specific board
+        - list:name - Search in specific list
+
+        Args:
+            input_data: Search query and options
+
+        Returns:
+            List of matching TrelloCard objects
+
+        Raises:
+            TrelloAPIError: If search fails
+        """
+        print(
+            f"[TrelloClient] Advanced search: '{input_data.query}'",
+            file=sys.stderr
+        )
+
+        search_data = await self._request(
+            "GET",
+            "/search",
+            params={
+                "query": input_data.query,
+                "modelTypes": input_data.model_types,
+                "cards_limit": input_data.cards_limit,
+                "partial": str(input_data.partial).lower()
+            }
+        )
+
+        # Parse cards from search results
+        cards_data = search_data.get("cards", [])
+
+        try:
+            cards = [TrelloCard(**card) for card in cards_data]
+            print(
+                f"[TrelloClient] ✓ Search found {len(cards)} cards",
+                file=sys.stderr
+            )
+            return cards
+        except ValidationError as e:
+            raise TrelloAPIError(f"Invalid search result data: {e}") from e
+
+    async def get_card_checklists(self, card_id: str) -> list[TrelloChecklist]:
+        """
+        Get all checklists for a card.
+
+        Args:
+            card_id: Trello card ID
+
+        Returns:
+            List of TrelloChecklist objects with check items
+
+        Raises:
+            TrelloAPIError: If card doesn't exist
+        """
+        print(f"[TrelloClient] Fetching checklists for card {card_id}", file=sys.stderr)
+
+        checklists_data = await self._request(
+            "GET",
+            f"/cards/{card_id}/checklists",
+            params={"checkItems": "all"}
+        )
+
+        try:
+            checklists = [TrelloChecklist(**cl) for cl in checklists_data]
+            print(f"[TrelloClient] ✓ Found {len(checklists)} checklists", file=sys.stderr)
+            return checklists
+        except ValidationError as e:
+            raise TrelloAPIError(f"Invalid checklist data: {e}") from e
