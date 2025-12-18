@@ -1,0 +1,6 @@
+{
+  "test_name": "Trello Command Center - Botões de Exportação",
+  "status": "FALHOU",
+  "details": "Não foi possível capturar o snapshot da página devido ao erro 'Missing X server'. O ambiente de execução do browser não está configurado corretamente para o modo headful ou headless. Não é possível prosseguir com os testes.",
+  "timestamp": "20251218_052849"
+}

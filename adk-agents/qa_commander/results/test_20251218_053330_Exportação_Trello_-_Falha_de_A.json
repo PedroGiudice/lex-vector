@@ -1,0 +1,6 @@
+{
+  "test_name": "Exportação Trello - Falha de Ambiente",
+  "status": "FALHOU",
+  "details": "O teste falhou ao iniciar porque o agente não conseguiu interagir com o navegador. O erro 'The browser is already running for /home/cmr-auto/.cache/chrome-devtools-mcp/chrome-profile' impediu a execução de qualquer comando de inspeção ou interação. Isso indica um problema no ambiente de teste, não na aplicação.",
+  "timestamp": "20251218_053330"
+}
