@@ -17,3 +17,15 @@ Quando PGR pede para "adicionar tools a um agente", significa:
 **Agentes atualizados:**
 - `frontend-developer` → +`mcp__chrome-devtools__*`
 - `test-writer-fixer` → +`mcp__chrome-devtools__*`, +`mcp__playwright__*`
+
+## 2024-12-18: Gemini CLI via Bash (não MCP)
+
+**Contexto:** Gemini CLI está instalado (`~/.local/bin/gemini`). O MCP wrapper adiciona latência.
+
+**TODO:** Ajustar `gemini-assistant` agent para usar:
+```bash
+gemini -m gemini-2.5-flash "prompt aqui"
+```
+Em vez de `mcp__gemini-cli__ask-gemini` que passa por MCP server.
+
+**Benefício:** Menor latência, resposta mais rápida para análises de contexto.
