@@ -12,7 +12,9 @@ export default {
         'bg-main': '#09090b',
         'bg-panel-1': '#0c0c0e',
         'bg-panel-2': '#18181b', // zinc-900
+        'bg-input': '#18181b', // zinc-900 - input fields
         'bg-card': '#27272a',    // zinc-800
+        'surface-elevated': '#0c0c0e', // Elevated surfaces
         'border-default': '#27272a', // zinc-800
         'border-light': '#3f3f46', // zinc-700
         'text-primary': '#d4d4d8', // zinc-300

@@ -1,6 +1,0 @@
-{
-  "test_name": "Trello Command Center Initial Load",
-  "status": "FALHOU",
-  "details": "Não foi possível capturar snapshot e screenshot devido a erros na ferramenta. O snapshot retornou 'The browser is already running...' e o screenshot retornou 'formato não suportado para salvar'.",
-  "timestamp": "20251218_052549"
-}

@@ -1,0 +1,6 @@
+{
+  "test_name": "Hub Home - Navegação",
+  "status": "PASSOU",
+  "details": "Navegação para o módulo Trello via card no Hub Home foi bem-sucedida. Header, cards e grid de estatísticas foram verificados.",
+  "timestamp": "20251218_081259"
+}

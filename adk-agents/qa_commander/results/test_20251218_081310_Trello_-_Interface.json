@@ -1,0 +1,6 @@
+{
+  "test_name": "Trello - Interface",
+  "status": "PASSOU",
+  "details": "Header, seletor de board, status de sincronização e os três painéis (NavigationPanel, DataTable, ActionsPanel) foram encontrados e parecem funcionais.",
+  "timestamp": "20251218_081310"
+}
