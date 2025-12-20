@@ -32,6 +32,14 @@ from shared.utils.path_utils import get_data_dir
 - Multiplos arquivos simultaneos
 - Logs extensos, diffs grandes
 
+### 6. Bun em vez de npm
+**SEMPRE** usar `bun` para comandos Node.js quando possível:
+```bash
+bun install    # em vez de npm install
+bun run dev    # em vez de npm run dev
+bun run build  # em vez de npm run build
+```
+
 ---
 
 ## Estrutura

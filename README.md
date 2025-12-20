@@ -30,6 +30,11 @@ tail -50 ~/.vibe-log/hooks.log
 
 # Legal Workbench
 cd legal-workbench && source .venv/bin/activate && streamlit run app.py
+
+# Node.js - SEMPRE usar bun (não npm)
+bun install    # em vez de npm install
+bun run dev    # em vez de npm run dev
+bun run build  # em vez de npm run build
 ```
 
 ## Documentacao
