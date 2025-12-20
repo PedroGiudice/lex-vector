@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Kanban, FileText, Scale, ArrowRight, FileOutput, Receipt } from 'lucide-react';
+import { Kanban, FileText, Scale, ArrowRight, FileOutput, Receipt, Bot } from 'lucide-react';
 
 const modules = [
   {
@@ -42,6 +42,14 @@ const modules = [
     color: 'accent-amber',
     status: 'active'
   },
+  {
+    id: 'ccui-assistant',
+    name: 'Claude Code',
+    description: 'Interface do Claude Code para assistência técnica e desenvolvimento.',
+    icon: Bot,
+    color: 'ccui-accent',
+    status: 'beta'
+  },
 ];
 
 function ModuleCard({ module }: { module: typeof modules[0] }) {
@@ -56,8 +64,12 @@ function ModuleCard({ module }: { module: typeof modules[0] }) {
         <div className={`p-3 rounded-lg bg-${module.color}/10`}>
           <Icon className={`text-${module.color}`} size={24} />
         </div>
-        <span className="text-xs px-2 py-1 rounded-full bg-status-emerald/20 text-status-emerald">
-          Ativo
+        <span className={`text-xs px-2 py-1 rounded-full ${
+          module.status === 'beta'
+            ? 'bg-accent-amber/20 text-accent-amber'
+            : 'bg-status-emerald/20 text-status-emerald'
+        }`}>
+          {module.status === 'beta' ? 'Beta' : 'Ativo'}
         </span>
       </div>
       <h3 className="text-lg font-semibold text-text-primary mb-2 group-hover:text-accent-indigo transition-colors">
@@ -108,7 +120,7 @@ export default function HubHome() {
           {/* Stats Section */}
           <div className="mt-12 grid grid-cols-3 gap-4">
             <div className="p-4 bg-bg-panel-1 rounded-lg border border-border-default">
-              <p className="text-2xl font-bold text-accent-indigo">5</p>
+              <p className="text-2xl font-bold text-accent-indigo">6</p>
               <p className="text-sm text-text-muted">Módulos ativos</p>
             </div>
             <div className="p-4 bg-bg-panel-1 rounded-lg border border-border-default">

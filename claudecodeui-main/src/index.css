@@ -851,3 +851,79 @@
     transition: transform 200ms cubic-bezier(0.4, 0, 0.2, 1);
   }
 }
+
+/* ============================================
+   CCui Design System Styles
+   ============================================ */
+
+/* CCui Custom Scrollbar */
+.ccui-scrollbar::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+.ccui-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.ccui-scrollbar::-webkit-scrollbar-thumb {
+  background: #222;
+  border-radius: 4px;
+}
+
+.ccui-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #333;
+}
+
+/* CCui Selection */
+.ccui-selection::selection {
+  background: rgba(217, 119, 87, 0.3);
+}
+
+.ccui-selection *::selection {
+  background: rgba(217, 119, 87, 0.3);
+}
+
+/* CCui Code Block Overrides for Prism */
+.ccui-code pre[class*="language-"] {
+  margin: 0 !important;
+  padding: 12px !important;
+  background: #09090b !important;
+  font-size: 11px !important;
+  line-height: 1.6 !important;
+}
+
+.ccui-code code[class*="language-"] {
+  background: transparent !important;
+  text-shadow: none !important;
+}
+
+/* CCui Fade-in Animation */
+@keyframes ccui-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.ccui-animate-fade-in {
+  animation: ccui-fade-in 0.3s ease-out forwards;
+}
+
+/* CCui Pulse Slow Animation */
+@keyframes ccui-pulse-slow {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+.ccui-animate-pulse-slow {
+  animation: ccui-pulse-slow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}

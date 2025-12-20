@@ -24,9 +24,27 @@ export default {
         'accent-indigo': '#6366f1', // indigo-500
         'accent-indigo-light': '#818cf8', // indigo-400
         'accent-violet': '#7c3aed', // violet-600
+        'accent-amber': '#f59e0b', // amber-500
         'status-red': '#ef4444', // red-500
         'status-emerald': '#10b981', // emerald-500
         'status-yellow': '#facc15', // yellow-400
+        // CCui Legal AI Assistant - distinct identity
+        'ccui': {
+          'bg-primary': '#000000',
+          'bg-secondary': '#050505',
+          'bg-tertiary': '#0a0a0a',
+          'bg-hover': '#1a1a1a',
+          'bg-active': '#111111',
+          'border-primary': '#1a1a1a',
+          'border-secondary': '#222222',
+          'border-tertiary': '#333333',
+          'text-primary': '#e0e0e0',
+          'text-secondary': '#888888',
+          'text-muted': '#666666',
+          'text-subtle': '#444444',
+          'accent': '#d97757',
+          'accent-glow': 'rgba(217, 119, 87, 0.2)',
+        },
       },
       fontFamily: {
         // Trello Command Center Typography
