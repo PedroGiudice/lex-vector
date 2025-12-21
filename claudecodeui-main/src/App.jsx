@@ -955,9 +955,12 @@ function App() {
               <ProtectedRoute>
                 <Router>
                   <Routes>
-                    <Route path="/" element={<AppContent />} />
-                    <Route path="/session/:sessionId" element={<AppContent />} />
-                    <Route path="/ccui" element={<CCuiApp />} />
+                    {/* CCui is now the default interface */}
+                    <Route path="/" element={<CCuiApp />} />
+                    <Route path="/session/:sessionId" element={<CCuiApp />} />
+                    {/* Legacy interface available at /legacy */}
+                    <Route path="/legacy" element={<AppContent />} />
+                    <Route path="/legacy/session/:sessionId" element={<AppContent />} />
                   </Routes>
                 </Router>
               </ProtectedRoute>
