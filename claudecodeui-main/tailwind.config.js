@@ -15,29 +15,29 @@ export default {
     },
     extend: {
       colors: {
-        // CCui Design System
+        // CCui Design System - Brighter version
         ccui: {
           bg: {
-            primary: '#000000',
-            secondary: '#050505',
-            tertiary: '#0a0a0a',
-            hover: '#1a1a1a',
-            active: '#111111',
+            primary: '#0c0c0c',      // Lighter black
+            secondary: '#141414',    // Lighter sidebar/header
+            tertiary: '#1c1c1c',     // Lighter input bg
+            hover: '#262626',        // More visible hover
+            active: '#1e1e1e',       // More visible active
           },
           border: {
-            primary: '#1a1a1a',
-            secondary: '#222222',
-            tertiary: '#333333',
+            primary: '#2a2a2a',      // More visible borders
+            secondary: '#363636',
+            tertiary: '#444444',
           },
           text: {
-            primary: '#e0e0e0',
-            secondary: '#888888',
-            muted: '#666666',
-            subtle: '#444444',
+            primary: '#f5f5f5',      // Brighter main text
+            secondary: '#a0a0a0',    // Brighter secondary
+            muted: '#808080',        // Brighter muted
+            subtle: '#606060',       // Brighter subtle
           },
           accent: {
-            DEFAULT: '#d97757',
-            glow: 'rgba(217, 119, 87, 0.2)',
+            DEFAULT: '#e07e5f',      // Slightly brighter coral
+            glow: 'rgba(224, 126, 95, 0.25)',
           },
         },
         // Keep existing for backwards compatibility
@@ -90,8 +90,8 @@ export default {
         mono: ['ui-monospace', 'SFMono-Regular', 'SF Mono', 'Menlo', 'Consolas', 'Liberation Mono', 'monospace'],
       },
       fontSize: {
-        'xxs': ['10px', '14px'],
-        'xs': ['11px', '16px'],
+        'xxs': ['11px', '15px'],    // Was 10px, now 11px
+        'xs': ['12px', '17px'],     // Was 11px, now 12px
       },
       animation: {
         'fade-in': 'fadeIn 0.3s ease-out forwards',

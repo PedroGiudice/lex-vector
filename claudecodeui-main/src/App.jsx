@@ -20,12 +20,12 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { BrowserRouter as Router, Routes, Route, useNavigate, useParams } from 'react-router-dom';
-import { Settings as SettingsIcon, Sparkles } from 'lucide-react';
+import { Settings as SettingsIcon } from 'lucide-react';
 import Sidebar from './components/Sidebar';
 import MainContent from './components/MainContent';
 import MobileNav from './components/MobileNav';
 import Settings from './components/Settings';
-import QuickSettingsPanel from './components/QuickSettingsPanel';
+import { CCuiHeader, CCuiIconRail, CCuiStatusBar } from './components/ccui';
 
 import { ThemeProvider } from './contexts/ThemeContext';
 import { AuthProvider } from './contexts/AuthContext';
@@ -36,7 +36,6 @@ import ProtectedRoute from './components/ProtectedRoute';
 import { useVersionCheck } from './hooks/useVersionCheck';
 import useLocalStorage from './hooks/useLocalStorage';
 import { api, authenticatedFetch } from './utils/api';
-import CCuiApp from './CCuiApp';
 
 
 // Main App component with routing
@@ -57,7 +56,6 @@ function AppContent() {
   const [isInputFocused, setIsInputFocused] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [settingsInitialTab, setSettingsInitialTab] = useState('tools');
-  const [showQuickSettings, setShowQuickSettings] = useState(false);
   const [autoExpandTools, setAutoExpandTools] = useLocalStorage('autoExpandTools', false);
   const [showRawParameters, setShowRawParameters] = useLocalStorage('showRawParameters', false);
   const [showThinking, setShowThinking] = useLocalStorage('showThinking', true);
@@ -741,111 +739,40 @@ function AppContent() {
     );
   };
 
+  // Determine current model from selected session or default
+  const currentModel = selectedSession?.__provider === 'cursor'
+    ? 'Cursor'
+    : `Claude ${localStorage.getItem('selectedModel') || 'Opus 4.5'}`;
+
+  // Project path for header
+  const projectPath = selectedProject
+    ? `~/${selectedProject.displayName || selectedProject.name}`
+    : '~/project';
+
+  // Check if any session is processing
+  const isProcessing = selectedSession && processingSessions.has(selectedSession.id);
+
   return (
-    <div className="fixed inset-0 flex bg-background">
-      {/* Fixed Desktop Sidebar */}
-      {!isMobile && (
-        <div
-          className={`h-full flex-shrink-0 border-r border-border bg-card transition-all duration-300 ${
-            sidebarVisible ? 'w-80' : 'w-14'
-          }`}
-        >
-          <div className="h-full overflow-hidden">
-            {sidebarVisible ? (
-              <Sidebar
-                projects={projects}
-                selectedProject={selectedProject}
-                selectedSession={selectedSession}
-                onProjectSelect={handleProjectSelect}
-                onSessionSelect={handleSessionSelect}
-                onNewSession={handleNewSession}
-                onSessionDelete={handleSessionDelete}
-                onProjectDelete={handleProjectDelete}
-                isLoading={isLoadingProjects}
-                onRefresh={handleSidebarRefresh}
-                onShowSettings={() => setShowSettings(true)}
-                updateAvailable={updateAvailable}
-                latestVersion={latestVersion}
-                currentVersion={currentVersion}
-                releaseInfo={releaseInfo}
-                onShowVersionModal={() => setShowVersionModal(true)}
-                isPWA={isPWA}
-                isMobile={isMobile}
-                onToggleSidebar={() => setSidebarVisible(false)}
-              />
-            ) : (
-              /* Collapsed Sidebar */
-              <div className="h-full flex flex-col items-center py-4 gap-4">
-                {/* Expand Button */}
-                <button
-                  onClick={() => setSidebarVisible(true)}
-                  className="p-2 hover:bg-accent rounded-md transition-colors duration-200 group"
-                  aria-label="Show sidebar"
-                  title="Show sidebar"
-                >
-                  <svg
-                    className="w-5 h-5 text-foreground group-hover:scale-110 transition-transform"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
-                  </svg>
-                </button>
+    <div className="flex flex-col h-screen w-full bg-ccui-bg-primary text-ccui-text-primary font-mono overflow-hidden">
+      {/* CCui Header */}
+      <CCuiHeader
+        projectPath={projectPath}
+        currentModel={currentModel}
+        onSettingsClick={() => setShowSettings(true)}
+      />
 
-                {/* Settings Icon */}
-                <button
-                  onClick={() => setShowSettings(true)}
-                  className="p-2 hover:bg-accent rounded-md transition-colors duration-200"
-                  aria-label="Settings"
-                  title="Settings"
-                >
-                  <SettingsIcon className="w-5 h-5 text-muted-foreground hover:text-foreground transition-colors" />
-                </button>
+      {/* Main Layout */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Icon Rail */}
+        <CCuiIconRail
+          activeView={activeTab}
+          onViewChange={setActiveTab}
+          onSettingsClick={() => setShowSettings(true)}
+        />
 
-                {/* Update Indicator */}
-                {updateAvailable && (
-                  <button
-                    onClick={() => setShowVersionModal(true)}
-                    className="relative p-2 hover:bg-accent rounded-md transition-colors duration-200"
-                    aria-label="Update available"
-                    title="Update available"
-                  >
-                    <Sparkles className="w-5 h-5 text-blue-500" />
-                    <span className="absolute top-1 right-1 w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Mobile Sidebar Overlay */}
-      {isMobile && (
-        <div className={`fixed inset-0 z-50 flex transition-all duration-150 ease-out ${
-          sidebarOpen ? 'opacity-100 visible' : 'opacity-0 invisible'
-        }`}>
-          <button
-            className="fixed inset-0 bg-background/80 backdrop-blur-sm transition-opacity duration-150 ease-out"
-            onClick={(e) => {
-              e.stopPropagation();
-              setSidebarOpen(false);
-            }}
-            onTouchStart={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              setSidebarOpen(false);
-            }}
-            aria-label="Close sidebar"
-          />
-          <div
-            className={`relative w-[85vw] max-w-sm sm:w-80 h-full bg-card border-r border-border transform transition-transform duration-150 ease-out ${
-              sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-            }`}
-            onClick={(e) => e.stopPropagation()}
-            onTouchStart={(e) => e.stopPropagation()}
-          >
+        {/* Sidebar - Projects/Sessions */}
+        {!isMobile && sidebarVisible && (
+          <div className="w-64 bg-ccui-bg-secondary border-r border-ccui-border-primary flex flex-col">
             <Sidebar
               projects={projects}
               selectedProject={selectedProject}
@@ -868,40 +795,80 @@ function AppContent() {
               onToggleSidebar={() => setSidebarVisible(false)}
             />
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Main Content Area - Flexible */}
-      <div className={`flex-1 flex flex-col min-w-0 ${isMobile && !isInputFocused ? 'pb-mobile-nav' : ''}`}>
-        <MainContent
-          selectedProject={selectedProject}
-          selectedSession={selectedSession}
-          activeTab={activeTab}
-          setActiveTab={setActiveTab}
-          ws={ws}
-          sendMessage={sendMessage}
-          messages={messages}
-          isMobile={isMobile}
-          isPWA={isPWA}
-          onMenuClick={() => setSidebarOpen(true)}
-          isLoading={isLoadingProjects}
-          onInputFocusChange={setIsInputFocused}
-          onSessionActive={markSessionAsActive}
-          onSessionInactive={markSessionAsInactive}
-          onSessionProcessing={markSessionAsProcessing}
-          onSessionNotProcessing={markSessionAsNotProcessing}
-          processingSessions={processingSessions}
-          onReplaceTemporarySession={replaceTemporarySession}
-          onNavigateToSession={(sessionId) => navigate(`/session/${sessionId}`)}
-          onShowSettings={() => setShowSettings(true)}
-          autoExpandTools={autoExpandTools}
-          showRawParameters={showRawParameters}
-          showThinking={showThinking}
-          autoScrollToBottom={autoScrollToBottom}
-          sendByCtrlEnter={sendByCtrlEnter}
-          externalMessageUpdate={externalMessageUpdate}
-        />
+        {/* Mobile Sidebar Overlay */}
+        {isMobile && sidebarOpen && (
+          <div className="fixed inset-0 z-50 flex">
+            <button
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm"
+              onClick={() => setSidebarOpen(false)}
+              aria-label="Close sidebar"
+            />
+            <div className="relative w-[85vw] max-w-sm h-full bg-ccui-bg-secondary border-r border-ccui-border-primary">
+              <Sidebar
+                projects={projects}
+                selectedProject={selectedProject}
+                selectedSession={selectedSession}
+                onProjectSelect={handleProjectSelect}
+                onSessionSelect={handleSessionSelect}
+                onNewSession={handleNewSession}
+                onSessionDelete={handleSessionDelete}
+                onProjectDelete={handleProjectDelete}
+                isLoading={isLoadingProjects}
+                onRefresh={handleSidebarRefresh}
+                onShowSettings={() => setShowSettings(true)}
+                updateAvailable={updateAvailable}
+                latestVersion={latestVersion}
+                currentVersion={currentVersion}
+                releaseInfo={releaseInfo}
+                onShowVersionModal={() => setShowVersionModal(true)}
+                isPWA={isPWA}
+                isMobile={isMobile}
+                onToggleSidebar={() => setSidebarVisible(false)}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Main Content Area */}
+        <div className="flex-1 flex flex-col min-w-0 bg-ccui-bg-primary">
+          <MainContent
+            selectedProject={selectedProject}
+            selectedSession={selectedSession}
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+            ws={ws}
+            sendMessage={sendMessage}
+            messages={messages}
+            isMobile={isMobile}
+            isPWA={isPWA}
+            onMenuClick={() => setSidebarOpen(true)}
+            isLoading={isLoadingProjects}
+            onInputFocusChange={setIsInputFocused}
+            onSessionActive={markSessionAsActive}
+            onSessionInactive={markSessionAsInactive}
+            onSessionProcessing={markSessionAsProcessing}
+            onSessionNotProcessing={markSessionAsNotProcessing}
+            processingSessions={processingSessions}
+            onReplaceTemporarySession={replaceTemporarySession}
+            onNavigateToSession={(sessionId) => navigate(`/session/${sessionId}`)}
+            onShowSettings={() => setShowSettings(true)}
+            autoExpandTools={autoExpandTools}
+            showRawParameters={showRawParameters}
+            showThinking={showThinking}
+            autoScrollToBottom={autoScrollToBottom}
+            sendByCtrlEnter={sendByCtrlEnter}
+            externalMessageUpdate={externalMessageUpdate}
+          />
+        </div>
       </div>
+
+      {/* CCui Status Bar */}
+      <CCuiStatusBar
+        isProcessing={isProcessing}
+        contextPercent={0}
+      />
 
       {/* Mobile Bottom Navigation */}
       {isMobile && (
@@ -909,24 +876,6 @@ function AppContent() {
           activeTab={activeTab}
           setActiveTab={setActiveTab}
           isInputFocused={isInputFocused}
-        />
-      )}
-      {/* Quick Settings Panel - Only show on chat tab */}
-      {activeTab === 'chat' && (
-        <QuickSettingsPanel
-          isOpen={showQuickSettings}
-          onToggle={setShowQuickSettings}
-          autoExpandTools={autoExpandTools}
-          onAutoExpandChange={setAutoExpandTools}
-          showRawParameters={showRawParameters}
-          onShowRawParametersChange={setShowRawParameters}
-          showThinking={showThinking}
-          onShowThinkingChange={setShowThinking}
-          autoScrollToBottom={autoScrollToBottom}
-          onAutoScrollChange={setAutoScrollToBottom}
-          sendByCtrlEnter={sendByCtrlEnter}
-          onSendByCtrlEnterChange={setSendByCtrlEnter}
-          isMobile={isMobile}
         />
       )}
 
@@ -955,12 +904,8 @@ function App() {
               <ProtectedRoute>
                 <Router>
                   <Routes>
-                    {/* CCui is now the default interface */}
-                    <Route path="/" element={<CCuiApp />} />
-                    <Route path="/session/:sessionId" element={<CCuiApp />} />
-                    {/* Legacy interface available at /legacy */}
-                    <Route path="/legacy" element={<AppContent />} />
-                    <Route path="/legacy/session/:sessionId" element={<AppContent />} />
+                    <Route path="/" element={<AppContent />} />
+                    <Route path="/session/:sessionId" element={<AppContent />} />
                   </Routes>
                 </Router>
               </ProtectedRoute>
