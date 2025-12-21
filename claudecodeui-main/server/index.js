@@ -63,6 +63,8 @@ import { validateApiKey, authenticateToken, authenticateWebSocket } from './midd
 // Import services
 import { setupProjectsWatcher, addConnectedClient, removeConnectedClient } from './services/projectWatcher.js';
 import { handleShellConnection } from './services/ptyManager.js';
+import { handleSessionSyncConnection } from './routes/sessionSyncWs.js';
+import sessionSyncService from './services/sessionSync.js';
 
 const app = express();
 const server = http.createServer(app);
@@ -535,6 +537,8 @@ wss.on('connection', (ws, request) => {
         handleShellConnection(ws);
     } else if (pathname === '/ws') {
         handleChatConnection(ws);
+    } else if (pathname === '/session-sync') {
+        handleSessionSyncConnection(ws, request);
     } else {
         console.log('[WARN] Unknown WebSocket path:', pathname);
         ws.close();
@@ -645,6 +649,27 @@ function handleChatConnection(ws) {
         removeConnectedClient(ws);
     });
 }
+
+// Session sync discovery endpoints
+app.get('/api/sessions/active', authenticateToken, async (req, res) => {
+    try {
+        const sessions = await sessionSyncService.findActiveSessions(req.query.projectPath);
+        res.json({ sessions });
+    } catch (error) {
+        console.error('Error finding active sessions:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.get('/api/sessions/current', authenticateToken, async (req, res) => {
+    try {
+        const session = await sessionSyncService.getCurrentSession(req.query.cwd || process.cwd());
+        res.json({ session });
+    } catch (error) {
+        console.error('Error getting current session:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
 
 // Get token usage for a specific session
 app.get('/api/projects/:projectName/sessions/:sessionId/token-usage', authenticateToken, async (req, res) => {

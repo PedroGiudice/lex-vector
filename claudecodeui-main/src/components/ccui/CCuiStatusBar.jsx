@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Activity, Clock } from 'lucide-react';
+import CCuiSyncIndicator from './CCuiSyncIndicator';
+import { useSessionSync } from '../../hooks/useSessionSync';
 
 /**
  * Format elapsed time in HH:MM:SS
@@ -31,6 +33,12 @@ const CCuiStatusBar = ({
 }) => {
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
 
+  // Session sync hook
+  const { connectionStatus, isSubscribed } = useSessionSync({ autoConnect: true });
+
+  // Derive sessionId from subscription status (placeholder for now)
+  const sessionId = isSubscribed ? 'session-active' : null;
+
   // Session timer
   useEffect(() => {
     const interval = setInterval(() => {
@@ -57,6 +65,13 @@ const CCuiStatusBar = ({
             </>
           )}
         </div>
+
+        {/* Session Sync Indicator */}
+        <CCuiSyncIndicator
+          status={connectionStatus}
+          sessionId={sessionId}
+          className="text-ccui-text-secondary"
+        />
 
         {/* Context Usage */}
         <div className="flex items-center gap-1.5 text-ccui-text-muted">

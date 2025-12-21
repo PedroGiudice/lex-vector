@@ -10,6 +10,7 @@ export { default as CCuiHeader } from './CCuiHeader';
 export { default as CCuiIconRail } from './CCuiIconRail';
 export { default as CCuiSidebar } from './CCuiSidebar';
 export { default as CCuiStatusBar } from './CCuiStatusBar';
+export { default as CCuiSyncIndicator } from './CCuiSyncIndicator';
 
 // Chat Components
 export { default as CCuiCodeBlock } from './CCuiCodeBlock';
