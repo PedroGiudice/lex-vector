@@ -16,50 +16,44 @@ Sincronizacao automatica no inicio de cada sessao.
 
 ---
 
-## Agentes Disponiveis (29)
+## Agentes Disponiveis (18)
 
-### TUI (5)
-- `tui-master` - Generalist
-- `tui-architect` - Planning
-- `tui-designer` - TCSS/styling
-- `tui-developer` - Python
-- `tui-debugger` - Diagnostics
+### CORE DEVELOPMENT (6)
 
-### Legal/Project (6)
-- `legal-articles-finder` - Busca artigos de leis
-- `planejamento-legal` - Planning (PT-BR)
-- `analise-dados-legal` - Data analysis (PT-BR)
-- `documentacao` - Documentation (PT-BR)
-- `desenvolvimento` - Development (PT-BR)
-- `qualidade-codigo` - Code quality (PT-BR)
+| Agent | Skills Relacionadas | Uso |
+|-------|---------------------|-----|
+| `frontend-developer` | frontend-dev-guidelines | React/TypeScript |
+| `backend-architect` | backend-dev-guidelines, error-tracking | Node/Express |
+| `ai-engineer` | backend-dev-guidelines | LLM/RAG systems |
+| `test-writer-fixer` | route-tester | Testes automatizados |
+| `code-refactor-master` | frontend-dev-guidelines, backend-dev-guidelines | Refatoracao |
+| `devops-automator` | error-tracking | CI/CD, Docker |
 
-### Development (6)
-- `frontend-developer` - React/TypeScript
-- `backend-architect` - Backend design
-- `rapid-prototyper` - MVPs
-- `ai-engineer` - LLM/RAG systems
-- `react-component-generator-ui` - React components
-- `devops-automator` - CI/CD
+### PLANNING & DOCS (4)
 
-### Quality & Review (5)
-- `code-reviewer-superpowers` - Code review
-- `code-refactor-master` - Refactoring
-- `test-writer-fixer` - Testing
-- `refactor-planner` - Refactor planning
-- `plan-reviewer` - Plan review
+| Agent | Skills Relacionadas | Uso |
+|-------|---------------------|-----|
+| `documentation-architect` | writing-plans | Documentacao tecnica |
+| `plan-with-skills` | brainstorming, writing-plans | Planejamento |
+| `plan-reviewer` | writing-plans | Review de planos |
+| `gemini-assistant` | (externa) | Context offloading |
 
-### Research & Docs (3)
-- `documentation-architect` - Documentation
-- `web-research-specialist` - Web research
-- `gemini-assistant` - Gemini CLI wrapper
+### PROJECT-SPECIFIC (5)
 
-### Routes/Auth (2)
-- `auth-route-debugger` - Auth debugging
-- `auth-route-tester` - Route testing
+| Agent | Skills Relacionadas | Uso |
+|-------|---------------------|-----|
+| `fasthtml-bff-developer` | backend-dev-guidelines | FastHTML/HTMX |
+| `auth-route-debugger` | route-tester | Auth debugging |
+| `analise-dados-legal` | (dominio) | Analise juridica |
+| `legal-articles-finder` | (dominio) | Busca de artigos |
+| `web-research-specialist` | (externa) | Pesquisa web |
 
-### UI Design (2)
-- `ui-designer` - UI/UX design
-- `plan-with-skills` - Planning with skills
+### UTILITY (3)
+
+| Agent | Skills Relacionadas | Uso |
+|-------|---------------------|-----|
+| `vibe-log-report-generator` | mem-search | Session reports |
+| `qualidade-codigo` | backend-dev-guidelines, frontend-dev-guidelines | Code audits |
 
 ---
 

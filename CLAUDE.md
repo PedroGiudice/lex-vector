@@ -40,6 +40,13 @@ bun run dev    # em vez de npm run dev
 bun run build  # em vez de npm run build
 ```
 
+### 7. mgrep em vez de grep
+**SEMPRE** usar `mgrep` para buscas em código:
+```bash
+mgrep "pattern"           # em vez de grep -r "pattern"
+mgrep "pattern" src/      # busca em diretório específico
+```
+
 ---
 
 ## Estrutura
