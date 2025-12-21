@@ -768,6 +768,8 @@ function AppContent() {
           activeView={activeTab}
           onViewChange={setActiveTab}
           onSettingsClick={() => setShowSettings(true)}
+          sidebarVisible={sidebarVisible}
+          onSidebarToggle={() => setSidebarVisible(!sidebarVisible)}
         />
 
         {/* Sidebar - Projects/Sessions */}
