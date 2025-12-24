@@ -82,12 +82,8 @@ def main():
         print(json.dumps(output))
         return
 
-    # Read stdin
+    # Read stdin (don't use select - it doesn't work reliably in pipe contexts)
     try:
-        import select
-        if not select.select([sys.stdin], [], [], 0.1)[0]:
-            print(json.dumps(output))
-            return
         stdin_data = json.load(sys.stdin)
     except Exception:
         print(json.dumps(output))
