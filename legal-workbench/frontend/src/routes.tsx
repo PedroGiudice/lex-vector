@@ -10,6 +10,7 @@ const STJModule = lazy(() => import('@/pages/STJModule'));
 const TextExtractorModule = lazy(() => import('@/pages/TextExtractorModule'));
 const LedesConverterModule = lazy(() => import('@/pages/LedesConverterModule'));
 const CCuiAssistantModule = lazy(() => import('@/pages/CCuiAssistantModule'));
+const CCuiV2Module = lazy(() => import('@/pages/CCuiV2Module'));
 
 const LazyPage = ({ children }: { children: React.ReactNode }) => (
   <Suspense fallback={<LoadingSpinner />}>{children}</Suspense>
@@ -27,6 +28,7 @@ export const router = createBrowserRouter([
       { path: 'text-extractor', element: <LazyPage><TextExtractorModule /></LazyPage> },
       { path: 'ledes-converter', element: <LazyPage><LedesConverterModule /></LazyPage> },
       { path: 'ccui-assistant', element: <LazyPage><CCuiAssistantModule /></LazyPage> },
+      { path: 'ccui-v2', element: <LazyPage><CCuiV2Module /></LazyPage> },
     ],
   },
 ]); // Root path - no basename needed

@@ -16,13 +16,6 @@ import { useWebSocket } from '../../contexts/WebSocketContext.jsx';
 import { api } from '../../utils/api.js';
 import { ReactorSpinner, PhyllotaxisSpinner } from './Spinners.jsx';
 
-// Ensure PrismJS is available globally
-declare global {
-  interface Window {
-    Prism: any;
-  }
-}
-
 const CodeBlock = ({ code, language = 'javascript', isStreaming = false }) => {
   const [copied, setCopied] = useState(false);
   const codeRef = useRef(null);
