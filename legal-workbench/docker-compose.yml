@@ -162,7 +162,35 @@ services:
       start_period: 10s
 
   # ============================================================
-  # 8. REDIS - Message Broker for Celery
+  # 8. CCUI WEBSOCKET - Chat Backend for Claude Code UI
+  # ============================================================
+  api-ccui-ws:
+    build: ./docker/services/ccui-ws
+    labels:
+      - "traefik.enable=true"
+      # WebSocket route
+      - "traefik.http.routers.ccui-ws.rule=PathPrefix(`/ws`)"
+      - "traefik.http.routers.ccui-ws.entrypoints=web"
+      - "traefik.http.routers.ccui-ws.priority=20"
+      # Chat API route
+      - "traefik.http.routers.ccui-chat.rule=PathPrefix(`/api/chat`)"
+      - "traefik.http.routers.ccui-chat.entrypoints=web"
+      - "traefik.http.routers.ccui-chat.priority=15"
+      - "traefik.http.services.ccui-ws.loadbalancer.server.port=8005"
+    networks:
+      - legal-network
+    depends_on:
+      - reverse-proxy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8005/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # ============================================================
+  # 9. REDIS - Message Broker for Celery
   # ============================================================
   redis:
     image: redis:7-alpine
