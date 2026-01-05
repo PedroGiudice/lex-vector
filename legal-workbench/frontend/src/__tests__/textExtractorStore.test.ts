@@ -1,4 +1,5 @@
 import { act } from '@testing-library/react';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { useTextExtractorStore } from '@/store/textExtractorStore';
 
 // Reset store before each test

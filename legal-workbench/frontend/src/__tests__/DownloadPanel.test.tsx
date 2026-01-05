@@ -1,13 +1,13 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import '@testing-library/jest-dom';
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { DownloadPanel } from '@/components/stj/DownloadPanel';
 import { useSTJStore } from '@/store/stjStore';
 
 // Mock the store
-jest.mock('@/store/stjStore');
+vi.mock('@/store/stjStore');
 
-const mockUseSTJStore = useSTJStore as jest.MockedFunction<typeof useSTJStore>;
+const mockUseSTJStore = useSTJStore as Mock;
 
 // Default mock state
 const createMockState = (overrides = {}) => ({
@@ -21,15 +21,15 @@ const createMockState = (overrides = {}) => ({
     errors: 0,
   },
   syncError: null,
-  startSync: jest.fn(),
-  cancelSync: jest.fn(),
-  resetSyncState: jest.fn(),
+  startSync: vi.fn(),
+  cancelSync: vi.fn(),
+  resetSyncState: vi.fn(),
   ...overrides,
 });
 
 describe('DownloadPanel Component', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     mockUseSTJStore.mockReturnValue(createMockState());
   });
 
@@ -144,7 +144,7 @@ describe('DownloadPanel Component', () => {
 
   describe('Download Actions', () => {
     it('calls startSync when clicking start button', async () => {
-      const startSync = jest.fn();
+      const startSync = vi.fn();
       mockUseSTJStore.mockReturnValue(createMockState({ startSync }));
 
       render(<DownloadPanel />);
@@ -156,7 +156,7 @@ describe('DownloadPanel Component', () => {
     });
 
     it('includes selected orgaos in sync params', async () => {
-      const startSync = jest.fn();
+      const startSync = vi.fn();
       mockUseSTJStore.mockReturnValue(createMockState({ startSync }));
 
       render(<DownloadPanel />);
@@ -175,7 +175,7 @@ describe('DownloadPanel Component', () => {
     });
 
     it('includes custom dates in sync params', async () => {
-      const startSync = jest.fn();
+      const startSync = vi.fn();
       mockUseSTJStore.mockReturnValue(createMockState({ startSync }));
 
       render(<DownloadPanel />);
@@ -232,7 +232,7 @@ describe('DownloadPanel Component', () => {
     });
 
     it('calls cancelSync when clicking cancel button', () => {
-      const cancelSync = jest.fn();
+      const cancelSync = vi.fn();
       mockUseSTJStore.mockReturnValue(
         createMockState({
           isSyncing: true,
@@ -356,7 +356,7 @@ describe('DownloadPanel Component', () => {
     });
 
     it('calls resetSyncState when clicking reset button', () => {
-      const resetSyncState = jest.fn();
+      const resetSyncState = vi.fn();
       mockUseSTJStore.mockReturnValue(
         createMockState({
           syncStatus: 'complete',

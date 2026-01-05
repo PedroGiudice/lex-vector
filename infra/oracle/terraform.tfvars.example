@@ -1,0 +1,50 @@
+# =============================================================================
+# Oracle Cloud Infrastructure - Terraform Variables
+# =============================================================================
+# IMPORTANT: Copy this file to terraform.tfvars and fill in your values
+# NEVER commit terraform.tfvars to version control!
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# OCI Authentication (Required)
+# -----------------------------------------------------------------------------
+# Find these values in your OCI Console under User Settings > API Keys
+tenancy_ocid     = "ocid1.tenancy.oc1..aaaaaaaaxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+user_ocid        = "ocid1.user.oc1..aaaaaaaaxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+fingerprint      = "aa:bb:cc:dd:ee:ff:00:11:22:33:44:55:66:77:88:99"
+private_key_path = "~/.oci/oci_api_key.pem"
+
+# -----------------------------------------------------------------------------
+# Compartment (Required)
+# -----------------------------------------------------------------------------
+# Create a compartment in OCI Console or use root compartment (tenancy_ocid)
+compartment_ocid = "ocid1.compartment.oc1..aaaaaaaaxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+
+# -----------------------------------------------------------------------------
+# Region (Required)
+# -----------------------------------------------------------------------------
+# Available Always Free regions: us-ashburn-1, us-phoenix-1, uk-london-1, etc.
+region = "us-ashburn-1"
+
+# -----------------------------------------------------------------------------
+# SSH Access (Required)
+# -----------------------------------------------------------------------------
+# Your public SSH key for instance access
+# Generate with: ssh-keygen -t ed25519 -C "legal-workbench-oci"
+ssh_public_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx legal-workbench-oci"
+
+# -----------------------------------------------------------------------------
+# Instance Configuration (Optional - defaults are Always Free optimized)
+# -----------------------------------------------------------------------------
+# Always Free tier allows: VM.Standard.A1.Flex with up to 4 OCPUs and 24GB RAM
+instance_shape     = "VM.Standard.A1.Flex"
+instance_ocpus     = 4      # Maximum for Always Free
+instance_memory_gb = 24     # Maximum for Always Free
+boot_volume_size_gb = 50    # Always Free allows up to 200GB total
+
+# -----------------------------------------------------------------------------
+# Application Configuration (Optional)
+# -----------------------------------------------------------------------------
+domain       = "legalworkbench.app"
+environment  = "prod"
+project_name = "legal-workbench"

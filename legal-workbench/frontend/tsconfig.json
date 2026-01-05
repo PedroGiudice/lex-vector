@@ -27,12 +27,9 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]
-    },
-
-    /* Jest types */
-    "types": ["jest", "node"]
+    }
   },
   "include": ["src"],
-  "exclude": ["src/__tests__", "**/*.test.ts", "**/*.test.tsx"],
+  "exclude": ["src/__tests__", "**/*.test.ts", "**/*.test.tsx", "e2e"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

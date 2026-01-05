@@ -1,7 +1,7 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { UploadPanel } from '@/components/text-extractor/UploadPanel';
 import { useTextExtractorStore } from '@/store/textExtractorStore';
-import { act } from '@testing-library/react';
 
 // Reset store before each test
 beforeEach(() => {
@@ -58,7 +58,7 @@ describe('UploadPanel', () => {
     });
 
     it('should show file preview after selection', async () => {
-      render(<UploadPanel />);
+      const { rerender } = render(<UploadPanel />);
 
       const file = new File(['test content'], 'contract.pdf', {
         type: 'application/pdf',
@@ -71,7 +71,7 @@ describe('UploadPanel', () => {
       });
 
       // Re-render to show file preview
-      const { container } = render(<UploadPanel />);
+      rerender(<UploadPanel />);
 
       expect(screen.getByText('contract.pdf')).toBeInTheDocument();
     });

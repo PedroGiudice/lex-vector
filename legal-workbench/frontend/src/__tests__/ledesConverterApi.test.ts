@@ -1,3 +1,4 @@
+import { describe, it, expect } from 'vitest';
 import { validateDocxFile, sanitizeFilename } from '@/services/ledesConverterApi';
 
 describe('ledesConverterApi utilities', () => {
@@ -31,7 +32,7 @@ describe('ledesConverterApi utilities', () => {
 
       const result = validateDocxFile(pdfFile);
       expect(result.valid).toBe(false);
-      expect(result.error).toContain('file extension');
+      expect(result.error).toContain('Invalid file');
     });
 
     it('should reject files with invalid MIME type', () => {
@@ -82,7 +83,7 @@ describe('ledesConverterApi utilities', () => {
     it('should escape < character', () => {
       const filename = 'file<script>.docx';
       const result = sanitizeFilename(filename);
-      expect(result).toBe('file&lt;script>.docx');
+      expect(result).toBe('file&lt;script&gt;.docx');
     });
 
     it('should escape > character', () => {

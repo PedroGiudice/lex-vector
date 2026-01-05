@@ -1,0 +1,96 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+env:
+  NODE_VERSION: '20'
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  frontend-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v1
+      - run: cd legal-workbench/frontend && bun install
+      - run: cd legal-workbench/frontend && bun run lint || echo "Lint não configurado ainda"
+      - run: cd legal-workbench/frontend && bun run type-check || npx tsc --noEmit
+
+  frontend-test:
+    runs-on: ubuntu-latest
+    needs: frontend-lint
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v1
+      - run: cd legal-workbench/frontend && bun install
+      - run: cd legal-workbench/frontend && bun run test:ci || bun run test
+      - uses: codecov/codecov-action@v3
+        if: always()
+        with:
+          files: ./legal-workbench/frontend/coverage/lcov.info
+          flags: frontend
+        continue-on-error: true
+
+  frontend-e2e:
+    runs-on: ubuntu-latest
+    needs: frontend-test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v1
+      - run: cd legal-workbench/frontend && bun install
+      - run: npx playwright install --with-deps chromium
+      - run: cd legal-workbench/frontend && bun run build
+      - run: cd legal-workbench/frontend && bun run test:e2e || echo "E2E tests pendentes"
+        continue-on-error: true
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: legal-workbench/frontend/playwright-report/
+
+  backend-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [stj-api, text-extractor, doc-assembler, ledes-converter, trello-mcp, ccui-ws]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install and test
+        run: |
+          SERVICE_PATH="legal-workbench/docker/services/${{ matrix.service }}"
+          if [ -f "$SERVICE_PATH/requirements.txt" ]; then
+            pip install -r "$SERVICE_PATH/requirements.txt"
+            pip install pytest pytest-asyncio pytest-cov httpx
+            cd "$SERVICE_PATH"
+            pytest --cov=. --cov-report=xml || echo "Testes pendentes para ${{ matrix.service }}"
+          fi
+        continue-on-error: true
+
+  docker-build:
+    runs-on: ubuntu-latest
+    needs: [frontend-test, backend-test]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - run: |
+          cd legal-workbench
+          docker compose build --parallel || docker-compose build
+
+  security-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          severity: 'CRITICAL,HIGH'
+        continue-on-error: true

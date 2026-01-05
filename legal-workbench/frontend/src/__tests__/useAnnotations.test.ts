@@ -1,25 +1,26 @@
-import { renderHook, act } from '@testing-library/react';
+import { renderHook } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { useAnnotations } from '@/hooks/useAnnotations';
 import { useDocumentStore } from '@/store/documentStore';
 
 // Mock the store correctly for Zustand
-jest.mock('@/store/documentStore', () => ({
-  useDocumentStore: jest.fn(selector => selector({
+vi.mock('@/store/documentStore', () => ({
+  useDocumentStore: vi.fn((selector) => selector({
     annotations: [], // Default mock state for annotations
-    addAnnotation: jest.fn(),
-    removeAnnotation: jest.fn(),
-    updateAnnotation: jest.fn(),
+    addAnnotation: vi.fn(),
+    removeAnnotation: vi.fn(),
+    updateAnnotation: vi.fn(),
   })),
 }));
 
 describe('useAnnotations Hook', () => {
   beforeEach(() => {
     // Reset store before each test. Ensure it returns a function.
-    (useDocumentStore as jest.Mock).mockImplementation(selector => selector({
+    (useDocumentStore as Mock).mockImplementation((selector) => selector({
       annotations: [],
-      addAnnotation: jest.fn(),
-      removeAnnotation: jest.fn(),
-      updateAnnotation: jest.fn(),
+      addAnnotation: vi.fn(),
+      removeAnnotation: vi.fn(),
+      updateAnnotation: vi.fn(),
     }));
   });
 
@@ -49,13 +50,13 @@ describe('useAnnotations Hook', () => {
   });
 
   it('checks for field name existence', () => {
-    (useDocumentStore as jest.Mock).mockImplementation(selector => selector({
+    (useDocumentStore as Mock).mockImplementation((selector) => selector({
       annotations: [
         { fieldName: 'nome_autor', text: 'John Doe', start: 0, end: 8, paragraphIndex: 0 },
       ],
-      addAnnotation: jest.fn(),
-      removeAnnotation: jest.fn(),
-      updateAnnotation: jest.fn(),
+      addAnnotation: vi.fn(),
+      removeAnnotation: vi.fn(),
+      updateAnnotation: vi.fn(),
     }));
 
     const { result } = renderHook(() => useAnnotations());
@@ -65,15 +66,15 @@ describe('useAnnotations Hook', () => {
   });
 
   it('gets annotations for specific paragraph', () => {
-    (useDocumentStore as jest.Mock).mockImplementation(selector => selector({
+    (useDocumentStore as Mock).mockImplementation((selector) => selector({
       annotations: [
         { fieldName: 'campo1', text: 'text1', start: 0, end: 5, paragraphIndex: 0 },
         { fieldName: 'campo2', text: 'text2', start: 0, end: 5, paragraphIndex: 1 },
         { fieldName: 'campo3', text: 'text3', start: 0, end: 5, paragraphIndex: 0 },
       ],
-      addAnnotation: jest.fn(),
-      removeAnnotation: jest.fn(),
-      updateAnnotation: jest.fn(),
+      addAnnotation: vi.fn(),
+      removeAnnotation: vi.fn(),
+      updateAnnotation: vi.fn(),
     }));
 
     const { result } = renderHook(() => useAnnotations());
