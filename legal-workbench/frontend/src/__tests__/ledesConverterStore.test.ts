@@ -1,13 +1,14 @@
 import { act } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { useLedesConverterStore } from '@/store/ledesConverterStore';
 import { ledesConverterApi } from '@/services/ledesConverterApi';
 
 // Mock the API
-jest.mock('@/services/ledesConverterApi', () => ({
+vi.mock('@/services/ledesConverterApi', () => ({
   ledesConverterApi: {
-    convertDocxToLedes: jest.fn(),
+    convertDocxToLedes: vi.fn(),
   },
-  validateDocxFile: jest.fn((file: File) => {
+  validateDocxFile: vi.fn((file: File) => {
     if (file.size > 10 * 1024 * 1024) {
       return { valid: false, error: 'File too large' };
     }
@@ -22,7 +23,7 @@ jest.mock('@/services/ledesConverterApi', () => ({
 beforeEach(() => {
   const store = useLedesConverterStore.getState();
   store.reset();
-  jest.clearAllMocks();
+  vi.clearAllMocks();
 });
 
 describe('ledesConverterStore', () => {
@@ -130,7 +131,7 @@ describe('ledesConverterStore', () => {
         },
       };
 
-      (ledesConverterApi.convertDocxToLedes as jest.Mock).mockResolvedValue(mockResponse);
+      (ledesConverterApi.convertDocxToLedes as Mock).mockResolvedValue(mockResponse);
 
       act(() => {
         useLedesConverterStore.getState().setFile(mockFile);
@@ -153,7 +154,7 @@ describe('ledesConverterStore', () => {
         type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       });
 
-      (ledesConverterApi.convertDocxToLedes as jest.Mock).mockRejectedValue(
+      (ledesConverterApi.convertDocxToLedes as Mock).mockRejectedValue(
         new Error('Conversion failed')
       );
 
@@ -189,7 +190,7 @@ describe('ledesConverterStore', () => {
 
       let progressCallback: ((progress: number) => void) | undefined;
 
-      (ledesConverterApi.convertDocxToLedes as jest.Mock).mockImplementation(
+      (ledesConverterApi.convertDocxToLedes as Mock).mockImplementation(
         (file, onProgress) => {
           progressCallback = onProgress;
           return new Promise((resolve) => {
@@ -247,9 +248,9 @@ describe('ledesConverterStore', () => {
       });
 
       // Mock DOM methods
-      const createElementSpy = jest.spyOn(document, 'createElement');
-      const appendChildSpy = jest.spyOn(document.body, 'appendChild');
-      const removeChildSpy = jest.spyOn(document.body, 'removeChild');
+      const createElementSpy = vi.spyOn(document, 'createElement');
+      const appendChildSpy = vi.spyOn(document.body, 'appendChild');
+      const removeChildSpy = vi.spyOn(document.body, 'removeChild');
 
       act(() => {
         useLedesConverterStore.getState().downloadResult();
@@ -265,7 +266,7 @@ describe('ledesConverterStore', () => {
     });
 
     it('should not download when no content exists', () => {
-      const createElementSpy = jest.spyOn(document, 'createElement');
+      const createElementSpy = vi.spyOn(document, 'createElement');
 
       act(() => {
         useLedesConverterStore.getState().downloadResult();

@@ -205,6 +205,59 @@ services:
       retries: 3
     restart: unless-stopped
 
+  # ============================================================
+  # 10. PROMETHEUS - Metrics Collection
+  # ============================================================
+  prometheus:
+    image: prom/prometheus:v2.47.0
+    volumes:
+      - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    ports:
+      - "9090:9090"
+    networks:
+      - legal-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # ============================================================
+  # 11. GRAFANA - Metrics Visualization
+  # ============================================================
+  grafana:
+    image: grafana/grafana:10.2.0
+    volumes:
+      - ./docker/grafana/provisioning:/etc/grafana/provisioning:ro
+      - grafana-data:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_ROOT_URL=http://localhost:3001
+    ports:
+      - "3001:3000"
+    networks:
+      - legal-network
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
 # ============================================================
 # VOLUMES - Persistent Storage
 # ============================================================
@@ -215,6 +268,8 @@ volumes:
   text-extractor-cache:  # Marker cache for PDF processing
   ledes-data:            # Persistent storage for LEDES converter
   redis-data:            # Redis persistence
+  prometheus-data:       # Prometheus time-series data
+  grafana-data:          # Grafana dashboards and settings
 
 # ============================================================
 # NETWORKS
