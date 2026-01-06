@@ -19,6 +19,17 @@ Sistema de automacao juridica brasileira. Monitoramento de publicacoes, extracao
 | `skills/` | Skills custom | Guidelines especializadas |
 | `.claude/` | Config Claude Code | Agents, hooks, skills managed |
 
+## Terminologia: Agentes vs Subagentes
+
+| Termo | O que é | API Key | Onde no repo |
+|-------|---------|---------|--------------|
+| **Agentes** | Código Python/TS autônomo (ADK, Agent SDK) | **Exige** | `adk-agents/` (Gemini) |
+| **Subagentes** | Task Tool do Claude Code | Não exige | `.claude/agents/*.md` |
+
+**Contexto deste repo:** Usamos plano Max (sem API key Claude). Portanto:
+- `adk-agents/` = Agentes Gemini (ADK) — código executável
+- `.claude/agents/` = Prompts de subagentes — usados pela Task Tool durante sessões
+
 ## Comandos Essenciais
 
 ```bash
