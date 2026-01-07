@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Terminal } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import {
   CCuiHeader,
@@ -171,7 +171,7 @@ export default function CCuiAssistantModule() {
             <div className="max-w-3xl mx-auto space-y-6">
               {messages.length === 0 && (
                 <div className="text-center py-20">
-                  <div className="text-ccui-accent text-4xl mb-4">🤖</div>
+                  <Terminal className="mx-auto text-ccui-accent mb-4" size={48} />
                   <div className="text-ccui-text-muted text-sm mb-2">
                     Claude Code
                   </div>
