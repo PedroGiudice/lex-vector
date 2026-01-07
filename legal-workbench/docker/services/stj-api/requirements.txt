@@ -23,3 +23,6 @@ pandas==2.2.3
 
 # Python standard library enhancements
 python-multipart==0.0.12
+
+# Error tracking and performance monitoring
+sentry-sdk[fastapi]>=1.40.0

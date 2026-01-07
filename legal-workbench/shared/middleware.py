@@ -24,9 +24,10 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
 
+from .logging_config import request_id_var
 
-# Context variable for request ID - accessible throughout the request lifecycle
-request_id_ctx: ContextVar[Optional[str]] = ContextVar('request_id', default=None)
+# Backward compatibility alias
+request_id_ctx: ContextVar[Optional[str]] = request_id_var
 
 
 def get_request_id() -> Optional[str]:

@@ -30,6 +30,9 @@ COPY --from=builder /root/.local /home/appuser/.local
 # Copy application code
 COPY docker/services/trello-mcp/api/ /app/api/
 
+# Copy shared logging/middleware module
+COPY shared/ /app/shared/
+
 # Copy Trello client code from ferramentas
 COPY ferramentas/trello-mcp/src /app/trello_src
 

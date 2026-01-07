@@ -1,5 +1,6 @@
 import { Outlet, NavLink } from 'react-router-dom';
 import { LayoutDashboard, Kanban, FileText, Scale } from 'lucide-react';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 const navItems = [
   { to: '/', icon: LayoutDashboard, label: 'Hub' },
@@ -37,7 +38,9 @@ export function RootLayout() {
 
       {/* Main Content */}
       <main className="flex-1 overflow-hidden">
-        <Outlet />
+        <ErrorBoundary>
+          <Outlet />
+        </ErrorBoundary>
       </main>
     </div>
   );

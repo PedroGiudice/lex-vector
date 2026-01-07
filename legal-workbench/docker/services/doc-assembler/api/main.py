@@ -6,7 +6,26 @@ RESTful API wrapping the DocumentEngine for web-based document generation.
 
 import os
 import sys
-from datetime import datetime
+import logging
+
+# Add shared module path for logging and Sentry
+sys.path.insert(0, '/app')
+
+# Initialize Sentry BEFORE importing FastAPI for proper instrumentation
+try:
+    from shared.sentry_config import init_sentry
+    init_sentry("doc-assembler")
+except ImportError:
+    pass  # Sentry not available, continue without it
+
+# Configure structured JSON logging
+from shared.logging_config import setup_logging
+from shared.middleware import RequestIDMiddleware
+
+log_level = getattr(logging, os.getenv("LOG_LEVEL", "INFO").upper(), logging.INFO)
+logger = setup_logging("doc-assembler", level=log_level)
+
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import List
 from uuid import uuid4
@@ -78,6 +97,9 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
+# Request ID middleware for request tracing
+app.add_middleware(RequestIDMiddleware)
+
 # CORS configuration
 app.add_middleware(
     CORSMiddleware,
@@ -95,13 +117,14 @@ app.add_middleware(
 @app.exception_handler(FileNotFoundError)
 async def file_not_found_handler(request, exc):
     """Handle file not found errors."""
+    logger.warning("File not found", extra={"error": str(exc), "error_type": "FileNotFoundError"})
     return JSONResponse(
         status_code=status.HTTP_404_NOT_FOUND,
         content=ErrorResponse(
             detail=str(exc),
             error_type="FileNotFoundError",
             status_code=404,
-            timestamp=datetime.utcnow().isoformat()
+            timestamp=datetime.now(timezone.utc).isoformat()
         ).dict()
     )
 
@@ -109,13 +132,14 @@ async def file_not_found_handler(request, exc):
 @app.exception_handler(ValueError)
 async def value_error_handler(request, exc):
     """Handle validation errors."""
+    logger.warning("Validation error", extra={"error": str(exc), "error_type": "ValueError"})
     return JSONResponse(
         status_code=status.HTTP_400_BAD_REQUEST,
         content=ErrorResponse(
             detail=str(exc),
             error_type="ValueError",
             status_code=400,
-            timestamp=datetime.utcnow().isoformat()
+            timestamp=datetime.now(timezone.utc).isoformat()
         ).dict()
     )
 
@@ -123,13 +147,14 @@ async def value_error_handler(request, exc):
 @app.exception_handler(Exception)
 async def general_exception_handler(request, exc):
     """Handle unexpected errors."""
+    logger.error("Unhandled exception", extra={"error": str(exc), "error_type": type(exc).__name__}, exc_info=True)
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         content=ErrorResponse(
             detail=f"Internal server error: {str(exc)}",
             error_type=type(exc).__name__,
             status_code=500,
-            timestamp=datetime.utcnow().isoformat()
+            timestamp=datetime.now(timezone.utc).isoformat()
         ).dict()
     )
 
@@ -268,7 +293,7 @@ async def health_check():
         status="healthy",
         version=API_VERSION,
         engine_version=engine_version,
-        timestamp=datetime.utcnow().isoformat()
+        timestamp=datetime.now(timezone.utc).isoformat()
     )
 
 
@@ -465,13 +490,25 @@ app.include_router(builder_router, prefix="/api/v1/builder", tags=["builder"])
 @app.on_event("startup")
 async def startup_event():
     """Log startup information."""
-    print(f"🚀 Legal Document Assembler API v{API_VERSION}")
-    print(f"📁 Templates directory: {TEMPLATES_DIR}")
-    print(f"📄 Outputs directory: {OUTPUTS_DIR}")
-
-    # Count available templates
     templates = list_templates_in_dir(TEMPLATES_DIR)
-    print(f"📋 Found {len(templates)} template(s)")
+    logger.info("Service starting", extra={
+        "event": "startup",
+        "version": API_VERSION,
+        "templates_dir": str(TEMPLATES_DIR),
+        "outputs_dir": str(OUTPUTS_DIR),
+        "template_count": len(templates)
+    })
+
+
+@app.get("/debug/sentry", tags=["Debug"])
+async def debug_sentry():
+    """
+    Test Sentry integration by triggering a test exception.
+
+    This endpoint is for debugging purposes only.
+    In production, this should be disabled or protected.
+    """
+    raise Exception("Sentry test exception from doc-assembler")
 
 
 if __name__ == "__main__":

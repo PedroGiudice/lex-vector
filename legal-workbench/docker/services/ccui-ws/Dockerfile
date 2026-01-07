@@ -3,11 +3,14 @@ FROM python:3.12-slim
 WORKDIR /app
 
 # Install dependencies
-COPY requirements.txt .
+COPY docker/services/ccui-ws/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application
-COPY main.py .
+COPY docker/services/ccui-ws/main.py .
+
+# Copy shared logging/middleware module
+COPY shared/ /app/shared/
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \

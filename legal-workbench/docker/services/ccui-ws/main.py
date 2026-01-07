@@ -3,19 +3,38 @@ CCui WebSocket Backend
 Simple WebSocket server for Claude Code UI chat interface.
 """
 import os
+import sys
+
+# Add shared module path for logging and Sentry
+sys.path.insert(0, '/app')
+
+# Initialize Sentry BEFORE importing FastAPI for proper instrumentation
+try:
+    from shared.sentry_config import init_sentry
+    init_sentry("ccui-ws")
+except ImportError:
+    pass  # Sentry not available, continue without it
+
+# Configure structured JSON logging
+import logging
+from shared.logging_config import setup_logging
+from shared.middleware import RequestIDMiddleware
+
+log_level = getattr(logging, os.getenv("LOG_LEVEL", "INFO").upper(), logging.INFO)
+logger = setup_logging("ccui-ws", level=log_level)
+
 import json
 import asyncio
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, Set
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-import logging
-
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 
 app = FastAPI(title="CCui WebSocket Backend", version="1.0.0")
+
+# Request ID middleware for request tracing
+app.add_middleware(RequestIDMiddleware)
 
 app.add_middleware(
     CORSMiddleware,
@@ -24,6 +43,12 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# Startup event
+@app.on_event("startup")
+async def startup_event():
+    logger.info("Service starting", extra={"event": "startup", "version": "1.0.0"})
 
 # Connection manager
 class ConnectionManager:
@@ -35,18 +60,26 @@ class ConnectionManager:
         await websocket.accept()
         self.active_connections[client_id] = websocket
         self.session_data[client_id] = {
-            "connected_at": datetime.now().isoformat(),
+            "connected_at": datetime.now(timezone.utc).isoformat(),
             "messages": [],
             "context_used": 0
         }
-        logger.info(f"Client {client_id} connected. Total: {len(self.active_connections)}")
+        logger.info("Client connected", extra={
+            "event": "ws_connect",
+            "client_id": client_id,
+            "total_connections": len(self.active_connections)
+        })
 
     def disconnect(self, client_id: str):
         if client_id in self.active_connections:
             del self.active_connections[client_id]
         if client_id in self.session_data:
             del self.session_data[client_id]
-        logger.info(f"Client {client_id} disconnected. Total: {len(self.active_connections)}")
+        logger.info("Client disconnected", extra={
+            "event": "ws_disconnect",
+            "client_id": client_id,
+            "total_connections": len(self.active_connections)
+        })
 
     async def send_json(self, client_id: str, data: dict):
         if client_id in self.active_connections:
@@ -71,7 +104,7 @@ async def health():
         "status": "healthy",
         "service": "ccui-ws",
         "connections": len(manager.active_connections),
-        "timestamp": datetime.now().isoformat()
+        "timestamp": datetime.now(timezone.utc).isoformat()
     }
 
 
@@ -87,7 +120,7 @@ async def chat_endpoint(request: ChatRequest):
     if not content:
         return {"status": "error", "message": "Empty message"}
 
-    logger.info(f"[POST /api/chat] Received: {content[:50]}...")
+    logger.info("Chat message received", extra={"event": "chat_request", "content_preview": content[:50]})
 
     # Find connected client with this token
     target_clients = [cid for cid in manager.active_connections.keys() if cid.startswith(token)]
@@ -98,7 +131,7 @@ async def chat_endpoint(request: ChatRequest):
         return {
             "status": "ok",
             "response": response,
-            "timestamp": datetime.now().isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat()
         }
 
     # Generate and stream response
@@ -136,7 +169,7 @@ async def websocket_endpoint(
         "type": "connected",
         "message": "Connected to CCui backend",
         "client_id": client_id,
-        "timestamp": datetime.now().isoformat()
+        "timestamp": datetime.now(timezone.utc).isoformat()
     })
 
     try:
@@ -146,7 +179,7 @@ async def websocket_endpoint(
     except WebSocketDisconnect:
         manager.disconnect(client_id)
     except Exception as e:
-        logger.error(f"WebSocket error for {client_id}: {e}")
+        logger.error("WebSocket error", extra={"event": "ws_error", "client_id": client_id, "error": str(e)})
         manager.disconnect(client_id)
 
 
@@ -157,7 +190,7 @@ async def handle_message(client_id: str, data: dict):
     if msg_type == "chat":
         await handle_chat_message(client_id, data)
     elif msg_type == "ping":
-        await manager.send_json(client_id, {"type": "pong", "timestamp": datetime.now().isoformat()})
+        await manager.send_json(client_id, {"type": "pong", "timestamp": datetime.now(timezone.utc).isoformat()})
     elif msg_type == "status":
         await send_status(client_id)
     else:
@@ -179,14 +212,14 @@ async def handle_chat_message(client_id: str, data: dict):
         manager.session_data[client_id]["messages"].append({
             "role": "user",
             "content": content,
-            "timestamp": datetime.now().isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat()
         })
 
     # Send acknowledgment
     await manager.send_json(client_id, {
         "type": "message_received",
         "content": content,
-        "timestamp": datetime.now().isoformat()
+        "timestamp": datetime.now(timezone.utc).isoformat()
     })
 
     # Simulate thinking
@@ -211,7 +244,7 @@ async def handle_chat_message(client_id: str, data: dict):
         "type": "message",
         "role": "assistant",
         "content": response,
-        "timestamp": datetime.now().isoformat()
+        "timestamp": datetime.now(timezone.utc).isoformat()
     })
 
     # Update context usage (simulated)
@@ -279,7 +312,7 @@ Feel free to explore!"""
 
 This is a demonstration response from the CCui WebSocket backend. The full Claude integration would process this through the Claude API.
 
-*Timestamp: {datetime.now().strftime('%H:%M:%S')}*"""
+*Timestamp: {datetime.now(timezone.utc).strftime('%H:%M:%S')} UTC*"""
 
 
 async def send_status(client_id: str):
@@ -291,6 +324,17 @@ async def send_status(client_id: str):
         "message_count": len(session.get("messages", [])),
         "context_used": session.get("context_used", 0)
     })
+
+
+@app.get("/debug/sentry", tags=["Debug"])
+async def debug_sentry():
+    """
+    Test Sentry integration by triggering a test exception.
+
+    This endpoint is for debugging purposes only.
+    In production, this should be disabled or protected.
+    """
+    raise Exception("Sentry test exception from ccui-ws")
 
 
 if __name__ == "__main__":

@@ -16,3 +16,6 @@ pydantic-settings==2.1.0
 
 # CORS middleware (already included in FastAPI, but explicit)
 python-dotenv==1.0.0
+
+# Error tracking and performance monitoring
+sentry-sdk[fastapi]>=1.40.0

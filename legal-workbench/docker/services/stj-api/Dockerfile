@@ -39,6 +39,9 @@ COPY --from=builder /root/.local /home/apiuser/.local
 # Copy API application code
 COPY docker/services/stj-api/api/ /app/api/
 
+# Copy shared logging/middleware module
+COPY shared/ /app/shared/
+
 # Copy backend modules (needed for imports)
 COPY ferramentas/stj-dados-abertos/src /app/backend/src
 COPY ferramentas/stj-dados-abertos/config.py /app/backend/

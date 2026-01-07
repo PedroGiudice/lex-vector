@@ -24,8 +24,12 @@ Usage:
 import logging
 import json
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Optional
+from contextvars import ContextVar
+
+# Context variable for request_id - accessible throughout the request lifecycle
+request_id_var: ContextVar[Optional[str]] = ContextVar("request_id", default=None)
 
 
 class JSONFormatter(logging.Formatter):
@@ -46,11 +50,14 @@ class JSONFormatter(logging.Formatter):
         Returns:
             JSON-formatted string representing the log entry
         """
+        # Get request_id from context variable or record attribute
+        req_id = request_id_var.get() or getattr(record, 'request_id', None)
+
         log_obj: dict[str, Any] = {
-            "timestamp": datetime.utcnow().isoformat() + "Z",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "level": record.levelname,
             "service": getattr(record, 'service', 'unknown'),
-            "request_id": getattr(record, 'request_id', None),
+            "request_id": req_id,
             "message": record.getMessage(),
             "module": record.module,
             "function": record.funcName,

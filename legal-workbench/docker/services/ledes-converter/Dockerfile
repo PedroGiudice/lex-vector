@@ -12,7 +12,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     zlib1g-dev \
     && rm -rf /var/lib/apt/lists/*
 
-COPY requirements.txt .
+COPY docker/services/ledes-converter/requirements.txt .
 RUN pip wheel --no-cache-dir --wheel-dir /wheels -r requirements.txt
 
 # Stage 2: Runtime
@@ -35,7 +35,12 @@ RUN pip install --no-cache-dir --no-index --find-links /wheels -r requirements.t
 # Create non-root user for security
 RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
 
-COPY --chown=appuser:appuser . .
+# Copy application code
+COPY --chown=appuser:appuser docker/services/ledes-converter/api/ /app/api/
+COPY --chown=appuser:appuser docker/services/ledes-converter/entrypoint.sh /app/
+
+# Copy shared logging/middleware module
+COPY --chown=appuser:appuser shared/ /app/shared/
 
 # Make entrypoint executable
 RUN chmod +x /app/entrypoint.sh

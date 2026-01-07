@@ -9,12 +9,32 @@ Endpoints:
 - POST /api/v1/sync           - Force sync
 - GET  /api/v1/stats          - Database statistics
 - GET  /health                - Health check
+- GET  /debug/sentry          - Sentry test endpoint
 """
 from __future__ import annotations
 
+import os
 import sys
 import logging
 from pathlib import Path
+
+# Add shared module path for logging and Sentry
+sys.path.insert(0, '/app')
+
+# Initialize Sentry BEFORE importing FastAPI for proper instrumentation
+try:
+    from shared.sentry_config import init_sentry
+    init_sentry("stj-api")
+except ImportError:
+    pass  # Sentry not available, continue without it
+
+# Configure structured JSON logging
+from shared.logging_config import setup_logging
+from shared.middleware import RequestIDMiddleware
+
+log_level = getattr(logging, os.getenv("LOG_LEVEL", "INFO").upper(), logging.INFO)
+logger = setup_logging("stj-api", level=log_level)
+
 from datetime import datetime
 from typing import List, Optional, Dict
 
@@ -43,13 +63,6 @@ from api.models import (
 from api.dependencies import get_database, close_database, get_cache, invalidate_cache
 from api.scheduler import start_scheduler, stop_scheduler, run_sync_task, get_sync_status
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-)
-logger = logging.getLogger(__name__)
-
 # Initialize FastAPI app
 app = FastAPI(
     title="STJ Dados Abertos API",
@@ -58,6 +71,9 @@ app = FastAPI(
     docs_url="/docs",
     redoc_url="/redoc"
 )
+
+# Request ID middleware for request tracing
+app.add_middleware(RequestIDMiddleware)
 
 # CORS middleware (adjust origins as needed)
 app.add_middleware(
@@ -73,28 +89,28 @@ app.add_middleware(
 @app.on_event("startup")
 async def startup_event():
     """Initialize resources on startup."""
-    logger.info("Starting STJ API")
+    logger.info("Service starting", extra={"event": "startup", "version": __version__})
 
     # Initialize database connection
     db = next(get_database())
-    logger.info("Database connection initialized")
+    logger.info("Database connection initialized", extra={"event": "db_init"})
 
     # Start background scheduler
     start_scheduler()
-    logger.info("Background scheduler started")
+    logger.info("Background scheduler started", extra={"event": "scheduler_start"})
 
 
 @app.on_event("shutdown")
 async def shutdown_event():
     """Cleanup resources on shutdown."""
-    logger.info("Shutting down STJ API")
+    logger.info("Service shutting down", extra={"event": "shutdown"})
 
     # Stop scheduler
     stop_scheduler()
 
     # Close database
     close_database()
-    logger.info("Resources cleaned up")
+    logger.info("Resources cleaned up", extra={"event": "cleanup_complete"})
 
 
 # Health check endpoint
@@ -477,6 +493,18 @@ async def root():
         "docs": "/docs",
         "health": "/health"
     }
+
+
+# Sentry debug endpoint
+@app.get("/debug/sentry", tags=["Debug"])
+async def debug_sentry():
+    """
+    Test Sentry integration by triggering a test exception.
+
+    This endpoint is for debugging purposes only.
+    In production, this should be disabled or protected.
+    """
+    raise Exception("Sentry test exception from stj-api")
 
 
 if __name__ == "__main__":

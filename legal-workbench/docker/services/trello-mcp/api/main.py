@@ -8,6 +8,25 @@ error handling. Exposes Trello functionality via HTTP endpoints.
 import os
 import re
 import sys
+
+# Add shared module path for logging and Sentry
+sys.path.insert(0, '/app')
+
+# Initialize Sentry BEFORE importing FastAPI for proper instrumentation
+try:
+    from shared.sentry_config import init_sentry
+    init_sentry("trello-mcp")
+except ImportError:
+    pass  # Sentry not available, continue without it
+
+# Configure structured JSON logging
+import logging
+from shared.logging_config import setup_logging
+from shared.middleware import RequestIDMiddleware
+
+log_level = getattr(logging, os.getenv("LOG_LEVEL", "INFO").upper(), logging.INFO)
+logger = setup_logging("trello-mcp", level=log_level)
+
 from contextlib import asynccontextmanager
 from typing import Any
 
@@ -137,11 +156,12 @@ async def lifespan(app: FastAPI):
     global trello_client, settings
 
     # Startup: Initialize Trello client
+    logger.info("Service starting", extra={"event": "startup"})
     try:
         settings = EnvironmentSettings()
-        print("[FastAPI] ✓ Environment validated", file=sys.stderr)
+        logger.info("Environment validated", extra={"event": "env_validated"})
     except ValidationError as e:
-        print(f"[FastAPI] ✗ Environment validation failed:\n{e}", file=sys.stderr)
+        logger.error("Environment validation failed", extra={"error": str(e)})
         raise
 
     async with TrelloClient(settings) as client:
@@ -150,20 +170,20 @@ async def lifespan(app: FastAPI):
         # Validate credentials on startup
         try:
             user_info = await client.validate_credentials()
-            print(
-                f"[FastAPI] ✓ Connected to Trello as {user_info.get('fullName')}",
-                file=sys.stderr
-            )
+            logger.info("Connected to Trello", extra={
+                "event": "trello_connected",
+                "user": user_info.get('fullName')
+            })
         except TrelloAuthError as e:
-            print(f"[FastAPI] ✗ Trello authentication failed: {e}", file=sys.stderr)
+            logger.error("Trello authentication failed", extra={"error": str(e)})
             raise
 
-        print("[FastAPI] ✓ Application ready", file=sys.stderr)
+        logger.info("Application ready", extra={"event": "ready"})
 
         yield
 
         # Shutdown: Cleanup
-        print("[FastAPI] Shutting down...", file=sys.stderr)
+        logger.info("Service shutting down", extra={"event": "shutdown"})
         trello_client = None
 
 
@@ -177,6 +197,9 @@ app = FastAPI(
 # Add rate limiter middleware
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# Request ID middleware for request tracing
+app.add_middleware(RequestIDMiddleware)
 
 # CORS configuration
 app.add_middleware(
@@ -1426,3 +1449,15 @@ async def root():
         "docs": "/docs",
         "health": "/health"
     }
+
+
+@app.get("/debug/sentry", tags=["Debug"])
+@limiter.exempt
+async def debug_sentry():
+    """
+    Test Sentry integration by triggering a test exception.
+
+    This endpoint is for debugging purposes only.
+    In production, this should be disabled or protected.
+    """
+    raise Exception("Sentry test exception from trello-mcp")

@@ -33,6 +33,9 @@ RUN pip install --no-cache-dir /wheels/* && rm -rf /wheels
 # Copy application code
 COPY docker/services/doc-assembler/api/ ./api/
 
+# Copy shared logging/middleware module
+COPY shared/ ./shared/
+
 # Copy engine source from root context
 COPY ferramentas/legal-doc-assembler/src/ ./src/
 COPY ferramentas/legal-doc-assembler/templates/ ./templates/

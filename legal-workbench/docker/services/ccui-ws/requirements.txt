@@ -1,3 +1,6 @@
 fastapi==0.115.6
 uvicorn[standard]==0.34.0
 websockets==14.1
+
+# Error tracking and performance monitoring
+sentry-sdk[fastapi]>=1.40.0

@@ -1,0 +1,297 @@
+# =============================================================================
+# Legal Workbench - Development Environment
+# =============================================================================
+# Usage:
+#   docker compose -f docker-compose.dev.yml up
+#
+# Features:
+#   - Hot reload for all services
+#   - Volume mounts for live code changes
+#   - Direct port access (bypass Traefik)
+#   - No image builds (uses local code)
+#
+# NOTE: Requires dependencies installed locally:
+#   - Frontend: cd frontend && bun install
+#   - Backends: Each service needs pip install -r requirements.txt
+# =============================================================================
+
+services:
+  # ==========================================================================
+  # FRONTEND - React/Vite with Hot Module Replacement
+  # ==========================================================================
+  frontend-react:
+    image: oven/bun:1-alpine
+    working_dir: /app
+    command: sh -c "bun install && bun run dev --host 0.0.0.0"
+    volumes:
+      - ./frontend:/app
+      - frontend_node_modules:/app/node_modules
+    ports:
+      - "3000:5173"  # Vite default dev port
+    environment:
+      - VITE_HMR_HOST=localhost
+      - VITE_API_BASE_URL=http://localhost
+    networks:
+      - legal-network
+    depends_on:
+      - redis
+
+  # ==========================================================================
+  # API-STJ - Jurisprudence API (FastAPI + uvicorn --reload)
+  # ==========================================================================
+  api-stj:
+    image: python:3.11-slim
+    working_dir: /app
+    command: >
+      sh -c "pip install -q -r /app/docker/services/stj-api/requirements.txt httpx &&
+             uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload"
+    volumes:
+      - ./docker/services/stj-api/api:/app/api
+      - ./ferramentas/stj-dados-abertos/src:/app/backend/src
+      - ./ferramentas/stj-dados-abertos/config.py:/app/backend/config.py
+      - ./docker/services/stj-api/requirements.txt:/app/docker/services/stj-api/requirements.txt:ro
+      - shared-data:/data
+      - stj-db:/app/db
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONUNBUFFERED=1
+      - PYTHONPATH=/app:/app/backend
+      - DATA_PATH=/data
+      - DB_PATH=/app/db/stj.duckdb
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.stj.rule=PathPrefix(`/api/stj`)"
+      - "traefik.http.routers.stj.entrypoints=web"
+      - "traefik.http.routers.stj.priority=10"
+      - "traefik.http.middlewares.stj-strip.stripprefix.prefixes=/api/stj"
+      - "traefik.http.routers.stj.middlewares=stj-strip"
+      - "traefik.http.services.stj.loadbalancer.server.port=8000"
+    networks:
+      - legal-network
+
+  # ==========================================================================
+  # API-TEXT-EXTRACTOR - PDF Processing (FastAPI + Celery)
+  # ==========================================================================
+  api-text-extractor:
+    image: python:3.11-slim
+    working_dir: /app
+    command: >
+      sh -c "apt-get update && apt-get install -y -qq curl libgomp1 libgl1 libglib2.0-0 poppler-utils tesseract-ocr tesseract-ocr-por &&
+             pip install -q -r /app/requirements.txt &&
+             uvicorn api.main:app --host 0.0.0.0 --port 8001 --reload"
+    volumes:
+      - ./docker/services/text-extractor/api:/app/api
+      - ./docker/services/text-extractor/celery_worker.py:/app/celery_worker.py
+      - ./docker/services/text-extractor/requirements.txt:/app/requirements.txt:ro
+      - shared-data:/data
+      - text-extractor-cache:/app/cache
+    ports:
+      - "8001:8001"
+      - "5555:5555"  # Flower monitoring
+    environment:
+      - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONUNBUFFERED=1
+      - PYTHONPATH=/app
+      - DATA_PATH=/data
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - MARKER_CACHE_DIR=/app/cache
+      - MAX_CONCURRENT_JOBS=${MAX_CONCURRENT_JOBS:-2}
+      - JOB_TIMEOUT_SECONDS=${JOB_TIMEOUT_SECONDS:-600}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.text.rule=PathPrefix(`/api/text`)"
+      - "traefik.http.routers.text.entrypoints=web"
+      - "traefik.http.routers.text.priority=10"
+      - "traefik.http.middlewares.text-strip.stripprefix.prefixes=/api/text"
+      - "traefik.http.routers.text.middlewares=text-strip"
+      - "traefik.http.services.text.loadbalancer.server.port=8001"
+    networks:
+      - legal-network
+    depends_on:
+      - redis
+
+  # ==========================================================================
+  # API-DOC-ASSEMBLER - Document Generation (FastAPI)
+  # ==========================================================================
+  api-doc-assembler:
+    image: python:3.11-slim
+    working_dir: /app
+    command: >
+      sh -c "apt-get update && apt-get install -y -qq curl &&
+             pip install -q -r /app/docker/services/doc-assembler/requirements.txt &&
+             uvicorn api.main:app --host 0.0.0.0 --port 8002 --reload"
+    volumes:
+      - ./docker/services/doc-assembler/api:/app/api
+      - ./ferramentas/legal-doc-assembler/src:/app/src
+      - ./ferramentas/legal-doc-assembler/templates:/app/templates
+      - ./ferramentas/legal-doc-assembler/resources:/app/resources
+      - ./docker/services/doc-assembler/requirements.txt:/app/docker/services/doc-assembler/requirements.txt:ro
+      - shared-data:/data
+    ports:
+      - "8002:8002"
+    environment:
+      - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONUNBUFFERED=1
+      - PYTHONPATH=/app:/app/src
+      - DATA_PATH=/data
+      - TEMPLATES_PATH=/app/templates
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.doc.rule=PathPrefix(`/api/doc`)"
+      - "traefik.http.routers.doc.entrypoints=web"
+      - "traefik.http.routers.doc.priority=10"
+      - "traefik.http.middlewares.doc-strip.stripprefix.prefixes=/api/doc"
+      - "traefik.http.routers.doc.middlewares=doc-strip"
+      - "traefik.http.services.doc.loadbalancer.server.port=8002"
+    networks:
+      - legal-network
+
+  # ==========================================================================
+  # API-LEDES-CONVERTER - DOCX to LEDES Format
+  # ==========================================================================
+  api-ledes-converter:
+    image: python:3.10-slim
+    working_dir: /app
+    command: >
+      sh -c "apt-get update && apt-get install -y -qq curl libxml2 libxslt1.1 libmagic1 &&
+             pip install -q -r /app/requirements.txt &&
+             uvicorn api.main:app --host 0.0.0.0 --port 8003 --reload"
+    volumes:
+      - ./docker/services/ledes-converter/api:/app/api
+      - ./docker/services/ledes-converter/templates:/app/templates
+      - ./docker/services/ledes-converter/requirements.txt:/app/requirements.txt:ro
+      - shared-data:/data
+    ports:
+      - "8003:8003"
+    environment:
+      - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONUNBUFFERED=1
+      - PYTHONPATH=/app
+      - DATA_PATH=/data
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.ledes.rule=PathPrefix(`/api/ledes`)"
+      - "traefik.http.routers.ledes.entrypoints=web"
+      - "traefik.http.routers.ledes.priority=10"
+      - "traefik.http.middlewares.ledes-strip.stripprefix.prefixes=/api/ledes"
+      - "traefik.http.routers.ledes.middlewares=ledes-strip"
+      - "traefik.http.services.ledes.loadbalancer.server.port=8003"
+    networks:
+      - legal-network
+
+  # ==========================================================================
+  # API-TRELLO - Task Integration (FastAPI)
+  # ==========================================================================
+  api-trello:
+    image: python:3.11-slim
+    working_dir: /app
+    command: >
+      sh -c "pip install -q -r /app/docker/services/trello-mcp/requirements.txt httpx &&
+             uvicorn api.main:app --host 0.0.0.0 --port 8004 --reload"
+    volumes:
+      - ./docker/services/trello-mcp/api:/app/api
+      - ./ferramentas/trello-mcp/src:/app/trello_src
+      - ./docker/services/trello-mcp/requirements.txt:/app/docker/services/trello-mcp/requirements.txt:ro
+    ports:
+      - "8004:8004"
+    environment:
+      - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONUNBUFFERED=1
+      - PYTHONPATH=/app:/app/api:/app/trello_src
+      - TRELLO_API_KEY=${TRELLO_API_KEY}
+      - TRELLO_API_TOKEN=${TRELLO_API_TOKEN}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.trello.rule=PathPrefix(`/api/trello`)"
+      - "traefik.http.routers.trello.entrypoints=web"
+      - "traefik.http.routers.trello.priority=10"
+      - "traefik.http.middlewares.trello-strip.stripprefix.prefixes=/api/trello"
+      - "traefik.http.routers.trello.middlewares=trello-strip"
+      - "traefik.http.services.trello.loadbalancer.server.port=8004"
+    networks:
+      - legal-network
+
+  # ==========================================================================
+  # API-CCUI-WS - Chat Backend WebSocket
+  # ==========================================================================
+  api-ccui-ws:
+    image: python:3.12-slim
+    working_dir: /app
+    command: >
+      sh -c "pip install -q -r /app/requirements.txt &&
+             uvicorn main:app --host 0.0.0.0 --port 8005 --reload"
+    volumes:
+      - ./docker/services/ccui-ws/main.py:/app/main.py
+      - ./docker/services/ccui-ws/requirements.txt:/app/requirements.txt:ro
+    ports:
+      - "8005:8005"
+    environment:
+      - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONUNBUFFERED=1
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.ccui-ws.rule=PathPrefix(`/ws`)"
+      - "traefik.http.routers.ccui-ws.entrypoints=web"
+      - "traefik.http.routers.ccui-ws.priority=20"
+      - "traefik.http.routers.ccui-chat.rule=PathPrefix(`/api/chat`)"
+      - "traefik.http.routers.ccui-chat.entrypoints=web"
+      - "traefik.http.routers.ccui-chat.priority=15"
+      - "traefik.http.services.ccui-ws.loadbalancer.server.port=8005"
+    networks:
+      - legal-network
+
+  # ==========================================================================
+  # TRAEFIK - Reverse Proxy (Optional for dev, services accessible directly)
+  # ==========================================================================
+  reverse-proxy:
+    image: traefik:v3.6.5
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+    ports:
+      - "80:80"
+      - "8080:8080"  # Traefik Dashboard
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - legal-network
+
+  # ==========================================================================
+  # REDIS - Message Broker (Required for Celery)
+  # ==========================================================================
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"  # Exposed for debugging
+    volumes:
+      - redis-data:/data
+    networks:
+      - legal-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+# =============================================================================
+# VOLUMES
+# =============================================================================
+volumes:
+  frontend_node_modules:  # Isolated node_modules for container
+  shared-data:
+  stj-db:
+  text-extractor-cache:
+  redis-data:
+
+# =============================================================================
+# NETWORKS
+# =============================================================================
+networks:
+  legal-network:
+    driver: bridge

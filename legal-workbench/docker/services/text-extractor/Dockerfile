@@ -18,7 +18,7 @@ ENV PATH="/opt/venv/bin:$PATH"
 
 # Copy requirements and install Python dependencies
 WORKDIR /build
-COPY requirements.txt .
+COPY docker/services/text-extractor/requirements.txt .
 
 # Install Python packages
 RUN pip install --no-cache-dir --upgrade pip && \
@@ -56,11 +56,14 @@ RUN mkdir -p /app/data /app/cache /app/cache/fonts /app/api && \
 WORKDIR /app
 
 # Copy application code
-COPY --chown=appuser:appuser api/ /app/api/
-COPY --chown=appuser:appuser celery_worker.py /app/
+COPY --chown=appuser:appuser docker/services/text-extractor/api/ /app/api/
+COPY --chown=appuser:appuser docker/services/text-extractor/celery_worker.py /app/
+
+# Copy shared logging/middleware module
+COPY --chown=appuser:appuser shared/ /app/shared/
 
 # Copy entrypoint script
-COPY --chown=appuser:appuser entrypoint.sh /app/
+COPY --chown=appuser:appuser docker/services/text-extractor/entrypoint.sh /app/
 RUN chmod +x /app/entrypoint.sh
 
 # Switch to non-root user

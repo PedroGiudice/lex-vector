@@ -1,0 +1,2 @@
+#!/bin/sh
+cd legal-workbench/frontend && bunx lint-staged

@@ -1,13 +1,32 @@
+import os
+import sys
+import logging
+
+# Add shared module path for logging and Sentry
+sys.path.insert(0, '/app')
+
+# Initialize Sentry BEFORE importing FastAPI for proper instrumentation
+try:
+    from shared.sentry_config import init_sentry
+    init_sentry("ledes-converter")
+except ImportError:
+    pass  # Sentry not available, continue without it
+
+# Configure structured JSON logging
+from shared.logging_config import setup_logging
+from shared.middleware import RequestIDMiddleware
+
+log_level = getattr(logging, os.getenv("LOG_LEVEL", "INFO").upper(), logging.INFO)
+logger = setup_logging("ledes-converter", level=log_level)
+
 from fastapi import FastAPI, UploadFile, File, HTTPException, Request, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from typing import Annotated, Optional
 import docx
 import re
-import os
 import tempfile
-import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from collections import defaultdict
 import time
 import magic
@@ -16,18 +35,14 @@ import json
 
 from .models import LedesData, ConversionResponse, HealthResponse, LineItem, LedesConfig
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
-
 app = FastAPI(
     title="LEDES Converter API",
     description="Convert DOCX invoices to LEDES 1998B format",
     version="1.0.0"
 )
+
+# Request ID middleware for request tracing
+app.add_middleware(RequestIDMiddleware)
 
 # CORS middleware - configured for production security
 allowed_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost,http://localhost:3000").split(",")
@@ -38,6 +53,11 @@ app.add_middleware(
     allow_methods=["GET", "POST"],
     allow_headers=["Content-Type", "Authorization"],
 )
+
+# Log startup
+@app.on_event("startup")
+async def startup_event():
+    logger.info("Service starting", extra={"event": "startup", "version": "1.0.0"})
 
 # Constants
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
@@ -505,3 +525,14 @@ async def convert_docx_to_ledes(
                 os.remove(tmp_path)
             except Exception as cleanup_error:
                 logger.error(f"Failed to cleanup temp file: {cleanup_error}")
+
+
+@app.get("/debug/sentry", tags=["Debug"])
+async def debug_sentry():
+    """
+    Test Sentry integration by triggering a test exception.
+
+    This endpoint is for debugging purposes only.
+    In production, this should be disabled or protected.
+    """
+    raise Exception("Sentry test exception from ledes-converter")

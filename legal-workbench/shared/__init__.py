@@ -22,12 +22,19 @@ Usage:
     request_id = get_request_id()
 """
 
-from shared.logging_config import setup_logging, get_logger, JSONFormatter
+from shared.logging_config import setup_logging, get_logger, JSONFormatter, request_id_var
 from shared.middleware import (
     RequestIDMiddleware,
     RequestLoggingMiddleware,
     get_request_id,
     request_id_ctx,
+)
+from shared.sentry_config import (
+    init_sentry,
+    capture_exception,
+    capture_message,
+    set_user,
+    add_breadcrumb,
 )
 
 __all__ = [
@@ -35,11 +42,18 @@ __all__ = [
     "setup_logging",
     "get_logger",
     "JSONFormatter",
+    "request_id_var",
     # Middleware
     "RequestIDMiddleware",
     "RequestLoggingMiddleware",
     "get_request_id",
     "request_id_ctx",
+    # Sentry
+    "init_sentry",
+    "capture_exception",
+    "capture_message",
+    "set_user",
+    "add_breadcrumb",
 ]
 
 __version__ = "0.1.0"

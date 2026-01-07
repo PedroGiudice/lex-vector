@@ -1,10 +1,30 @@
 """FastAPI application for Text Extractor service."""
 import os
+import sys
+import logging
+
+# Add shared module path for logging and Sentry
+sys.path.insert(0, '/app')
+
+# Initialize Sentry BEFORE importing FastAPI for proper instrumentation
+try:
+    from shared.sentry_config import init_sentry
+    init_sentry("text-extractor")
+except ImportError:
+    pass  # Sentry not available, continue without it
+
+# Configure structured JSON logging
+from shared.logging_config import setup_logging
+from shared.middleware import RequestIDMiddleware
+
+log_level = getattr(logging, os.getenv("LOG_LEVEL", "INFO").upper(), logging.INFO)
+logger = setup_logging("text-extractor", level=log_level)
+
 import uuid
 import aiosqlite
 import tempfile
 import base64
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 from contextlib import asynccontextmanager
@@ -39,14 +59,20 @@ async def lifespan(app: FastAPI):
     global redis_client
 
     # Startup: Initialize database and Redis
+    logger.info("Service starting", extra={"event": "startup"})
     await init_db()
+    logger.info("Database initialized", extra={"event": "db_init"})
+
     redis_client = await aioredis.from_url(CELERY_BROKER_URL, decode_responses=True)
+    logger.info("Redis connection established", extra={"event": "redis_init"})
 
     yield
 
     # Shutdown: Close connections
+    logger.info("Service shutting down", extra={"event": "shutdown"})
     if redis_client:
         await redis_client.close()
+    logger.info("Resources cleaned up", extra={"event": "cleanup_complete"})
 
 
 # Create FastAPI app
@@ -56,6 +82,9 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan
 )
+
+# Request ID middleware for request tracing
+app.add_middleware(RequestIDMiddleware)
 
 
 async def init_db():
@@ -91,7 +120,7 @@ async def save_job(job_id: str, engine: str, use_gemini: bool):
             """INSERT INTO jobs (job_id, status, engine, use_gemini, created_at, progress)
                VALUES (?, ?, ?, ?, ?, ?)""",
             (job_id, JobStatus.QUEUED.value, engine, int(use_gemini),
-             datetime.utcnow().isoformat(), 0.0)
+             datetime.now(timezone.utc).isoformat(), 0.0)
         )
         await db.commit()
 
@@ -172,7 +201,7 @@ async def health_check():
 
     return HealthResponse(
         status=overall_status,
-        timestamp=datetime.utcnow(),
+        timestamp=datetime.now(timezone.utc),
         dependencies=dependencies
     )
 
@@ -252,10 +281,16 @@ async def extract_text(
         # NOTE: Temp file cleanup is handled by the Celery worker in its finally block
         # Do NOT cleanup here - causes race condition where file is deleted before worker reads it
 
+        logger.info("Extraction job submitted", extra={
+            "job_id": job_id,
+            "engine": engine.value,
+            "use_gemini": use_gemini
+        })
+
         return ExtractionResponse(
             job_id=job_id,
             status=JobStatus.QUEUED,
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(timezone.utc),
             estimated_completion=300  # 5 minutes estimate
         )
 
@@ -327,6 +362,17 @@ async def get_job_result(job_id: str):
         gemini_enhanced=bool(job["use_gemini"]),
         metadata=metadata
     )
+
+
+@app.get("/debug/sentry", tags=["Debug"])
+async def debug_sentry():
+    """
+    Test Sentry integration by triggering a test exception.
+
+    This endpoint is for debugging purposes only.
+    In production, this should be disabled or protected.
+    """
+    raise Exception("Sentry test exception from text-extractor")
 
 
 if __name__ == "__main__":

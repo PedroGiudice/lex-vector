@@ -20,8 +20,12 @@ export default defineConfig({
         'src/__tests__/**',
         'src/test/**',
       ],
-      // NOTE: 80% threshold is the goal. Currently set lower while tests are being expanded.
-      // TODO: Increase thresholds as more tests are added.
+      // Coverage thresholds - current: 10% (baseline), target: 60%, goal: 80%
+      // TODO: Increase thresholds progressively as more tests are added:
+      //   Phase 1: 10% (current - baseline)
+      //   Phase 2: 30%
+      //   Phase 3: 60%
+      //   Phase 4: 80% (target)
       thresholds: {
         statements: 10,
         branches: 10,

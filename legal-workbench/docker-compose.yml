@@ -55,6 +55,10 @@ services:
     environment:
       - DATA_PATH=/data
       - DB_PATH=/app/db/stj.duckdb
+      - LOG_LEVEL=INFO
+      - SENTRY_DSN=${SENTRY_DSN:-}
+      - ENVIRONMENT=${ENVIRONMENT:-development}
+      - APP_VERSION=${APP_VERSION:-1.0.0}
     networks:
       - legal-network
 
@@ -62,7 +66,9 @@ services:
   # 4. TEXT EXTRACTOR SERVICE - PDF Processing
   # ============================================================
   api-text-extractor:
-    build: ./docker/services/text-extractor
+    build:
+      context: .
+      dockerfile: docker/services/text-extractor/Dockerfile
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.text.rule=PathPrefix(`/api/text`)"
@@ -82,6 +88,10 @@ services:
       - MARKER_CACHE_DIR=/app/cache
       - MAX_CONCURRENT_JOBS=${MAX_CONCURRENT_JOBS:-2}
       - JOB_TIMEOUT_SECONDS=${JOB_TIMEOUT_SECONDS:-600}
+      - LOG_LEVEL=INFO
+      - SENTRY_DSN=${SENTRY_DSN:-}
+      - ENVIRONMENT=${ENVIRONMENT:-development}
+      - APP_VERSION=${APP_VERSION:-1.0.0}
     networks:
       - legal-network
     depends_on:
@@ -108,6 +118,9 @@ services:
     environment:
       - DATA_PATH=/data
       - TEMPLATES_PATH=/app/templates
+      - SENTRY_DSN=${SENTRY_DSN:-}
+      - ENVIRONMENT=${ENVIRONMENT:-development}
+      - APP_VERSION=${APP_VERSION:-1.0.0}
     networks:
       - legal-network
 
@@ -129,6 +142,9 @@ services:
     environment:
       - TRELLO_API_KEY=${TRELLO_API_KEY}
       - TRELLO_API_TOKEN=${TRELLO_API_TOKEN}
+      - SENTRY_DSN=${SENTRY_DSN:-}
+      - ENVIRONMENT=${ENVIRONMENT:-development}
+      - APP_VERSION=${APP_VERSION:-1.0.0}
     networks:
       - legal-network
 
@@ -136,7 +152,9 @@ services:
   # 7. LEDES CONVERTER - DOCX to LEDES Format
   # ============================================================
   api-ledes-converter:
-    build: ./docker/services/ledes-converter
+    build:
+      context: .
+      dockerfile: docker/services/ledes-converter/Dockerfile
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.ledes.rule=PathPrefix(`/api/ledes`)"
@@ -149,6 +167,10 @@ services:
       - shared-data:/data
     environment:
       - DATA_PATH=/data
+      - LOG_LEVEL=INFO
+      - SENTRY_DSN=${SENTRY_DSN:-}
+      - ENVIRONMENT=${ENVIRONMENT:-development}
+      - APP_VERSION=${APP_VERSION:-1.0.0}
     networks:
       - legal-network
     depends_on:
@@ -165,7 +187,9 @@ services:
   # 8. CCUI WEBSOCKET - Chat Backend for Claude Code UI
   # ============================================================
   api-ccui-ws:
-    build: ./docker/services/ccui-ws
+    build:
+      context: .
+      dockerfile: docker/services/ccui-ws/Dockerfile
     labels:
       - "traefik.enable=true"
       # WebSocket route
@@ -177,6 +201,11 @@ services:
       - "traefik.http.routers.ccui-chat.entrypoints=web"
       - "traefik.http.routers.ccui-chat.priority=15"
       - "traefik.http.services.ccui-ws.loadbalancer.server.port=8005"
+    environment:
+      - LOG_LEVEL=INFO
+      - SENTRY_DSN=${SENTRY_DSN:-}
+      - ENVIRONMENT=${ENVIRONMENT:-development}
+      - APP_VERSION=${APP_VERSION:-1.0.0}
     networks:
       - legal-network
     depends_on:
