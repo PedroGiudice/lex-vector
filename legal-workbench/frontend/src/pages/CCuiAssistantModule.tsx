@@ -66,7 +66,7 @@ export default function CCuiAssistantModule() {
     setMessages([]);
   }, []);
 
-  const handleSendMessage = useCallback((content: string) => {
+  const handleSendMessage = useCallback(async (content: string) => {
     if (!content.trim()) return;
 
     // Add user message
@@ -79,18 +79,43 @@ export default function CCuiAssistantModule() {
     setMessages(prev => [...prev, userMsg]);
     setIsProcessing(true);
 
-    // Simulate AI response (replace with real API call)
-    setTimeout(() => {
+    try {
+      // Call real backend API
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: content.trim(),
+          token: 'ccui-frontend'
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const data = await response.json();
+
       const assistantMsg: Message = {
         id: Date.now() + 1,
         role: 'assistant',
-        content: `Entendi sua solicitação sobre "${content.substring(0, 50)}..."\n\nEsta é uma resposta simulada do assistente jurídico. Em produção, aqui seria integrado com o backend de IA para processamento de documentos legais.\n\n\`\`\`python\n# Exemplo de código\ndef analyze_contract(doc):\n    return extract_clauses(doc)\n\`\`\``,
+        content: data.response || 'Sem resposta do servidor',
         type: 'text',
       };
       setMessages(prev => [...prev, assistantMsg]);
-      setIsProcessing(false);
       setContextPercent(prev => Math.min(prev + 5, 100));
-    }, 1500);
+    } catch (error) {
+      console.error('Chat API error:', error);
+      const errorMsg: Message = {
+        id: Date.now() + 1,
+        role: 'assistant',
+        content: `**Erro de conexão**\n\nNão foi possível conectar ao backend. Verifique se o serviço \`api-ccui-ws\` está rodando.\n\n\`\`\`\n${error}\n\`\`\``,
+        type: 'text',
+      };
+      setMessages(prev => [...prev, errorMsg]);
+    } finally {
+      setIsProcessing(false);
+    }
   }, []);
 
   const handleSettingsClick = useCallback(() => {
