@@ -85,6 +85,15 @@ Novo agente? Reinicie a sessao.
 
 ---
 
+## Breaking Changes Check
+
+Ao iniciar sessao, verificar se ha mudancas importantes no repo:
+1. Checar `git log -5 --oneline` para commits recentes
+2. Se houver mudancas em `ARCHITECTURE.md`, `CLAUDE.md`, ou `.claude/`, informar usuario
+3. Oferecer resumo das alteracoes relevantes
+
+---
+
 ## Team
 
 - **PGR** = Pedro (dono do projeto)

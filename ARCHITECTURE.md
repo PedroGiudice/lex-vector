@@ -37,22 +37,20 @@ python main.py
 
 ```
 Claude-Code-Projetos/
-├── agentes/              # Agentes autonomos (monitoramento continuo)
-│   ├── oab-watcher/      # Diario OAB
-│   ├── djen-tracker/     # DJEN
-│   ├── legal-lens/       # Analise NLP
-│   ├── legal-rag/        # RAG juridico
-│   ├── jurisprudencia-collector/  # Coleta jurisprudencia
-│   ├── legal-articles-finder/     # Busca artigos
-│   └── aesthetic-master/ # Formatacao/estetica
-├── comandos/             # CLI utilitarios (extract-core, fetch-doc, parse-legal, send-alert, validate-id)
-├── mcp-servers/          # Servidores MCP (djen-mcp-server)
-├── legal-extractor-cli/  # CLI extracao PDFs
-├── legal-extractor-tui/  # TUI extracao PDFs
-├── legal-workbench/      # Ambiente de trabalho legal
+├── legal-workbench/      # Dashboard juridico (PROJETO PRINCIPAL)
+│   ├── frontend/         # React frontend
+│   ├── docker/           # Services (stj-api, trello-mcp, doc-assembler, etc)
+│   ├── ferramentas/      # Python tools (stj-dados-abertos, legal-text-extractor)
+│   └── docs/             # LW-specific documentation
+├── adk-agents/           # Google ADK agents (frontend_commander, etc)
+├── claudecodeui-main/    # Claude Code UI (forked original)
+├── CCui/                 # CCui components development
+├── BASE-UI/              # UI reference/experiments
 ├── shared/               # Codigo compartilhado (utils, memory)
-├── skills/               # Skills custom
-├── docs/                 # Documentacao
+├── skills/               # Skills custom (dashboard-creator, pdf, etc)
+├── docs/                 # Global documentation and plans
+├── infra/                # Infrastructure configs (oracle)
+├── scripts/              # Setup and utility scripts
 └── .claude/              # Config (agents, hooks, skills managed)
 ```
 
@@ -95,7 +93,8 @@ Python 3.11 | Bun 1.3.4 | Node.js v22 | Ubuntu 24.04 (WSL2) | Git | Claude Code
 
 ---
 
-**Ultima atualizacao:** 2025-12-10
+**Ultima atualizacao:** 2026-01-07
+- Estrutura atualizada para refletir projeto atual
+- legal-workbench agora e projeto principal
+- Removidos diretorios obsoletos (agentes/, mcp-servers/, legal-extractor-*)
 - ADR-005: Bun 1.3.4 para hooks JS (~25% mais rapido que Node.js)
-- Stack atualizada: Bun adicionado
-- Hooks migrados de `node` para `bun run` em settings.json

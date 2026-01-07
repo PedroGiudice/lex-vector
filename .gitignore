@@ -204,3 +204,8 @@ gemini_context.txt
 
 # PDFs case-insensitive
 *.PDF
+
+# Additional venv patterns (added by hygiene cleanup)
+ledes-venv/
+*-venv/
+**/*-venv/
