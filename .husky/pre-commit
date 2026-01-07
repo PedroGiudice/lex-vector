@@ -1,2 +1,16 @@
 #!/bin/sh
-cd legal-workbench/frontend && bunx lint-staged
+# Pre-commit hook for Legal Workbench monorepo
+# Run lint/format only on staged frontend files
+export PATH="$HOME/.bun/bin:/usr/bin:/snap/bin:$PATH"
+
+# Get list of staged TS/TSX files in frontend
+STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E 'legal-workbench/frontend/.*\.(ts|tsx)$' || true)
+
+if [ -n "$STAGED_FILES" ]; then
+    echo "Running lint check on staged frontend files..."
+    cd legal-workbench/frontend
+    echo "$STAGED_FILES" | sed 's|legal-workbench/frontend/||g' | xargs -r bunx eslint --fix --quiet
+    echo "$STAGED_FILES" | sed 's|legal-workbench/frontend/||g' | xargs -r bunx prettier --write
+    cd - > /dev/null
+    git add $STAGED_FILES
+fi
