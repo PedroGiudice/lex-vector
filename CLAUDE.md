@@ -45,10 +45,9 @@ mgrep "pattern" src/      # busca em diretorio especifico
 ```
 legal-workbench/       # Projeto principal (unico foco)
 ├── frontend/          # Next.js 15 + React 19
-├── backend/           # FastAPI Python 3.12
-├── lte/               # Long Text Extraction (Marker + Gemini)
+├── ferramentas/       # Python backends e tools
+│   └── legal-text-extractor/  # LTE (Marker + Gemini)
 ├── docker/            # Servicos Docker
-├── ferramentas/       # Backends legados
 └── docs/              # Documentacao
 
 .claude/               # Config Claude Code
