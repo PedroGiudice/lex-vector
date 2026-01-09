@@ -4,12 +4,13 @@
  * context-collector-lite.js - Versão simplificada (sem orquestração)
  *
  * Trigger: UserPromptSubmit
- * Função: Coletar contexto + validações + aesthetic enforcement
+ * Função: Coletar contexto + validações
  *
- * REMOVIDO (legal-braniac redundante):
+ * REMOVIDO:
  * - Session state dependency
  * - Agent orchestration
  * - Skill detection (já feito por skill-content-injector.js)
+ * - Aesthetic enforcement (agentes/ removido)
  */
 
 const fs = require('fs');
@@ -17,16 +18,11 @@ const path = require('path');
 const { execSync } = require('child_process');
 
 // Importar apenas o necessário
-let runValidations, enforceAesthetics;
+let runValidations;
 try {
   runValidations = require('./lib/validations').runValidations;
 } catch {
   runValidations = async () => [];
-}
-try {
-  enforceAesthetics = require('./lib/aesthetic-enforcer').enforceAesthetics;
-} catch {
-  enforceAesthetics = async () => ({ passed: true });
 }
 
 // ============================================================================
@@ -114,20 +110,6 @@ async function main() {
     const failures = validations.filter(v => !v.passed);
     if (failures.length > 0) {
       parts.push(`${failures.map(f => f.message).join(' | ')}`);
-    }
-
-    // 2. AESTHETIC ENFORCEMENT (só se git commit detectado)
-    const promptText = context.prompt || '';
-    if (promptText.toLowerCase().includes('git commit')) {
-      const aesthetic = await enforceAesthetics(context);
-      if (!aesthetic.passed) {
-        parts.push(`${aesthetic.violations?.join(' | ') || 'Aesthetic violation'}`);
-        console.log(JSON.stringify({
-          continue: false,
-          systemMessage: parts.join('\n')
-        }));
-        process.exit(1);
-      }
     }
 
     // Output para Claude Code
