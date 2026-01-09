@@ -1,6 +1,0 @@
-{
-  "test_name": "STJ - Interface",
-  "status": "PASSOU",
-  "details": "Header, SearchForm com input e filtros, e as áreas de ResultsList e CaseDetail (ambas no estado vazio) foram encontradas. Uma busca por 'habeas corpus' foi realizada, mas não retornou resultados.",
-  "timestamp": "20251218_081345"
-}

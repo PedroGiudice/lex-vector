@@ -1,51 +1,50 @@
-# Claude Code Projetos
+# Legal Workbench
 
-Sistema de automacao juridica brasileira. Monitoramento de publicacoes, extracao de documentos, analise NLP e RAG juridico.
+Plataforma de automacao juridica brasileira. Extracao de documentos PDF, analise com LLM, e organizacao de dados juridicos.
 
 ## Stack
 
-- **Runtime:** Python 3.11, Node.js v22
-- **Ambiente:** Ubuntu 24.04 (WSL2)
-- **Orquestracao:** Claude Code com hooks e skills
+| Camada | Tecnologia |
+|--------|------------|
+| Frontend | Next.js 15, React 19, TypeScript, Tailwind, Shadcn/UI |
+| Backend | Python 3.12, FastAPI |
+| PDF Extraction | Marker (deep learning), pdfplumber (fallback) |
+| LLM | Google Gemini |
+| Database | PostgreSQL (Supabase) |
+| Package Managers | Bun (frontend), uv (backend) |
+| Containers | Docker, Docker Compose |
 
-## Estrutura do Projeto
+## Estrutura
 
-| Diretorio | Proposito | Quando Usar |
-|-----------|-----------|-------------|
-| `legal-workbench/` | Dashboard juridico (projeto ativo) | UI, ferramentas integradas |
-| `adk-agents/` | Agentes Google ADK | Orquestracao multi-agente |
-| `comandos/` | CLI scripts | Operacoes atomicas (fetch, parse, validate) |
-| `shared/` | Codigo compartilhado | Utils, path helpers, memoria |
-| `skills/` | Skills custom | Guidelines especializadas |
-| `.claude/` | Config Claude Code | Agents, hooks, skills managed |
+```
+legal-workbench/
+├── frontend/        # Next.js SPA
+├── backend/         # FastAPI principal
+├── lte/             # Long Text Extraction (Marker + Gemini)
+├── docker/          # Servicos Docker legados
+├── ferramentas/     # Backends Python (legado)
+└── docs/            # Documentacao
+```
 
-## Terminologia: Agentes vs Subagentes
+## Servicos
 
-| Termo | O que é | API Key | Onde no repo |
-|-------|---------|---------|--------------|
-| **Agentes** | Código Python/TS autônomo (ADK, Agent SDK) | **Exige** | `adk-agents/` (Gemini) |
-| **Subagentes** | Task Tool do Claude Code | Não exige | `.claude/agents/*.md` |
+| Servico | Porta | Proposito |
+|---------|-------|-----------|
+| legal-frontend | 3000 | Interface Next.js |
+| legal-api | 8000 | API principal |
+| lte-api | 8002 | Extracao de texto (OCR+LLM) |
 
-**Contexto deste repo:** Usamos plano Max (sem API key Claude). Portanto:
-- `adk-agents/` = Agentes Gemini (ADK) — código executável
-- `.claude/agents/` = Prompts de subagentes — usados pela Task Tool durante sessões
-
-## Comandos Essenciais
+## Comandos
 
 ```bash
-# Executar projeto Python
-cd <projeto> && source .venv/bin/activate && python main.py
+# Subir ambiente
+cd legal-workbench && docker compose up -d
 
-# Validar hooks
-tail -50 ~/.vibe-log/hooks.log
+# Frontend dev
+cd legal-workbench/frontend && bun install && bun run dev
 
-# Legal Workbench
-cd legal-workbench && source .venv/bin/activate && streamlit run app.py
-
-# Node.js - SEMPRE usar bun (não npm)
-bun install    # em vez de npm install
-bun run dev    # em vez de npm run dev
-bun run build  # em vez de npm run build
+# Backend dev
+cd legal-workbench/backend && uv sync && uv run uvicorn app.main:app --reload
 ```
 
 ## Documentacao
@@ -54,20 +53,8 @@ bun run build  # em vez de npm run build
 |---------|----------|
 | `CLAUDE.md` | Regras operacionais para Claude Code |
 | `ARCHITECTURE.md` | North Star (principios inviolaveis) |
-| `DISASTER_HISTORY.md` | Licoes aprendidas de falhas |
+| `legal-workbench/CLAUDE.md` | Regras especificas do LW |
 
-## Task Execution Patterns
+## Experimental Projects
 
-- **Swarm**: Medium-complex tasks with parallel subagents
-- **Breakdown**: Decompose large tasks into atomic units before execution
-
----
-
-## Git
-
-**OBRIGATÓRIO:**
-
-1. **Branch para alterações significativas** — >3 arquivos OU mudança estrutural = criar branch
-2. **Pull antes de trabalhar** — `git pull origin main`
-3. **Commit ao finalizar** — Nunca deixar trabalho não commitado
-4. **Deletar branch após merge** — Local e remota
+Projetos experimentais foram migrados para [claude-experiments](https://github.com/PedroGiudice/claude-experiments).

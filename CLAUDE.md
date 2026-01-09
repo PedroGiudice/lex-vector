@@ -9,55 +9,65 @@ Instrucoes operacionais para Claude Code neste repositorio.
 
 ## Regras Criticas
 
-### 1. Sempre Usar venv
+### 1. Sempre Usar venv/uv
 ```bash
-cd <projeto> && source .venv/bin/activate && python main.py
+# Backend Python
+cd legal-workbench/backend && uv sync && uv run uvicorn app.main:app --reload
+
+# Frontend
+cd legal-workbench/frontend && bun install && bun run dev
 ```
 
 ### 2. Nunca Commitar
-- `.venv/`, `__pycache__/`, `*.pdf`, `*.log`
+- `.venv/`, `__pycache__/`, `*.pdf`, `*.log`, `node_modules/`
 
-### 3. Paths Dinamicos
-```python
-from shared.utils.path_utils import get_data_dir
-```
-
-### 4. Skills
-- `skills/` = custom (requer SKILL.md)
-- `.claude/skills/` = managed (nao modificar)
-
-### 5. Gemini para Context Offloading
-**SEMPRE** usar `gemini-assistant` para:
-- Arquivos > 500 linhas
-- Multiplos arquivos simultaneos
-- Logs extensos, diffs grandes
-
-### 6. Bun OBRIGATÓRIO (nunca npm/yarn)
-**SEMPRE** usar `bun` para Node.js. Dockerfiles, CI, local — tudo Bun:
+### 3. Bun OBRIGATORIO (nunca npm/yarn)
 ```bash
 bun install && bun run dev && bun run build
 ```
-> npm/yarn proibidos. Não gerar `package-lock.json` ou `yarn.lock`.
 
-### 7. mgrep em vez de grep
-**SEMPRE** usar `mgrep` para buscas em código:
+### 4. mgrep em vez de grep
 ```bash
 mgrep "pattern"           # em vez de grep -r "pattern"
-mgrep "pattern" src/      # busca em diretório específico
+mgrep "pattern" src/      # busca em diretorio especifico
 ```
+
+### 5. Gemini para Context Offloading
+**SEMPRE** usar `gemini-assistant` (modelo: gemini-3-flash) para:
+- Arquivos > 500 linhas
+- Multiplos arquivos simultaneos
+- Logs extensos, diffs grandes
 
 ---
 
 ## Estrutura
 
 ```
-legal-workbench/   # Dashboard juridico (projeto ativo)
-adk-agents/        # Agentes ADK
-comandos/          # CLI utilitarios
-shared/            # Codigo compartilhado
-skills/            # Skills custom
-.claude/           # Config (agents, hooks, skills managed)
+legal-workbench/       # Projeto principal (unico foco)
+├── frontend/          # Next.js 15 + React 19
+├── backend/           # FastAPI Python 3.12
+├── lte/               # Long Text Extraction (Marker + Gemini)
+├── docker/            # Servicos Docker
+├── ferramentas/       # Backends legados
+└── docs/              # Documentacao
+
+.claude/               # Config Claude Code
+├── agents/            # Subagentes
+├── hooks/             # Hooks de automacao
+└── skills/            # Skills managed
 ```
+
+---
+
+## Hierarquia CLAUDE.md
+
+| Nivel | Arquivo | Escopo |
+|-------|---------|--------|
+| Raiz | `CLAUDE.md` | Regras globais |
+| LW | `legal-workbench/CLAUDE.md` | Regras do projeto |
+| Frontend | `legal-workbench/frontend/CLAUDE.md` | Regras React/Next |
+| Backend | `legal-workbench/ferramentas/CLAUDE.md` | Regras FastAPI |
+| Modulos | `legal-workbench/ferramentas/*/CLAUDE.md` | Regras especificas |
 
 ---
 
@@ -85,16 +95,13 @@ Novo agente? Reinicie a sessao.
 
 ---
 
-## Breaking Changes Check
-
-Ao iniciar sessao, verificar se ha mudancas importantes no repo:
-1. Checar `git log -5 --oneline` para commits recentes
-2. Se houver mudancas em `ARCHITECTURE.md`, `CLAUDE.md`, ou `.claude/`, informar usuario
-3. Oferecer resumo das alteracoes relevantes
-
----
-
 ## Team
 
 - **PGR** = Pedro (dono do projeto)
 - **LGP** = Leo (contribuidor ativo, socio)
+
+---
+
+## Projetos Experimentais
+
+Migrados para: https://github.com/PedroGiudice/claude-experiments
