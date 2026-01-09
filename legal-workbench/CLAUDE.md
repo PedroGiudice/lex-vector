@@ -56,6 +56,36 @@ legal-workbench/
 
 ---
 
+## VEDACOES CRITICAS (NUNCA)
+
+### Arquivos de Backup
+**NUNCA criar arquivos de backup no repositorio:**
+- `.old`, `.bak`, `.backup`, `.orig`, `.tmp`
+- `*_antigo`, `*_backup`, `*_old`
+- Copias de arquivos para "preservar"
+
+> Use branches Git para preservar codigo. Hook PreToolUse bloqueia automaticamente.
+
+### Separacao Front-Back
+**NUNCA modificar frontend ao trabalhar em backend:**
+- Tarefas de backend = APENAS arquivos em `ferramentas/` ou `docker/`
+- Tarefas de frontend = APENAS arquivos em `frontend/`
+- Excecao: alteracoes coordenadas explicitas no prompt
+
+### Granularidade de Tarefas
+**NUNCA trabalhar em multiplos modulos simultaneamente:**
+- UM modulo por tarefa
+- UM commit por mudanca logica
+- Se prompt pede multiplos modulos: dividir em tarefas sequenciais
+
+### Regressoes
+**NUNCA usar codigo de versoes anteriores:**
+- Se precisar de referencia, consulte Git history
+- NAO copiar codigo de `_archived/`
+- NAO "restaurar" versoes antigas de componentes
+
+---
+
 ## Comandos
 
 ```bash
