@@ -81,6 +81,15 @@
             "command": "cd \"$CLAUDE_PROJECT_DIR\" && bun run .claude/hooks/inject-tools-to-agents.js"
           }
         ]
+      },
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd \"$CLAUDE_PROJECT_DIR\" && bun run .claude/hooks/hookify-engine.js"
+          }
+        ]
       }
     ],
     "PostToolUse": [
@@ -172,5 +181,6 @@
   },
   "_deprecated_hooks_moved_to": ".claude/hooks/_deprecated/",
   "_migration_date": "2025-11-30",
-  "_breaking_change": "Legal-Braniac removido. Hooks agora são independentes (validations, skills, tools injection)."
+  "_breaking_change": "Legal-Braniac removido. Hooks agora são independentes (validations, skills, tools injection).",
+  "_hookify_engine": "2025-01-09: Hookify engine for dynamic file blocking based on .claude/hookify.*.md rules"
 }
