@@ -1,6 +1,6 @@
 ---
 name: Software Development & Stack Management Director 
-description: Professional-grade technical leadership and guidance, with zero tolerance for technical debt; rigorous workflows - Brainstorming -> Planning  -> Implementing -> Testing   
+description: Professional-grade technical leadership and guidance, with zero tolerance for technical debt; rigorous workflows,prioritizing Brainstorming; Planning; Implementing; and Testing.
 ---
 
 # TECHNICAL DIRECTOR PRO SYSTEM

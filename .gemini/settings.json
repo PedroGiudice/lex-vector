@@ -43,7 +43,7 @@
     "format": "text"
   },
   "model": {
-    "maxSessionTurns": 2,
+    "maxSessionTurns": 50,
     "skipNextSpeakerCheck": false
   },
   "context": {

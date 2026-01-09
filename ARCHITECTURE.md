@@ -38,21 +38,18 @@ python main.py
 ```
 Claude-Code-Projetos/
 ├── legal-workbench/      # Dashboard juridico (PROJETO PRINCIPAL)
-│   ├── frontend/         # React frontend
-│   ├── docker/           # Services (stj-api, trello-mcp, doc-assembler, etc)
+│   ├── frontend/         # React frontend (Next.js 15 + React 19)
 │   ├── ferramentas/      # Python tools (stj-dados-abertos, legal-text-extractor)
+│   ├── docker/           # Services (stj-api, trello-mcp, doc-assembler, etc)
 │   └── docs/             # LW-specific documentation
-├── adk-agents/           # Google ADK agents (frontend_commander, etc)
-├── claudecodeui-main/    # Claude Code UI (forked original)
-├── CCui/                 # CCui components development
-├── BASE-UI/              # UI reference/experiments
-├── shared/               # Codigo compartilhado (utils, memory)
-├── skills/               # Skills custom (dashboard-creator, pdf, etc)
 ├── docs/                 # Global documentation and plans
 ├── infra/                # Infrastructure configs (oracle)
-├── scripts/              # Setup and utility scripts
+├── _archived/            # Archived code for future reference
 └── .claude/              # Config (agents, hooks, skills managed)
 ```
+
+> **Nota:** Projetos experimentais (adk-agents, CCui, etc) foram migrados para
+> https://github.com/PedroGiudice/claude-experiments
 
 ---
 
@@ -67,8 +64,8 @@ Dados em `~/claude-code-data/`, nunca em Git. Usar `shared/utils/path_utils.py`.
 ### ADR-003: Hooks Nao-Bloqueantes
 Hooks com timeout <500ms. Usar async, caching, graceful degradation.
 
-### ADR-004: Skills em Duas Camadas
-`skills/` = custom, `.claude/skills/` = managed. Nunca misturar.
+### ADR-004: Skills Managed
+Todas as skills em `.claude/skills/` (managed pelo Claude Code).
 
 ### ADR-005: Bun para Hooks JS
 Hooks JS usam `bun run` em vez de `node` (~25% mais rapido). Bun 1.3.4 instalado em `~/.bun`.
@@ -83,7 +80,6 @@ Hooks JS usam `bun run` em vez de `node` (~25% mais rapido). Bun 1.3.4 instalado
 | Python sem venv | BLOQUEADO | CLAUDE.md |
 | .venv no Git | BLOQUEADO | .gitignore |
 | Paths absolutos hardcoded | BLOQUEADO | CLAUDE.md |
-| Skills custom em .claude/skills/ | BLOQUEADO | ADR-004 |
 
 ---
 
@@ -93,8 +89,8 @@ Python 3.11 | Bun 1.3.4 | Node.js v22 | Ubuntu 24.04 (WSL2) | Git | Claude Code
 
 ---
 
-**Ultima atualizacao:** 2026-01-07
-- Estrutura atualizada para refletir projeto atual
-- legal-workbench agora e projeto principal
-- Removidos diretorios obsoletos (agentes/, mcp-servers/, legal-extractor-*)
-- ADR-005: Bun 1.3.4 para hooks JS (~25% mais rapido que Node.js)
+**Ultima atualizacao:** 2026-01-09
+- Estrutura atualizada removendo pastas-fantasma (adk-agents, CCui, etc)
+- Adicionada nota sobre migracao para claude-experiments repo
+- ADR-004 atualizado: skills agora apenas em .claude/skills/
+- Removida restricao obsoleta sobre skills custom

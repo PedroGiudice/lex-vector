@@ -429,6 +429,28 @@
         ]
       }
     },
+    "gemini-cli": {
+      "type": "domain",
+      "enforcement": "suggest",
+      "priority": "high",
+      "description": "Gemini CLI integration for context offloading - correct syntax, flags, and patterns",
+      "promptTriggers": {
+        "keywords": [
+          "gemini",
+          "context offloading",
+          "large files",
+          "summarize",
+          "second opinion",
+          "gemini-assistant",
+          "gemini CLI"
+        ],
+        "intentPatterns": [
+          "(use|call|run).*?gemini",
+          "(delegate|offload).*?(analysis|context)",
+          "(large|big).*?(file|context).*?(gemini|analyze)"
+        ]
+      }
+    },
     "git-pushing": {
       "type": "utility",
       "enforcement": "suggest",

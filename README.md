@@ -19,10 +19,9 @@ Plataforma de automacao juridica brasileira. Extracao de documentos PDF, analise
 ```
 legal-workbench/
 ├── frontend/        # Next.js SPA
-├── backend/         # FastAPI principal
-├── lte/             # Long Text Extraction (Marker + Gemini)
-├── docker/          # Servicos Docker legados
-├── ferramentas/     # Backends Python (legado)
+├── ferramentas/     # Python backends e tools
+│   └── legal-text-extractor/  # LTE (Marker + Gemini)
+├── docker/          # Servicos Docker
 └── docs/            # Documentacao
 ```
 
@@ -32,7 +31,6 @@ legal-workbench/
 |---------|-------|-----------|
 | legal-frontend | 3000 | Interface Next.js |
 | legal-api | 8000 | API principal |
-| lte-api | 8002 | Extracao de texto (OCR+LLM) |
 
 ## Comandos
 
@@ -43,8 +41,8 @@ cd legal-workbench && docker compose up -d
 # Frontend dev
 cd legal-workbench/frontend && bun install && bun run dev
 
-# Backend dev
-cd legal-workbench/backend && uv sync && uv run uvicorn app.main:app --reload
+# LTE dev
+cd legal-workbench/ferramentas/legal-text-extractor && source .venv/bin/activate && python main.py
 ```
 
 ## Documentacao
