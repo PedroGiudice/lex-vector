@@ -88,10 +88,10 @@ Red flags: `MODULE_NOT_FOUND`, `command not found`
 
 ---
 
-## Agentes Discovery
+## Subagentes Discovery
 
-Agentes de `.claude/agents/*.md` descobertos no inicio da sessao.
-Novo agente? Reinicie a sessao.
+Subagentes de `.claude/agents/*.md` descobertos no inicio da sessao.
+Novo subagente? Reinicie a sessao.
 
 ---
 
@@ -99,6 +99,17 @@ Novo agente? Reinicie a sessao.
 
 - **PGR** = Pedro (dono do projeto)
 - **LGP** = Leo (contribuidor ativo, socio)
+
+---
+
+## Terminologia
+
+| Termo | Significado | Localização |
+|-------|-------------|-------------|
+| **Agentes** | ADK Agents autônomos (Gemini/Python) | Repositório externo |
+| **Subagentes** | Task tools executados via Claude Code | `.claude/agents/*.md` |
+
+> **Nota:** Arquivos de hooks usam o prefixo `subagent-` para refletir esta distinção.
 
 ---
 

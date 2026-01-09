@@ -1,5 +1,5 @@
 /**
- * lib/agent-suggester.js - Suggests relevant agents based on prompt context
+ * lib/subagent-suggester.js - Suggests relevant subagents based on prompt context
  *
  * Called by UserPromptSubmit hook to suggest agents for the current task.
  * Outputs suggestions to stdout (added to context as system-reminder).
@@ -7,7 +7,7 @@
  * Version: 1.0.0
  */
 
-const { detectAgent, formatAgentSuggestions } = require('./agent-detector');
+const { detectAgent, formatAgentSuggestions } = require('./subagent-detector');
 
 /**
  * Main entry point
@@ -47,7 +47,7 @@ function main() {
 
     process.exit(0);
   } catch (error) {
-    console.error(`[ERROR] agent-suggester.js: ${error.message}`);
+    console.error(`[ERROR] subagent-suggester.js: ${error.message}`);
     process.exit(1);
   }
 }

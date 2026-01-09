@@ -57,8 +57,10 @@ cd legal-workbench/backend && uv sync && uv run uvicorn app.main:app --reload
 
 ## Task Execution Patterns
 
-- **Swarm**: Medium-complex tasks with parallel subagents
-- **Breakdown**: Decompose large tasks into atomic units before execution
+- **Swarm**: Tarefas medio-complexas com subagentes paralelos
+- **Breakdown**: Decompor tarefas grandes em unidades atomicas antes da execucao
+
+> **Terminologia:** "Subagentes" sao Task tools (`.claude/agents/*.md`) executados via Claude Code. "Agentes" ADK autonomos estao em repositorio separado.
 
 ## Git
 

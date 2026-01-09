@@ -1,5 +1,5 @@
 /**
- * lib/agent-detector.js - Agent auto-detection based on context
+ * lib/subagent-detector.js - Subagent auto-detection based on context
  *
  * Similar to skill-detector.js but for agents.
  * Detects which agents are most relevant for the current prompt.
@@ -41,7 +41,7 @@ function matchKeywordWithBoundary(text, keyword) {
 function detectAgent(prompt, modifiedFiles = []) {
   try {
     const projectDir = process.env.CLAUDE_PROJECT_DIR || process.cwd();
-    const rulesPath = path.join(projectDir, '.claude', 'hooks', 'lib', 'agent-rules.json');
+    const rulesPath = path.join(projectDir, '.claude', 'hooks', 'lib', 'subagent-rules.json');
 
     if (!fs.existsSync(rulesPath)) {
       return null;
@@ -155,7 +155,7 @@ function detectAgent(prompt, modifiedFiles = []) {
     };
 
   } catch (error) {
-    console.error(`[ERROR] agent-detector.js: ${error.message}`);
+    console.error(`[ERROR] subagent-detector.js: ${error.message}`);
     return null;
   }
 }
@@ -225,7 +225,7 @@ if (require.main === module) {
   const prompt = process.env.CLAUDE_USER_PROMPT || process.argv[2] || '';
 
   if (!prompt) {
-    console.log('Usage: CLAUDE_USER_PROMPT="your prompt" node agent-detector.js');
+    console.log('Usage: CLAUDE_USER_PROMPT="your prompt" node subagent-detector.js');
     process.exit(0);
   }
 

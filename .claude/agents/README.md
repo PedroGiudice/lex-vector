@@ -1,4 +1,7 @@
-# Agents
+# Subagentes
+
+> **IMPORTANTE:** Estes sao **Subagentes** (Task tools executados via Claude Code), NAO "Agentes ADK".
+> Agentes ADK autonomos (Gemini/Python) estao no repositorio [claude-experiments](https://github.com/PedroGiudice/claude-experiments).
 
 **Status:** Fonte da verdade em `.claude/agents/` (repo), sync automatico para global
 
@@ -16,12 +19,12 @@ Sincronizacao automatica no inicio de cada sessao.
 
 ---
 
-## Agentes Disponiveis (18)
+## Subagentes Disponiveis (18)
 
 ### CORE DEVELOPMENT (6)
 
-| Agent | Skills Relacionadas | Uso |
-|-------|---------------------|-----|
+| Subagent | Skills Relacionadas | Uso |
+|----------|---------------------|-----|
 | `frontend-developer` | frontend-dev-guidelines | React/TypeScript |
 | `backend-architect` | backend-dev-guidelines, error-tracking | Node/Express |
 | `ai-engineer` | backend-dev-guidelines | LLM/RAG systems |
@@ -31,8 +34,8 @@ Sincronizacao automatica no inicio de cada sessao.
 
 ### PLANNING & DOCS (4)
 
-| Agent | Skills Relacionadas | Uso |
-|-------|---------------------|-----|
+| Subagent | Skills Relacionadas | Uso |
+|----------|---------------------|-----|
 | `documentation-architect` | writing-plans | Documentacao tecnica |
 | `plan-with-skills` | brainstorming, writing-plans | Planejamento |
 | `plan-reviewer` | writing-plans | Review de planos |
@@ -40,8 +43,8 @@ Sincronizacao automatica no inicio de cada sessao.
 
 ### PROJECT-SPECIFIC (5)
 
-| Agent | Skills Relacionadas | Uso |
-|-------|---------------------|-----|
+| Subagent | Skills Relacionadas | Uso |
+|----------|---------------------|-----|
 | `fasthtml-bff-developer` | backend-dev-guidelines | FastHTML/HTMX |
 | `auth-route-debugger` | route-tester | Auth debugging |
 | `analise-dados-legal` | (dominio) | Analise juridica |
@@ -50,8 +53,8 @@ Sincronizacao automatica no inicio de cada sessao.
 
 ### UTILITY (3)
 
-| Agent | Skills Relacionadas | Uso |
-|-------|---------------------|-----|
+| Subagent | Skills Relacionadas | Uso |
+|----------|---------------------|-----|
 | `vibe-log-report-generator` | mem-search | Session reports |
 | `qualidade-codigo` | backend-dev-guidelines, frontend-dev-guidelines | Code audits |
 
@@ -60,26 +63,26 @@ Sincronizacao automatica no inicio de cada sessao.
 ## Como Usar
 
 ```
-Use the [agent-name] agent to [task]
+Use the [subagent-name] subagent to [task]
 ```
 
 ---
 
-## Adicionar Novo Agente
+## Adicionar Novo Subagente
 
-Crie em `.claude/agents/meu-agente.md`:
+Crie em `.claude/agents/meu-subagente.md`:
 
 ```markdown
 ---
-name: meu-agente
-description: O que o agente faz
+name: meu-subagente
+description: O que o subagente faz
 ---
 
-# Instrucoes do Agente
+# Instrucoes do Subagente
 ...
 ```
 
-**IMPORTANTE:** Reinicie a sessao para descobrir novos agentes.
+**IMPORTANTE:** Reinicie a sessao para descobrir novos subagentes.
 
 ---
 

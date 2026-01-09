@@ -128,7 +128,7 @@
           },
           {
             "type": "command",
-            "command": "cd \"$CLAUDE_PROJECT_DIR\" && bun run .claude/hooks/lib/agent-suggester.js"
+            "command": "cd \"$CLAUDE_PROJECT_DIR\" && bun run .claude/hooks/lib/subagent-suggester.js"
           },
           {
             "type": "command",
@@ -154,7 +154,6 @@
     "frontend-design@claude-plugins-official": true,
     "serena@claude-plugins-official": true,
     "atlassian@claude-plugins-official": true,
-    "hookify@claude-plugins-official": true,
     "ralph-wiggum@claude-plugins-official": true,
     "github@claude-plugins-official": true,
     "feature-dev@claude-plugins-official": true,
@@ -182,5 +181,6 @@
   "_deprecated_hooks_moved_to": ".claude/hooks/_deprecated/",
   "_migration_date": "2025-11-30",
   "_breaking_change": "Legal-Braniac removido. Hooks agora são independentes (validations, skills, tools injection).",
-  "_hookify_engine": "2025-01-09: Hookify engine for dynamic file blocking based on .claude/hookify.*.md rules"
+  "_hookify_engine": "2025-01-09: Hookify engine for dynamic file blocking based on .claude/hookify.*.md rules",
+  "_hookify_plugin_disabled": "2026-01-09: Plugin oficial desabilitado - usamos hookify-engine.js local (mais rapido, sem dependencias quebradas)"
 }
