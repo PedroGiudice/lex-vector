@@ -12,10 +12,10 @@
 The LEDES Converter module has been reviewed and corrected to align with project standards. The code is production-ready with high quality, proper TypeScript typing, accessibility features, and comprehensive test coverage.
 
 ### Files Reviewed
-1. `/home/cmr-auto/claude-work/repos/Claude-Code-Projetos/legal-workbench/frontend/src/pages/LedesConverterModule.tsx`
-2. `/home/cmr-auto/claude-work/repos/Claude-Code-Projetos/legal-workbench/frontend/src/store/ledesConverterStore.ts`
-3. `/home/cmr-auto/claude-work/repos/Claude-Code-Projetos/legal-workbench/frontend/src/services/ledesConverterApi.ts`
-4. `/home/cmr-auto/claude-work/repos/Claude-Code-Projetos/legal-workbench/frontend/src/types/index.ts` (LEDES types)
+1. `/home/cmr-auto/claude-work/repos/lex-vector/legal-workbench/frontend/src/pages/LedesConverterModule.tsx`
+2. `/home/cmr-auto/claude-work/repos/lex-vector/legal-workbench/frontend/src/store/ledesConverterStore.ts`
+3. `/home/cmr-auto/claude-work/repos/lex-vector/legal-workbench/frontend/src/services/ledesConverterApi.ts`
+4. `/home/cmr-auto/claude-work/repos/lex-vector/legal-workbench/frontend/src/types/index.ts` (LEDES types)
 
 ---
 
@@ -132,8 +132,8 @@ The LEDES Converter module has been reviewed and corrected to align with project
 ## Test Coverage
 
 ### Created Test Files
-1. `/home/cmr-auto/claude-work/repos/Claude-Code-Projetos/legal-workbench/frontend/src/__tests__/ledesConverterStore.test.ts`
-2. `/home/cmr-auto/claude-work/repos/Claude-Code-Projetos/legal-workbench/frontend/src/__tests__/ledesConverterApi.test.ts`
+1. `/home/cmr-auto/claude-work/repos/lex-vector/legal-workbench/frontend/src/__tests__/ledesConverterStore.test.ts`
+2. `/home/cmr-auto/claude-work/repos/lex-vector/legal-workbench/frontend/src/__tests__/ledesConverterApi.test.ts`
 
 ### Test Coverage Summary
 - **Store Tests:** 12 test cases covering all actions and state transitions
@@ -307,30 +307,30 @@ All corrections have been applied directly to the source files. The module is re
 
 ## Files Modified
 
-1. `/home/cmr-auto/claude-work/repos/Claude-Code-Projetos/legal-workbench/frontend/src/pages/LedesConverterModule.tsx`
+1. `/home/cmr-auto/claude-work/repos/lex-vector/legal-workbench/frontend/src/pages/LedesConverterModule.tsx`
    - Fixed design system class (`bg-surface-elevated` → `bg-bg-panel-1`)
    - Removed unnecessary `useMemo`
    - Added ARIA attributes for accessibility
    - Removed unused import
 
-2. `/home/cmr-auto/claude-work/repos/Claude-Code-Projetos/legal-workbench/frontend/src/store/ledesConverterStore.ts`
+2. `/home/cmr-auto/claude-work/repos/lex-vector/legal-workbench/frontend/src/store/ledesConverterStore.ts`
    - Improved error handling in `downloadResult()`
    - Added try-catch for download failures
    - Added ARIA label to download link
    - Improved JSDoc comments
 
-3. `/home/cmr-auto/claude-work/repos/Claude-Code-Projetos/legal-workbench/frontend/src/services/ledesConverterApi.ts`
+3. `/home/cmr-auto/claude-work/repos/lex-vector/legal-workbench/frontend/src/services/ledesConverterApi.ts`
    - Added comprehensive JSDoc documentation
    - Added 30-second timeout to API calls
    - Improved code comments
 
 ## Files Created
 
-1. `/home/cmr-auto/claude-work/repos/Claude-Code-Projetos/legal-workbench/frontend/src/__tests__/ledesConverterStore.test.ts`
+1. `/home/cmr-auto/claude-work/repos/lex-vector/legal-workbench/frontend/src/__tests__/ledesConverterStore.test.ts`
    - 12 comprehensive test cases for store
 
-2. `/home/cmr-auto/claude-work/repos/Claude-Code-Projetos/legal-workbench/frontend/src/__tests__/ledesConverterApi.test.ts`
+2. `/home/cmr-auto/claude-work/repos/lex-vector/legal-workbench/frontend/src/__tests__/ledesConverterApi.test.ts`
    - 10 comprehensive test cases for API utilities
 
-3. `/home/cmr-auto/claude-work/repos/Claude-Code-Projetos/legal-workbench/frontend/LEDES_CODE_REVIEW.md`
+3. `/home/cmr-auto/claude-work/repos/lex-vector/legal-workbench/frontend/LEDES_CODE_REVIEW.md`
    - This review document

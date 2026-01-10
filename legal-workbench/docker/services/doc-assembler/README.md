@@ -34,7 +34,7 @@ legal-workbench/
 ### Docker (Recommended)
 
 ```bash
-cd /home/user/Claude-Code-Projetos/legal-workbench/docker
+cd /home/user/lex-vector/legal-workbench/docker
 
 # Start service
 docker-compose up doc-assembler
@@ -46,7 +46,7 @@ docker-compose up
 ### Local Development
 
 ```bash
-cd /home/user/Claude-Code-Projetos/legal-workbench/docker/services/doc-assembler
+cd /home/user/lex-vector/legal-workbench/docker/services/doc-assembler
 
 # Install dependencies
 pip install -r requirements.txt
@@ -330,7 +330,7 @@ All errors follow this format:
 
 ### Modifying Backend Logic
 
-Edit files in `/home/user/Claude-Code-Projetos/legal-workbench/ferramentas/legal-doc-assembler/src/`:
+Edit files in `/home/user/lex-vector/legal-workbench/ferramentas/legal-doc-assembler/src/`:
 - `engine.py` - Core rendering logic
 - `normalizers.py` - Text normalization functions
 
@@ -387,7 +387,7 @@ Ensure template exists in mounted volume:
 docker exec lw-doc-assembler ls -la /app/templates
 
 # Or locally
-ls -la /home/user/Claude-Code-Projetos/legal-workbench/ferramentas/legal-doc-assembler/templates/
+ls -la /home/user/lex-vector/legal-workbench/ferramentas/legal-doc-assembler/templates/
 ```
 
 ### Import errors
@@ -415,8 +415,8 @@ Part of Claude Code Projetos - Legal Workbench
 ## Support
 
 For issues or questions, check:
-1. `/home/user/Claude-Code-Projetos/legal-workbench/CLAUDE.md` - Project rules
-2. `/home/user/Claude-Code-Projetos/ARCHITECTURE.md` - System architecture
+1. `/home/user/lex-vector/legal-workbench/CLAUDE.md` - Project rules
+2. `/home/user/lex-vector/ARCHITECTURE.md` - System architecture
 3. Container logs: `docker-compose logs doc-assembler`
 
 ---

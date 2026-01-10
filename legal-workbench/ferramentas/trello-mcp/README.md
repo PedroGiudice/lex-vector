@@ -665,7 +665,7 @@ pip install -e .
 Para retomar desenvolvimento:
 
 ```bash
-cd ~/claude-work/repos/Claude-Code-Projetos/ferramentas/trello-mcp
+cd ~/claude-work/repos/lex-vector/ferramentas/trello-mcp
 
 # Verificar status
 git status

@@ -581,4 +581,4 @@ O serviço Text Extractor está **pronto para produção** com as seguintes cara
 ---
 
 **Contato:** Claude Code (Backend Architect)
-**Repositório:** `/home/user/Claude-Code-Projetos/legal-workbench/`
+**Repositório:** `/home/user/lex-vector/legal-workbench/`

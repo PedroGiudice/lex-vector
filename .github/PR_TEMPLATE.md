@@ -207,7 +207,7 @@ Implementação completa de sistema de hooks não bloqueantes para Windows CLI, 
 
 ### Windows
 ```powershell
-cd C:\claude-work\repos\Claude-Code-Projetos
+cd C:\claude-work\repos\lex-vector
 git pull
 
 # Validar hook individual
@@ -220,7 +220,7 @@ claude
 
 ### Linux
 ```bash
-cd /home/user/Claude-Code-Projetos
+cd /home/user/lex-vector
 git pull
 
 # Validar hook individual

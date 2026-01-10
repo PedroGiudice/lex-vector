@@ -6,7 +6,7 @@ Guia rápido para subir a API STJ Dados Abertos.
 
 ```bash
 # 1. Navegar até o diretório da API
-cd /home/user/Claude-Code-Projetos/legal-workbench/docker/services/stj-api
+cd /home/user/lex-vector/legal-workbench/docker/services/stj-api
 
 # 2. Subir o container
 docker-compose up --build
@@ -22,7 +22,7 @@ Documentação Swagger: http://localhost:8000/docs
 
 ```bash
 # 1. Na raiz do legal-workbench
-cd /home/user/Claude-Code-Projetos/legal-workbench
+cd /home/user/lex-vector/legal-workbench
 
 # 2. Build da imagem
 docker build -f docker/services/stj-api/Dockerfile -t stj-api .
@@ -46,7 +46,7 @@ cd docker/services/stj-api
 
 ```bash
 # 1. Ativar venv do legal-workbench
-cd /home/user/Claude-Code-Projetos/legal-workbench
+cd /home/user/lex-vector/legal-workbench
 source .venv/bin/activate
 
 # 2. Instalar dependências da API
@@ -99,7 +99,7 @@ A API precisa de dados no banco DuckDB. Para popular:
 
 ```bash
 # Navegar até o backend
-cd /home/user/Claude-Code-Projetos/legal-workbench/ferramentas/stj-dados-abertos
+cd /home/user/lex-vector/legal-workbench/ferramentas/stj-dados-abertos
 
 # Ativar venv
 source .venv/bin/activate
@@ -169,4 +169,4 @@ docker run --rm -v stj-api-data:/data -v $(pwd):/backup \
 - Logs: `docker logs stj-api`
 - Health: `curl http://localhost:8000/health`
 - Docs: http://localhost:8000/docs
-- Backend: `/home/user/Claude-Code-Projetos/legal-workbench/ferramentas/stj-dados-abertos`
+- Backend: `/home/user/lex-vector/legal-workbench/ferramentas/stj-dados-abertos`

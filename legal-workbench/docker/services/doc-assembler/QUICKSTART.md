@@ -6,13 +6,13 @@
 
 #### Using Docker (Recommended)
 ```bash
-cd /home/user/Claude-Code-Projetos/legal-workbench/docker
+cd /home/user/lex-vector/legal-workbench/docker
 docker-compose up doc-assembler
 ```
 
 #### Using Python Directly
 ```bash
-cd /home/user/Claude-Code-Projetos/legal-workbench/docker/services/doc-assembler
+cd /home/user/lex-vector/legal-workbench/docker/services/doc-assembler
 pip install -r requirements.txt
 uvicorn api.main:app --host 0.0.0.0 --port 8002 --reload
 ```
@@ -37,19 +37,19 @@ Expected output:
 
 #### Option A: Using Python Test Suite
 ```bash
-cd /home/user/Claude-Code-Projetos/legal-workbench/docker/services/doc-assembler
+cd /home/user/lex-vector/legal-workbench/docker/services/doc-assembler
 python test_api.py
 ```
 
 #### Option B: Using curl
 ```bash
-cd /home/user/Claude-Code-Projetos/legal-workbench/docker/services/doc-assembler
+cd /home/user/lex-vector/legal-workbench/docker/services/doc-assembler
 ./examples/simple_curl_tests.sh
 ```
 
 #### Option C: Using Python Client
 ```bash
-cd /home/user/Claude-Code-Projetos/legal-workbench/docker/services/doc-assembler
+cd /home/user/lex-vector/legal-workbench/docker/services/doc-assembler
 python examples/python_client_example.py
 ```
 
@@ -128,7 +128,7 @@ docker-compose build --no-cache doc-assembler
 
 Templates should be in:
 ```
-/home/user/Claude-Code-Projetos/legal-workbench/ferramentas/legal-doc-assembler/templates/
+/home/user/lex-vector/legal-workbench/ferramentas/legal-doc-assembler/templates/
 ```
 
 Check they're mounted correctly:
@@ -150,7 +150,7 @@ docker exec lw-doc-assembler python -c "import sys; print('\n'.join(sys.path))"
 1. Read full documentation: `README.md`
 2. Check API endpoints: http://localhost:8002/docs
 3. See Python client example: `examples/python_client_example.py`
-4. Review backend code: `/home/user/Claude-Code-Projetos/legal-workbench/ferramentas/legal-doc-assembler/src/`
+4. Review backend code: `/home/user/lex-vector/legal-workbench/ferramentas/legal-doc-assembler/src/`
 
 ---
 

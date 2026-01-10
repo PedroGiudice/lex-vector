@@ -1,6 +1,8 @@
-# Legal Workbench
+# Lex-Vector (LV)
 
 Plataforma de automacao juridica brasileira. Extracao de documentos PDF, analise com LLM, e organizacao de dados juridicos.
+
+> **Nota:** O diretório `legal-workbench/` é o nome de código interno do projeto Lex-Vector.
 
 ## Stack
 
@@ -51,7 +53,7 @@ cd legal-workbench/ferramentas/legal-text-extractor && source .venv/bin/activate
 |---------|----------|
 | `CLAUDE.md` | Regras operacionais para Claude Code |
 | `ARCHITECTURE.md` | North Star (principios inviolaveis) |
-| `legal-workbench/CLAUDE.md` | Regras especificas do LW |
+| `legal-workbench/CLAUDE.md` | Regras especificas do LV |
 
 ## Task Execution Patterns
 

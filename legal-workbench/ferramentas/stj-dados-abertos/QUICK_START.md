@@ -6,7 +6,7 @@ Guia rápido para começar a usar o sistema em 5 minutos.
 
 ```bash
 # Ir para o diretório
-cd ~/claude-work/repos/Claude-Code-Projetos/ferramentas/stj-dados-abertos
+cd ~/claude-work/repos/lex-vector/ferramentas/stj-dados-abertos
 
 # Ativar venv
 source .venv/bin/activate
@@ -260,7 +260,7 @@ python cli.py stj-processar-staging
    ```bash
    # download_diario.sh
    #!/bin/bash
-   cd ~/claude-work/repos/Claude-Code-Projetos/ferramentas/stj-dados-abertos
+   cd ~/claude-work/repos/lex-vector/ferramentas/stj-dados-abertos
    source .venv/bin/activate
    python cli.py stj-download-mvp
    python cli.py stj-processar-staging

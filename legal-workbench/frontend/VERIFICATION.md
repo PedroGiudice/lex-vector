@@ -186,7 +186,7 @@ Use this checklist to verify the frontend implementation is complete and correct
 
 ### Development Build
 ```bash
-cd /home/cmr-auto/claude-work/repos/Claude-Code-Projetos/legal-workbench/frontend
+cd /home/cmr-auto/claude-work/repos/lex-vector/legal-workbench/frontend
 npm install
 npm run dev
 ```

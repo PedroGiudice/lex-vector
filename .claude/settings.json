@@ -100,6 +100,15 @@
     ],
     "PermissionRequest": [
       {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd \"$CLAUDE_PROJECT_DIR\" && node .claude/hooks/block-commit-main.js"
+          }
+        ]
+      },
+      {
         "matcher": "*",
         "hooks": [
           {

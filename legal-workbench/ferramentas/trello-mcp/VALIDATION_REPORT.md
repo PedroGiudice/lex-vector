@@ -157,7 +157,7 @@ dev = [
 
 ### 1. Fazer Pull (se necessário)
 ```bash
-cd ~/claude-work/repos/Claude-Code-Projetos/ferramentas/trello-mcp
+cd ~/claude-work/repos/lex-vector/ferramentas/trello-mcp
 git pull
 ```
 

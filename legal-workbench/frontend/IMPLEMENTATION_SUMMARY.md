@@ -18,7 +18,7 @@ Complete React + TypeScript frontend implementation for the legal document templ
 ## File Structure
 
 ```
-/home/cmr-auto/claude-work/repos/Claude-Code-Projetos/legal-workbench/frontend/
+/home/cmr-auto/claude-work/repos/lex-vector/legal-workbench/frontend/
 ├── src/
 │   ├── components/
 │   │   ├── layout/
@@ -162,7 +162,7 @@ The frontend expects these backend endpoints:
 
 ### Install Dependencies
 ```bash
-cd /home/cmr-auto/claude-work/repos/Claude-Code-Projetos/legal-workbench/frontend
+cd /home/cmr-auto/claude-work/repos/lex-vector/legal-workbench/frontend
 npm install
 ```
 
@@ -403,4 +403,4 @@ This implementation is production-ready with:
 
 **Last Updated:** 2025-12-17
 **Implementation Status:** Complete
-**Location:** `/home/cmr-auto/claude-work/repos/Claude-Code-Projetos/legal-workbench/frontend/`
+**Location:** `/home/cmr-auto/claude-work/repos/lex-vector/legal-workbench/frontend/`

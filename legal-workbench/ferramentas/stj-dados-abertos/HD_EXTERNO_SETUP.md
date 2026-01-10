@@ -5,7 +5,7 @@
 ### Opção 1: Rodar o script automático (RECOMENDADO)
 
 ```bash
-cd ~/claude-work/repos/Claude-Code-Projetos/ferramentas/stj-dados-abertos
+cd ~/claude-work/repos/lex-vector/ferramentas/stj-dados-abertos
 ./setup_hd_externo.sh
 ```
 

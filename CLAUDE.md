@@ -43,7 +43,7 @@ mgrep "pattern" src/      # busca em diretorio especifico
 ## Estrutura
 
 ```
-legal-workbench/       # Projeto principal (unico foco)
+legal-workbench/       # Lex-Vector (LV) - Projeto principal
 ├── frontend/          # Next.js 15 + React 19
 ├── ferramentas/       # Python backends e tools
 │   └── legal-text-extractor/  # LTE (Marker + Gemini)
@@ -63,7 +63,7 @@ legal-workbench/       # Projeto principal (unico foco)
 | Nivel | Arquivo | Escopo |
 |-------|---------|--------|
 | Raiz | `CLAUDE.md` | Regras globais |
-| LW | `legal-workbench/CLAUDE.md` | Regras do projeto |
+| LV | `legal-workbench/CLAUDE.md` | Regras do projeto |
 | Frontend | `legal-workbench/frontend/CLAUDE.md` | Regras React/Next |
 | Backend | `legal-workbench/ferramentas/CLAUDE.md` | Regras FastAPI |
 | Modulos | `legal-workbench/ferramentas/*/CLAUDE.md` | Regras especificas |

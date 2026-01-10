@@ -1,5 +1,5 @@
 ---
-name: lw-no-python-in-frontend
+name: lv-no-python-in-frontend
 enabled: true
 event: file
 action: block
@@ -13,7 +13,7 @@ conditions:
 
 Tentativa de criar arquivo `.py` dentro de `frontend/`.
 
-**Regra:** O frontend do LW é **TypeScript/Next.js only**.
+**Regra:** O frontend do LV (Lex-Vector) é **TypeScript/Next.js only**.
 
 **Estrutura correta:**
 ```
@@ -28,4 +28,4 @@ legal-workbench/
 - Se é utilitário compartilhado: coloque em `shared/`
 - Se é script de build/deploy: coloque em `scripts/`
 
-> Regra: .claude/hookify.lw-no-python-in-frontend.local.md
+> Regra: .claude/hookify.lv-no-python-in-frontend.local.md

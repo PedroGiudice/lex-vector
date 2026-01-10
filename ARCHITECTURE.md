@@ -10,7 +10,7 @@ Sistema de automacao juridica brasileira com agentes Python.
 
 | Camada | Local | Git |
 |--------|-------|-----|
-| **Codigo** | `~/claude-work/repos/Claude-Code-Projetos/` | Sim |
+| **Codigo** | `~/claude-work/repos/lex-vector/` | Sim |
 | **Ambiente** | `agentes/*/.venv/` | Nunca |
 | **Dados** | `~/claude-code-data/` | Nunca |
 
@@ -36,12 +36,12 @@ python main.py
 ## Estrutura do Projeto
 
 ```
-Claude-Code-Projetos/
-├── legal-workbench/      # Dashboard juridico (PROJETO PRINCIPAL)
+lex-vector/
+├── legal-workbench/      # Lex-Vector (LV) - PROJETO PRINCIPAL
 │   ├── frontend/         # React frontend (Next.js 15 + React 19)
 │   ├── ferramentas/      # Python tools (stj-dados-abertos, legal-text-extractor)
 │   ├── docker/           # Services (stj-api, trello-mcp, doc-assembler, etc)
-│   └── docs/             # LW-specific documentation
+│   └── docs/             # LV-specific documentation
 ├── docs/                 # Global documentation and plans
 ├── infra/                # Infrastructure configs (oracle)
 ├── _archived/            # Archived code for future reference

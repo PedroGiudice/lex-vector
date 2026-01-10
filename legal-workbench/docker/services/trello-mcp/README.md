@@ -190,7 +190,7 @@ The API categorizes errors for proper handling:
 
 ```bash
 # Navigate to trello-mcp directory
-cd /home/user/Claude-Code-Projetos/legal-workbench/ferramentas/trello-mcp
+cd /home/user/lex-vector/legal-workbench/ferramentas/trello-mcp
 
 # Activate virtual environment
 source .venv/bin/activate

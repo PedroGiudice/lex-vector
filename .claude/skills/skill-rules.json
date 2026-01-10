@@ -2,7 +2,7 @@
   "description": "Auto-activation rules for 35 installed skills - Legal automation context",
   "version": "1.0.0",
   "context": {
-    "project": "Claude-Code-Projetos",
+    "project": "lex-vector",
     "domain": "Legal automation (Brazilian law - OAB, DJEN, RAG)",
     "stack": "Python 3.14, Windows corporate, 3-layer architecture",
     "rules": [

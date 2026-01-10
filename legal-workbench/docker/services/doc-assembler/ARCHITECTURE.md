@@ -494,6 +494,6 @@ docker exec -it lw-doc-assembler bash
 
 - **API Reference:** `README.md`
 - **Quick Start:** `QUICKSTART.md`
-- **Backend Engine:** `/home/user/Claude-Code-Projetos/legal-workbench/ferramentas/legal-doc-assembler/README.md`
-- **Project Rules:** `/home/user/Claude-Code-Projetos/legal-workbench/CLAUDE.md`
-- **System Architecture:** `/home/user/Claude-Code-Projetos/ARCHITECTURE.md`
+- **Backend Engine:** `/home/user/lex-vector/legal-workbench/ferramentas/legal-doc-assembler/README.md`
+- **Project Rules:** `/home/user/lex-vector/legal-workbench/CLAUDE.md`
+- **System Architecture:** `/home/user/lex-vector/ARCHITECTURE.md`

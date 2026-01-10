@@ -221,7 +221,7 @@ Copie `.env.example` para `.env` e configure:
 Subir com logs em tempo real:
 
 ```bash
-cd /home/user/Claude-Code-Projetos/legal-workbench/docker
+cd /home/user/lex-vector/legal-workbench/docker
 docker-compose up
 ```
 
@@ -852,7 +852,7 @@ curl -X POST "http://localhost:8002/assemble" \
 crontab -e
 
 # Backup diário às 3AM
-0 3 * * * /home/user/Claude-Code-Projetos/legal-workbench/docker/scripts/backup.sh
+0 3 * * * /home/user/lex-vector/legal-workbench/docker/scripts/backup.sh
 
 # Limpeza semanal de volumes não usados
 0 4 * * 0 docker volume prune -f
@@ -956,9 +956,9 @@ pip-audit -r requirements.txt
 
 ## References
 
-- **Documentação Técnica:** `/home/user/Claude-Code-Projetos/docs/docker/DOCKER_ARCHITECTURE.md`
-- **Diagramas de Fluxo:** `/home/user/Claude-Code-Projetos/docs/docker/WORKFLOW_DIAGRAM.md`
-- **Regras de Desenvolvimento:** `/home/user/Claude-Code-Projetos/legal-workbench/CLAUDE.md`
+- **Documentação Técnica:** `/home/user/lex-vector/docs/docker/DOCKER_ARCHITECTURE.md`
+- **Diagramas de Fluxo:** `/home/user/lex-vector/docs/docker/WORKFLOW_DIAGRAM.md`
+- **Regras de Desenvolvimento:** `/home/user/lex-vector/legal-workbench/CLAUDE.md`
 - **Docker Compose Spec:** https://docs.docker.com/compose/compose-file/
 - **Docker Best Practices:** https://docs.docker.com/develop/dev-best-practices/
 

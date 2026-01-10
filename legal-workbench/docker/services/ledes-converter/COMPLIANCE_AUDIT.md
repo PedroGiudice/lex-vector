@@ -184,9 +184,9 @@ INVOICE_DATE|INVOICE_NUMBER|CLIENT_ID|LAW_FIRM_MATTER_ID|INVOICE_TOTAL|BILLING_S
 The LEDES Converter service is now **FULLY COMPLIANT** with the LEDES 1998B specification. All critical issues have been addressed with proper sanitization, validation, and comprehensive test coverage.
 
 **Files Modified**:
-- `/home/cmr-auto/claude-work/repos/Claude-Code-Projetos/legal-workbench/docker/services/ledes-converter/api/main.py`
-- `/home/cmr-auto/claude-work/repos/Claude-Code-Projetos/legal-workbench/docker/services/ledes-converter/test_api.py`
-- `/home/cmr-auto/claude-work/repos/Claude-Code-Projetos/legal-workbench/docker/services/ledes-converter/README.md`
+- `/home/cmr-auto/claude-work/repos/lex-vector/legal-workbench/docker/services/ledes-converter/api/main.py`
+- `/home/cmr-auto/claude-work/repos/lex-vector/legal-workbench/docker/services/ledes-converter/test_api.py`
+- `/home/cmr-auto/claude-work/repos/lex-vector/legal-workbench/docker/services/ledes-converter/README.md`
 
 **Lines of Code Changed**: ~80 (additions for sanitization and validation)
 **Test Cases Added**: 1 comprehensive test with 11 assertions

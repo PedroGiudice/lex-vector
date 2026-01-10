@@ -39,13 +39,13 @@ Migrar todo o frontend do Legal Workbench para React, eliminando o FastHTML Hub.
 # Setup React Router no Legal Workbench
 
 ## Contexto
-O projeto está em `/home/cmr-auto/claude-work/repos/Claude-Code-Projetos/legal-workbench/frontend`.
+O projeto está em `/home/cmr-auto/claude-work/repos/lex-vector/legal-workbench/frontend`.
 Atualmente NÃO tem React Router. O Vite está configurado com `base: '/app/'`.
 
 ## Tarefas
 
 ### 1. Instalar React Router
-cd /home/cmr-auto/claude-work/repos/Claude-Code-Projetos/legal-workbench/frontend
+cd /home/cmr-auto/claude-work/repos/lex-vector/legal-workbench/frontend
 npm install react-router-dom
 
 ### 2. Criar estrutura de rotas

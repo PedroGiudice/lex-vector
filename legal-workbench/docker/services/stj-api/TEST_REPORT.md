@@ -2,7 +2,7 @@
 
 **Date:** 2025-12-11  
 **Status:** PASS ✅  
-**Tested Component:** `/home/user/Claude-Code-Projetos/legal-workbench/docker/services/stj-api/`
+**Tested Component:** `/home/user/lex-vector/legal-workbench/docker/services/stj-api/`
 
 ---
 
@@ -24,7 +24,7 @@ The STJ API container is **fully functional** and ready for deployment. All crit
 
 ### 1. DOCKERFILE ANALYSIS ✅
 
-**File:** `/home/user/Claude-Code-Projetos/legal-workbench/docker/services/stj-api/Dockerfile`
+**File:** `/home/user/lex-vector/legal-workbench/docker/services/stj-api/Dockerfile`
 
 **Checks:**
 - ✅ Multi-stage build (builder + runtime) - Optimization for smaller image
@@ -42,7 +42,7 @@ The STJ API container is **fully functional** and ready for deployment. All crit
 
 ### 2. REQUIREMENTS.TXT ANALYSIS ✅
 
-**File:** `/home/user/Claude-Code-Projetos/legal-workbench/docker/services/stj-api/requirements.txt`
+**File:** `/home/user/lex-vector/legal-workbench/docker/services/stj-api/requirements.txt`
 
 **Core Dependencies:**
 - ✅ fastapi==0.115.0 - Web framework
@@ -62,7 +62,7 @@ The STJ API container is **fully functional** and ready for deployment. All crit
 
 ### 3. API MAIN.PY ANALYSIS ✅
 
-**File:** `/home/user/Claude-Code-Projetos/legal-workbench/docker/services/stj-api/api/main.py`
+**File:** `/home/user/lex-vector/legal-workbench/docker/services/stj-api/api/main.py`
 
 **Endpoints Implemented:**
 1. ✅ `GET /` - Root endpoint with API info
@@ -96,7 +96,7 @@ The STJ API container is **fully functional** and ready for deployment. All crit
 
 ### 4. MODELS.PY ANALYSIS ✅
 
-**File:** `/home/user/Claude-Code-Projetos/legal-workbench/docker/services/stj-api/api/models.py`
+**File:** `/home/user/lex-vector/legal-workbench/docker/services/stj-api/api/models.py`
 
 **Enums:**
 - ✅ ResultadoJulgamento - Judgment results (provimento, desprovimento, etc.)
@@ -124,7 +124,7 @@ The STJ API container is **fully functional** and ready for deployment. All crit
 
 ### 5. DEPENDENCIES.PY ANALYSIS ✅
 
-**File:** `/home/user/Claude-Code-Projetos/legal-workbench/docker/services/stj-api/api/dependencies.py`
+**File:** `/home/user/lex-vector/legal-workbench/docker/services/stj-api/api/dependencies.py`
 
 **Components:**
 1. ✅ get_database() - FastAPI dependency for database connection
@@ -148,7 +148,7 @@ The STJ API container is **fully functional** and ready for deployment. All crit
 
 ### 6. SCHEDULER.PY ANALYSIS ✅
 
-**File:** `/home/user/Claude-Code-Projetos/legal-workbench/docker/services/stj-api/api/scheduler.py`
+**File:** `/home/user/lex-vector/legal-workbench/docker/services/stj-api/api/scheduler.py`
 
 **Scheduler Features:**
 - ✅ APScheduler AsyncIOScheduler
@@ -175,7 +175,7 @@ The STJ API container is **fully functional** and ready for deployment. All crit
 
 ### 7. DOCKER-COMPOSE.YML ANALYSIS ✅
 
-**File:** `/home/user/Claude-Code-Projetos/legal-workbench/docker/services/stj-api/docker-compose.yml`
+**File:** `/home/user/lex-vector/legal-workbench/docker/services/stj-api/docker-compose.yml`
 
 **Configuration:**
 - ✅ Service name: stj-api
@@ -193,7 +193,7 @@ The STJ API container is **fully functional** and ready for deployment. All crit
 
 ### 8. BACKEND INTEGRATION VERIFICATION ✅
 
-**Backend Module Location:** `/home/user/Claude-Code-Projetos/legal-workbench/ferramentas/stj-dados-abertos/`
+**Backend Module Location:** `/home/user/lex-vector/legal-workbench/ferramentas/stj-dados-abertos/`
 
 **Required Files:**
 - ✅ src/database.py (STJDatabase class)
@@ -224,7 +224,7 @@ All Python files compiled successfully:
 
 ### 10. TEST SCRIPT VALIDATION ✅
 
-**File:** `/home/user/Claude-Code-Projetos/legal-workbench/docker/services/stj-api/test_api.sh`
+**File:** `/home/user/lex-vector/legal-workbench/docker/services/stj-api/test_api.sh`
 
 **Features:**
 - ✅ Bash syntax valid

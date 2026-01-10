@@ -1,5 +1,5 @@
 ---
-name: lw-no-typescript-in-backend
+name: lv-no-typescript-in-backend
 enabled: true
 event: file
 action: block
@@ -13,7 +13,7 @@ conditions:
 
 Tentativa de criar arquivo `.ts` ou `.tsx` dentro de `ferramentas/`.
 
-**Regra:** Os backends do LW são **Python/FastAPI only**.
+**Regra:** Os backends do LV (Lex-Vector) são **Python/FastAPI only**.
 
 **Estrutura correta:**
 ```
@@ -32,4 +32,4 @@ legal-workbench/
 - Se é código frontend: coloque em `frontend/src/`
 - Se é script Node para tooling: coloque em `scripts/` ou `docker/`
 
-> Regra: .claude/hookify.lw-no-typescript-in-backend.local.md
+> Regra: .claude/hookify.lv-no-typescript-in-backend.local.md

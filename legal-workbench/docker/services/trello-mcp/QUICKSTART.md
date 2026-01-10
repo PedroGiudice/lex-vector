@@ -24,7 +24,7 @@ Get the Trello MCP API running in 5 minutes.
 
 ```bash
 # Navigate to docker directory
-cd /home/user/Claude-Code-Projetos/legal-workbench/docker
+cd /home/user/lex-vector/legal-workbench/docker
 
 # Copy environment template
 cp .env.example .env

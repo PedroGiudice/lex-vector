@@ -8,7 +8,7 @@ Successfully integrated the beautiful Gemini AI Studio brutalista design with th
 
 ### 1. Frontend Component (`LedesConverterModule.tsx`)
 
-**Location**: `/home/cmr-auto/claude-work/repos/Claude-Code-Projetos/legal-workbench/frontend/src/pages/LedesConverterModule.tsx`
+**Location**: `/home/cmr-auto/claude-work/repos/lex-vector/legal-workbench/frontend/src/pages/LedesConverterModule.tsx`
 
 **Features Integrated**:
 - ✅ Gemini brutalista UI design (zinc/teal/violet palette)
@@ -29,7 +29,7 @@ Successfully integrated the beautiful Gemini AI Studio brutalista design with th
 
 ### 2. Zustand Store Updates (`ledesConverterStore.ts`)
 
-**Location**: `/home/cmr-auto/claude-work/repos/Claude-Code-Projetos/legal-workbench/frontend/src/store/ledesConverterStore.ts`
+**Location**: `/home/cmr-auto/claude-work/repos/lex-vector/legal-workbench/frontend/src/store/ledesConverterStore.ts`
 
 **Changes**:
 - ✅ Added `ledesConfig` state property
@@ -38,7 +38,7 @@ Successfully integrated the beautiful Gemini AI Studio brutalista design with th
 
 ### 3. API Service Updates (`ledesConverterApi.ts`)
 
-**Location**: `/home/cmr-auto/claude-work/repos/Claude-Code-Projetos/legal-workbench/frontend/src/services/ledesConverterApi.ts`
+**Location**: `/home/cmr-auto/claude-work/repos/lex-vector/legal-workbench/frontend/src/services/ledesConverterApi.ts`
 
 **Changes**:
 - ✅ Added `config` parameter to `convertDocxToLedes()`
@@ -47,7 +47,7 @@ Successfully integrated the beautiful Gemini AI Studio brutalista design with th
 
 ### 4. TypeScript Types (`types/index.ts`)
 
-**Location**: `/home/cmr-auto/claude-work/repos/Claude-Code-Projetos/legal-workbench/frontend/src/types/index.ts`
+**Location**: `/home/cmr-auto/claude-work/repos/lex-vector/legal-workbench/frontend/src/types/index.ts`
 
 **Changes**:
 - ✅ Added `LedesConfig` interface

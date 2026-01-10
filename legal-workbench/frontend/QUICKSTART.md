@@ -12,7 +12,7 @@ Get the Doc Assembler Template Builder frontend up and running in minutes.
 
 ```bash
 # Navigate to frontend directory
-cd /home/cmr-auto/claude-work/repos/Claude-Code-Projetos/legal-workbench/frontend
+cd /home/cmr-auto/claude-work/repos/lex-vector/legal-workbench/frontend
 
 # Install dependencies
 npm install

@@ -13,7 +13,7 @@ Criar API FastAPI para STJ Dados Abertos com endpoints de busca, estatísticas e
 ## Estrutura Criada
 
 ```
-/home/user/Claude-Code-Projetos/legal-workbench/docker/services/stj-api/
+/home/user/lex-vector/legal-workbench/docker/services/stj-api/
 ├── api/
 │   ├── __init__.py          (  2 linhas) - Versão da API (v1.0.0)
 │   ├── main.py              (362 linhas) - FastAPI app e endpoints
@@ -179,7 +179,7 @@ python-multipart==0.0.12
 
 ### Manual Testing
 ```bash
-cd /home/user/Claude-Code-Projetos/legal-workbench/docker/services/stj-api
+cd /home/user/lex-vector/legal-workbench/docker/services/stj-api
 ./test_api.sh
 ```
 

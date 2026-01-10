@@ -1,4 +1,4 @@
-# Guia de Setup do Bun para Claude-Code-Projetos
+# Guia de Setup do Bun para lex-vector
 
 **Criado**: 2025-12-10
 **Versão**: Bun 1.3.x
@@ -19,7 +19,7 @@ source ~/.bashrc  # ou reiniciar terminal
 bun --version
 
 # 4. Testar hooks (no diretório do projeto)
-cd ~/claude-work/repos/Claude-Code-Projetos
+cd ~/claude-work/repos/lex-vector
 bun run .claude/hooks/prompt-enhancer.js <<< '{"prompts":[{"content":"test"}]}'
 ```
 
@@ -61,7 +61,7 @@ which bun      # Deve mostrar ~/.bun/bin/bun
 ## 2. Estrutura de Arquivos Afetados
 
 ```
-Claude-Code-Projetos/
+lex-vector/
 ├── .claude/
 │   ├── settings.json          # Hooks configurados com "bun run"
 │   ├── hooks/
@@ -85,7 +85,7 @@ Claude-Code-Projetos/
 ### Hooks JavaScript
 
 ```bash
-cd ~/claude-work/repos/Claude-Code-Projetos
+cd ~/claude-work/repos/lex-vector
 
 # Hook wrapper
 bun run .claude/hooks/hook-wrapper.js .claude/hooks/prompt-enhancer.js <<< '{"prompts":[{"content":"test"}]}'
@@ -104,7 +104,7 @@ bun run convert-md-to-docx.js CONTESTACAO_REDEBRASIL_x_SALESFORCE.md test.docx
 ### Benchmark Node vs Bun
 
 ```bash
-cd ~/claude-work/repos/Claude-Code-Projetos
+cd ~/claude-work/repos/lex-vector
 
 # Node.js
 time for i in {1..5}; do node .claude/hooks/hook-wrapper.js .claude/hooks/prompt-enhancer.js <<< '{"prompts":[{"content":"test"}]}' 2>/dev/null; done
@@ -230,7 +230,7 @@ command -v bun && bun run script.js || node script.js
 Copie e cole este prompt para configurar um novo ambiente:
 
 ```
-Preciso configurar o ambiente de desenvolvimento para Claude-Code-Projetos.
+Preciso configurar o ambiente de desenvolvimento para lex-vector.
 
 Tarefas:
 1. Verificar se Bun está instalado (`bun --version`)

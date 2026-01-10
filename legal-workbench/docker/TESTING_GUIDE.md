@@ -13,7 +13,7 @@ Quando chegar no PC, execute na ordem:
 
 ```bash
 # 1. Atualizar repositório
-cd ~/Claude-Code-Projetos
+cd ~/lex-vector
 git fetch origin
 git checkout claude/docker-analysis-01QbbMxQFDgBtcTGGDfX8pHz
 git pull

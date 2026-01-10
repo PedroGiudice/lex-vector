@@ -1,6 +1,6 @@
 # Plano: Trello Command Center - Field Selector
 
-**Issue:** https://github.com/PedroGiudice/Claude-Code-Projetos/issues/120
+**Issue:** https://github.com/PedroGiudice/lex-vector/issues/120
 **Data:** 2025-01-05
 **Status:** Reviewed & Approved
 **Revisão:** 2025-01-05 - Issues críticos corrigidos
