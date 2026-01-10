@@ -100,17 +100,12 @@
     ],
     "PermissionRequest": [
       {
-        "matcher": "Bash",
+        "matcher": "*",
         "hooks": [
           {
             "type": "command",
             "command": "cd \"$CLAUDE_PROJECT_DIR\" && node .claude/hooks/block-commit-main.js"
-          }
-        ]
-      },
-      {
-        "matcher": "*",
-        "hooks": [
+          },
           {
             "type": "command",
             "command": "cd \"$CLAUDE_PROJECT_DIR\" && bun run .claude/hooks/hookify-permission-engine.js"

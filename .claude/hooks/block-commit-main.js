@@ -118,8 +118,9 @@ Aprove manualmente (não recomendado).
     process.exit(0);
   }
 
-  // Não está em main/master - permitir (não emitir nada, deixar próximo hook decidir)
-  debug('Branch não é main/master, permitindo...');
+  // Não está em main/master - pass to next hook
+  debug('Branch não é main/master, delegando decisão...');
+  // Não emitir nada = deixa o próximo hook (hookify-permission-engine) decidir
   process.exit(0);
 }
 
