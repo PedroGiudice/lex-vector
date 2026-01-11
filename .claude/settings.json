@@ -30,6 +30,10 @@
           {
             "type": "command",
             "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/doc-validator.py\" 2>/dev/null || true"
+          },
+          {
+            "type": "command",
+            "command": "source ~/.secrets/lex-vector.env 2>/dev/null; \"$CLAUDE_PROJECT_DIR/.venv/bin/python\" \"$CLAUDE_PROJECT_DIR/.claude/hooks/context-memory-inject.py\" 2>/dev/null || true"
           }
         ]
       }
