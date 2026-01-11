@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import {
-  Terminal,
   ArrowUp,
   Sparkles,
   Check,
@@ -9,11 +8,14 @@ import {
   ChevronRight,
   Command,
   History,
-  Info
+  Info,
 } from 'lucide-react';
 import { useWebSocket } from './contexts/WebSocketContext';
-import { api } from './utils/api';
 import { ReactorSpinner, PhyllotaxisSpinner } from './Spinners';
+
+// Working directory for Claude CLI (configurable)
+const WORKING_DIR =
+  import.meta.env.VITE_CLAUDE_CWD || '/home/cmr-auto/claude-work/repos/lex-vector';
 
 // Extend Window interface for Prism
 declare global {
@@ -39,7 +41,11 @@ interface CodeBlockProps {
   isStreaming?: boolean;
 }
 
-const CodeBlock: React.FC<CodeBlockProps> = ({ code, language = 'javascript', isStreaming = false }) => {
+const CodeBlock: React.FC<CodeBlockProps> = ({
+  code,
+  language = 'javascript',
+  isStreaming = false,
+}) => {
   const [copied, setCopied] = useState(false);
   const codeRef = useRef<HTMLElement>(null);
 
@@ -90,7 +96,12 @@ interface ThinkingBlockProps {
   duration?: string;
 }
 
-const ThinkingBlock: React.FC<ThinkingBlockProps> = ({ content, isStreaming, label = "Reasoning", duration }) => {
+const ThinkingBlock: React.FC<ThinkingBlockProps> = ({
+  content,
+  isStreaming,
+  label = 'Reasoning',
+  duration,
+}) => {
   const [isOpen, setIsOpen] = useState(true);
 
   return (
@@ -102,11 +113,15 @@ const ThinkingBlock: React.FC<ThinkingBlockProps> = ({ content, isStreaming, lab
         <div className="w-5 h-5 flex items-center justify-center">
           {isStreaming ? (
             <PhyllotaxisSpinner className="w-full h-full" />
+          ) : isOpen ? (
+            <ChevronDown className="w-5 h-5 text-[#b5b5b5]" />
           ) : (
-            isOpen ? <ChevronDown className="w-5 h-5 text-[#b5b5b5]" /> : <ChevronRight className="w-5 h-5 text-[#b5b5b5]" />
+            <ChevronRight className="w-5 h-5 text-[#b5b5b5]" />
           )}
         </div>
-        <span className={`text-sm font-mono font-medium tracking-tight ${isStreaming ? 'text-[#e3e1de]' : 'text-[#b5b5b5]'}`}>
+        <span
+          className={`text-sm font-mono font-medium tracking-tight ${isStreaming ? 'text-[#e3e1de]' : 'text-[#b5b5b5]'}`}
+        >
           {label}
         </span>
         {duration && <span className="text-sm text-[#888] font-mono ml-auto">{duration}</span>}
@@ -116,7 +131,9 @@ const ThinkingBlock: React.FC<ThinkingBlockProps> = ({ content, isStreaming, lab
         <div className="px-5 py-4">
           <div className="text-base text-[#c0c0c0] font-mono leading-relaxed whitespace-pre-wrap">
             {content}
-            {isStreaming && <span className="inline-block w-2.5 h-5 bg-[#d97757] ml-1 animate-pulse" />}
+            {isStreaming && (
+              <span className="inline-block w-2.5 h-5 bg-[#d97757] ml-1 animate-pulse" />
+            )}
           </div>
         </div>
       )}
@@ -134,50 +151,103 @@ export default function CCuiChatInterface() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { sendMessage: sendWsMessage, lastMessage } = useWebSocket();
 
-  // Handle incoming WS messages
+  // Handle incoming WS messages (claudecodeui backend format)
   useEffect(() => {
     if (!lastMessage) return;
 
     const wsMessage = lastMessage as any;
 
-    if (wsMessage.type === 'token' || wsMessage.type === 'chunk') {
-      setMessages(prev => {
-        const lastMsg = prev[prev.length - 1];
-        if (lastMsg && lastMsg.role === 'assistant' && lastMsg.isStreaming) {
-          return [
-            ...prev.slice(0, -1),
-            { ...lastMsg, content: lastMsg.content + (wsMessage.content || '') }
-          ];
-        } else {
-          return [...prev, {
-            id: Date.now().toString(),
-            role: 'assistant',
-            content: wsMessage.content || '',
-            isStreaming: true
-          }];
+    // Handle claude-response messages (streaming content)
+    if (wsMessage.type === 'claude-response' && wsMessage.data) {
+      const data = wsMessage.data;
+
+      // Handle streaming deltas (content_block_delta)
+      if (data.type === 'content_block_delta' && data.delta?.text) {
+        setMessages((prev) => {
+          const lastMsg = prev[prev.length - 1];
+          if (lastMsg && lastMsg.role === 'assistant' && lastMsg.isStreaming) {
+            return [
+              ...prev.slice(0, -1),
+              { ...lastMsg, content: lastMsg.content + data.delta.text },
+            ];
+          } else {
+            return [
+              ...prev,
+              {
+                id: Date.now().toString(),
+                role: 'assistant',
+                content: data.delta.text,
+                isStreaming: true,
+              },
+            ];
+          }
+        });
+        setIsTyping(true);
+      }
+
+      // Handle end of content block
+      if (data.type === 'content_block_stop') {
+        setMessages((prev) => {
+          const lastMsg = prev[prev.length - 1];
+          if (lastMsg && lastMsg.role === 'assistant' && lastMsg.isStreaming) {
+            return [...prev.slice(0, -1), { ...lastMsg, isStreaming: false }];
+          }
+          return prev;
+        });
+      }
+
+      // Handle assistant messages with content array
+      if (data.type === 'assistant' && data.message?.content) {
+        const textContent = data.message.content
+          .filter((c: any) => c.type === 'text')
+          .map((c: any) => c.text)
+          .join('');
+        if (textContent) {
+          setMessages((prev) => {
+            const lastMsg = prev[prev.length - 1];
+            if (lastMsg && lastMsg.role === 'assistant' && lastMsg.isStreaming) {
+              return [...prev.slice(0, -1), { ...lastMsg, content: lastMsg.content + textContent }];
+            } else {
+              return [
+                ...prev,
+                {
+                  id: Date.now().toString(),
+                  role: 'assistant',
+                  content: textContent,
+                  isStreaming: true,
+                },
+              ];
+            }
+          });
+          setIsTyping(true);
         }
-      });
-      setIsTyping(true);
-    } else if (wsMessage.type === 'done' || wsMessage.type === 'end') {
+      }
+    }
+
+    // Handle completion
+    else if (wsMessage.type === 'claude-complete') {
       setIsTyping(false);
-      setMessages(prev => {
+      setMessages((prev) => {
         const lastMsg = prev[prev.length - 1];
         if (lastMsg && lastMsg.role === 'assistant') {
-          return [
-            ...prev.slice(0, -1),
-            { ...lastMsg, isStreaming: false }
-          ];
+          return [...prev.slice(0, -1), { ...lastMsg, isStreaming: false }];
         }
         return prev;
       });
-    } else if (wsMessage.type === 'error') {
+    }
+
+    // Handle errors
+    else if (wsMessage.type === 'claude-error') {
       setIsTyping(false);
-      setMessages(prev => [...prev, {
-        id: Date.now().toString(),
-        role: 'assistant',
-        content: `Error: ${wsMessage.message}`,
-        isError: true
-      }]);
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: Date.now().toString(),
+          role: 'assistant',
+          content: `Error: ${wsMessage.error || 'Unknown error'}`,
+          isError: true,
+        },
+      ]);
     }
   }, [lastMessage]);
 
@@ -192,28 +262,35 @@ export default function CCuiChatInterface() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isTyping]);
 
-  const handleSlashCommand = (cmd: string, args: string[]): boolean => {
+  const handleSlashCommand = (cmd: string, _args: string[]): boolean => {
     switch (cmd.toLowerCase()) {
       case '/clear':
       case '/cls':
         setMessages([]);
         return true;
       case '/help':
-        setMessages(prev => [...prev, {
-          id: Date.now().toString(),
-          role: 'system',
-          content: "Available commands:\n/clear - Clear chat history\n/compact - Toggle compact mode\n/help - Show this help message",
-          isSystem: true
-        }]);
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: Date.now().toString(),
+            role: 'system',
+            content:
+              'Available commands:\n/clear - Clear chat history\n/compact - Toggle compact mode\n/help - Show this help message',
+            isSystem: true,
+          },
+        ]);
         return true;
       case '/compact':
         setCompactMode(!compactMode);
-        setMessages(prev => [...prev, {
-          id: Date.now().toString(),
-          role: 'system',
-          content: `Compact mode ${!compactMode ? 'enabled' : 'disabled'}.`,
-          isSystem: true
-        }]);
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: Date.now().toString(),
+            role: 'system',
+            content: `Compact mode ${!compactMode ? 'enabled' : 'disabled'}.`,
+            isSystem: true,
+          },
+        ]);
         return true;
       default:
         return false;
@@ -235,25 +312,19 @@ export default function CCuiChatInterface() {
     }
 
     const userMessage: Message = { id: Date.now().toString(), role: 'user', content: trimmedInput };
-    setMessages(prev => [...prev, userMessage]);
+    setMessages((prev) => [...prev, userMessage]);
     setInput('');
     setIsTyping(true);
 
-    try {
-      await api.post('/api/chat', { message: userMessage.content });
-    } catch (e) {
-      console.error("Failed to send message", e);
-      // Simulate response for prototype if API fails
-      setTimeout(() => {
-        setMessages(prev => [...prev, {
-          id: Date.now().toString(),
-          role: 'assistant',
-          content: "I'm a prototype interface. Ensure backend is running for real responses.",
-          isStreaming: false
-        }]);
-        setIsTyping(false);
-      }, 1000);
-    }
+    // Send message via WebSocket in claudecodeui backend format
+    sendWsMessage({
+      type: 'claude-command',
+      command: trimmedInput,
+      options: {
+        cwd: WORKING_DIR,
+        permissionMode: 'bypassPermissions',
+      },
+    });
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -267,32 +338,51 @@ export default function CCuiChatInterface() {
     const content = message.content;
     const parts = content.split(/(```[\w\s]*?\n[\s\S]*?```)/g);
 
-    return parts.map((part, index) => {
-      if (part.startsWith('```') && part.endsWith('```')) {
-        const match = part.match(/```(\w+)?\n([\s\S]*?)```/);
-        if (match) {
-          const [, language = 'text', code] = match;
-          const isStreamingThisBlock = message.isStreaming && (index === parts.length - 1);
-          return <CodeBlock key={message.id + '-code-' + index} code={code.trim()} language={language.trim()} isStreaming={isStreamingThisBlock} />;
+    return parts
+      .map((part, index) => {
+        if (part.startsWith('```') && part.endsWith('```')) {
+          const match = part.match(/```(\w+)?\n([\s\S]*?)```/);
+          if (match) {
+            const [, language = 'text', code] = match;
+            const isStreamingThisBlock = message.isStreaming && index === parts.length - 1;
+            return (
+              <CodeBlock
+                key={message.id + '-code-' + index}
+                code={code.trim()}
+                language={language.trim()}
+                isStreaming={isStreamingThisBlock}
+              />
+            );
+          }
         }
-      }
 
-      if (part.trim().startsWith('THINKING:')) {
-        const thinkingContent = part.substring('THINKING:'.length).trim();
-        const isStreamingThisBlock = message.isStreaming && (index === parts.length - 1);
-        return <ThinkingBlock key={message.id + '-thinking-' + index} content={thinkingContent} label="Reasoning" isStreaming={isStreamingThisBlock} />;
-      }
+        if (part.trim().startsWith('THINKING:')) {
+          const thinkingContent = part.substring('THINKING:'.length).trim();
+          const isStreamingThisBlock = message.isStreaming && index === parts.length - 1;
+          return (
+            <ThinkingBlock
+              key={message.id + '-thinking-' + index}
+              content={thinkingContent}
+              label="Reasoning"
+              isStreaming={isStreamingThisBlock}
+            />
+          );
+        }
 
-      const isStreamingThisText = message.isStreaming && (index === parts.length - 1);
-      return (
-        <p key={message.id + '-text-' + index} className={`leading-relaxed whitespace-pre-wrap font-sans text-[#e3e1de] ${compactMode ? 'text-sm' : 'text-lg'}`}>
-          {part}
-          {isStreamingThisText && (
-            <span className="inline-block w-3 h-6 bg-[#d97757] align-bottom ml-1.5 animate-pulse"></span>
-          )}
-        </p>
-      );
-    }).filter(Boolean);
+        const isStreamingThisText = message.isStreaming && index === parts.length - 1;
+        return (
+          <p
+            key={message.id + '-text-' + index}
+            className={`leading-relaxed whitespace-pre-wrap font-sans text-[#e3e1de] ${compactMode ? 'text-sm' : 'text-lg'}`}
+          >
+            {part}
+            {isStreamingThisText && (
+              <span className="inline-block w-3 h-6 bg-[#d97757] align-bottom ml-1.5 animate-pulse"></span>
+            )}
+          </p>
+        );
+      })
+      .filter(Boolean);
   };
 
   return (
@@ -307,13 +397,22 @@ export default function CCuiChatInterface() {
             </div>
 
             {/* Empty State Title */}
-            <h1 className="text-4xl text-[#c0c0c0] font-serif tracking-wide mb-4">Claude Code CLI</h1>
-            <p className="text-sm text-[#888] font-medium tracking-[0.2em] uppercase">Ready for input</p>
+            <h1 className="text-4xl text-[#c0c0c0] font-serif tracking-wide mb-4">
+              Claude Code CLI
+            </h1>
+            <p className="text-sm text-[#888] font-medium tracking-[0.2em] uppercase">
+              Ready for input
+            </p>
           </div>
         ) : (
-          messages.map((msg, idx) => (
-            <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-in fade-in duration-300 slide-in-from-bottom-3`}>
-              <div className={`max-w-[85%] ${msg.role === 'user' ? 'bg-[#d97757]/10 border border-[#d97757]/20 shadow-[0_0_20px_rgba(217,119,87,0.05)]' : 'bg-[#000000]'} rounded-xl p-3`}>
+          messages.map((msg) => (
+            <div
+              key={msg.id}
+              className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-in fade-in duration-300 slide-in-from-bottom-3`}
+            >
+              <div
+                className={`max-w-[85%] ${msg.role === 'user' ? 'bg-[#d97757]/10 border border-[#d97757]/20 shadow-[0_0_20px_rgba(217,119,87,0.05)]' : 'bg-[#000000]'} rounded-xl p-3`}
+              >
                 {msg.role === 'assistant' ? (
                   <div className="flex gap-5">
                     <div className="w-10 h-10 rounded-full bg-[#111] border border-[#27272a] flex items-center justify-center flex-none mt-1 shadow-sm">
@@ -322,7 +421,12 @@ export default function CCuiChatInterface() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-3 mb-3">
                         <span className="text-base font-bold text-[#e3e1de]">Claude</span>
-                        <span className="text-sm text-[#888] font-mono">{new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                        <span className="text-sm text-[#888] font-mono">
+                          {new Date().toLocaleTimeString([], {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </span>
                       </div>
                       {renderMessageContent(msg)}
                     </div>
@@ -357,10 +461,12 @@ export default function CCuiChatInterface() {
 
       {/* Input Area */}
       <div className="flex-none p-8 w-full max-w-5xl mx-auto z-30">
-        <div className={`
+        <div
+          className={`
              relative flex items-center gap-5 bg-[#0a0a0a] border rounded-xl px-6 py-5 transition-all duration-300
              ${isTyping ? 'border-[#27272a] opacity-80 cursor-wait' : 'border-[#d97757]/40 focus-within:border-[#d97757] shadow-[0_0_30px_rgba(0,0,0,0.7)] focus-within:shadow-[0_0_40px_rgba(217,119,87,0.1)]'}
-        `}>
+        `}
+        >
           <span className="text-[#d97757] font-mono text-xl font-bold select-none">{`>_`}</span>
           <textarea
             ref={textareaRef}
@@ -375,8 +481,11 @@ export default function CCuiChatInterface() {
           />
           <button
             onClick={handleSendMessage}
-            className={`transition-all duration-200 p-2.5 rounded-lg ${input.trim() === '' || isTyping ? 'text-[#333]' : 'text-[#d97757] hover:bg-[#d97757]/10 hover:scale-105'
-              }`}
+            className={`transition-all duration-200 p-2.5 rounded-lg ${
+              input.trim() === '' || isTyping
+                ? 'text-[#333]'
+                : 'text-[#d97757] hover:bg-[#d97757]/10 hover:scale-105'
+            }`}
             disabled={input.trim() === '' || isTyping}
           >
             <ArrowUp className="w-7 h-7 stroke-[2.5px]" />

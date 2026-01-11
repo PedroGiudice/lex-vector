@@ -1,4 +1,13 @@
-import React, { createContext, useContext, useEffect, useState, useRef, useCallback, ReactNode } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useRef,
+  useCallback,
+  ReactNode,
+} from 'react';
+import { setDevAuthCookie } from '../utils/devToken';
 
 interface WebSocketContextValue {
   socket: WebSocket | null;
@@ -28,14 +37,14 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
   children,
   wsUrl,
   maxRetries = WS_CONFIG.maxRetries,
-  enabled = WS_CONFIG.enabled
+  enabled = WS_CONFIG.enabled,
 }) => {
   const [socket, setSocket] = useState<WebSocket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [lastMessage, setLastMessage] = useState<unknown | null>(null);
-  const [connectionState, setConnectionState] = useState<'disconnected' | 'connecting' | 'connected' | 'disabled'>(
-    enabled ? 'disconnected' : 'disabled'
-  );
+  const [connectionState, setConnectionState] = useState<
+    'disconnected' | 'connecting' | 'connected' | 'disabled'
+  >(enabled ? 'disconnected' : 'disabled');
 
   const retryCount = useRef(0);
   const reconnectTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -48,7 +57,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
     return null;
   };
 
-  const connect = useCallback((): WebSocket | null => {
+  const connect = useCallback(async (): Promise<WebSocket | null> => {
     if (!enabled) {
       setConnectionState('disabled');
       return null;
@@ -63,7 +72,15 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
     try {
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       const host = window.location.host;
-      const token = getCookie('jwt') || 'dev-token';
+
+      // Check for existing JWT, generate dev token if not present
+      let token = getCookie('jwt');
+      if (!token) {
+        console.log('[WS] No JWT found, generating dev token...');
+        token = await setDevAuthCookie();
+        console.log('[WS] Dev token generated');
+      }
+
       const url = wsUrl || `${protocol}//${host}/ws?token=${token}`;
 
       if (retryCount.current === 0) {
@@ -87,8 +104,12 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
         // Only retry if not a clean close and under max retries
         if (!event.wasClean && retryCount.current < maxRetries) {
           retryCount.current += 1;
-          console.log(`[WS] Disconnected. Retry ${retryCount.current}/${maxRetries} in ${WS_CONFIG.retryDelay / 1000}s`);
-          reconnectTimeout.current = setTimeout(connect, WS_CONFIG.retryDelay);
+          console.log(
+            `[WS] Disconnected. Retry ${retryCount.current}/${maxRetries} in ${WS_CONFIG.retryDelay / 1000}s`
+          );
+          reconnectTimeout.current = setTimeout(() => {
+            connect();
+          }, WS_CONFIG.retryDelay);
         } else if (retryCount.current >= maxRetries) {
           console.log('[WS] Connection unavailable. Running in offline mode.');
           setConnectionState('disabled');
@@ -121,14 +142,20 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
   }, [enabled, maxRetries, wsUrl]);
 
   useEffect(() => {
-    const ws = connect();
+    let currentWs: WebSocket | null = null;
+
+    const initConnection = async () => {
+      currentWs = await connect();
+    };
+
+    initConnection();
 
     return () => {
       if (reconnectTimeout.current) {
         clearTimeout(reconnectTimeout.current);
       }
-      if (ws && ws.readyState === WebSocket.OPEN) {
-        ws.close(1000, 'Component unmount');
+      if (currentWs && currentWs.readyState === WebSocket.OPEN) {
+        currentWs.close(1000, 'Component unmount');
       }
     };
   }, [connect]);
@@ -137,12 +164,14 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
     if (socket && isConnected) {
       socket.send(JSON.stringify(msg));
     } else {
-      console.warn("WS not connected, cannot send:", msg);
+      console.warn('WS not connected, cannot send:', msg);
     }
   };
 
   return (
-    <WebSocketContext.Provider value={{ socket, isConnected, lastMessage, sendMessage, connectionState }}>
+    <WebSocketContext.Provider
+      value={{ socket, isConnected, lastMessage, sendMessage, connectionState }}
+    >
       {children}
     </WebSocketContext.Provider>
   );

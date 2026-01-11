@@ -15,17 +15,20 @@ export default defineConfig({
     port: 3000,
     host: true,
     proxy: {
-      '/api/chat': {
-        target: 'http://localhost:8005',
+      // Claude Code UI backend (WebSocket for chat)
+      '/ws': {
+        target: 'ws://localhost:3002',
+        ws: true,
         changeOrigin: true,
       },
+      // Claude Code UI auth routes
+      '/api/auth': {
+        target: 'http://localhost:3002',
+        changeOrigin: true,
+      },
+      // FastAPI backends
       '/api': {
         target: 'http://localhost:8000',
-        changeOrigin: true,
-      },
-      '/ws': {
-        target: 'ws://localhost:8005',
-        ws: true,
         changeOrigin: true,
       },
     },
