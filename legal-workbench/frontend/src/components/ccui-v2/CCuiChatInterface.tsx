@@ -25,8 +25,12 @@ import {
   CheckCircle2,
   XCircle,
   Loader2,
+  RefreshCw,
+  AlertTriangle,
 } from 'lucide-react';
 import { useWebSocket } from './contexts/WebSocketContext';
+import { ErrorBanner, type ErrorType } from './ErrorBanner';
+import { ConnectionStatus } from './ConnectionStatus';
 import {
   useChatHistory,
   type Message as HistoryMessage,
@@ -499,6 +503,68 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
   );
 };
 
+// Error Message Content with Retry and Copy
+interface ErrorMessageContentProps {
+  content: string;
+  onRetry?: () => void;
+  canRetry?: boolean;
+}
+
+const ErrorMessageContent: React.FC<ErrorMessageContentProps> = ({
+  content,
+  onRetry,
+  canRetry = false,
+}) => {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(content);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="p-4 rounded-lg bg-red-500/5 border border-red-500/20">
+        <pre className="text-sm text-red-400 font-mono whitespace-pre-wrap overflow-x-auto">
+          {content}
+        </pre>
+      </div>
+      <div className="flex items-center gap-2">
+        {canRetry && onRetry && (
+          <button
+            onClick={onRetry}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium
+              bg-[#d97757]/10 text-[#d97757] hover:bg-[#d97757]/20 transition-colors
+              border border-[#d97757]/30"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            Retry Message
+          </button>
+        )}
+        <button
+          onClick={handleCopy}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium
+            bg-[#1a1a1a] text-[#888] hover:text-[#e3e1de] transition-colors
+            border border-[#27272a]"
+        >
+          {copied ? (
+            <>
+              <Check className="w-3.5 h-3.5 text-green-500" />
+              Copied
+            </>
+          ) : (
+            <>
+              <Copy className="w-3.5 h-3.5" />
+              Copy Error
+            </>
+          )}
+        </button>
+      </div>
+    </div>
+  );
+};
+
 export default function CCuiChatInterface() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
@@ -508,7 +574,52 @@ export default function CCuiChatInterface() {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const { sendMessage: sendWsMessage, lastMessage } = useWebSocket();
+  const lastUserMessageRef = useRef<string>('');
+
+  const {
+    sendMessage: sendWsMessage,
+    lastMessage,
+    connectionStatus,
+    lastError,
+    retryCount,
+    maxRetries,
+    retry: retryConnection,
+    clearError,
+    isConnected,
+  } = useWebSocket();
+
+  // Derive error banner state from connection status
+  const showConnectionError =
+    lastError &&
+    (connectionStatus === 'error' ||
+      connectionStatus === 'disconnected' ||
+      connectionStatus === 'disabled');
+
+  // Get error type for banner
+  const getErrorType = (): ErrorType => {
+    if (!lastError) return 'unknown';
+    return lastError.type;
+  };
+
+  // Check if input should be disabled
+  const isInputDisabled = isTyping || !isConnected;
+
+  // Get placeholder text based on connection status
+  const getPlaceholderText = (): string => {
+    if (isTyping) return 'Thinking...';
+    if (connectionStatus === 'connecting') {
+      return retryCount > 0
+        ? `Reconnecting... (${retryCount}/${maxRetries})`
+        : 'Connecting to Claude...';
+    }
+    if (connectionStatus === 'disconnected' || connectionStatus === 'error') {
+      return 'Connection lost. Click retry or check backend...';
+    }
+    if (connectionStatus === 'disabled') {
+      return 'Backend unavailable. Running in offline mode...';
+    }
+    return 'Describe your task or enter a command...';
+  };
 
   // Chat history integration
   const {
@@ -817,6 +928,22 @@ export default function CCuiChatInterface() {
   const handleSendMessage = async () => {
     if (input.trim() === '' || isTyping) return;
 
+    // Check connection before sending
+    if (!isConnected) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: Date.now().toString(),
+          role: 'system',
+          content:
+            'Cannot send message: not connected to backend. Please wait for reconnection or click retry.',
+          isSystem: true,
+          isError: true,
+        },
+      ]);
+      return;
+    }
+
     const trimmedInput = input.trim();
 
     // Check for slash commands
@@ -827,6 +954,9 @@ export default function CCuiChatInterface() {
         return;
       }
     }
+
+    // Store for retry functionality
+    lastUserMessageRef.current = trimmedInput;
 
     const userMessage: Message = { id: Date.now().toString(), role: 'user', content: trimmedInput };
     setMessages((prev) => [...prev, userMessage]);
@@ -843,6 +973,21 @@ export default function CCuiChatInterface() {
       },
     });
   };
+
+  // Retry last message (used for error recovery)
+  const handleRetryLastMessage = useCallback(() => {
+    if (!lastUserMessageRef.current || isTyping || !isConnected) return;
+
+    setIsTyping(true);
+    sendWsMessage({
+      type: 'claude-command',
+      command: lastUserMessageRef.current,
+      options: {
+        cwd: WORKING_DIR,
+        permissionMode: 'bypassPermissions',
+      },
+    });
+  }, [isTyping, isConnected, sendWsMessage]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -955,6 +1100,20 @@ export default function CCuiChatInterface() {
 
   return (
     <div className="flex flex-col h-full bg-[#000000]">
+      {/* Connection Error Banner */}
+      {showConnectionError && lastError && (
+        <div className="flex-none px-8 pt-4">
+          <ErrorBanner
+            type={getErrorType()}
+            message={lastError.message}
+            onRetry={retryConnection}
+            onDismiss={clearError}
+            autoDismiss={!['connection', 'server'].includes(lastError.type)}
+            autoDismissDelay={8000}
+          />
+        </div>
+      )}
+
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto custom-scrollbar p-8 flex flex-col space-y-10">
         {messages.length === 0 && !isTyping ? (
@@ -979,16 +1138,36 @@ export default function CCuiChatInterface() {
               className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-in fade-in duration-300 slide-in-from-bottom-3`}
             >
               <div
-                className={`max-w-[85%] ${msg.role === 'user' ? 'bg-[#d97757]/10 border border-[#d97757]/20 shadow-[0_0_20px_rgba(217,119,87,0.05)]' : 'bg-[#000000]'} rounded-xl p-3`}
+                className={`max-w-[85%] ${
+                  msg.role === 'user'
+                    ? 'bg-[#d97757]/10 border border-[#d97757]/20 shadow-[0_0_20px_rgba(217,119,87,0.05)]'
+                    : msg.isError
+                      ? 'bg-red-500/5 border border-red-500/30'
+                      : 'bg-[#000000]'
+                } rounded-xl p-3`}
               >
                 {msg.role === 'assistant' ? (
                   <div className="flex gap-5">
-                    <div className="w-10 h-10 rounded-full bg-[#111] border border-[#27272a] flex items-center justify-center flex-none mt-1 shadow-sm">
-                      <Sparkles className="w-5 h-5 text-[#d97757]" />
+                    <div
+                      className={`w-10 h-10 rounded-full flex items-center justify-center flex-none mt-1 shadow-sm ${
+                        msg.isError
+                          ? 'bg-red-500/10 border border-red-500/30'
+                          : 'bg-[#111] border border-[#27272a]'
+                      }`}
+                    >
+                      {msg.isError ? (
+                        <AlertTriangle className="w-5 h-5 text-red-500" />
+                      ) : (
+                        <Sparkles className="w-5 h-5 text-[#d97757]" />
+                      )}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-3 mb-3">
-                        <span className="text-base font-bold text-[#e3e1de]">Claude</span>
+                        <span
+                          className={`text-base font-bold ${msg.isError ? 'text-red-400' : 'text-[#e3e1de]'}`}
+                        >
+                          {msg.isError ? 'Error' : 'Claude'}
+                        </span>
                         <span className="text-sm text-[#888] font-mono">
                           {new Date().toLocaleTimeString([], {
                             hour: '2-digit',
@@ -996,8 +1175,26 @@ export default function CCuiChatInterface() {
                           })}
                         </span>
                       </div>
-                      {renderMessageContent(msg)}
+                      {msg.isError ? (
+                        <ErrorMessageContent
+                          content={msg.content}
+                          onRetry={handleRetryLastMessage}
+                          canRetry={isConnected && !isTyping && !!lastUserMessageRef.current}
+                        />
+                      ) : (
+                        renderMessageContent(msg)
+                      )}
                     </div>
+                  </div>
+                ) : msg.isSystem ? (
+                  <div
+                    className={`px-6 py-4 rounded-2xl text-lg leading-relaxed ${
+                      msg.isError
+                        ? 'bg-red-500/10 text-red-400 border border-red-500/30'
+                        : 'bg-[#111] text-[#888] border border-[#27272a]'
+                    }`}
+                  >
+                    <p className="whitespace-pre-wrap font-sans">{msg.content}</p>
                   </div>
                 ) : (
                   <div className="px-6 py-4 rounded-2xl bg-[#1a1a1a] text-[#e3e1de] border border-[#27272a] text-lg leading-relaxed">
@@ -1029,32 +1226,52 @@ export default function CCuiChatInterface() {
 
       {/* Input Area */}
       <div className="flex-none p-8 w-full max-w-5xl mx-auto z-30">
+        {/* Connection Status Indicator */}
+        <div className="flex justify-end mb-2">
+          <ConnectionStatus
+            status={connectionStatus}
+            retryCount={retryCount}
+            maxRetries={maxRetries}
+            onRetry={retryConnection}
+          />
+        </div>
+
         <div
           className={`
              relative flex items-center gap-5 bg-[#0a0a0a] border rounded-xl px-6 py-5 transition-all duration-300
-             ${isTyping ? 'border-[#27272a] opacity-80 cursor-wait' : 'border-[#d97757]/40 focus-within:border-[#d97757] shadow-[0_0_30px_rgba(0,0,0,0.7)] focus-within:shadow-[0_0_40px_rgba(217,119,87,0.1)]'}
+             ${
+               isInputDisabled
+                 ? 'border-[#27272a] opacity-70 cursor-not-allowed'
+                 : 'border-[#d97757]/40 focus-within:border-[#d97757] shadow-[0_0_30px_rgba(0,0,0,0.7)] focus-within:shadow-[0_0_40px_rgba(217,119,87,0.1)]'
+             }
+             ${!isConnected && !isTyping ? 'border-red-500/30' : ''}
         `}
         >
-          <span className="text-[#d97757] font-mono text-xl font-bold select-none">{`>_`}</span>
+          <span
+            className={`font-mono text-xl font-bold select-none ${isConnected ? 'text-[#d97757]' : 'text-[#555]'}`}
+          >{`>_`}</span>
           <textarea
             ref={textareaRef}
-            className="flex-1 resize-none overflow-hidden max-h-48 bg-transparent focus:outline-none text-[#e3e1de] placeholder-[#666] custom-scrollbar font-mono text-lg leading-relaxed"
-            placeholder={isTyping ? 'Thinking...' : 'Describe your task or enter a command...'}
+            className={`flex-1 resize-none overflow-hidden max-h-48 bg-transparent focus:outline-none placeholder-[#666] custom-scrollbar font-mono text-lg leading-relaxed ${
+              isInputDisabled ? 'text-[#888] cursor-not-allowed' : 'text-[#e3e1de]'
+            }`}
+            placeholder={getPlaceholderText()}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            disabled={isTyping}
+            disabled={isInputDisabled}
             rows={1}
             autoFocus
           />
           <button
             onClick={handleSendMessage}
             className={`transition-all duration-200 p-2.5 rounded-lg ${
-              input.trim() === '' || isTyping
+              input.trim() === '' || isInputDisabled
                 ? 'text-[#333]'
                 : 'text-[#d97757] hover:bg-[#d97757]/10 hover:scale-105'
             }`}
-            disabled={input.trim() === '' || isTyping}
+            disabled={input.trim() === '' || isInputDisabled}
+            aria-label="Send message"
           >
             <ArrowUp className="w-7 h-7 stroke-[2.5px]" />
           </button>

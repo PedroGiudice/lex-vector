@@ -9,12 +9,27 @@ import React, {
 } from 'react';
 import { setDevAuthCookie } from '../utils/devToken';
 
+export type ConnectionStatus = 'connected' | 'connecting' | 'disconnected' | 'error' | 'disabled';
+
+export interface WebSocketError {
+  type: 'connection' | 'timeout' | 'server' | 'unknown';
+  message: string;
+  timestamp: Date;
+  code?: number;
+}
+
 interface WebSocketContextValue {
   socket: WebSocket | null;
   isConnected: boolean;
   lastMessage: unknown | null;
   sendMessage: (msg: unknown) => void;
-  connectionState: 'disconnected' | 'connecting' | 'connected' | 'disabled';
+  connectionState: ConnectionStatus;
+  connectionStatus: ConnectionStatus;
+  lastError: WebSocketError | null;
+  retryCount: number;
+  maxRetries: number;
+  retry: () => void;
+  clearError: () => void;
 }
 
 const WebSocketContext = createContext<WebSocketContextValue | null>(null);
@@ -29,8 +44,19 @@ interface WebSocketProviderProps {
 // Configuration
 const WS_CONFIG = {
   enabled: import.meta.env.VITE_WS_ENABLED !== 'false',
-  maxRetries: 3,
-  retryDelay: 5000,
+  maxRetries: 10,
+  initialRetryDelay: 1000, // 1 second
+  maxRetryDelay: 30000, // 30 seconds
+};
+
+// Calculate exponential backoff delay
+const getBackoffDelay = (retryAttempt: number): number => {
+  const delay = Math.min(
+    WS_CONFIG.initialRetryDelay * Math.pow(2, retryAttempt),
+    WS_CONFIG.maxRetryDelay
+  );
+  // Add jitter (random 0-1000ms) to prevent thundering herd
+  return delay + Math.random() * 1000;
 };
 
 export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
@@ -42,12 +68,15 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
   const [socket, setSocket] = useState<WebSocket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [lastMessage, setLastMessage] = useState<unknown | null>(null);
-  const [connectionState, setConnectionState] = useState<
-    'disconnected' | 'connecting' | 'connected' | 'disabled'
-  >(enabled ? 'disconnected' : 'disabled');
+  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>(
+    enabled ? 'disconnected' : 'disabled'
+  );
+  const [lastError, setLastError] = useState<WebSocketError | null>(null);
+  const [currentRetryCount, setCurrentRetryCount] = useState(0);
 
   const retryCount = useRef(0);
   const reconnectTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isManualRetry = useRef(false);
 
   // Helper to get cookie by name
   const getCookie = (name: string): string | null => {
@@ -57,15 +86,56 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
     return null;
   };
 
+  // Set error with type detection
+  const setError = useCallback((code?: number, message?: string) => {
+    let errorType: WebSocketError['type'] = 'unknown';
+    let errorMessage = message || 'An unknown error occurred';
+
+    if (code === 1006) {
+      errorType = 'connection';
+      errorMessage = 'Connection closed abnormally. The server may be unavailable.';
+    } else if (code === 1001) {
+      errorType = 'server';
+      errorMessage = 'Server is going away.';
+    } else if (code === 1011) {
+      errorType = 'server';
+      errorMessage = 'Server encountered an unexpected condition.';
+    } else if (code === 1013) {
+      errorType = 'server';
+      errorMessage = 'Server is overloaded. Try again later.';
+    } else if (!code) {
+      errorType = 'connection';
+      errorMessage = 'Failed to establish connection. Is the backend running?';
+    }
+
+    setLastError({
+      type: errorType,
+      message: errorMessage,
+      timestamp: new Date(),
+      code,
+    });
+  }, []);
+
+  const clearError = useCallback(() => {
+    setLastError(null);
+  }, []);
+
   const connect = useCallback(async (): Promise<WebSocket | null> => {
     if (!enabled) {
-      setConnectionState('disabled');
+      setConnectionStatus('disabled');
       return null;
     }
 
-    if (retryCount.current >= maxRetries) {
+    // Clear any pending reconnect
+    if (reconnectTimeout.current) {
+      clearTimeout(reconnectTimeout.current);
+      reconnectTimeout.current = null;
+    }
+
+    if (retryCount.current >= maxRetries && !isManualRetry.current) {
       console.log(`[WS] Max retries (${maxRetries}) reached. WebSocket disabled.`);
-      setConnectionState('disabled');
+      setConnectionStatus('error');
+      setError(undefined, `Failed to connect after ${maxRetries} attempts.`);
       return null;
     }
 
@@ -85,34 +155,54 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
 
       if (retryCount.current === 0) {
         console.log('[WS] Connecting to:', url);
+      } else {
+        const delay = getBackoffDelay(retryCount.current - 1);
+        console.log(
+          `[WS] Retry ${retryCount.current}/${maxRetries} (backoff: ${Math.round(delay / 1000)}s)`
+        );
       }
 
-      setConnectionState('connecting');
+      setConnectionStatus('connecting');
+      clearError();
       const ws = new WebSocket(url);
 
       ws.onopen = () => {
         console.log('[WS] Connected');
         setIsConnected(true);
-        setConnectionState('connected');
-        retryCount.current = 0; // Reset on successful connection
+        setConnectionStatus('connected');
+        retryCount.current = 0;
+        setCurrentRetryCount(0);
+        isManualRetry.current = false;
+        clearError();
       };
 
       ws.onclose = (event) => {
         setIsConnected(false);
-        setConnectionState('disconnected');
+        setSocket(null);
 
         // Only retry if not a clean close and under max retries
         if (!event.wasClean && retryCount.current < maxRetries) {
           retryCount.current += 1;
+          setCurrentRetryCount(retryCount.current);
+          setConnectionStatus('disconnected');
+
+          const delay = getBackoffDelay(retryCount.current - 1);
           console.log(
-            `[WS] Disconnected. Retry ${retryCount.current}/${maxRetries} in ${WS_CONFIG.retryDelay / 1000}s`
+            `[WS] Disconnected (code: ${event.code}). Retry ${retryCount.current}/${maxRetries} in ${Math.round(delay / 1000)}s`
           );
+
+          setError(event.code, `Connection closed (code: ${event.code})`);
+
           reconnectTimeout.current = setTimeout(() => {
             connect();
-          }, WS_CONFIG.retryDelay);
+          }, delay);
         } else if (retryCount.current >= maxRetries) {
           console.log('[WS] Connection unavailable. Running in offline mode.');
-          setConnectionState('disabled');
+          setConnectionStatus('error');
+          setError(event.code, `Connection failed after ${maxRetries} retries.`);
+        } else {
+          // Clean close
+          setConnectionStatus('disconnected');
         }
       };
 
@@ -134,12 +224,35 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
 
       setSocket(ws);
       return ws;
-    } catch {
-      console.log('[WS] Connection failed');
-      setConnectionState('disabled');
+    } catch (err) {
+      console.log('[WS] Connection failed:', err);
+      setConnectionStatus('error');
+      setError(undefined, 'Failed to create WebSocket connection');
       return null;
     }
-  }, [enabled, maxRetries, wsUrl]);
+  }, [enabled, maxRetries, wsUrl, setError, clearError]);
+
+  // Manual retry function - resets retry count
+  const retry = useCallback(() => {
+    console.log('[WS] Manual retry requested');
+    isManualRetry.current = true;
+    retryCount.current = 0;
+    setCurrentRetryCount(0);
+    clearError();
+
+    // Close existing socket if any
+    if (socket && socket.readyState !== WebSocket.CLOSED) {
+      socket.close(1000, 'Manual reconnect');
+    }
+
+    // Clear any pending reconnect
+    if (reconnectTimeout.current) {
+      clearTimeout(reconnectTimeout.current);
+      reconnectTimeout.current = null;
+    }
+
+    connect();
+  }, [connect, socket, clearError]);
 
   useEffect(() => {
     let currentWs: WebSocket | null = null;
@@ -160,17 +273,33 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
     };
   }, [connect]);
 
-  const sendMessage = (msg: unknown): void => {
-    if (socket && isConnected) {
-      socket.send(JSON.stringify(msg));
-    } else {
-      console.warn('WS not connected, cannot send:', msg);
-    }
-  };
+  const sendMessage = useCallback(
+    (msg: unknown): void => {
+      if (socket && isConnected) {
+        socket.send(JSON.stringify(msg));
+      } else {
+        console.warn('[WS] Not connected, cannot send:', msg);
+        setError(undefined, 'Cannot send message: not connected');
+      }
+    },
+    [socket, isConnected, setError]
+  );
 
   return (
     <WebSocketContext.Provider
-      value={{ socket, isConnected, lastMessage, sendMessage, connectionState }}
+      value={{
+        socket,
+        isConnected,
+        lastMessage,
+        sendMessage,
+        connectionState: connectionStatus, // Backwards compatibility
+        connectionStatus,
+        lastError,
+        retryCount: currentRetryCount,
+        maxRetries,
+        retry,
+        clearError,
+      }}
     >
       {children}
     </WebSocketContext.Provider>
