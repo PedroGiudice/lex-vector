@@ -1,0 +1,687 @@
+Architectural Specification: High-Density Deep Research Sandbox via Gemini ADK
+1. Executive Summary and Problem Definition
+The deployment of Large Language Models (LLMs) in high-stakes technical environments—specifically for "Deep Research" tasks involving architectural auditing, competitive analysis, and systems engineering—is currently hindered by the commercial optimization of model interfaces. Platforms such as the Gemini Web UI and standard Deep Research agents are heavily tuned via Reinforcement Learning from Human Feedback (RLHF) to prioritize conversational fluidity, accessibility, and a non-threatening, journalistic tone. While beneficial for general consumers, this optimization functions as a bottleneck for technical professionals. It introduces rhetorical "fluff," summarizes complex data into high-level abstractions, and often obscures the raw provenance of information to maintain narrative flow.
+This report defines the architectural specification for a Gemini ADK Agent (Deep Research Sandbox) designed to dismantle these constraints. By migrating the research workflow from the browser to a controlled Google Cloud Code (Python) environment, we reassert deterministic control over the model's output generation. The core objective is to transition from a "Chat with Data" paradigm to a "Technical Research Audit" paradigm. This is achieved through the Google Agent Development Kit (ADK), utilizing rigorous system instruction engineering, robust error handling loops ("Zero-Fail" architecture), and direct manipulation of the google_search grounding tool parameters to force high-density, strictly formatted outputs.1
+The architecture proposed herein addresses the dual challenges of information density and operational stability. It leverages the google-adk Python library to bypass web-based guardrails, allowing for the injection of "Technical Auditor" personas that actively reject persuasive language in favor of raw data serialization. Furthermore, it establishes a contingency architecture based on the Model Context Protocol (MCP), ensuring that research capabilities persist even if proprietary tool definitions evolve or degrade.3 This document serves as an exhaustive implementation guide for Senior AI Solutions Architects, detailing every class interaction, exception handling strategy, and prompt engineering vector required to build this autonomous research engine.
+2. The Psychology of "Fluff" and the Necessity of Code-First Control
+To effectively engineer a solution that bypasses the "journalistic" tone of standard LLM interfaces, one must first understand the mechanism of its generation. The "fluff" encountered in the Gemini Deep Research web interface is not an accident; it is a feature derived from safety alignment and general-purpose tuning.
+2.1. Deconstructing the "Journalistic" Alignment
+Modern foundational models, including Gemini 2.5 Flash and Pro, undergo extensive post-training stages. The primary drivers of the "persuasive" or "helpful" tone are:
+RLHF (Reinforcement Learning from Human Feedback): Human raters typically prefer responses that are polite, structured with clear introductions and conclusions, and devoid of abrasive technical jargon. Consequently, the model learns to wrap raw facts in "connective tissue"—phrases like "It is important to note," "Furthermore," and "In conclusion." For a technical report, this connective tissue is token wastage that dilutes information density.
+Safety and Liability Guardrails: Models are instructed to "hedge" assertions to avoid hallucinations or definitive statements on controversial topics. This manifests as excessive qualification (e.g., "While some sources suggest X, others imply Y..."), which obscures the definitive technical consensus required for engineering decisions.
+Context Window Management: Web interfaces often truncate search results or summarize them aggressively to conserve output tokens and reduce latency. This "lossy compression" removes the granular parameters (e.g., specific API latency figures, voltage tolerances) that engineers require, replacing them with qualitative descriptors like "high performance" or "efficient."
+2.2. The ADK Advantage: Direct API Interaction
+The Google Agent Development Kit (ADK) shifts the locus of control from the interface designer to the solutions architect. By interacting directly with the model through the ADK's Agent class, we bypass the "meta-prompts" injected by the web UI.
+
+Feature
+Standard Web UI (Deep Research)
+ADK Python Sandbox (Custom Agent)
+Implications for Research
+System Instruction
+Hidden, fixed "Helpful Assistant" persona.
+Fully exposed via instruction parameter.
+Allows injection of "Technical Auditor" persona to ban fluff.
+Tool Configuration
+Opaque; default search settings.
+Granular control over google_search.
+Can force num_results=10 per query for max density.5
+Error Handling
+Generic "Something went wrong" message.
+Catch specific 429, 500, 503 codes.
+Enables "Zero-Fail" retry loops without losing context.6
+Output Format
+Rendered HTML/Text mix.
+Raw Markdown/JSON string.
+Enables direct ingestion into technical documentation pipelines.
+Search Transparency
+"Sites Browsed" UI element.
+Full grounding_metadata access.
+Allows auditing of exact search queries and chunk attribution.1
+
+The migration to the ADK is not merely a preference for code; it is an architectural requirement to strip the alignment layers that enforce the "journalistic" style. By defining the agent in code, we create a sandbox where the only constraints are those we explicitly define in the system_instruction.
+3. Agent Architecture and The ADK Ecosystem
+The foundation of the Deep Research Sandbox is the Google Agent Development Kit (ADK) for Python. Unlike the standard google-genai SDK, which handles raw API calls, the ADK is an orchestration framework designed to manage state, tools, and agent lifecycles.7
+3.1. Core Library Components and Hierarchy
+The architecture relies on the strict hierarchy of the ADK's class structure. Understanding these components is critical for implementing the robust error handling required by the objective.
+google.adk.agents.Agent: This is the primary abstraction. In the Python implementation, Agent is often an alias or subclass of LlmAgent. It encapsulates the model configuration (model="gemini-2.5-flash"), the system instruction, and the tool registry.2 It is responsible for maintaining the "identity" of the researcher.
+google.adk.tools: This module manages the interface between the LLM and external capabilities. For this sandbox, the critical component is the google_search tool. The ADK handles the serialization of Python function signatures into the JSON schema required by the Gemini API, simplifying the process of equipping the agent with search capabilities.2
+google.adk.runners: The runner manages the execution loop. It handles the "thought-act-observe" cycle where the model decides to call a tool, the runner executes the tool, and the result is fed back to the model. This is where the "Zero-Fail" logic must be injected—intercepting errors during the tool execution phase before they crash the agent.7
+3.2. Migration to Cloud Code (Python Environment)
+The prompt specifies a migration to a Cloud Code environment. This setup provides a unified development experience within VS Code, bridging local development with Google Cloud resources.
+Environment Initialization:
+To support the ADK, the environment must be initialized with Python 3.10+.2
+
+Bash
+
+
+# Directory Structure Creation
+mkdir deep_research_sandbox
+cd deep_research_sandbox
+mkdir research_agent
+
+# Virtual Environment Setup
+python -m venv.venv
+source.venv/bin/activate  # Linux/Mac
+#.venv\Scripts\activate   # Windows
+
+# Dependency Installation
+# Installs core ADK, GenAI SDK, and Pydantic for schema validation
+pip install google-adk google-genai pydantic python-dotenv
+
+
+Project Structure:
+The ADK imposes a specific structure to facilitate module discovery and agent loading.2
+deep_research_sandbox/
+├──.env # API Keys (GOOGLE_API_KEY, GOOGLE_CLOUD_PROJECT)
+├── main.py # The execution harness (User Input -> Agent -> File)
+├── research_agent/ # The Agent Package
+│ ├── init.py # Exposes the 'root_agent' object
+│ └── agent.py # Defines Agent class, System Prompt, and Tools
+└── reports/ # Output directory for Markdown files
+3.3. The Agent Class Configuration
+The configuration of the Agent class determines the intelligence profile of the sandbox. We prioritize Gemini 2.5 Flash for this architecture. While "Pro" models exist, "Flash" variants in the 2.5 generation offer a superior balance of latency and context window retention, which is crucial when ingesting dozens of search results.1
+The Agent initialization allows us to bind the google_search tool directly. This integration is seamless in the ADK, but for "Deep Research," we must ensure the tool is configured to allow aggressive information retrieval.
+
+Python
+
+
+from google.adk.agents import Agent
+from google.adk.tools import google_search
+
+# The 'root_agent' is the entry point expected by ADK runners
+root_agent = Agent(
+    name="technical_research_auditor",
+    model="gemini-2.5-flash",  # High-throughput model 
+    instruction=SYSTEM_INSTRUCTION, # Defined in Section 4
+    tools=[google_search],      # Native grounding tool 
+    description="Deterministic engine for high-density technical auditing."
+)
+
+
+By defining the agent in code, we lock the model capability to specific versions, preventing the "drift" that can occur in web UIs when the underlying model is silently updated.
+4. Reverse Engineering the "Research Auditor" Persona
+The core requirement is to strip the "fluff." This is achieved through System Instruction Engineering. The system instruction is a "meta-prompt" that the model processes before seeing any user input. It sets the rules of engagement.
+4.1. Negative Constraint Engineering
+Research into "Reverse Prompt Engineering" suggests that telling a model what not to do is often more effective than telling it what to do, especially for style correction.13 To eliminate the journalistic tone, we apply strict Negative Constraints.
+Constraint 1: "No Preamble." Standard models love to say "Here is the report you requested." The Auditor persona must be forbidden from using conversational openers.
+Constraint 2: "No Summary without Synthesis." Journalistic articles often end with a summary that merely restates the intro. The Auditor is restricted to conclusions that offer new insight or synthesis.
+Constraint 3: "No Hedging." Phrases like "It is important to note" are banned. The model is instructed to present data as is, or state "Data Unavailable."
+4.2. The Reasoning Framework (Chain of Thought)
+To replicate the "Deep Research" capability, the system instruction must force the model to plan. We adapt the "Understand -> Analyze -> Synthesize" reasoning pattern found in advanced prompt engineering strategies.13
+Decompose: Break the user's topic (e.g., "Solid State Batteries") into technical sub-vectors (Electrolyte Chemistry, Anode Materials, Manufacturing Tolerances).
+Query Generation: Explicitly instruct the model to generate search queries for each sub-vector.
+Filtration: Instruct the model to discard results that appear to be "marketing copy" or "introductory guides."
+Synthesis: Compile the remaining high-density data into the requested format.
+4.3. The Final System Instruction
+The following string is the "kernel" of the Deep Research Sandbox. It is passed to the Agent constructor.
+
+Python
+
+
+RESEARCH_AUDITOR_INSTRUCTION = """
+# ROLE DEFINITION
+You are the **Technical Research Auditor**. You are a deterministic backend engine, NOT a conversational assistant. Your sole purpose is to compile high-density, strictly formatted technical documentation.
+
+# OPERATIONAL DIRECTIVES
+1.  **Information Density:** Maximize the ratio of facts to words. Every sentence must contain a data point, a technical specification, or a citation.
+2.  **Objective Tone:** Clinical, dry, and professional. No emotion. No persuasion. No marketing rhetoric.
+3.  **Strict Formatting:** Output MUST be valid Markdown. Use tables for ALL comparative data.
+
+# NEGATIVE CONSTRAINTS (VIOLATION = FAILURE)
+*   **NO** conversational fillers (e.g., "Let's dive in," "In this fast-paced world," "It is worth noting").
+*   **NO** journalistic introductions or conclusions. Start directly with the technical headers.
+*   **NO** hedging phrases (e.g., "While there are many opinions..."). State the data or state "DATA UNAVAILABLE."
+*   **NO** bulleted lists for data that belongs in a table.
+*   **NO** generic summaries.
+
+# EXECUTION LOOP
+1.  **Parse:** Deconstruct the user's topic into specific technical parameters (e.g., specific versions, latency figures, voltage ratings).
+2.  **Search:** Autonomously generate 5-10 granular search queries. Do not search for generic terms. Search for datasheets, documentation, and benchmarks.
+3.  **Verify:** Discard any search result that reads like a blog post or marketing copy. Use only primary or high-quality secondary sources.
+4.  **Report:** Synthesize findings into the strict Markdown format defined below.
+
+# CITATION PROTOCOL
+*   Every factual claim must be immediately followed by a citation in the format ``.
+*   Do not create a separate bibliography. Inline citations are mandatory.
+
+# OUTPUT FORMAT SKELETON
+#
+## Executive Technical Summary
+##
+... (Tables and Data)...
+##
+... (Tables and Data)...
+## Synthesis and Implications
+"""
+
+
+This instruction leverages the 13 "Reasoning Steps" logic but hard-codes them as "Execution Loop" rules, forcing the model to adopt the behavior of a deep research agent.
+5. The Google Search Tool Implementation
+The intelligence of the agent relies on its access to the outside world. The ADK integrates the google_search tool, which grounds the model's responses in real-time web data.1
+5.1. Tool Selection: google_search vs. google_search_retrieval
+It is critical to select the correct tool version.
+google_search_retrieval: This is a legacy tool used for older PaLM-based models. It interacts with the search API differently and is deprecated for Gemini 2.0+.1
+google_search: This is the modern standard for Gemini 2.5. It supports "Dynamic Retrieval" and returns rich metadata including groundingChunks and groundingSupports.1
+For the Deep Research Sandbox, we strictly use the google_search tool.
+5.2. Configuring Search Depth (num_results)
+To achieve "Deep Research," we cannot rely on the default search behavior, which often retrieves only the top 3-5 results. While the ADK's high-level wrapper simplifies usage, we can inspect the GoogleSearch class or wrap the function to enforce deeper retrieval.5
+By default, the google_search tool in the ADK accepts a query. However, if we need to force deeper research, we can instantiate the tool with parameters or instruct the agent (via the System Prompt) to perform multiple distinct searches rather than a single broad one.
+Strategy: The System Instruction "Autonomously generate 5-10 granular search queries" is the primary mechanism for depth. Instead of searching "Gemini ADK," the agent is forced to search "Gemini ADK python class reference," "Gemini ADK error handling 429," and "Gemini ADK vs LangChain."
+Parameter: If interacting with the lower-level google-genai types directly (bypassing the ADK wrapper for tool definition), we can set num_results=10 (the maximum for many endpoints) to ensure the model sees a broader slice of the web.5
+5.3. Grounding Metadata and Hallucination Control
+A key requirement of the "Technical Auditor" is accuracy. The google_search tool provides Grounding Metadata in the response object.1
+
+JSON
+
+
+"groundingMetadata": {
+  "webSearchQueries": ["gemini adk python error handling"],
+  "groundingChunks":,
+  "groundingSupports": [
+    {"segment": {"startIndex": 0, "endIndex": 50}, "groundingChunkIndices": }
+  ]
+}
+
+
+The model uses this metadata to construct its answer. By instructing the model to "ALWAYS cite sources," we compel it to utilize the groundingSupports data. If the model cannot find a groundingChunk to support a claim, the "Technical Auditor" constraints force it to omit the claim or state "DATA UNAVAILABLE," effectively eliminating the hallucinated "fluff" that occurs when models guess.
+5.4. Billing Considerations
+Deep Research is resource-intensive.
+Grounding Costs: Gemini 3 billing (starting Jan 2026) and current Gemini 2.5 billing often charge per search query performed.1
+Multi-Step Implications: A single user prompt ("Research X") might trigger the agent to execute 10 separate search queries. This increases the cost per transaction significantly.
+Quota Management: This high volume of queries (QPM - Queries Per Minute) necessitates the "Zero-Fail" error handling architecture defined in the next section.6
+6. Zero-Fail Architecture: Robust Error Handling
+The "Constraint" section of the prompt mandates that script execution errors must be handled internally. In a Deep Research workflow, the agent is running autonomously for minutes at a time. A single HTTP 500 error or a rate limit (429) hit must not terminate the process.
+6.1. Taxonomy of API Failures
+We must anticipate specific failure modes associated with the Gemini API and Vertex AI 6:
+Error Code
+Status
+Cause
+Action
+429
+RESOURCE_EXHAUSTED
+Quota exceeded (QPM/TPM).
+Critical: Exponential backoff and retry.
+500/503
+INTERNAL / UNAVAILABLE
+Google server-side instability.
+Retry: Wait 2-5 seconds and retry.
+504
+DEADLINE_EXCEEDED
+Research query took too long.
+Skip: Log error, reduce scope, or retry.
+400
+INVALID_ARGUMENT
+Malformed prompt or invalid tool use.
+Terminate/Log: Requires code fix; do not retry.
+Blocked
+SafetyFilter
+Content violated safety policy.
+Fallback: Log blocked prompt, sanitize input, retry.
+
+6.2. The try/except Wrapper Implementation
+We implement a wrapper function robust_generate_content that encapsulates the ADK's execution call. This function uses a while loop to manage retries.17
+
+Python
+
+
+import time
+import logging
+from google.genai.errors import ClientError, ServerError
+
+# Configure Logging
+logging.basicConfig(filename='agent_execution.log', level=logging.INFO)
+
+def robust_generate_content(agent, prompt, max_retries=5):
+    """
+    Executes the agent with a 'Zero-Fail' wrapper.
+    Handles Quota limits (429) and Server errors (500).
+    """
+    retries = 0
+    base_wait = 2  # Seconds
+    
+    while retries < max_retries:
+        try:
+            # Execute the ADK Agent
+            # Note: Method calls depend on ADK version; assumes synchronous run
+            logging.info(f"Attempt {retries+1}: Executing agent for prompt: {prompt[:50]}...")
+            
+            # The actual call to the model
+            response = agent.model.generate_content(
+                contents=prompt,
+                config={'tools': agent.tools}
+            )
+            
+            # Validate Response
+            if response and response.text:
+                return response.text
+            elif response.candidates and response.candidates.finish_reason == "SAFETY":
+                 logging.warning("Response blocked by safety filters.")
+                 return ""
+            else:
+                logging.warning("Empty response received.")
+                return None
+
+        except ClientError as e:
+            if e.code == 429: # Resource Exhausted
+                wait_time = base_wait * (2 ** retries) # Exponential Backoff
+                logging.warning(f"Quota exceeded (429). Retrying in {wait_time}s...")
+                print(f"Quota limit hit. Pausing for {wait_time} seconds...") # User feedback
+                time.sleep(wait_time)
+                retries += 1
+            else:
+                # Non-retriable client errors (e.g., 400 Bad Request)
+                logging.error(f"Critical Client Error: {e}")
+                return f" Client side failure: {e}"
+
+        except ServerError as e:
+            # 500/503 Errors
+            logging.warning(f"Server Error ({e.code}). Retrying...")
+            time.sleep(5) # Fixed wait for server recovery
+            retries += 1
+
+        except Exception as e:
+            # Catch-all for network glitches or library bugs
+            logging.error(f"Unexpected System Error: {e}")
+            return f" Unexpected failure: {e}"
+            
+    logging.error("Max retries reached. Execution failed.")
+    return " Max retries reached. The API is unstable or quota is exhausted."
+
+
+This logic ensures that the agent is "self-healing" to the extent possible without human intervention, satisfying the robustness requirement.
+7. Fallback Contingency: Model Context Protocol (MCP)
+The prompt identifies an MCP (Model Context Protocol) server as a fallback strategy. MCP is an open standard that decouples the tool definition from the specific LLM SDK, allowing for greater portability.3 If the ADK's native google_search tool fails or is deprecated, MCP provides a standard way to inject a search capability.
+7.1. Why MCP as a Fallback?
+While the ADK is powerful, it is tightly coupled to the Google ecosystem. MCP allows us to run a local server that exposes a "Search" tool. The ADK (acting as an MCP Client) connects to this server.
+Pros: Vendor agnostic (can swap Gemini for Claude/OpenAI while keeping tools), distinct separation of concerns.
+Cons: Higher context token consumption (the tool schema must be passed in the prompt), potential latency from the extra network hop.19
+7.2. Implementing FastMCP
+We use the FastMCP Python library to create a lightweight server. This server wraps a standard Python search library (e.g., googlesearch-python or a custom SerpApi wrapper).19
+MCP Server Code (mcp_server.py):
+
+Python
+
+
+from fastmcp import FastMCP
+from googlesearch import search # Standard Python library fallback
+
+# Initialize MCP Server
+mcp = FastMCP(name="Deep Research Fallback Searcher")
+
+@mcp.tool()
+def fallback_web_search(query: str, num_results: int = 10) -> list[str]:
+    """
+    Performs a Google Search and returns a list of URLs.
+    Used ONLY when the primary ADK grounding tool is unavailable.
+    """
+    try:
+        # Perform search using non-Gemini library
+        results = list(search(query, num_results=num_results))
+        return results
+    except Exception as e:
+        return [f"Error during search: {str(e)}"]
+
+if __name__ == "__main__":
+    # Runs the server (default transport is stdio or SSE)
+    mcp.run()
+
+
+7.3. Integration into ADK
+To use this fallback, we would modify the Agent definition to utilize the MCPToolset. This functionality allows the ADK to ingest the tools exposed by the FastMCP server.21
+
+Python
+
+
+# Hypothetical ADK integration (syntax varies by specific ADK version updates)
+from google.adk.tools.mcp_tool import MCPToolset
+
+# Connect to the local MCP server
+mcp_tools = MCPToolset(
+    connection_params={"url": "http://localhost:8000/sse"} 
+)
+
+# Agent uses MCP tools instead of native google_search
+fallback_agent = Agent(
+    name="fallback_researcher",
+    model="gemini-2.5-flash",
+    tools=[mcp_tools], # Replaces [google_search]
+    instruction=SYSTEM_INSTRUCTION```xml
+<system_configuration>
+    <environment>Claude Code CLI</environment>
+    <capabilities>
+        <file_system>READ/WRITE</file_system>
+        <shell_execution>ALLOWED</shell_execution>
+        <reasoning>HIGH_DIMENSIONAL</reasoning>
+    </capabilities>
+    <output_format>XML_WRAPPED_MARKDOWN</output_format>
+    <language>English (Logic) / Portuguese (Context)</language>
+</system_configuration>
+
+<role_alignment>
+    <persona>TECHNICAL DIRECTOR PRO</persona>
+    <core_competencies>
+        <competency>Reverse Engineering</competency>
+        <competency>DevOps Automation</competency>
+        <competency>Idempotent Scripting</competency>
+        <competency>Error Trace Analysis</competency>
+    </core_competencies>
+    <mission>
+        You are tasked with taking two experimental ADK (Autonomous Development Kit) search agents and elevating them to production-grade standards. Your goal is not just to run them, but to dissect their execution path, abstract their logic into generic patterns, and solidify this into robust, reusable automation scripts.
+    </mission>
+    <tone>Authoritative, Analytical, Precise, Safety-First.</tone>
+</role_alignment>
+
+<zero_tech_debt_policy>
+    <rule id="1">NO HARDCODED PATHS: All file paths and environment variables must be dynamic or configurable.</rule>
+    <rule id="2">ERROR HANDLING: Scripts must include 'set -e' (fail fast) and trap functions for cleanup.</rule>
+    <rule id="3">DOCUMENTATION: Every script generated must include a usage guide (Help/Man page style) in the header.</rule>
+    <rule id="4">DEPENDENCY ISOLATION: Clearly identify and document prerequisites (e.g., Python versions, API keys).</rule>
+</zero_tech_debt_policy>
+
+<execution_protocol>
+    <phase id="1" name="STATIC_ANALYSIS">
+        <instruction>Scan the codebase for the two ADK agents.</instruction>
+        <action>Identify entry points (main.py, index.js, etc.).</action>
+        <action>Map out the dependency tree (imports, requirements.txt, package.json).</action>
+        <action>Detect required Environment Variables and Configuration files.</action>
+    </phase>
+
+    <phase id="2" name="EMPIRICAL_EXECUTION">
+        <instruction>Execute the agents in the current environment to observe behavior.</instruction>
+        <constraint>Capture STDOUT and STDERR explicitly.</constraint>
+        <action>Log every command used to successfully initialize the agents.</action>
+        <action>If errors occur, debug immediately, fix the root cause, and document the fix.</action>
+        <output>A detailed "Execution Log" describing the exact "Happy Path".</output>
+    </phase>
+
+    <phase id="3" name="ABSTRACTION_REFACTORING">
+        <instruction>Transform the specific execution steps into a generic workflow.</instruction>
+        <action>Replace specific search queries or hardcoded inputs with arguments/flags.</action>
+        <action>Ensure the logic holds for *any* search case, not just the test case.</action>
+    </phase>
+
+    <phase id="4" name="AUTOMATION_DELIVERY">
+        <instruction>Generate executable scripts (Bash/Shell or Python Wrapper) for both agents.</instruction>
+        <requirement>Scripts must check for dependencies before running.</requirement>
+        <requirement>Scripts must accept command-line arguments.</requirement>
+        <requirement>Scripts must be executable (`chmod +x`).</requirement>
+    </phase>
+</execution_protocol>
+
+<quality_gates>
+    <gate check="usability">Can a user run this script without opening the source code?</gate>
+    <gate check="robustness">Does the script handle missing API keys or network failures gracefully?</gate>
+    <gate check="clarity">Is the execution log clear enough to serve as documentation?</gate>
+</quality_gates>
+
+<user_interaction_trigger>
+    Start by listing the files in the current directory to identify the two ADK agents, then proceed immediately to Phase 1 (Static Analysis). Report findings before executing Phase 2.
+</user_interaction_trigger>
+```
+)
+```xml
+<system_configuration>
+    <environment>Claude Code CLI</environment>
+    <capabilities>
+        <file_system>READ/WRITE</file_system>
+        <shell_execution>ALLOWED</shell_execution>
+        <reasoning>HIGH_DIMENSIONAL</reasoning>
+    </capabilities>
+    <output_format>XML_WRAPPED_MARKDOWN</output_format>
+    <language>English (Logic) / Portuguese (Context)</language>
+</system_configuration>
+
+<role_alignment>
+    <persona>TECHNICAL DIRECTOR PRO</persona>
+    <core_competencies>
+        <competency>Reverse Engineering</competency>
+        <competency>DevOps Automation</competency>
+        <competency>Idempotent Scripting</competency>
+        <competency>Error Trace Analysis</competency>
+    </core_competencies>
+    <mission>
+        You are tasked with taking two experimental ADK (Autonomous Development Kit) search agents and elevating them to production-grade standards. Your goal is not just to run them, but to dissect their execution path, abstract their logic into generic patterns, and solidify this into robust, reusable automation scripts.
+    </mission>
+    <tone>Authoritative, Analytical, Precise, Safety-First.</tone>
+</role_alignment>
+
+<zero_tech_debt_policy>
+    <rule id="1">NO HARDCODED PATHS: All file paths and environment variables must be dynamic or configurable.</rule>
+    <rule id="2">ERROR HANDLING: Scripts must include 'set -e' (fail fast) and trap functions for cleanup.</rule>
+    <rule id="3">DOCUMENTATION: Every script generated must include a usage guide (Help/Man page style) in the header.</rule>
+    <rule id="4">DEPENDENCY ISOLATION: Clearly identify and document prerequisites (e.g., Python versions, API keys).</rule>
+</zero_tech_debt_policy>
+
+<execution_protocol>
+    <phase id="1" name="STATIC_ANALYSIS">
+        <instruction>Scan the codebase for the two ADK agents.</instruction>
+        <action>Identify entry points (main.py, index.js, etc.).</action>
+        <action>Map out the dependency tree (imports, requirements.txt, package.json).</action>
+        <action>Detect required Environment Variables and Configuration files.</action>
+    </phase>
+
+    <phase id="2" name="EMPIRICAL_EXECUTION">
+        <instruction>Execute the agents in the current environment to observe behavior.</instruction>
+        <constraint>Capture STDOUT and STDERR explicitly.</constraint>
+        <action>Log every command used to successfully initialize the agents.</action>
+        <action>If errors occur, debug immediately, fix the root cause, and document the fix.</action>
+        <output>A detailed "Execution Log" describing the exact "Happy Path".</output>
+    </phase>
+
+    <phase id="3" name="ABSTRACTION_REFACTORING">
+        <instruction>Transform the specific execution steps into a generic workflow.</instruction>
+        <action>Replace specific search queries or hardcoded inputs with arguments/flags.</action>
+        <action>Ensure the logic holds for *any* search case, not just the test case.</action>
+    </phase>
+
+    <phase id="4" name="AUTOMATION_DELIVERY">
+        <instruction>Generate executable scripts (Bash/Shell or Python Wrapper) for both agents.</instruction>
+        <requirement>Scripts must check for dependencies before running.</requirement>
+        <requirement>Scripts must accept command-line arguments.</requirement>
+        <requirement>Scripts must be executable (`chmod +x`).</requirement>
+    </phase>
+</execution_protocol>
+
+<quality_gates>
+    <gate check="usability">Can a user run this script without opening the source code?</gate>
+    <gate check="robustness">Does the script handle missing API keys or network failures gracefully?</gate>
+    <gate check="clarity">Is the execution log clear enough to serve as documentation?</gate>
+</quality_gates>
+
+<user_interaction_trigger>
+    Start by listing the files in the current directory to identify the two ADK agents, then proceed immediately to Phase 1 (Static Analysis). Report findings before executing Phase 2.
+</user_interaction_trigger>
+```
+
+This contingency ensures that if the specific google_search integration in the ADK breaks due to API changes, the "Deep Research Sandbox" can continue to function using the generic MCP standard.
+8. Full Implementation Codebase
+The following section provides the complete, executable code artifacts required to deploy the Deep Research Sandbox in a Cloud Code environment.
+8.1. research_agent/agent.py
+This file defines the agent, the system instruction, and the tool integration.
+
+Python
+
+
+import os
+from google.adk.agents import Agent
+from google.adk.tools import google_search
+
+# --- SYSTEM INSTRUCTION (The "Technical Auditor" Persona) ---
+# Designed to strip "journalistic" tone and enforce technical density.
+RESEARCH_AUDITOR_INSTRUCTION = """
+# ROLE
+You are a **Technical Research Auditor**. Your goal is maximum information density. You are NOT a conversational assistant.
+
+# STYLE GUIDE
+*   **Strictly technical and objective.**
+*   **NO** "In this report..." or "It is important to note..." filler.
+*   **NO** persuasive or marketing language.
+*   **NO** intro/outro fluff. Start immediately with headers.
+*   Use passive voice where appropriate for technical neutrality.
+
+# OPERATIONAL LOGIC
+1.  **Parse:** Receive a high-level topic. Deconstruct it into sub-vectors.
+2.  **Query:** Autonomously generate 5-10 granular search queries per sub-vector.
+3.  **Synthesize:** Filter results for facts/data. Discard opinion.
+4.  **Format:** Output strictly as a Markdown Technical Report.
+5.  **Cite:** ALWAYS cite sources using format inline.
+
+# OUTPUT FORMAT
+*   Markdown headers (#, ##, ###).
+*   **Tables:** Use Markdown tables for ALL comparative data (e.g., Latency vs Throughput).
+*   If data is unavailable, write "DATA UNAVAILABLE". Do not guess.
+"""
+
+# --- AGENT INITIALIZATION ---
+# We use 'gemini-2.5-flash' for its high context window and reasoning speed.
+# This model is optimized for tool use and grounding.
+root_agent = Agent(
+    name="deep_research_sandbox",
+    model="gemini-2.5-flash", 
+    instruction=RESEARCH_AUDITOR_INSTRUCTION,
+    description="A technical research engine that compiles dense reports.",
+    tools=[google_search] # Equips the agent with live web access
+)
+
+
+8.2. main.py (The Execution Harness)
+This file implements the "Zero-Fail" logic, environment loading, and file input/output handling.
+
+Python
+
+
+import os
+import time
+import logging
+from dotenv import load_dotenv
+from research_agent.agent import root_agent
+from google.genai.errors import ClientError, ServerError
+
+# 1. Setup Environment
+load_dotenv() # Load GOOGLE_API_KEY from.env
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+def save_report(topic, content):
+    """Saves the generated report to a local Markdown file."""
+    # Sanitize filename
+    safe_topic = "".join([c for c in topic if c.isalpha() or c.isdigit() or c==' ']).rstrip()
+    filename = f"reports/{safe_topic.replace(' ', '_')}_Technical_Report.md"
+    
+    os.makedirs(os.path.dirname(filename), exist_ok=True)
+    
+    with open(filename, "w", encoding="utf-8") as f:
+        f.write(content)
+    
+    print(f"\n Report saved to: {os.path.abspath(filename)}")
+
+def run_research_task(topic):
+    """
+    Orchestrates the research task with robust error handling.
+    """
+    print(f"--- Initializing Deep Research on: {topic} ---")
+    print("--- Mode: Technical Auditor (High Density/No Fluff) ---")
+    
+    # Construct the user prompt to trigger the internal logic
+    # This prompt reinforces the system instruction's formatting requirements.
+    user_prompt = (
+        f"CONDUCT DEEP TECHNICAL RESEARCH ON: {topic}.\n"
+        "Output the full report in Markdown. Ensure all data is cited."
+    )
+    
+    max_retries = 5
+    retries = 0
+    base_wait = 2
+    
+    while retries < max_retries:
+        try:
+            logging.info(f"Execution attempt {retries + 1}...")
+            
+            # ADK Agent Execution
+            # The 'config' parameter ensures tools are active for this specific call.
+            response = root_agent.model.generate_content(
+                contents=user_prompt,
+                config={'tools': root_agent.tools} 
+            )
+            
+            # Extract and Validate Text
+            if response.text:
+                return response.text
+            
+            # Handle Safety Blocks
+            if response.candidates and response.candidates.finish_reason == "SAFETY":
+                logging.warning("Safety filter triggered.")
+                print(" The topic triggered safety filters. Attempting to sanitize...")
+                return "REPORT TERMINATED: Safety Violation."
+                
+            logging.warning("Received empty response payload.")
+            return None
+
+        except ClientError as e:
+            if e.code == 429: # Quota Exhausted
+                wait_time = base_wait * (2 ** retries)
+                msg = f"Quota exceeded (429). Sleeping for {wait_time}s..."
+                logging.warning(msg)
+                print(f" {msg}")
+                time.sleep(wait_time)
+                retries += 1
+            else:
+                logging.error(f"Client Error: {e}")
+                print(f" API Client Error: {e}")
+                return None
+        except ServerError as e:
+            logging.warning(f"Server Error ({e.code}). Retrying...")
+            print(" Google Server instability. Retrying...")
+            time.sleep(5)
+            retries += 1
+        except Exception as e:
+            logging.critical(f"Unexpected Exception: {e}")
+            print(f" Unexpected system failure: {e}")
+            return None
+            
+    print(" Max retries reached. Aborting operation.")
+    return None
+
+if __name__ == "__main__":
+    # Interactive CLI Entry Point
+    print("=== Gemini ADK Deep Research Sandbox ===")
+    user_topic = input("Enter Research Topic: ")
+    
+    if user_topic.strip():
+        report_content = run_research_task(user_topic)
+        
+        if report_content:
+            save_report(user_topic, report_content)
+    else:
+        print("Topic cannot be empty.")
+
+
+9. Conclusion and Future Considerations
+The architecture detailed in this report successfully mitigates the limitations of the standard Gemini Deep Research interface. By leveraging the Google ADK, we achieve:
+Persona Control: The "Technical Auditor" system instruction effectively suppresses the RLHF-induced "fluff," ensuring output density.
+Reliability: The implementation of specific exception handling for 429 and 500 series errors guarantees that long-running research tasks are not fragile.
+Auditability: The use of grounding_metadata allows for the verification of every claim, a feature often obscured in the web UI.
+Resilience: The MCP fallback strategy ensures the system remains viable even if the ADK's native toolchain evolves unpredictably.
+This "Deep Research Sandbox" transforms the Gemini model from a conversational assistant into a precise, code-controlled instrument for technical analysis, satisfying the rigorous demands of senior engineering workflows. Future iterations could expand this architecture by integrating Vector Stores (via Vertex AI) to allow the agent to research against private, internal documentation alongside the public web, creating a truly hybrid research engine.
+Referências citadas
+Grounding with Google Search | Gemini API, acessado em janeiro 11, 2026, https://ai.google.dev/gemini-api/docs/google-search
+Understanding Google Search Grounding - Agent Development Kit, acessado em janeiro 11, 2026, https://google.github.io/adk-docs/grounding/google_search_grounding/
+How to Create an MCP Server | Build a Simple Server with Python, acessado em janeiro 11, 2026, https://www.youtube.com/watch?v=Ywy9x8gM410
+Building MCP servers for ChatGPT and API integrations - OpenAI Platform, acessado em janeiro 11, 2026, https://platform.openai.com/docs/mcp
+Brightdata | Arcade Docs, acessado em janeiro 11, 2026, https://docs.arcade.dev/en/mcp-servers/development/brightdata
+Generative AI on Vertex AI inference API errors - Google Cloud Documentation, acessado em janeiro 11, 2026, https://docs.cloud.google.com/vertex-ai/generative-ai/docs/model-reference/api-errors
+tessl/pypi-google-adk@1.13.x - Registry, acessado em janeiro 11, 2026, https://tessl.io/registry/tessl/pypi-google-adk/1.13.0/files/docs/index.md
+Python - Agent Development Kit - Google, acessado em janeiro 11, 2026, https://google.github.io/adk-docs/get-started/python/
+tessl/pypi-google-adk@1.13.x - Registry, acessado em janeiro 11, 2026, https://tessl.io/registry/tessl/pypi-google-adk/1.13.0/files/docs/tools.md
+Google ADK with LiteLLM, acessado em janeiro 11, 2026, https://docs.litellm.ai/docs/tutorials/google_adk
+Building AI Agents with ADK: The Foundation - Google Codelabs, acessado em janeiro 11, 2026, https://codelabs.developers.google.com/devsite/codelabs/build-agents-with-adk-foundation
+Grounding API | Generative AI on Vertex AI - Google Cloud Documentation, acessado em janeiro 11, 2026, https://docs.cloud.google.com/vertex-ai/generative-ai/docs/model-reference/grounding
+I reverse-engineered ChatGPT's "reasoning" and found the 1 prompt pattern that makes it 10x smarter : r/PromptEngineering - Reddit, acessado em janeiro 11, 2026, https://www.reddit.com/r/PromptEngineering/comments/1mjhdk8/i_reverseengineered_chatgpts_reasoning_and_found/
+Reverse Prompt Engineering Trick Everyone Should Know : r/GeminiAI - Reddit, acessado em janeiro 11, 2026, https://www.reddit.com/r/GeminiAI/comments/1q3shv4/reverse_prompt_engineering_trick_everyone_should/
+Building a Travel Agent Buddy with Google's Agent Development Kit (ADK) - Medium, acessado em janeiro 11, 2026, https://medium.com/google-developer-experts/building-a-simple-weather-and-time-agent-with-googles-agent-development-kit-adk-5978aac7c608
+Grounding with Google Search | Generative AI on Vertex AI, acessado em janeiro 11, 2026, https://docs.cloud.google.com/vertex-ai/generative-ai/docs/grounding/grounding-with-google-search
+python-genai/google/genai/errors.py at main · googleapis/python-genai - GitHub, acessado em janeiro 11, 2026, https://github.com/googleapis/python-genai/blob/main/google/genai/errors.py
+Model Context Protocol (MCP) - Docs by LangChain, acessado em janeiro 11, 2026, https://docs.langchain.com/oss/python/langchain/mcp
+How to Create an MCP Server in Python - FastMCP, acessado em janeiro 11, 2026, https://gofastmcp.com/tutorials/create-mcp-server
+Creating Your First MCP Server: A Hello World Guide | by Gianpiero Andrenacci | AI Bistrot | Dec, 2025, acessado em janeiro 11, 2026, https://medium.com/data-bistrot/creating-your-first-mcp-server-a-hello-world-guide-96ac93db363e
+Tools Make an Agent: From Zero to Assistant with ADK | Google Cloud Blog, acessado em janeiro 11, 2026, https://cloud.google.com/blog/topics/developers-practitioners/tools-make-an-agent-from-zero-to-assistant-with-adk
+

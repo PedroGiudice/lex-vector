@@ -451,6 +451,33 @@
         ]
       }
     },
+    "deep-research": {
+      "type": "domain",
+      "enforcement": "suggest",
+      "priority": "high",
+      "description": "Gemini ADK Deep Research Agent for autonomous technical research with web search",
+      "promptTriggers": {
+        "keywords": [
+          "deep research",
+          "research",
+          "pesquisa",
+          "pesquisar",
+          "investigate",
+          "investigar",
+          "adk agent",
+          "web search",
+          "technical analysis",
+          "analise tecnica"
+        ],
+        "intentPatterns": [
+          "(deep|run).*?(research|pesquisa)",
+          "(research|pesquis).*?(topic|topico|sobre)",
+          "(investigate|investigar).*?(topic|subject)",
+          "(find|buscar|procurar).*?(information|informacao)",
+          "(analyze|analise).*?(technology|tecnologia|topic)"
+        ]
+      }
+    },
     "git-pushing": {
       "type": "utility",
       "enforcement": "suggest",
