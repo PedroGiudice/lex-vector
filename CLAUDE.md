@@ -44,6 +44,12 @@ mgrep "pattern" src/      # busca em diretorio especifico
 **PROIBIDO** usar emojis em qualquer output: respostas, codigo, commits, comentarios.
 Motivo: Bug no CLI Rust causa crash em char boundaries de emojis (4 bytes).
 
+### 7. Testes Obrigatorios (Backend)
+Pre-commit executa **ruff + pytest** automaticamente para arquivos Python em `ferramentas/`.
+- Commit bloqueado se testes falharem
+- Bypass (emergencia): `git commit --no-verify`
+- CI tambem bloqueia merge se testes falharem
+
 ---
 
 ## Erros Aprendidos
@@ -59,7 +65,8 @@ Não crie hooks para cada erro — documente aqui primeiro. Esta seção cresce 
 | Data | Erro | Regra |
 |------|------|-------|
 | 2026-01-11 | Emoji causou crash do CLI (panic em char boundary) | Regra #6: ZERO emojis |
-| 2026-01-11 | Crash do CLI pode perder edits nao commitados | Commitar frequentemente durante sessao |
+| 2026-01-11 | Crash do CLI pode perder edits nao commitados | **Commitar frequentemente durante sessao** |
+| 2026-01-13 | Feedback loop so roda no commit, nao proativamente | Commitar apos cada mudanca logica para validar cedo |
 
 <!--
 Formato para adicionar:
