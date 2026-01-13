@@ -28,19 +28,13 @@ bun install && bun run dev && bun run build
 
 **Para scripts JS:** Sempre `bun run script.js`, nunca `node script.js`
 
-### 4. mgrep em vez de grep
-```bash
-mgrep "pattern"           # em vez de grep -r "pattern"
-mgrep "pattern" src/      # busca em diretorio especifico
-```
-
-### 5. Gemini para Context Offloading
+### 4. Gemini para Context Offloading
 **SEMPRE** usar `gemini-assistant` (modelo: gemini-3-flash) para:
 - Arquivos > 500 linhas
 - Multiplos arquivos simultaneos
 - Logs extensos, diffs grandes
 
-### 6. ZERO Emojis
+### 5. ZERO Emojis
 **PROIBIDO** usar emojis em qualquer output: respostas, codigo, commits, comentarios.
 Motivo: Bug no CLI Rust causa crash em char boundaries de emojis (4 bytes).
 
@@ -58,7 +52,7 @@ Não crie hooks para cada erro — documente aqui primeiro. Esta seção cresce 
 
 | Data | Erro | Regra |
 |------|------|-------|
-| 2026-01-11 | Emoji causou crash do CLI (panic em char boundary) | Regra #6: ZERO emojis |
+| 2026-01-11 | Emoji causou crash do CLI (panic em char boundary) | Regra #5: ZERO emojis |
 | 2026-01-11 | Crash do CLI pode perder edits nao commitados | Commitar frequentemente durante sessao |
 
 <!--
