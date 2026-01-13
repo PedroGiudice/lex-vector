@@ -67,6 +67,7 @@ Não crie hooks para cada erro — documente aqui primeiro. Esta seção cresce 
 | 2026-01-11 | Emoji causou crash do CLI (panic em char boundary) | Regra #6: ZERO emojis |
 | 2026-01-11 | Crash do CLI pode perder edits nao commitados | **Commitar frequentemente durante sessao** |
 | 2026-01-13 | Feedback loop so roda no commit, nao proativamente | Commitar apos cada mudanca logica para validar cedo |
+| 2026-01-13 | Troquei modelo especificado pelo usuario (gemini-3-pro-preview) | **NUNCA substituir modelo indicado pelo usuario - usar EXATAMENTE o especificado** |
 
 <!--
 Formato para adicionar:
