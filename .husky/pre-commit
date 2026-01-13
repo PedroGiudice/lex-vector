@@ -31,3 +31,70 @@ if [ -n "$STAGED_FILES" ]; then
     cd - > /dev/null
     git add $STAGED_FILES
 fi
+
+# === BACKEND PYTHON: RUFF + PYTEST ===
+BACKEND_STAGED=$(git diff --cached --name-only --diff-filter=ACM | grep -E '^legal-workbench/ferramentas/.*\.py$' || true)
+
+if [ -n "$BACKEND_STAGED" ]; then
+    echo ""
+    echo "[pre-commit] Backend Python files detected, running checks..."
+
+    REPO_ROOT=$(git rev-parse --show-toplevel)
+    cd "$REPO_ROOT/legal-workbench/ferramentas"
+
+    # Testes pytest - rodar para cada subprojeto com testes
+    echo "[pre-commit] Running pytest..."
+    PYTEST_FAILED=0
+
+    for project in legal-text-extractor stj-dados-abertos legal-doc-assembler prompt-library; do
+        if [ -d "$project/tests" ]; then
+            echo "  Testing $project..."
+            cd "$project"
+
+            # Determinar qual Python usar
+            if [ -f ".venv/bin/python" ]; then
+                PYTHON=".venv/bin/python"
+            elif [ -f "$REPO_ROOT/.venv/bin/python" ]; then
+                PYTHON="$REPO_ROOT/.venv/bin/python"
+            else
+                echo "    [SKIP] No venv found for $project"
+                cd ..
+                continue
+            fi
+
+            # Ruff (se disponivel)
+            if $PYTHON -m ruff --version >/dev/null 2>&1; then
+                echo "    Running ruff..."
+                $PYTHON -m ruff check --fix . 2>/dev/null || true
+                $PYTHON -m ruff format . 2>/dev/null || true
+            fi
+
+            # Pytest
+            if $PYTHON -m pytest --version >/dev/null 2>&1; then
+                if ! $PYTHON -m pytest tests/ -v --tb=short -q 2>&1; then
+                    echo "    [FAIL] Tests failed in $project"
+                    PYTEST_FAILED=1
+                fi
+            else
+                echo "    [SKIP] pytest not installed for $project"
+            fi
+
+            cd ..
+        fi
+    done
+
+    cd "$REPO_ROOT"
+
+    # Re-stage any files modified by ruff
+    git add $BACKEND_STAGED 2>/dev/null || true
+
+    if [ $PYTEST_FAILED -ne 0 ]; then
+        echo ""
+        echo "[pre-commit] BLOCKED: pytest failed. Fix tests before committing."
+        echo "Bypass (emergencia): git commit --no-verify"
+        echo ""
+        exit 1
+    fi
+
+    echo "[pre-commit] Backend checks passed."
+fi

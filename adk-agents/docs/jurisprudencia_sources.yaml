@@ -1,0 +1,656 @@
+# Jurisprudencia Sources Configuration
+# Machine-readable specification for ADK Agent consumption
+# Generated: 2026-01-13
+# Purpose: Web-based case law search across Brazilian courts
+
+version: "1.0"
+strategy: "google_search_site_operator"
+
+# Search execution pattern:
+# query: "{user_query} site:{source.domain}"
+# Example: "dano moral site:jurisprudencia.stf.jus.br"
+
+sources:
+  # ============================================
+  # TIER 1: TRIBUNAIS SUPERIORES
+  # Priority: CRITICAL
+  # Coverage: National binding precedents
+  # ============================================
+
+  stf:
+    name: "Supremo Tribunal Federal"
+    domain: "jurisprudencia.stf.jus.br"
+    direct_url: "https://jurisprudencia.stf.jus.br/pages/search"
+    tier: 1
+    priority: 1
+    jurisdiction: "constitutional"
+    coverage:
+      geographic: "national"
+      temporal: "1988-present"
+      types:
+        - acordaos
+        - sumulas
+        - sumulas_vinculantes
+        - repercussao_geral
+        - decisoes_monocraticas
+    data_fields:
+      guaranteed:
+        - numero_processo
+        - classe_processual
+        - relator
+        - orgao_julgador
+        - data_julgamento
+        - data_publicacao
+        - ementa
+        - inteiro_teor_url
+      optional:
+        - votos_divergentes
+        - tese_fixada
+    search_features:
+      boolean_operators: true
+      phrase_search: true
+      wildcard: false
+      filters:
+        - relator
+        - orgao_julgador
+        - data_range
+        - classe
+        - tema_repercussao
+    access:
+      authentication: none
+      rate_limit: unknown
+      captcha: false
+      js_required: true
+    scraping_quality: high
+    notes: "Portal moderno com boa estrutura HTML. Suporta deep linking por ID do acordao."
+
+  tst:
+    name: "Tribunal Superior do Trabalho"
+    domain: "jurisprudencia.tst.jus.br"
+    direct_url: "https://jurisprudencia.tst.jus.br/"
+    tier: 1
+    priority: 2
+    jurisdiction: "labor"
+    coverage:
+      geographic: "national"
+      temporal: "1998-present"
+      types:
+        - acordaos
+        - sumulas
+        - orientacoes_jurisprudenciais
+        - precedentes_normativos
+        - decisoes_monocraticas
+    data_fields:
+      guaranteed:
+        - numero_processo
+        - classe_processual
+        - relator
+        - orgao_julgador
+        - data_julgamento
+        - data_publicacao
+        - ementa
+        - inteiro_teor_url
+      optional:
+        - tese
+        - indexacao
+    search_features:
+      boolean_operators: true
+      phrase_search: true  # aspas para busca exata
+      wildcard: false
+      filters:
+        - relator
+        - orgao_julgador
+        - data_range
+        - classe
+        - trt_origem
+    access:
+      authentication: none
+      rate_limit: unknown
+      captcha: false
+      js_required: true
+    scraping_quality: high
+    notes: "Ferramenta atualizada em 2019. Permite exportacao de documentos. Base robusta desde 1998."
+
+  stj:
+    name: "Superior Tribunal de Justica"
+    domain: "jurisprudencia.stj.jus.br"
+    direct_url: "https://scon.stj.jus.br/SCON/"
+    tier: 1
+    priority: 3
+    jurisdiction: "infraconstitutional"
+    coverage:
+      geographic: "national"
+      temporal: "1989-present"
+      types:
+        - acordaos
+        - sumulas
+        - decisoes_monocraticas
+        - informativos
+        - recursos_repetitivos
+    data_fields:
+      guaranteed:
+        - numero_processo
+        - classe_processual
+        - relator
+        - orgao_julgador
+        - data_julgamento
+        - data_publicacao
+        - ementa
+        - inteiro_teor_url
+      optional:
+        - notas
+        - referencias_legislativas
+    search_features:
+      boolean_operators: true
+      phrase_search: true
+      wildcard: true
+      filters:
+        - relator
+        - orgao_julgador
+        - data_range
+        - classe
+        - ramo_direito
+    access:
+      authentication: none
+      rate_limit: unknown
+      captcha: false
+      js_required: true
+    scraping_quality: high
+    api_available: true
+    api_endpoint: "https://dados.stj.jus.br"
+    notes: "API de dados abertos disponivel e ja integrada ao projeto. Portal web complementa para dados nao cobertos pela API."
+
+  # ============================================
+  # TIER 2: JUSTICA FEDERAL
+  # Priority: HIGH
+  # Coverage: Federal jurisdiction nationwide
+  # ============================================
+
+  cjf_unificado:
+    name: "Conselho da Justica Federal - Pesquisa Unificada"
+    domain: "pesquisaunificada.cjf.jus.br"
+    direct_url: "https://pesquisaunificada.cjf.jus.br/"
+    tier: 2
+    priority: 1
+    jurisdiction: "federal"
+    coverage:
+      geographic: "national"
+      temporal: "varies_by_court"
+      courts_included:
+        - TRF1
+        - TRF2
+        - TRF3
+        - TRF4
+        - TRF5
+        - TRF6
+        - TNU
+      types:
+        - acordaos
+        - sumulas
+        - jurisprudencia_administrativa
+    data_fields:
+      guaranteed:
+        - numero_processo
+        - tribunal_origem
+        - relator
+        - orgao_julgador
+        - data_julgamento
+        - ementa
+      optional:
+        - inteiro_teor_url
+    search_features:
+      boolean_operators: true
+      phrase_search: true
+      wildcard: false
+      filters:
+        - tribunal
+        - data_range
+        - classe
+    access:
+      authentication: none
+      rate_limit: unknown
+      captcha: false
+      js_required: true
+    scraping_quality: high
+    notes: "Portal unificado - single source para toda Justica Federal. Estrutura padronizada entre tribunais."
+
+  trf1:
+    name: "Tribunal Regional Federal da 1a Regiao"
+    domain: "jurisprudencia.trf1.jus.br"
+    direct_url: "https://jurisprudencia.trf1.jus.br/busca/"
+    tier: 2
+    priority: 2
+    jurisdiction: "federal"
+    coverage:
+      geographic:
+        states: [AC, AM, AP, BA, DF, GO, MA, MT, PA, PI, RO, RR, TO]
+        description: "Maior regiao geografica do Brasil"
+      temporal: "1989-present"
+      types:
+        - acordaos
+        - decisoes_monocraticas
+    data_fields:
+      guaranteed:
+        - numero_processo
+        - classe_processual
+        - relator
+        - orgao_julgador
+        - data_julgamento
+        - ementa
+        - inteiro_teor_url
+      optional:
+        - votacao
+    search_features:
+      boolean_operators: true
+      phrase_search: true
+      wildcard: false
+      modulators: true  # operadores especiais
+      filters:
+        - classe
+        - orgao_julgador
+        - relator
+        - data_range
+    access:
+      authentication: none
+      rate_limit: unknown
+      captcha: false
+      js_required: true
+    scraping_quality: medium_high
+    notes: "Pesquisa simples e avancada. Operadores logicos E/OU/NAO e moduladores ADJ/PROX."
+
+  trf2:
+    name: "Tribunal Regional Federal da 2a Regiao"
+    domain: "jurisprudencia.trf2.jus.br"
+    direct_url: "https://jurisprudencia.trf2.jus.br/"
+    tier: 2
+    priority: 3
+    jurisdiction: "federal"
+    coverage:
+      geographic:
+        states: [RJ, ES]
+      temporal: "1989-present"
+      types:
+        - acordaos
+        - decisoes_tru
+        - turmas_recursais
+    data_fields:
+      guaranteed:
+        - numero_processo
+        - relator
+        - orgao_julgador
+        - data_julgamento
+        - ementa
+      optional:
+        - inteiro_teor_url
+    search_features:
+      boolean_operators: true
+      phrase_search: true
+      wildcard: false
+      filters:
+        - termo
+        - data_range
+    access:
+      authentication: none
+      rate_limit: unknown
+      captcha: false
+      js_required: true
+    scraping_quality: medium_high
+    notes: "Portal e-Proc integrado."
+
+  trf3:
+    name: "Tribunal Regional Federal da 3a Regiao"
+    domain: "jurisprudencia.trf3.jus.br"
+    direct_url: "https://web.trf3.jus.br/base-textual"
+    tier: 2
+    priority: 4
+    jurisdiction: "federal"
+    coverage:
+      geographic:
+        states: [SP, MS]
+      temporal: "1989-present"
+      types:
+        - acordaos
+        - sumulas
+    data_fields:
+      guaranteed:
+        - numero_processo
+        - relator
+        - orgao_julgador
+        - data_julgamento
+        - ementa
+      optional:
+        - inteiro_teor_url
+    search_features:
+      boolean_operators: true
+      phrase_search: true
+      wildcard: false
+      filters:
+        - classe
+        - data_range
+    access:
+      authentication: none
+      rate_limit: unknown
+      captcha: false
+      js_required: true
+    scraping_quality: medium
+    notes: "Inclui jurisprudencia unificada do CJF e TNU."
+
+  trf4:
+    name: "Tribunal Regional Federal da 4a Regiao"
+    domain: "jurisprudencia.trf4.jus.br"
+    direct_url: "https://jurisprudencia.trf4.jus.br/pesquisa/pesquisa.php"
+    tier: 2
+    priority: 5
+    jurisdiction: "federal"
+    coverage:
+      geographic:
+        states: [RS, SC, PR]
+      temporal: "1989-present"
+      types:
+        - acordaos
+        - sumulas
+        - decisoes_monocraticas
+    data_fields:
+      guaranteed:
+        - numero_processo
+        - relator
+        - orgao_julgador
+        - data_julgamento
+        - ementa
+        - inteiro_teor_url
+      optional:
+        - votacao
+    search_features:
+      boolean_operators: true
+      phrase_search: true
+      wildcard: false
+      filters:
+        - classe
+        - orgao_julgador
+        - relator
+        - data_range
+    access:
+      authentication: none
+      rate_limit: unknown
+      captcha: false
+      js_required: true  # CRITICAL: algumas funcoes prejudicadas sem JS
+    scraping_quality: medium_high
+    notes: "Portal unificado JFRS/JFSC/JFPR. Requer JavaScript habilitado."
+
+  trf5:
+    name: "Tribunal Regional Federal da 5a Regiao"
+    domain: "jurisprudencia.trf5.jus.br"
+    direct_url: "https://www4.trf5.jus.br/Jurisprudencia/"
+    tier: 2
+    priority: 6
+    jurisdiction: "federal"
+    coverage:
+      geographic:
+        states: [AL, CE, PB, PE, RN, SE]
+      temporal: "1989-present"
+      types:
+        - acordaos
+    data_fields:
+      guaranteed:
+        - numero_processo
+        - relator
+        - orgao_julgador
+        - data_julgamento
+        - ementa
+      optional:
+        - inteiro_teor_url
+    search_features:
+      boolean_operators: unknown
+      phrase_search: unknown
+      wildcard: unknown
+      filters:
+        - termo
+    access:
+      authentication: none
+      rate_limit: unknown
+      captcha: false
+      js_required: true
+    scraping_quality: medium
+    notes: "Estrutura similar a outros TRFs. Menos documentacao disponivel."
+
+  # ============================================
+  # TIER 3: JUSTICA ESTADUAL
+  # Priority: MEDIUM-HIGH
+  # Coverage: State-level jurisdiction
+  # Note: Only major courts included (80%+ volume)
+  # ============================================
+
+  tjsp:
+    name: "Tribunal de Justica de Sao Paulo"
+    domain: "esaj.tjsp.jus.br"
+    direct_url: "https://esaj.tjsp.jus.br/cjsg/consultaCompleta.do"
+    tier: 3
+    priority: 1
+    jurisdiction: "state"
+    coverage:
+      geographic:
+        states: [SP]
+        description: "Maior tribunal estadual do Brasil em volume"
+      temporal: "1998-present"
+      types:
+        - acordaos
+        - sentencas  # banco de sentencas separado
+    data_fields:
+      guaranteed:
+        - numero_processo
+        - classe_processual
+        - relator
+        - orgao_julgador
+        - data_julgamento
+        - data_registro
+        - ementa
+        - inteiro_teor_url
+      optional:
+        - comarca_origem
+    search_features:
+      boolean_operators: true
+      phrase_search: true
+      wildcard: false
+      full_text_search: true  # busca textual na integra
+      filters:
+        - classe
+        - assunto
+        - orgao_julgador
+        - comarca
+        - data_range
+    access:
+      authentication: none
+      rate_limit: unknown
+      captcha: false
+      js_required: true
+      registration_required: false  # explicitamente gratuito
+    scraping_quality: high
+    notes: "Acesso gratuito e sem cadastro. Consulta completa com busca textual a integra. Sistema e-SAJ."
+
+  tjrj:
+    name: "Tribunal de Justica do Rio de Janeiro"
+    domain: "www4.tjrj.jus.br"
+    direct_url: "http://www4.tjrj.jus.br/EJURIS/ProcessarConsJuworkerris.aspx"
+    tier: 3
+    priority: 2
+    jurisdiction: "state"
+    coverage:
+      geographic:
+        states: [RJ]
+      temporal: "2000-present"
+      types:
+        - acordaos
+        - sentencas
+    data_fields:
+      guaranteed:
+        - numero_processo
+        - classe_processual
+        - relator
+        - orgao_julgador
+        - data_julgamento
+        - ementa
+        - inteiro_teor_url
+      optional:
+        - votacao
+    search_features:
+      boolean_operators: true
+      boolean_syntax:
+        and: "E"
+        or: "OU"
+        adjacent: "ADJ"
+      phrase_search: true
+      wildcard: false
+      filters:
+        - origem
+        - ano
+        - competencia
+        - ramo_direito
+    access:
+      authentication: none
+      rate_limit: unknown
+      captcha: false
+      js_required: true
+    scraping_quality: high
+    notes: "Sistema EJURIS. Operadores booleanos E/OU/ADJ bem documentados. Inteiro teor disponivel."
+
+  tjmg:
+    name: "Tribunal de Justica de Minas Gerais"
+    domain: "jurisprudencia.tjmg.jus.br"
+    direct_url: "https://www5.tjmg.jus.br/jurisprudencia/formEspelhoAcordao.do"
+    tier: 3
+    priority: 3
+    jurisdiction: "state"
+    coverage:
+      geographic:
+        states: [MG]
+      temporal: "1998-present"
+      types:
+        - acordaos
+        - sumulas
+        - precedentes_qualificados
+    data_fields:
+      guaranteed:
+        - numero_processo
+        - classe_processual
+        - relator
+        - orgao_julgador
+        - data_julgamento
+        - data_publicacao
+        - ementa
+        - inteiro_teor_url
+      optional:
+        - referencia_legislativa
+        - palavras_chave
+    search_features:
+      boolean_operators: true
+      phrase_search: true
+      wildcard: false
+      filters:
+        - numero_processo
+        - palavras_chave
+        - orgao_julgador
+        - relator
+        - classe
+        - assunto
+        - data_publicacao
+        - data_julgamento
+        - referencia_legislativa
+    access:
+      authentication: none
+      rate_limit: unknown
+      captcha: false
+      js_required: true
+    scraping_quality: high
+    notes: "Filtros muito ricos. Permite busca por referencia legislativa especifica."
+
+  # ============================================
+  # TIER 4: ORGAOS ESPECIFICOS
+  # Priority: LOW
+  # Coverage: Specialized administrative decisions
+  # ============================================
+
+  cnj:
+    name: "Conselho Nacional de Justica"
+    domain: "jurisprudencia.cnj.jus.br"
+    direct_url: "https://www.cnj.jus.br/InfojurisI2/Index.seam"
+    tier: 4
+    priority: 1
+    jurisdiction: "administrative"
+    coverage:
+      geographic: "national"
+      temporal: "2005-present"
+      types:
+        - acordaos_plenario
+        - regimento_anotado
+    data_fields:
+      guaranteed:
+        - numero_processo
+        - relator
+        - data_julgamento
+        - ementa
+      optional:
+        - inteiro_teor_url
+    search_features:
+      boolean_operators: unknown
+      phrase_search: unknown
+      wildcard: unknown
+      filters:
+        - termo
+    access:
+      authentication: none
+      rate_limit: unknown
+      captcha: false
+      js_required: true
+    scraping_quality: medium
+    notes: "Decisoes administrativas do CNJ. Relevante para regulamentacao do Judiciario."
+
+# ============================================
+# SEARCH EXECUTION SPECIFICATION
+# ============================================
+
+search_execution:
+  primary_method: "google_site_search"
+  pattern: "{query} site:{domain}"
+  fallback_method: "direct_portal_search"
+
+  google_search_config:
+    max_results_per_source: 10
+    language: "pt-BR"
+    region: "BR"
+    safe_search: false
+
+  result_processing:
+    extract_url: true
+    fetch_full_content: true
+    parse_metadata: true
+    validate_source: true
+
+  quality_assurance:
+    verify_official_domain: true
+    check_data_completeness: true
+    validate_legal_format: true
+    required_fields:
+      - numero_processo
+      - ementa
+      - data_julgamento
+
+# ============================================
+# DATA QUALITY GUARANTEES
+# ============================================
+
+data_quality:
+  source_type: "primary"
+  authority: "official_court_portals"
+  reliability: "high"
+
+  guarantees:
+    - "Dados provenientes diretamente dos tribunais"
+    - "Inteiro teor quando disponibilizado pelo tribunal"
+    - "Numero do processo no formato CNJ padronizado"
+    - "Metadados validados contra padroes juridicos"
+
+  limitations:
+    - "Cobertura temporal varia por tribunal"
+    - "Alguns tribunais podem ter rate limiting nao documentado"
+    - "JavaScript necessario para maioria dos portais"
+    - "Estrutura HTML pode mudar sem aviso"

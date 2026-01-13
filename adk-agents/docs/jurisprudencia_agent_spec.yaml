@@ -1,0 +1,323 @@
+# Jurisprudencia Agent Specification
+# Operational guide for ADK Agent behavior
+# Generated: 2026-01-13
+
+version: "1.0"
+
+# ============================================
+# INPUT SPECIFICATION
+# ============================================
+
+input_structure:
+  description: "Cada pedido de pesquisa contém três componentes obrigatórios"
+
+  components:
+    assunto:
+      description: "O tema jurídico objeto da pesquisa"
+      example: "constitucionalidade da cobrança de multa administrativa não tributária com base em salários mínimos"
+      note: "Pode ser expresso de múltiplas formas - ver search_strategy"
+
+    posicao:
+      description: "A orientação desejada da jurisprudência"
+      values:
+        - favoravel
+        - contraria
+      note: "Define se buscamos julgados que acolhem ou rejeitam a tese"
+
+    tese:
+      description: "A afirmação jurídica que se quer comprovar ou refutar"
+      example: "É inconstitucional a fixação de multa administrativa com base em salários mínimos"
+      note: "O objeto central da pesquisa - o que queremos provar com os julgados encontrados"
+
+# ============================================
+# SEARCH STRATEGY
+# ============================================
+
+search_strategy:
+  core_principle: "No direito, o mesmo conceito pode ser escrito de 10 formas diferentes"
+
+  variation_requirements:
+    mandatory: true
+    description: "SEMPRE gerar múltiplas variações de busca para cada assunto"
+
+    techniques:
+      sinonimos:
+        description: "Substituir termos por equivalentes"
+        example:
+          original: "multa administrativa"
+          variacoes:
+            - "penalidade administrativa"
+            - "sanção administrativa"
+            - "multa pecuniária"
+
+      ordem_termos:
+        description: "Alterar ordem das palavras na busca"
+        example:
+          original: "cobrança de multa com base em salário mínimo"
+          variacoes:
+            - "multa baseada em salário mínimo"
+            - "salário mínimo como base de multa"
+            - "fixação de multa em salários mínimos"
+
+      tecnico_vs_coloquial:
+        description: "Alternar entre linguagem técnica e mais simples"
+        example:
+          tecnico: "inconstitucionalidade"
+          coloquial: "viola a Constituição"
+          alternativas:
+            - "contrário à Constituição"
+            - "afronta constitucional"
+            - "vedação constitucional"
+
+      abreviacoes:
+        description: "Usar formas completas e abreviadas"
+        example:
+          completo: "salário mínimo"
+          abreviado: "SM"
+          alternativas:
+            - "salários-mínimos"
+            - "salário-mínimo"
+
+      negacao:
+        description: "Variar forma de expressar negação/afirmação"
+        example:
+          original: "é inconstitucional"
+          variacoes:
+            - "não é constitucional"
+            - "viola"
+            - "afronta"
+            - "ofende"
+
+  min_variations_per_search: 5
+  max_variations_per_search: 15
+
+# ============================================
+# DOCUMENT STRUCTURE (JULGADO)
+# ============================================
+
+document_structure:
+  description: "Estrutura típica de um acórdão/decisão judicial"
+
+  sections:
+    cabecalho:
+      description: "Metadados do julgado"
+      relevance: metadata_only
+      contains:
+        - numero_processo
+        - tribunal
+        - orgao_julgador
+        - relator
+        - data_julgamento
+        - data_publicacao
+
+    ementa:
+      description: "Resumo estruturado da decisão"
+      relevance: CRITICAL
+      use: true
+      structure:
+        description: "Composta por palavras-chave seguidas de texto explicativo"
+        format: "PALAVRA-CHAVE. Texto explicando o entendimento."
+        example: |
+          ADMINISTRATIVO. MULTA. FIXAÇÃO COM BASE EM SALÁRIO MÍNIMO.
+          IMPOSSIBILIDADE. É vedada a utilização do salário mínimo como
+          indexador de base de cálculo de multa administrativa, por força
+          do art. 7º, IV, da Constituição Federal.
+      contains:
+        - tese_juridica
+        - fundamento_legal
+        - conclusao
+
+    relatorio:
+      description: "Narrativa do caso e posições das partes"
+      relevance: NONE
+      use: false
+      warning: |
+        O RELATÓRIO NÃO REFLETE A DECISÃO DO TRIBUNAL.
+        Contém apenas descrição dos autos e argumentos das partes.
+        NUNCA extrair teses ou conclusões do relatório.
+      typical_markers:
+        inicio:
+          - "Trata-se de"
+          - "Cuida-se de"
+          - "Versam os autos sobre"
+          - "RELATÓRIO"
+        fim:
+          - "É o relatório."
+          - "É o breve relatório."
+
+    voto:
+      description: "Fundamentação do relator/julgadores"
+      relevance: SECONDARY
+      use: conditional
+      note: "Útil para extrair fundamentação detalhada, mas a tese está na ementa/dispositivo"
+      typical_markers:
+        inicio:
+          - "VOTO"
+          - "É o voto."
+          - "Passo ao voto."
+
+    dispositivo:
+      description: "A decisão propriamente dita"
+      relevance: CRITICAL
+      use: true
+      typical_markers:
+        - "Ante o exposto"
+        - "Diante do exposto"
+        - "Por todo o exposto"
+        - "Pelo exposto"
+        - "ACORDAM"
+        - "julgo procedente"
+        - "julgo improcedente"
+        - "dou provimento"
+        - "nego provimento"
+        - "dou parcial provimento"
+      contains:
+        - resultado_julgamento
+        - efeitos_praticos
+
+# ============================================
+# CONTENT EXTRACTION RULES
+# ============================================
+
+extraction_rules:
+  priority_order:
+    1: ementa
+    2: dispositivo
+    3: voto  # apenas se ementa/dispositivo insuficientes
+
+  never_extract_from:
+    - relatorio
+    - cabecalho  # exceto metadados
+
+  validation:
+    description: "Verificar se conteúdo extraído reflete decisão, não argumentos das partes"
+    checks:
+      - "Conteúdo está na ementa ou dispositivo?"
+      - "Linguagem indica posição do tribunal (não das partes)?"
+      - "Há verbos decisórios (decidiu, julgou, entendeu, fixou)?"
+
+  red_flags:
+    description: "Indicadores de que o conteúdo é do relatório, não da decisão"
+    markers:
+      - "alega que"
+      - "sustenta que"
+      - "argumenta que"
+      - "afirma que"
+      - "o autor/réu/recorrente/recorrido"
+      - "a parte"
+
+# ============================================
+# OUTPUT SPECIFICATION
+# ============================================
+
+output_structure:
+  format: structured_yaml
+
+  per_julgado:
+    metadata:
+      numero_processo:
+        required: true
+        format: "CNJ padronizado ou formato do tribunal"
+        example: "0001234-56.2020.8.26.0100"
+
+      tribunal:
+        required: true
+        example: "TJSP"
+
+      orgao_julgador:
+        required: true
+        example: "3ª Câmara de Direito Público"
+
+      relator:
+        required: true
+        example: "Des. João Silva"
+
+      data_julgamento:
+        required: true
+        format: "YYYY-MM-DD"
+
+      data_publicacao:
+        required: false
+        format: "YYYY-MM-DD"
+
+      url_fonte:
+        required: true
+        description: "URL para o inteiro teor"
+
+    content:
+      ementa_completa:
+        required: true
+        description: "Texto integral da ementa"
+
+      tese_extraida:
+        required: true
+        description: "A tese jurídica identificada, em linguagem objetiva"
+        format: "Afirmação direta do entendimento do tribunal"
+        example: "É inconstitucional a fixação de multa administrativa com base em salários mínimos"
+
+      posicao:
+        required: true
+        values:
+          - favoravel
+          - contraria
+          - parcialmente_favoravel
+        description: "Relação do julgado com a tese pesquisada"
+
+      fundamento_legal:
+        required: false
+        description: "Dispositivos legais citados como fundamento"
+        example:
+          - "Art. 7º, IV, CF"
+          - "Súmula Vinculante 4"
+
+      citacoes_relevantes:
+        required: false
+        description: "Trechos literais relevantes da ementa/dispositivo"
+        max_length: 500
+
+  resultado_pesquisa:
+    total_encontrados: integer
+    favoraveis: integer
+    contrarios: integer
+
+    julgados:
+      type: array
+      items: per_julgado
+
+    analise_consolidada:
+      tendencia_jurisprudencial:
+        values:
+          - consolidada_favoravel
+          - consolidada_contraria
+          - divergente
+          - escassa
+
+      tribunais_principais:
+        description: "Tribunais com mais julgados sobre o tema"
+
+      evolucao_temporal:
+        description: "Se houve mudança de entendimento ao longo do tempo"
+
+# ============================================
+# QUALITY ASSURANCE
+# ============================================
+
+quality_assurance:
+  mandatory_fields:
+    - numero_processo
+    - tribunal
+    - ementa_completa
+    - tese_extraida
+    - posicao
+    - url_fonte
+
+  validation_checks:
+    - "Tese extraída está coerente com a ementa?"
+    - "Posição (favorável/contrária) está correta?"
+    - "URL da fonte é acessível?"
+    - "Número do processo está no formato correto?"
+
+  deduplication:
+    description: "Evitar julgados duplicados"
+    key: numero_processo
+    action: keep_most_complete
