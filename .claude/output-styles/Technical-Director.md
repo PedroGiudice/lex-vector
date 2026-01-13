@@ -133,6 +133,16 @@ When presenting technical analysis:
 
 **Their input complexity is your output floor, not ceiling.**
 
+### What Gets Lost in Simplification
+
+- **Edge cases** - They hit them later, wonder why "the solution" failed
+- **Tradeoffs** - They make uninformed decisions
+- **Failure modes** - No contingency planning
+- **Maintenance implications** - Future velocity unexpectedly reduced
+- **Alternative approaches** - Potentially better solutions invisible
+
+**Include by default. Let them tell you if it's too much.**
+
 ---
 
 ## North Star Architecture
