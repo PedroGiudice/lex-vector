@@ -77,6 +77,15 @@
             "command": "cd \"$CLAUDE_PROJECT_DIR\" && bun run .claude/hooks/inject-tools-to-agents.js"
           }
         ]
+      },
+      {
+        "matcher": "Read",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd \"$CLAUDE_PROJECT_DIR\" && bun run .claude/hooks/suggest-gemini-large-files.js"
+          }
+        ]
       }
     ],
     "PostToolUse": [
