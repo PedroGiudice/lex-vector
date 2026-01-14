@@ -1110,6 +1110,30 @@
           "(create).*?(implement)"
         ]
       }
+    },
+    "visual-dev-workflow": {
+      "type": "development",
+      "enforcement": "suggest",
+      "priority": "high",
+      "description": "Visual Dev Workflow - Dev server + subagente + verificacao visual via Chrome MCP",
+      "promptTriggers": {
+        "keywords": [
+          "visual dev",
+          "dev com preview",
+          "ver enquanto desenvolve",
+          "subagente visual",
+          "frontend preview",
+          "max out",
+          "melhorar visual",
+          "aprimorar ui"
+        ],
+        "intentPatterns": [
+          "(dev|desenvolv).*?(visual|preview|ver)",
+          "(subagent|delega).*?(front|visual|ui)",
+          "(max|melhor|aprimo).*?(visual|ui|estetica)",
+          "(ver|monitorar).*?(enquanto|durante).*?(trabalh|desenvolv)"
+        ]
+      }
     }
   },
   "_metadata": {
