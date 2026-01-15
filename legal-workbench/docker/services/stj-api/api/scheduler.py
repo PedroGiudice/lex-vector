@@ -23,7 +23,7 @@ sys.path.insert(0, str(BACKEND_PATH))
 from src.database import STJDatabase
 from src.downloader import STJDownloader
 from src.processor import STJProcessor
-from config import DATABASE_PATH, STAGING_DIR, ORGAOS_JULGADORES, get_date_range_urls
+from config import DATABASE_PATH, STAGING_DIR, CKAN_DATASETS
 from api.dependencies import invalidate_cache
 
 logger = logging.getLogger(__name__)
@@ -71,13 +71,13 @@ async def run_sync_task(
     force: bool = False
 ) -> dict:
     """
-    Run sync task to download and process STJ data.
+    Run sync task to download and process STJ data from CKAN API.
 
+    Downloads data from dadosabertos.web.stj.jus.br using the CKAN API.
     Supports large date ranges up to 1500 days for mass retroactive downloads.
-    For very large ranges, data is processed in batches to avoid memory issues.
 
     Args:
-        orgaos: List of órgãos to sync (None = all)
+        orgaos: List of orgaos to sync (None = all)
         dias: Number of days to sync (default: 30, max: 1500)
         force: Force redownload of existing files
 
@@ -89,7 +89,7 @@ async def run_sync_task(
         logger.warning(f"dias={dias} exceeds maximum, capping to 1500")
         dias = 1500
 
-    logger.info(f"Starting sync task: orgaos={orgaos}, dias={dias}, force={force}")
+    logger.info(f"Starting CKAN sync task: orgaos={orgaos}, dias={dias}, force={force}")
 
     try:
         # Update status to running
@@ -102,17 +102,14 @@ async def run_sync_task(
             inserted=0,
             duplicates=0,
             errors=0,
-            message="Sync iniciado"
+            message="Sync iniciado via CKAN API"
         )
 
-        # Determine which órgãos to sync
-        if orgaos is None:
-            orgaos_to_sync = list(ORGAOS_JULGADORES.keys())
-        else:
-            # Validate órgãos
-            invalid = [o for o in orgaos if o not in ORGAOS_JULGADORES]
+        # Validate orgaos if provided
+        if orgaos is not None:
+            invalid = [o for o in orgaos if o not in CKAN_DATASETS]
             if invalid:
-                error_msg = f"Órgãos inválidos: {invalid}"
+                error_msg = f"Orgaos invalidos: {invalid}"
                 logger.error(error_msg)
                 _update_sync_status(
                     status="failed",
@@ -121,71 +118,76 @@ async def run_sync_task(
                 )
                 return get_sync_status()
 
-            orgaos_to_sync = orgaos
-
         # Calculate date range
         end_date = datetime.now()
         start_date = end_date - timedelta(days=dias)
 
-        # Generate URLs for download
-        all_urls = []
-        for orgao in orgaos_to_sync:
-            urls = get_date_range_urls(start_date, end_date, orgao)
-            all_urls.extend(urls)
+        start_str = start_date.strftime("%Y-%m-%d")
+        end_str = end_date.strftime("%Y-%m-%d")
 
-        logger.info(f"Generated {len(all_urls)} URLs for download")
+        logger.info(f"Date range: {start_str} to {end_str}")
 
-        # Download files
-        downloader = STJDownloader(staging_dir=STAGING_DIR)
-        try:
-            url_configs = [
-                {"url": u["url"], "filename": u["filename"], "force": force}
-                for u in all_urls
-            ]
-
-            # Run download in thread pool to avoid blocking
+        # Download from CKAN API
+        with STJDownloader(staging_dir=STAGING_DIR) as downloader:
+            # Run download in thread pool to avoid blocking async event loop
             loop = asyncio.get_event_loop()
-            downloaded_files = await loop.run_in_executor(
+            results = await loop.run_in_executor(
                 None,
-                downloader.download_batch,
-                url_configs,
-                False  # show_progress=False (API mode)
+                lambda: downloader.download_all_orgaos(
+                    start_date=start_str,
+                    end_date=end_str,
+                    orgaos=orgaos,
+                    force=force
+                )
             )
+
+            # Collect all downloaded files
+            all_files = []
+            for files in results.values():
+                all_files.extend(files)
 
             _update_sync_status(
-                downloaded=downloader.stats.downloaded,
-                message=f"Downloaded {downloader.stats.downloaded} files"
+                downloaded=len(all_files),
+                message=f"Downloaded {len(all_files)} files from CKAN"
             )
 
-        finally:
-            downloader.client.close()
+            logger.info(f"Downloaded {len(all_files)} files from CKAN API")
 
         # Process downloaded files
-        processor = STJProcessor()
-        all_records = processor.processar_batch(downloaded_files)
-
-        _update_sync_status(
-            processed=processor.stats.processados,
-            message=f"Processed {processor.stats.processados} records"
-        )
-
-        # Insert into database
-        with STJDatabase(db_path=DATABASE_PATH) as db:
-            inseridos, duplicados, erros = db.inserir_batch(all_records)
+        if all_files:
+            processor = STJProcessor()
+            all_records = processor.processar_batch(all_files)
 
             _update_sync_status(
-                inserted=inseridos,
-                duplicates=duplicados,
-                errors=erros,
-                status="completed",
-                completed_at=datetime.now(),
-                message=f"Sync completed: {inseridos} inserted, {duplicados} duplicates, {erros} errors"
+                processed=processor.stats.processados,
+                message=f"Processed {processor.stats.processados} records"
             )
 
-        # Invalidate cache after successful sync
-        invalidate_cache()
+            # Insert into database
+            with STJDatabase(db_path=DATABASE_PATH) as db:
+                inseridos, duplicados, erros = db.inserir_batch(all_records)
 
-        logger.info(f"Sync completed: {inseridos} inserted, {duplicados} duplicates")
+                _update_sync_status(
+                    inserted=inseridos,
+                    duplicates=duplicados,
+                    errors=erros,
+                    status="completed",
+                    completed_at=datetime.now(),
+                    message=f"Sync completed: {inseridos} inserted, {duplicados} duplicates, {erros} errors"
+                )
+
+            # Invalidate cache after successful sync
+            invalidate_cache()
+
+            logger.info(f"Sync completed: {inseridos} inserted, {duplicados} duplicates")
+        else:
+            _update_sync_status(
+                status="completed",
+                completed_at=datetime.now(),
+                message="No files found for the specified date range"
+            )
+            logger.info("No files found for the specified date range")
+
         return get_sync_status()
 
     except Exception as e:

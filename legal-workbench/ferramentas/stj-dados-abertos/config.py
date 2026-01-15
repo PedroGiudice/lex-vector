@@ -1,16 +1,21 @@
 """
-Configuração do sistema STJ Dados Abertos
+Configuracao do sistema STJ Dados Abertos
 
 Sistema de armazenamento local simplificado.
-Todos os dados são armazenados em data/ dentro do projeto.
+Todos os dados sao armazenados em data/ dentro do projeto.
 """
 from __future__ import annotations
 
+import logging
 import os
 import shutil
+import warnings
 from pathlib import Path
 from datetime import datetime, timedelta
 from typing import Final, TypedDict
+
+# Logger for this module
+logger = logging.getLogger(__name__)
 
 
 # Type definitions
@@ -44,8 +49,59 @@ for dir_path in [STAGING_DIR, ARCHIVE_DIR, DATABASE_DIR, LOGS_DIR,
                  METADATA_DIR, DATABASE_BACKUP_DIR]:
     dir_path.mkdir(parents=True, exist_ok=True)
 
-# STJ Dados Abertos URLs
-STJ_BASE_URL: Final[str] = "https://www.stj.jus.br/sites/portalp/SiteAssets/documentos/noticias/abertos/"
+# CKAN API Configuration (New Data Source)
+CKAN_BASE_URL: Final[str] = "https://dadosabertos.web.stj.jus.br"
+CKAN_API_VERSION: Final[str] = "3"
+
+# Map orgao keys to CKAN dataset IDs
+CKAN_DATASETS: Final[dict[str, str]] = {
+    "corte_especial": "espelhos-de-acordaos-corte-especial",
+    "primeira_secao": "espelhos-de-acordaos-primeira-secao",
+    "segunda_secao": "espelhos-de-acordaos-segunda-secao",
+    "terceira_secao": "espelhos-de-acordaos-terceira-secao",
+    "primeira_turma": "espelhos-de-acordaos-primeira-turma",
+    "segunda_turma": "espelhos-de-acordaos-segunda-turma",
+    "terceira_turma": "espelhos-de-acordaos-terceira-turma",
+    "quarta_turma": "espelhos-de-acordaos-quarta-turma",
+    "quinta_turma": "espelhos-de-acordaos-quinta-turma",
+    "sexta_turma": "espelhos-de-acordaos-sexta-turma",
+}
+
+# Legacy URL (DEPRECATED - returns 404)
+STJ_BASE_URL_LEGACY: Final[str] = "https://www.stj.jus.br/sites/portalp/SiteAssets/documentos/noticias/abertos/"
+
+# Keep old name for backward compatibility (DEPRECATED)
+STJ_BASE_URL: Final[str] = STJ_BASE_URL_LEGACY
+
+
+def get_orgao_dataset_id(orgao: str) -> str:
+    """
+    Get CKAN dataset ID for an orgao key.
+
+    Args:
+        orgao: Orgao key (e.g., "primeira_turma")
+
+    Returns:
+        CKAN dataset ID (e.g., "espelhos-de-acordaos-primeira-turma")
+
+    Raises:
+        KeyError: If orgao not found in CKAN_DATASETS
+    """
+    return CKAN_DATASETS[orgao]
+
+
+def get_ckan_package_url(orgao: str) -> str:
+    """
+    Get CKAN API URL for package metadata.
+
+    Args:
+        orgao: Orgao key (e.g., "primeira_turma")
+
+    Returns:
+        Full CKAN API URL for package_show endpoint
+    """
+    dataset_id = get_orgao_dataset_id(orgao)
+    return f"{CKAN_BASE_URL}/api/{CKAN_API_VERSION}/action/package_show?id={dataset_id}"
 
 # Datasets de Acórdãos por Órgão Julgador
 ORGAOS_JULGADORES: Final[dict[str, OrgaoConfig]] = {
@@ -139,58 +195,52 @@ SCHEMA_FIELDS_EXPECTED: Final[list[str]] = [
 
 def get_date_range_urls(start_date: datetime, end_date: datetime, orgao: str) -> list[dict[str, str | int]]:
     """
-    Gera URLs para download de JSONs em um período.
+    DEPRECATED: Legacy URL pattern no longer works (returns 404).
 
-    STJ organiza por ano/mês, ex:
-    - 2024/202401.json (Janeiro 2024)
-    - 2024/202402.json (Fevereiro 2024)
+    Use CKANClient.get_resources() instead to discover available CSV files
+    via the CKAN API.
 
     Args:
-        start_date: Data inicial do período
-        end_date: Data final do período
-        orgao: Chave do órgão julgador em ORGAOS_JULGADORES
+        start_date: Data inicial do periodo (ignored)
+        end_date: Data final do periodo (ignored)
+        orgao: Chave do orgao julgador (ignored)
 
     Returns:
-        Lista de dicionários com url, year, month, orgao, filename
+        Empty list (legacy URLs return 404)
     """
-    urls: list[dict[str, str | int]] = []
-    current = start_date.replace(day=1)
-
-    while current <= end_date:
-        year = current.year
-        month = f"{current.year}{current.month:02d}"
-
-        # URL pattern: base/orgao/year/YYYYMM.json
-        url = f"{STJ_BASE_URL}{ORGAOS_JULGADORES[orgao]['path']}/{year}/{month}.json"
-        urls.append({
-            "url": url,
-            "year": year,
-            "month": current.month,
-            "orgao": orgao,
-            "filename": f"{orgao}_{month}.json"
-        })
-
-        # Next month
-        if current.month == 12:
-            current = current.replace(year=current.year + 1, month=1)
-        else:
-            current = current.replace(month=current.month + 1)
-
-    return urls
+    warnings.warn(
+        "get_date_range_urls() is deprecated. Legacy STJ URLs return 404. "
+        "Use CKANClient.get_resources() to discover available files via CKAN API.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    logger.warning(
+        "get_date_range_urls() called but is deprecated. "
+        "Legacy URL pattern %s no longer works. Use CKAN API instead.",
+        STJ_BASE_URL_LEGACY,
+    )
+    return []
 
 
 def get_mvp_urls() -> list[dict[str, str | int]]:
     """
-    Retorna URLs para MVP (últimos 30 dias, Corte Especial apenas).
+    DEPRECATED: Legacy URL pattern no longer works (returns 404).
+
+    Use CKANClient to discover and download resources via CKAN API.
 
     Returns:
-        Lista de URLs para download do MVP
+        Empty list (legacy URLs return 404)
     """
-    end_date = datetime.now()
-    start_date = end_date - timedelta(days=MAX_DAYS_MVP)
-
-    # Para MVP, pegar apenas Corte Especial (mais importante)
-    return get_date_range_urls(start_date, end_date, "corte_especial")
+    warnings.warn(
+        "get_mvp_urls() is deprecated. Legacy STJ URLs return 404. "
+        "Use CKANClient to discover available files via CKAN API.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    logger.warning(
+        "get_mvp_urls() called but is deprecated. Use CKAN API instead."
+    )
+    return []
 
 
 def get_storage_info() -> dict[str, str | float | bool]:

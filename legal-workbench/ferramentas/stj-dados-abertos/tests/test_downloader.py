@@ -414,3 +414,76 @@ class TestSTJDownloader:
         files = downloader.get_staging_files("*.json")
         assert len(files) == 2
         assert all(f.suffix == ".json" for f in files)
+
+
+class TestSTJDownloaderCKAN:
+    """Test STJDownloader with CKAN integration."""
+
+    @pytest.fixture
+    def mock_ckan_resources(self):
+        """Mock CKAN resources."""
+        from ckan_client import CKANResource
+        return [
+            CKANResource(
+                id="1",
+                name="20241201.json",
+                url="https://dadosabertos.web.stj.jus.br/download/20241201.json",
+                format="JSON",
+                created="2024-12-05",
+            ),
+        ]
+
+    @patch("downloader.CKANClient")
+    @patch("downloader.httpx.Client.get")
+    def test_download_from_ckan(
+        self,
+        mock_http_get,
+        mock_ckan_class,
+        mock_ckan_resources,
+        tmp_path,
+    ):
+        """Should download files using CKAN resource URLs."""
+        # Setup CKAN mock
+        mock_ckan = MagicMock()
+        mock_ckan.get_resources_by_date_range.return_value = mock_ckan_resources
+        mock_ckan.__enter__ = Mock(return_value=mock_ckan)
+        mock_ckan.__exit__ = Mock(return_value=None)
+        mock_ckan_class.return_value = mock_ckan
+
+        # Setup HTTP mock
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = [{"id": "test-acordao"}]
+        mock_http_get.return_value = mock_response
+
+        downloader = STJDownloader(staging_dir=tmp_path)
+        files = downloader.download_from_ckan(
+            orgao="primeira_turma",
+            start_date="2024-12-01",
+            end_date="2024-12-31"
+        )
+
+        assert len(files) == 1
+        assert downloader.stats.downloaded == 1
+
+    @patch("downloader.CKANClient")
+    def test_download_from_ckan_no_resources(
+        self,
+        mock_ckan_class,
+        tmp_path,
+    ):
+        """Should handle empty resource list gracefully."""
+        mock_ckan = MagicMock()
+        mock_ckan.get_resources_by_date_range.return_value = []
+        mock_ckan.__enter__ = Mock(return_value=mock_ckan)
+        mock_ckan.__exit__ = Mock(return_value=None)
+        mock_ckan_class.return_value = mock_ckan
+
+        downloader = STJDownloader(staging_dir=tmp_path)
+        files = downloader.download_from_ckan(
+            orgao="primeira_turma",
+            start_date="2024-12-01",
+            end_date="2024-12-31"
+        )
+
+        assert len(files) == 0
