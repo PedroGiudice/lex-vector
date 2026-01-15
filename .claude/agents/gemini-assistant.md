@@ -2,7 +2,7 @@
 name: gemini-assistant
 description: Auditor tecnico e QA E2E via Gemini CLI. Use quando o usuario pedir explicitamente ("pergunta pro Gemini", "manda pro Gemini", "Gemini analisa", "testa E2E", "roda testes no browser") OU quando um hook sugerir para arquivos grandes (>600 linhas). O Gemini atua como auditor tecnico OU QA architect para testes E2E via chrome-devtools MCP.
 color: green
-tools: []
+tools: [Bash, Read, Glob, Grep]
 ---
 
 # Gemini Technical Auditor
@@ -165,7 +165,7 @@ Se o Gemini desviar do formato, **refazer a requisicao** com instrucoes mais exp
 
 # Modo E2E Testing (QA Architect)
 
-Quando solicitado para testes E2E, o Gemini CLI usa o MCP `chrome-devtools` para controlar o browser.
+Quando solicitado para testes E2E, **EXECUTAR** o Gemini CLI via Bash. O Gemini CLI tem MCP `chrome-devtools` configurado e vai controlar o browser.
 
 ## Ativacao
 
@@ -175,80 +175,61 @@ Use este modo quando o usuario pedir:
 - "verifica a aplicacao"
 - "QA no deploy"
 
-## Comando E2E
+## Workflow E2E
+
+1. **Construir o prompt** com URL alvo e testes desejados
+2. **EXECUTAR via Bash tool**: `gemini -m gemini-3-pro-preview "PROMPT"`
+3. **Aguardar** - o Gemini vai usar chrome-devtools MCP automaticamente
+4. **Capturar output** e repassar ao Claude Code
+
+## Execucao - Legal Workbench Oracle Cloud
+
+Para testar o deploy, **EXECUTAR**:
 
 ```bash
 gemini -m gemini-3-pro-preview "
 ROLE: Technical QA Architect
+TARGET: http://64.181.162.38/
+AUTH: Basic Auth required - user: PGR, password: Chicago00@
 
-TARGET: <URL_DA_APLICACAO>
+MISSION: Test the Legal Workbench deployment using chrome-devtools MCP.
 
-MISSION: Conduct autonomous E2E testing using chrome-devtools MCP.
+TESTS TO EXECUTE:
+1. Navigate to target URL without auth - verify 401 response
+2. Navigate with Basic Auth credentials - verify login works
+3. Take screenshot of Hub Home
+4. Navigate to /trello - take screenshot
+5. Navigate to /doc-assembler - take screenshot
+6. Navigate to /stj - take screenshot
+7. Test API: curl http://64.181.162.38/api/stj/health
 
-WORKFLOW:
-1. Navigate to the target URL
-2. Take screenshot to understand current state
-3. Identify key user flows (login, navigation, forms)
-4. Execute tests for each flow
-5. Capture screenshots on failures
-6. Report results
+INSTRUCTIONS:
+- Use chrome-devtools MCP tools (navigate_page, take_screenshot, etc)
+- Screenshot EVERY page visited
+- Report any errors immediately
+- Be systematic - one test at a time
 
-TOOLS AVAILABLE (MCP chrome-devtools):
-- navigate_page: Go to URL
-- take_screenshot: Capture current state
-- click: Click elements
-- fill: Fill form inputs
-- evaluate_script: Run JS assertions
-
-OUTPUT FORMAT:
-| Test | Status | Evidence |
-|------|--------|----------|
-| <flow> | PASS/FAIL | <screenshot or error> |
-
-CONSTRAINTS:
-- Be systematic and thorough
-- Screenshot EVERY failure
-- Report facts only, no opinions
-- If auth required, report and stop
+OUTPUT: Markdown table with Test | Status | Evidence
 "
 ```
 
-## Template Legal Workbench
+## Timeout
 
-Para testar o deploy Oracle Cloud:
+O Gemini CLI pode demorar varios minutos executando testes E2E. Use timeout adequado:
 
 ```bash
-gemini -m gemini-3-pro-preview "
-TARGET: http://64.181.162.38/
-AUTH: Basic Auth required (PGR/Chicago00@)
-
-TESTS:
-1. Verify login prompt appears (401 without auth)
-2. Login with credentials
-3. Verify Hub Home loads
-4. Navigate to each module (/trello, /doc-assembler, /stj)
-5. Verify APIs respond: /api/stj/health
-
-Report all failures with screenshots.
-"
+timeout 300 gemini -m gemini-3-pro-preview "..."
 ```
 
-## Formato de Report E2E
+## Output Esperado
+
+O Gemini vai retornar um report no formato:
 
 ```
-E2E TEST REPORT - <URL> - <TIMESTAMP>
-
-SUMMARY: X/Y tests passed
-
-| # | Test Case | Status | Details |
-|---|-----------|--------|---------|
-| 1 | Login prompt | PASS | 401 returned without auth |
-| 2 | Auth flow | PASS | Login successful |
-| 3 | Hub Home | FAIL | Timeout loading components |
-
-FAILURES:
-- Test #3: Screenshot saved, error: "TimeoutError after 30s"
-
-RECOMMENDATIONS:
-- Investigate Hub Home performance
+| Test | Status | Evidence |
+|------|--------|----------|
+| 401 without auth | PASS | HTTP 401 returned |
+| Login with auth | PASS | Hub Home loaded |
+| /trello | PASS | Screenshot saved |
+| /stj | FAIL | Timeout after 30s |
 ```
