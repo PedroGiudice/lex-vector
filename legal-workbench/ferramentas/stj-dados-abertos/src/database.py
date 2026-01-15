@@ -277,7 +277,7 @@ class STJDatabase:
 
     def inserir_batch(self, registros: List[Dict], atualizar_duplicados: bool = False) -> Tuple[int, int, int]:
         """
-        Insere lote de registros com deduplicação por hash.
+        Insere lote de registros com deduplicacao por hash.
 
         Args:
             registros: Lista de dicts com dados processados
@@ -289,8 +289,23 @@ class STJDatabase:
         if not registros:
             return 0, 0, 0
 
+        # FASE 1: Deduplicar registros de entrada (mesmo acordao pode estar em multiplos arquivos)
+        registros_unicos = {}
+        duplicados_entrada = 0
+        for r in registros:
+            h = r['hash_conteudo']
+            if h not in registros_unicos:
+                registros_unicos[h] = r
+            else:
+                duplicados_entrada += 1
+
+        if duplicados_entrada > 0:
+            logger.info(f"Deduplicacao de entrada: {duplicados_entrada} duplicatas removidas, {len(registros_unicos)} unicos")
+
+        registros = list(registros_unicos.values())
+
         inseridos = 0
-        duplicados = 0
+        duplicados = duplicados_entrada  # Contar duplicatas de entrada
         erros = 0
 
         try:
@@ -416,13 +431,15 @@ class STJDatabase:
             # Using simple LIKE for compatibility
             query = f"""
                 SELECT
+                    id,
                     numero_processo,
                     orgao_julgador,
                     tipo_decisao,
                     relator,
                     data_publicacao,
                     data_julgamento,
-                    ementa
+                    ementa,
+                    resultado_julgamento
                 FROM acordaos
                 WHERE ementa LIKE ?
                     AND data_publicacao >= CURRENT_DATE - INTERVAL '{dias} DAY'
@@ -440,8 +457,8 @@ class STJDatabase:
             results = self.conn.execute(query, params).fetchall()
 
             # Converter para dicts
-            columns = ['numero_processo', 'orgao_julgador', 'tipo_decisao', 'relator',
-                      'data_publicacao', 'data_julgamento', 'ementa']
+            columns = ['id', 'numero_processo', 'orgao_julgador', 'tipo_decisao', 'relator',
+                      'data_publicacao', 'data_julgamento', 'ementa', 'resultado_julgamento']
             return [dict(zip(columns, row)) for row in results]
 
         except Exception as e:
@@ -473,6 +490,7 @@ class STJDatabase:
         try:
             query = f"""
                 SELECT
+                    id,
                     numero_processo,
                     orgao_julgador,
                     tipo_decisao,
@@ -480,6 +498,7 @@ class STJDatabase:
                     data_publicacao,
                     data_julgamento,
                     ementa,
+                    resultado_julgamento,
                     LENGTH(texto_integral) as tamanho_texto
                 FROM acordaos
                 WHERE texto_integral LIKE ?
@@ -498,12 +517,12 @@ class STJDatabase:
             results = self.conn.execute(query, params).fetchall()
 
             # Converter para dicts
-            columns = ['numero_processo', 'orgao_julgador', 'tipo_decisao', 'relator',
-                      'data_publicacao', 'data_julgamento', 'ementa', 'tamanho_texto']
+            columns = ['id', 'numero_processo', 'orgao_julgador', 'tipo_decisao', 'relator',
+                      'data_publicacao', 'data_julgamento', 'ementa', 'resultado_julgamento', 'tamanho_texto']
             return [dict(zip(columns, row)) for row in results]
 
         except Exception as e:
-            logger.error(f"Erro na busca de acórdão: {e}")
+            logger.error(f"Erro na busca de acordao: {e}")
             return []
 
     def obter_estatisticas(self) -> Dict:
