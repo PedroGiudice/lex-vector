@@ -5,17 +5,18 @@ services:
   reverse-proxy:
     image: traefik:v3.6.5
     command:
-      - "--api.insecure=true"                    # Dashboard at :8080
+      - "--api.insecure=false"                   # Dashboard disabled for security
       - "--providers.docker=true"                # Auto-discover containers
       - "--providers.docker.exposedbydefault=false"
       - "--entrypoints.web.address=:80"
     ports:
       - "80:80"       # Main entry point
-      - "8080:8080"   # Traefik Dashboard
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
       - legal-network
+    labels:
+      - "traefik.http.middlewares.auth.basicauth.users=PGR:$$apr1$$srv7aVBj$$lh5oVstYMwaEi5vB6ppgC/,MCBS:$$apr1$$tFXQKb/8$$EfbMbctlMOT5RsYlUkDtI/,ABP:$$apr1$$kvqG8i1i$$RE9g6iKuWL/VoPnNOTQmU1"
 
   # ============================================================
   # 2. REACT FRONTEND - Legal Workbench SPA
@@ -27,6 +28,7 @@ services:
       - "traefik.http.routers.react.rule=PathPrefix(`/`)"
       - "traefik.http.routers.react.entrypoints=web"
       - "traefik.http.routers.react.priority=1"    # Catch-all (lowest priority)
+      - "traefik.http.routers.react.middlewares=auth"
       - "traefik.http.services.react.loadbalancer.server.port=3000"
     networks:
       - legal-network
