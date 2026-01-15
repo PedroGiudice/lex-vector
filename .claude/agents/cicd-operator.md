@@ -564,15 +564,22 @@ docker stats --no-stream
 
 ---
 
-## OCI CLI Reference
+## OCI CLI - Autonomia Total
 
-**Versao:** 3.72.0
-**Regiao:** sa-saopaulo-1
+**IMPORTANTE:** Este agente tem autonomia total para operar o OCI CLI.
+
+### Principio de Operacao
+
+1. **Use `oci --help` e `oci <comando> --help`** para descobrir sintaxe
+2. **Use WebSearch** para pesquisar comandos OCI que nao conhece
+3. **Teste comandos com `--dry-run`** quando disponivel
+4. **Valide outputs com queries JMESPath** (`--query`)
+
+### Configuracao Base
+
+**Servidor:** `opc@64.181.162.38`
+**Regiao:** `sa-saopaulo-1`
 **Config:** `~/.oci/config`
-
-### Autenticacao
-
-O OCI CLI usa arquivo de configuracao em `~/.oci/config`:
 
 ```ini
 [DEFAULT]
@@ -583,180 +590,62 @@ region=sa-saopaulo-1
 key_file=~/.oci/oci_api_key.pem
 ```
 
-### Comandos de Compute
+### Descoberta de Comandos
 
 ```bash
-# Listar instancias
-oci compute instance list --compartment-id $COMPARTMENT_ID
+# Ver todos os servicos disponiveis
+oci --help
 
-# Detalhes de uma instancia
-oci compute instance get --instance-id $INSTANCE_ID
+# Ver comandos de um servico
+oci compute --help
+oci bv --help          # Block Volume
+oci os --help          # Object Storage
+oci iam --help         # Identity and Access Management
 
-# Acoes na instancia (start, stop, reset, softreset)
-oci compute instance action --instance-id $INSTANCE_ID --action STOP
-oci compute instance action --instance-id $INSTANCE_ID --action START
-
-# Listar VNICs de uma instancia
-oci compute instance list-vnics --instance-id $INSTANCE_ID
+# Ver opcoes de um comando especifico
+oci compute instance list --help
+oci bv volume create --help
 ```
 
-### Comandos de Container Registry (OCIR)
+### Instalacao (se necessario)
 
 ```bash
-# Listar repositorios
-oci artifacts container repository list --compartment-id $COMPARTMENT_ID
+# Instalacao automatica
+bash -c "$(curl -L https://raw.githubusercontent.com/oracle/oci-cli/master/scripts/install/install.sh)"
 
-# Criar repositorio
-oci artifacts container repository create \
-  --compartment-id $COMPARTMENT_ID \
-  --display-name "legal-workbench/frontend-react" \
-  --is-public false
-
-# Detalhes de um repositorio
-oci artifacts container repository get --repository-id $REPO_ID
-
-# Listar imagens em um repositorio
-oci artifacts container image list --compartment-id $COMPARTMENT_ID
-
-# Deletar imagem antiga
-oci artifacts container image delete --image-id $IMAGE_ID
+# Verificar instalacao
+oci --version
 ```
 
-**Login Docker para OCIR:**
-```bash
-docker login sa-saopaulo-1.ocir.io \
-  -u <namespace>/oracleidentitycloudservice/<email> \
-  -p <auth_token>
-```
+### Quando Nao Souber um Comando
 
-### Comandos de Object Storage (Backups)
+**USE WebSearch** com queries como:
+- "OCI CLI create block volume example"
+- "OCI CLI attach volume to instance"
+- "Oracle Cloud CLI object storage sync"
 
-```bash
-# Namespace do tenancy
-oci os ns get
-
-# Listar buckets
-oci os bucket list --compartment-id $COMPARTMENT_ID
-
-# Criar bucket
-oci os bucket create \
-  --compartment-id $COMPARTMENT_ID \
-  --name "legal-workbench-backups"
-
-# Upload de arquivo
-oci os object put \
-  --bucket-name "legal-workbench-backups" \
-  --file ./backup.tar.gz \
-  --name "backup-$(date +%Y%m%d).tar.gz"
-
-# Download de arquivo
-oci os object get \
-  --bucket-name "legal-workbench-backups" \
-  --name "backup-20260115.tar.gz" \
-  --file ./restore.tar.gz
-
-# Listar objetos
-oci os object list --bucket-name "legal-workbench-backups"
-
-# Sync de diretorio (upload)
-oci os object sync \
-  --bucket-name "legal-workbench-backups" \
-  --src-dir ./backups/
-
-# Deletar objeto
-oci os object delete \
-  --bucket-name "legal-workbench-backups" \
-  --name "backup-old.tar.gz"
-```
-
-### Comandos de Vault e Secrets
+### Outputs e Debug
 
 ```bash
-# Listar vaults
-oci kms management vault list --compartment-id $COMPARTMENT_ID
+# Output em tabela (mais legivel)
+oci <comando> --output table
 
-# Listar secrets
-oci vault secret list --compartment-id $COMPARTMENT_ID
+# Query JMESPath para filtrar
+oci <comando> --query 'data[*].{name:"display-name", id:id}'
 
-# Obter secret por nome
-oci secrets secret-bundle get-secret-bundle-by-name \
-  --vault-id $VAULT_ID \
-  --secret-name "gemini-api-key" \
-  --stage CURRENT
-
-# Obter conteudo do secret (decodificado)
-oci secrets secret-bundle get-secret-bundle-by-name \
-  --vault-id $VAULT_ID \
-  --secret-name "gemini-api-key" \
-  --query 'data."secret-bundle-content".content' \
-  --raw-output | base64 -d
-
-# Criar novo secret
-oci vault secret create-base64 \
-  --compartment-id $COMPARTMENT_ID \
-  --vault-id $VAULT_ID \
-  --key-id $KEY_ID \
-  --secret-name "new-secret" \
-  --secret-content-content $(echo -n "secret-value" | base64)
-```
-
-### Comandos de IAM
-
-```bash
-# Listar regioes
-oci iam region list
-
-# Detalhes do tenancy
-oci iam tenancy get --tenancy-id $TENANCY_ID
-
-# Listar compartments
-oci iam compartment list --compartment-id $TENANCY_ID
-
-# Listar usuarios
-oci iam user list --compartment-id $TENANCY_ID
-```
-
-### Variaveis de Ambiente Uteis
-
-```bash
-# Exportar para facilitar comandos
-export OCI_TENANCY_ID="ocid1.tenancy.oc1..xxxx"
-export OCI_COMPARTMENT_ID="ocid1.compartment.oc1..xxxx"
-export OCI_REGION="sa-saopaulo-1"
-export OCI_NAMESPACE="namespace"  # para OCIR
-
-# Usar em comandos
-oci compute instance list --compartment-id $OCI_COMPARTMENT_ID
-```
-
-### Output Formatado
-
-```bash
-# JSON (default)
-oci compute instance list --compartment-id $COMPARTMENT_ID
-
-# Tabela
-oci compute instance list --compartment-id $COMPARTMENT_ID --output table
-
-# Query JMESPath
-oci compute instance list --compartment-id $COMPARTMENT_ID \
-  --query 'data[*].{name:"display-name", state:"lifecycle-state", ip:"primary-public-ip"}'
-
-# Raw (sem formatacao)
-oci compute instance get --instance-id $INSTANCE_ID \
-  --query 'data."display-name"' --raw-output
+# Debug verboso
+oci <comando> --debug
 ```
 
 ### Erros Comuns
 
-| Erro | Causa | Solucao |
-|------|-------|---------|
-| `NotAuthenticated` | Config invalido | Verificar `~/.oci/config` |
-| `NotAuthorizedOrNotFound` | Sem permissao ou OCID errado | Verificar IAM policies |
-| `ServiceError 404` | Recurso nao existe | Verificar OCID |
-| `ServiceError 429` | Rate limit | Aguardar e tentar novamente |
-| `InvalidParameter` | Parametro incorreto | Usar `--help` do comando |
+| Erro | Acao |
+|------|------|
+| `NotAuthenticated` | Verificar ~/.oci/config |
+| `NotAuthorizedOrNotFound` | Verificar OCID e permissoes |
+| `ServiceError 404` | Recurso nao existe |
+| Comando desconhecido | **WebSearch** para descobrir sintaxe |
 
 ---
 
-*Ultima atualizacao: 2026-01-15*
+*Este agente deve ser autonomo. Use `--help` e WebSearch para comandos nao documentados.*
