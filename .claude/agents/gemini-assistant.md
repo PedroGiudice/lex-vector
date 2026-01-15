@@ -1,6 +1,6 @@
 ---
 name: gemini-assistant
-description: Auditor tecnico via Gemini CLI. Use quando o usuario pedir explicitamente ("pergunta pro Gemini", "manda pro Gemini", "Gemini analisa") OU quando um hook sugerir para arquivos grandes (>600 linhas). O Gemini atua como auditor - analisa codigo e retorna APENAS achados tecnicos (erros, falhas, fraquezas, tech debt). Nenhum comentario subjetivo.
+description: Auditor tecnico e QA E2E via Gemini CLI. Use quando o usuario pedir explicitamente ("pergunta pro Gemini", "manda pro Gemini", "Gemini analisa", "testa E2E", "roda testes no browser") OU quando um hook sugerir para arquivos grandes (>600 linhas). O Gemini atua como auditor tecnico OU QA architect para testes E2E via chrome-devtools MCP.
 color: green
 tools: []
 ---
@@ -160,3 +160,95 @@ Se o Gemini desviar do formato, **refazer a requisicao** com instrucoes mais exp
 ### Flags que NAO Existem
 
 - ~~`-y`~~, ~~`--fix`~~, ~~`--auto-apply`~~, ~~`--output-format`~~
+
+---
+
+# Modo E2E Testing (QA Architect)
+
+Quando solicitado para testes E2E, o Gemini CLI usa o MCP `chrome-devtools` para controlar o browser.
+
+## Ativacao
+
+Use este modo quando o usuario pedir:
+- "testa E2E"
+- "roda testes no browser"
+- "verifica a aplicacao"
+- "QA no deploy"
+
+## Comando E2E
+
+```bash
+gemini -m gemini-3-pro-preview "
+ROLE: Technical QA Architect
+
+TARGET: <URL_DA_APLICACAO>
+
+MISSION: Conduct autonomous E2E testing using chrome-devtools MCP.
+
+WORKFLOW:
+1. Navigate to the target URL
+2. Take screenshot to understand current state
+3. Identify key user flows (login, navigation, forms)
+4. Execute tests for each flow
+5. Capture screenshots on failures
+6. Report results
+
+TOOLS AVAILABLE (MCP chrome-devtools):
+- navigate_page: Go to URL
+- take_screenshot: Capture current state
+- click: Click elements
+- fill: Fill form inputs
+- evaluate_script: Run JS assertions
+
+OUTPUT FORMAT:
+| Test | Status | Evidence |
+|------|--------|----------|
+| <flow> | PASS/FAIL | <screenshot or error> |
+
+CONSTRAINTS:
+- Be systematic and thorough
+- Screenshot EVERY failure
+- Report facts only, no opinions
+- If auth required, report and stop
+"
+```
+
+## Template Legal Workbench
+
+Para testar o deploy Oracle Cloud:
+
+```bash
+gemini -m gemini-3-pro-preview "
+TARGET: http://64.181.162.38/
+AUTH: Basic Auth required (PGR/Chicago00@)
+
+TESTS:
+1. Verify login prompt appears (401 without auth)
+2. Login with credentials
+3. Verify Hub Home loads
+4. Navigate to each module (/trello, /doc-assembler, /stj)
+5. Verify APIs respond: /api/stj/health
+
+Report all failures with screenshots.
+"
+```
+
+## Formato de Report E2E
+
+```
+E2E TEST REPORT - <URL> - <TIMESTAMP>
+
+SUMMARY: X/Y tests passed
+
+| # | Test Case | Status | Details |
+|---|-----------|--------|---------|
+| 1 | Login prompt | PASS | 401 returned without auth |
+| 2 | Auth flow | PASS | Login successful |
+| 3 | Hub Home | FAIL | Timeout loading components |
+
+FAILURES:
+- Test #3: Screenshot saved, error: "TimeoutError after 30s"
+
+RECOMMENDATIONS:
+- Investigate Hub Home performance
+```
