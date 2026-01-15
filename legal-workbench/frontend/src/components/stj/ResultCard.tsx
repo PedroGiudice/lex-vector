@@ -1,5 +1,28 @@
-import { Calendar, User, Building } from 'lucide-react';
+import { Calendar, User, Building, Gavel } from 'lucide-react';
 import type { AcordaoSummary } from '@/services/stjApi';
+
+/**
+ * Get badge style based on resultado_julgamento value
+ */
+function getResultadoBadgeStyle(resultado?: string): { bg: string; text: string } {
+  if (!resultado) {
+    return { bg: 'bg-text-muted/20', text: 'text-text-muted' };
+  }
+
+  const lower = resultado.toLowerCase();
+
+  if (lower.includes('provido') && !lower.includes('nao') && !lower.includes('desprovido')) {
+    return { bg: 'bg-status-emerald/20', text: 'text-status-emerald' };
+  }
+  if (lower.includes('desprovido') || lower.includes('nao provido') || lower.includes('improvido')) {
+    return { bg: 'bg-status-red/20', text: 'text-status-red' };
+  }
+  if (lower.includes('parcial')) {
+    return { bg: 'bg-status-yellow/20', text: 'text-status-yellow' };
+  }
+
+  return { bg: 'bg-accent-indigo/20', text: 'text-accent-indigo' };
+}
 
 interface ResultCardProps {
   acordao: AcordaoSummary;
@@ -26,13 +49,23 @@ export function ResultCard({ acordao, onClick, isSelected }: ResultCardProps) {
         <span className="text-accent-violet font-mono text-sm">
           {acordao.numero_processo}
         </span>
-        <span className={`text-xs px-2 py-0.5 rounded ${
-          acordao.tipo_decisao === 'Acórdão'
-            ? 'bg-status-emerald/20 text-status-emerald'
-            : 'bg-status-yellow/20 text-status-yellow'
-        }`}>
-          {acordao.tipo_decisao || 'N/A'}
-        </span>
+        <div className="flex items-center gap-2">
+          {acordao.resultado_julgamento && (
+            <span className={`text-xs px-2 py-0.5 rounded flex items-center gap-1 ${
+              getResultadoBadgeStyle(acordao.resultado_julgamento).bg
+            } ${getResultadoBadgeStyle(acordao.resultado_julgamento).text}`}>
+              <Gavel size={10} />
+              {acordao.resultado_julgamento}
+            </span>
+          )}
+          <span className={`text-xs px-2 py-0.5 rounded ${
+            acordao.tipo_decisao === 'Acordao'
+              ? 'bg-status-emerald/20 text-status-emerald'
+              : 'bg-status-yellow/20 text-status-yellow'
+          }`}>
+            {acordao.tipo_decisao || 'N/A'}
+          </span>
+        </div>
       </div>
 
       <p className="text-text-primary text-sm line-clamp-3 mb-3">

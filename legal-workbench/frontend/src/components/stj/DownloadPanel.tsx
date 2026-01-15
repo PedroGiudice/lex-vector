@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import {
   Download,
   Calendar,
@@ -34,20 +34,6 @@ import type { SyncPeriod, SyncParams } from '@/services/stjApi';
  * }
  */
 
-// Available orgaos for filtering
-const AVAILABLE_ORGAOS = [
-  { value: 'PRIMEIRA TURMA', label: 'Primeira Turma' },
-  { value: 'SEGUNDA TURMA', label: 'Segunda Turma' },
-  { value: 'TERCEIRA TURMA', label: 'Terceira Turma' },
-  { value: 'QUARTA TURMA', label: 'Quarta Turma' },
-  { value: 'QUINTA TURMA', label: 'Quinta Turma' },
-  { value: 'SEXTA TURMA', label: 'Sexta Turma' },
-  { value: 'PRIMEIRA SECAO', label: 'Primeira Secao' },
-  { value: 'SEGUNDA SECAO', label: 'Segunda Secao' },
-  { value: 'TERCEIRA SECAO', label: 'Terceira Secao' },
-  { value: 'CORTE ESPECIAL', label: 'Corte Especial' },
-];
-
 // Period options for radio buttons
 const PERIOD_OPTIONS: { value: SyncPeriod; label: string }[] = [
   { value: '30', label: 'Ultimos 30 dias' },
@@ -78,7 +64,29 @@ export function DownloadPanel({ className = '' }: DownloadPanelProps) {
     startSync,
     cancelSync,
     resetSyncState,
+    stats,
+    loadStats,
   } = useSTJStore();
+
+  // Load stats on mount to get available orgaos
+  useEffect(() => {
+    if (!stats) {
+      loadStats();
+    }
+  }, [stats, loadStats]);
+
+  // Get available orgaos from stats dynamically
+  const availableOrgaos = useMemo(() => {
+    if (!stats?.por_orgao) {
+      return [];
+    }
+    return Object.entries(stats.por_orgao)
+      .sort((a, b) => b[1] - a[1]) // Sort by count descending
+      .map(([orgao, count]) => ({
+        value: orgao,
+        label: `${orgao} (${count})`,
+      }));
+  }, [stats]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -249,7 +257,7 @@ export function DownloadPanel({ className = '' }: DownloadPanelProps) {
             role="group"
             aria-label="Selecionar orgaos"
           >
-            {AVAILABLE_ORGAOS.map((orgao) => (
+            {availableOrgaos.map((orgao) => (
               <label
                 key={orgao.value}
                 className="flex items-center gap-2 cursor-pointer"

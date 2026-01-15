@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { DownloadPanel } from '@/components/stj/DownloadPanel';
 import { useSTJStore } from '@/store/stjStore';
@@ -8,6 +8,25 @@ import { useSTJStore } from '@/store/stjStore';
 vi.mock('@/store/stjStore');
 
 const mockUseSTJStore = useSTJStore as Mock;
+
+// Default mock stats for dynamic orgao list
+const mockStats = {
+  total_acordaos: 1000,
+  por_orgao: {
+    'PRIMEIRA TURMA': 150,
+    'SEGUNDA TURMA': 130,
+    'TERCEIRA TURMA': 120,
+    'QUARTA TURMA': 110,
+    'QUINTA TURMA': 100,
+    'SEXTA TURMA': 90,
+    'PRIMEIRA SECAO': 80,
+    'SEGUNDA SECAO': 70,
+    'TERCEIRA SECAO': 60,
+    'CORTE ESPECIAL': 50,
+  },
+  por_tipo: {},
+  ultimos_30_dias: 100,
+};
 
 // Default mock state
 const createMockState = (overrides = {}) => ({
@@ -24,6 +43,8 @@ const createMockState = (overrides = {}) => ({
   startSync: vi.fn(),
   cancelSync: vi.fn(),
   resetSyncState: vi.fn(),
+  stats: mockStats,
+  loadStats: vi.fn(),
   ...overrides,
 });
 
@@ -105,24 +126,24 @@ describe('DownloadPanel Component', () => {
       render(<DownloadPanel />);
       const toggleButton = screen.getByText(/Filtrar por orgao/i);
 
-      // Initially hidden
-      expect(screen.queryByText('Primeira Turma')).not.toBeInTheDocument();
+      // Initially hidden - look for text containing "PRIMEIRA TURMA" (with count)
+      expect(screen.queryByText(/PRIMEIRA TURMA/)).not.toBeInTheDocument();
 
       // Click to show
       fireEvent.click(toggleButton);
-      expect(screen.getByText('Primeira Turma')).toBeInTheDocument();
+      expect(screen.getByText(/PRIMEIRA TURMA \(150\)/)).toBeInTheDocument();
 
       // Click to hide
       fireEvent.click(toggleButton);
-      expect(screen.queryByText('Primeira Turma')).not.toBeInTheDocument();
+      expect(screen.queryByText(/PRIMEIRA TURMA/)).not.toBeInTheDocument();
     });
 
     it('allows selecting multiple orgaos', () => {
       render(<DownloadPanel />);
       fireEvent.click(screen.getByText(/Filtrar por orgao/i));
 
-      const checkbox1 = screen.getByRole('checkbox', { name: /Primeira Turma/i });
-      const checkbox2 = screen.getByRole('checkbox', { name: /Segunda Turma/i });
+      const checkbox1 = screen.getByRole('checkbox', { name: /PRIMEIRA TURMA/i });
+      const checkbox2 = screen.getByRole('checkbox', { name: /SEGUNDA TURMA/i });
 
       fireEvent.click(checkbox1);
       fireEvent.click(checkbox2);
@@ -135,8 +156,8 @@ describe('DownloadPanel Component', () => {
       render(<DownloadPanel />);
       fireEvent.click(screen.getByText(/Filtrar por orgao/i));
 
-      fireEvent.click(screen.getByRole('checkbox', { name: /Primeira Turma/i }));
-      fireEvent.click(screen.getByRole('checkbox', { name: /Segunda Turma/i }));
+      fireEvent.click(screen.getByRole('checkbox', { name: /PRIMEIRA TURMA/i }));
+      fireEvent.click(screen.getByRole('checkbox', { name: /SEGUNDA TURMA/i }));
 
       expect(screen.getByText(/2 selecionados/)).toBeInTheDocument();
     });

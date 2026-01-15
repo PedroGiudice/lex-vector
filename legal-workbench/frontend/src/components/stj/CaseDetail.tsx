@@ -1,6 +1,6 @@
 import { useSTJStore } from '@/store/stjStore';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
-import { X, ExternalLink, Calendar, User, Building, Scale } from 'lucide-react';
+import { X, ExternalLink, Calendar, User, Building, Scale, FileText, Gavel } from 'lucide-react';
 
 export function CaseDetail() {
   const { selectedCase, loadingCase, loadCase } = useSTJStore();
@@ -51,7 +51,7 @@ export function CaseDetail() {
           </div>
           <div>
             <span className="text-text-muted flex items-center gap-1">
-              <Building size={14} /> Órgão Julgador
+              <Building size={14} /> Orgao Julgador
             </span>
             <p className="text-text-primary">{selectedCase.orgao_julgador || '-'}</p>
           </div>
@@ -63,9 +63,21 @@ export function CaseDetail() {
           </div>
           <div>
             <span className="text-text-muted flex items-center gap-1">
-              <Calendar size={14} /> Data Publicação
+              <Calendar size={14} /> Data Publicacao
             </span>
             <p className="text-text-primary">{formatDate(selectedCase.data_publicacao)}</p>
+          </div>
+          <div>
+            <span className="text-text-muted flex items-center gap-1">
+              <FileText size={14} /> Classe Processual
+            </span>
+            <p className="text-text-primary">{selectedCase.classe_processual || '-'}</p>
+          </div>
+          <div>
+            <span className="text-text-muted flex items-center gap-1">
+              <Gavel size={14} /> Resultado
+            </span>
+            <p className="text-text-primary">{selectedCase.resultado_julgamento || '-'}</p>
           </div>
         </div>
 

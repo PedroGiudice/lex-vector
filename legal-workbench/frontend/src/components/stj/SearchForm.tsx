@@ -1,8 +1,19 @@
+import { useEffect } from 'react';
 import { Search } from 'lucide-react';
 import { useSTJStore } from '@/store/stjStore';
 
 export function SearchForm() {
-  const { searchTerm, setSearchTerm, search, loading, filters, setFilters } = useSTJStore();
+  const { searchTerm, setSearchTerm, search, loading, filters, setFilters, stats, loadStats } = useSTJStore();
+
+  // Load stats on mount to populate orgao dropdown
+  useEffect(() => {
+    if (!stats) {
+      loadStats();
+    }
+  }, [stats, loadStats]);
+
+  // Get list of orgaos from stats
+  const orgaoOptions = stats?.por_orgao ? Object.keys(stats.por_orgao).sort() : [];
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,6 +52,20 @@ export function SearchForm() {
         >
           <option value="ementa">Buscar na ementa</option>
           <option value="texto_integral">Buscar no texto integral</option>
+        </select>
+
+        <select
+          value={filters.orgao}
+          onChange={(e) => setFilters({ orgao: e.target.value })}
+          className="bg-bg-input border border-border-default rounded px-3 py-2 text-sm text-text-primary"
+          aria-label="Filtrar por orgao julgador"
+        >
+          <option value="">Todos os orgaos</option>
+          {orgaoOptions.map((orgao) => (
+            <option key={orgao} value={orgao}>
+              {orgao}
+            </option>
+          ))}
         </select>
 
         <button
