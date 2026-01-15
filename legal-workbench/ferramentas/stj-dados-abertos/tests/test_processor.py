@@ -15,7 +15,42 @@ from src.processor import (
     processar_publicacao_stj,
     extrair_ementa,
     extrair_relator,
+    parse_data_publicacao,
+    parse_data_decisao,
 )
+
+
+class TestDateParsers:
+    """Testes para funcoes de parse de data CKAN."""
+
+    def test_parse_data_publicacao_formato_padrao(self):
+        """Formato 'DJE        DATA:DD/MM/YYYY'."""
+        assert parse_data_publicacao("DJE        DATA:25/05/2022") == "2022-05-25"
+        assert parse_data_publicacao("DJE        DATA:01/12/2024") == "2024-12-01"
+
+    def test_parse_data_publicacao_variantes(self):
+        """Variantes possiveis do prefixo."""
+        assert parse_data_publicacao("DJEN       DATA:12/11/2025") == "2025-11-12"
+        assert parse_data_publicacao("DJE DATA:01/01/2023") == "2023-01-01"
+
+    def test_parse_data_publicacao_invalido(self):
+        """Formatos invalidos retornam None."""
+        assert parse_data_publicacao("") is None
+        assert parse_data_publicacao("2022-05-25") is None
+        assert parse_data_publicacao("DATA:invalido") is None
+        assert parse_data_publicacao(None) is None
+
+    def test_parse_data_decisao_formato_padrao(self):
+        """Formato 'YYYYMMDD'."""
+        assert parse_data_decisao("20220523") == "2022-05-23"
+        assert parse_data_decisao("20241231") == "2024-12-31"
+
+    def test_parse_data_decisao_invalido(self):
+        """Formatos invalidos retornam None."""
+        assert parse_data_decisao("") is None
+        assert parse_data_decisao("2022-05-23") is None
+        assert parse_data_decisao("202205") is None
+        assert parse_data_decisao(None) is None
 
 
 class TestResultadoJulgamentoEnum:
@@ -387,38 +422,40 @@ class TestProcessarPublicacaoSTJ:
     def test_processar_com_dispositivo_provimento(self):
         """Testa processamento com dispositivo indicando provimento."""
         json_data = {
-            'processo': 'REsp 1234567/SP',
-            'dataPublicacao': '2024-11-20T00:00:00',
-            'dataJulgamento': '2024-11-15T00:00:00',
-            'orgaoJulgador': 'Terceira Turma',
-            'relator': 'Ministro Paulo de Tarso Sanseverino',
+            'numeroProcesso': '1234567',
+            'dataPublicacao': 'DJE        DATA:20/11/2024',
+            'dataDecisao': '20241115',
+            'nomeOrgaoJulgador': 'TERCEIRA TURMA',
+            'ministroRelator': 'PAULO DE TARSO SANSEVERINO',
             'ementa': 'RECURSO ESPECIAL. DIREITO CIVIL.',
-            'inteiro_teor': """
+            'decisao': """
                 EMENTA: RECURSO ESPECIAL. DIREITO CIVIL.
-                RELATÓRIO: Trata-se de recurso...
+                RELATORIO: Trata-se de recurso...
                 VOTO: Como relatado...
                 DISPOSITIVO: Dar provimento ao recurso especial.
             """,
-            'classe': 'REsp',
+            'siglaClasse': 'REsp',
+            'tipoDeDecisao': 'ACORDAO',
             'assuntos': ['Direito Civil'],
         }
 
         resultado = processar_publicacao_stj(json_data)
 
-        assert resultado['numero_processo'] == 'REsp 1234567/SP'
+        assert resultado['numero_processo'] == '1234567'
         assert resultado['tribunal'] == 'STJ'
         assert resultado['resultado_julgamento'] == ResultadoJulgamento.PROVIMENTO.value
         assert resultado['ementa'] == 'RECURSO ESPECIAL. DIREITO CIVIL.'
-        assert resultado['relator'] == 'Ministro Paulo de Tarso Sanseverino'
+        assert resultado['relator'] == 'PAULO DE TARSO SANSEVERINO'
 
     def test_processar_fallback_ementa(self):
-        """Testa fallback para ementa quando dispositivo não classifica."""
+        """Testa fallback para ementa quando dispositivo nao classifica."""
         json_data = {
-            'processo': 'REsp 9999999/RJ',
-            'dataPublicacao': '2024-11-20T00:00:00',
+            'numeroProcesso': '9999999',
+            'dataPublicacao': 'DJE        DATA:20/11/2024',
             'ementa': 'Recurso parcialmente provido.',
-            'inteiro_teor': 'Texto genérico sem dispositivo claro.',
-            'classe': 'REsp',
+            'decisao': 'Texto generico sem dispositivo claro.',
+            'siglaClasse': 'REsp',
+            'tipoDeDecisao': 'ACORDAO',
         }
 
         resultado = processar_publicacao_stj(json_data)
@@ -427,70 +464,139 @@ class TestProcessarPublicacaoSTJ:
         assert resultado['resultado_julgamento'] == ResultadoJulgamento.PARCIAL_PROVIMENTO.value
 
     def test_processar_indeterminado(self):
-        """Testa classificação indeterminada."""
+        """Testa classificacao indeterminada."""
         json_data = {
-            'processo': 'REsp 8888888/MG',
-            'dataPublicacao': '2024-11-20T00:00:00',
-            'ementa': 'Texto genérico sem padrões.',
-            'inteiro_teor': 'Mais texto genérico.',
-            'classe': 'REsp',
+            'numeroProcesso': '8888888',
+            'dataPublicacao': 'DJE        DATA:20/11/2024',
+            'ementa': 'Texto generico sem padroes.',
+            'decisao': 'Mais texto generico.',
+            'siglaClasse': 'REsp',
+            'tipoDeDecisao': 'ACORDAO',
         }
 
         resultado = processar_publicacao_stj(json_data)
 
         assert resultado['resultado_julgamento'] == ResultadoJulgamento.INDETERMINADO.value
 
-    def test_processar_com_timestamp(self):
-        """Testa conversão de timestamp para ISO."""
+    def test_processar_datas_parseadas(self):
+        """Testa parsing de datas no formato CKAN."""
         json_data = {
-            'processo': 'REsp 5555555/RS',
-            'dataPublicacao': 1700438400000,  # milliseconds
-            'dataJulgamento': 1700352000000,
+            'numeroProcesso': '5555555',
+            'dataPublicacao': 'DJE        DATA:20/11/2024',
+            'dataDecisao': '20241118',
             'ementa': 'Teste.',
-            'inteiro_teor': 'Teste.',
-            'classe': 'REsp',
+            'decisao': 'Teste.',
+            'siglaClasse': 'REsp',
+            'tipoDeDecisao': 'ACORDAO',
         }
 
         resultado = processar_publicacao_stj(json_data)
 
-        # Deve ter convertido para ISO string
-        assert isinstance(resultado['data_publicacao'], str)
-        assert isinstance(resultado['data_julgamento'], str)
-        assert 'T' in resultado['data_publicacao']  # ISO format
+        # Datas devem estar no formato ISO
+        assert resultado['data_publicacao'] == '2024-11-20'
+        assert resultado['data_julgamento'] == '2024-11-18'
 
-    def test_processar_decisao_monocratica(self):
-        """Testa identificação de decisão monocrática."""
+    def test_processar_tipo_decisao_do_ckan(self):
+        """Testa que tipo_decisao vem do campo tipoDeDecisao do CKAN."""
         json_data = {
-            'processo': 'REsp 3333333/SP',
-            'dataPublicacao': '2024-11-20T00:00:00',
+            'numeroProcesso': '3333333',
+            'dataPublicacao': 'DJE        DATA:20/11/2024',
             'ementa': 'Teste.',
-            'inteiro_teor': 'DECISÃO MONOCRÁTICA: Este é o texto da decisão...',
-            'classe': 'REsp',
+            'decisao': 'Este eh o texto da decisao...',
+            'siglaClasse': 'REsp',
+            'tipoDeDecisao': 'DECISAO MONOCRATICA',
         }
 
         resultado = processar_publicacao_stj(json_data)
 
-        assert resultado['tipo_decisao'] == 'Decisão Monocrática'
+        assert resultado['tipo_decisao'] == 'DECISAO MONOCRATICA'
 
-    def test_processar_sem_inteiro_teor(self):
-        """Testa processamento sem inteiro teor (concatena partes)."""
+    def test_processar_sem_campo_decisao(self):
+        """Testa processamento sem campo decisao (concatena partes)."""
         json_data = {
-            'processo': 'REsp 7777777/BA',
-            'dataPublicacao': '2024-11-20T00:00:00',
+            'numeroProcesso': '7777777',
+            'dataPublicacao': 'DJE        DATA:20/11/2024',
             'ementa': 'EMENTA: Teste de ementa.',
-            'relatorio': 'RELATÓRIO: Teste de relatório.',
+            'relatorio': 'RELATORIO: Teste de relatorio.',
             'voto': 'VOTO: Teste de voto.',
-            'decisao': 'DECISÃO: Recurso provido.',
-            'classe': 'REsp',
+            'siglaClasse': 'REsp',
+            'tipoDeDecisao': 'ACORDAO',
         }
 
         resultado = processar_publicacao_stj(json_data)
 
-        # Deve ter concatenado as partes
+        # Deve ter concatenado as partes (quando decisao esta vazio)
         assert 'EMENTA:' in resultado['texto_integral']
-        assert 'RELATÓRIO:' in resultado['texto_integral']
+        assert 'RELATORIO:' in resultado['texto_integral']
         assert 'VOTO:' in resultado['texto_integral']
-        assert 'DECISÃO:' in resultado['texto_integral']
+
+
+class TestProcessadorCKAN:
+    """Testes com dados reais do CKAN."""
+
+    @pytest.fixture
+    def json_ckan_real(self):
+        """Amostra real de JSON do CKAN STJ."""
+        return {
+            "id": "000815399",
+            "numeroProcesso": "1424080",
+            "numeroRegistro": "201304043911",
+            "siglaClasse": "EDcl no AgInt nos EDcl no REsp",
+            "descricaoClasse": "EMBARGOS DE DECLARACAO...",
+            "nomeOrgaoJulgador": "PRIMEIRA TURMA",
+            "ministroRelator": "REGINA HELENA COSTA",
+            "dataPublicacao": "DJE        DATA:25/05/2022",
+            "ementa": "PROCESSUAL CIVIL. ADMINISTRATIVO...",
+            "tipoDeDecisao": "ACORDAO",
+            "dataDecisao": "20220523",
+            "decisao": "Vistos e relatados estes autos, recurso conhecido e provido."
+        }
+
+    def test_processa_json_ckan_completo(self, json_ckan_real):
+        """Deve processar JSON CKAN sem erros."""
+        resultado = processar_publicacao_stj(json_ckan_real)
+
+        assert resultado['numero_processo'] == "1424080"
+        assert resultado['orgao_julgador'] == "PRIMEIRA TURMA"
+        assert resultado['relator'] == "REGINA HELENA COSTA"
+        assert resultado['data_publicacao'] == "2022-05-25"
+        assert resultado['data_julgamento'] == "2022-05-23"
+        assert resultado['tipo_decisao'] == "ACORDAO"
+        assert resultado['classe_processual'] == "EDcl no AgInt nos EDcl no REsp"
+        assert "Vistos e relatados" in resultado['texto_integral']
+
+    def test_processa_json_ckan_campos_principais(self, json_ckan_real):
+        """Verifica mapeamento correto dos campos CKAN."""
+        resultado = processar_publicacao_stj(json_ckan_real)
+
+        # Campos estruturais
+        assert resultado['tribunal'] == 'STJ'
+        assert resultado['fonte'] == 'STJ-Dados-Abertos'
+        assert 'id' in resultado
+        assert 'hash_conteudo' in resultado
+
+    def test_processa_json_ckan_datas_parseadas(self, json_ckan_real):
+        """Verifica parsing correto de datas CKAN."""
+        resultado = processar_publicacao_stj(json_ckan_real)
+
+        # Datas devem estar no formato ISO
+        assert resultado['data_publicacao'] == "2022-05-25"
+        assert resultado['data_julgamento'] == "2022-05-23"
+
+    def test_processa_json_ckan_sem_campos_opcionais(self):
+        """Testa JSON minimo do CKAN."""
+        json_minimo = {
+            "numeroProcesso": "123456",
+            "ementa": "Teste.",
+            "tipoDeDecisao": "ACORDAO",
+        }
+
+        resultado = processar_publicacao_stj(json_minimo)
+
+        assert resultado['numero_processo'] == "123456"
+        assert resultado['tipo_decisao'] == "ACORDAO"
+        assert resultado['data_publicacao'] is None
+        assert resultado['data_julgamento'] is None
 
 
 if __name__ == "__main__":

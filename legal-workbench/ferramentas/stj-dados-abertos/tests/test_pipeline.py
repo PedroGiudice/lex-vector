@@ -37,103 +37,107 @@ from src.database import STJDatabase
 @pytest.fixture
 def sample_stj_data() -> list[dict[str, object]]:
     """
-    Sample STJ JSON data for testing.
+    Sample STJ JSON data for testing (formato CKAN).
 
     Includes diverse cases covering all classification outcomes.
     """
     return [
         {
-            "processo": "REsp 1234567/SP",
-            "dataPublicacao": "2024-11-20T00:00:00",
-            "dataJulgamento": "2024-11-15T00:00:00",
-            "orgaoJulgador": "Terceira Turma",
-            "relator": "Ministro Paulo de Tarso Sanseverino",
+            "numeroProcesso": "1234567",
+            "dataPublicacao": "DJE        DATA:20/11/2024",
+            "dataDecisao": "20241115",
+            "nomeOrgaoJulgador": "Terceira Turma",
+            "ministroRelator": "PAULO DE TARSO SANSEVERINO",
             "ementa": "RECURSO ESPECIAL. DIREITO CIVIL. DANO MORAL. Recurso especial provido.",
-            "inteiro_teor": """
+            "decisao": """
                 EMENTA
                 RECURSO ESPECIAL. DIREITO CIVIL. RESPONSABILIDADE CIVIL. DANO MORAL.
 
-                RELATÓRIO
-                Trata-se de recurso especial interposto contra acórdão do TJSP que julgou procedente
-                ação de indenização por danos morais.
+                RELATORIO
+                Trata-se de recurso especial interposto contra acordao do TJSP que julgou procedente
+                acao de indenizacao por danos morais.
 
                 VOTO
-                O recurso merece acolhida. A jurisprudência desta Corte é pacífica no sentido de que
-                o quantum indenizatório deve ser fixado com razoabilidade.
+                O recurso merece acolhida. A jurisprudencia desta Corte e pacifica no sentido de que
+                o quantum indenizatorio deve ser fixado com razoabilidade.
 
                 DISPOSITIVO
-                Ante o exposto, dou provimento ao recurso especial para fixar a indenização em R$ 10.000,00.
+                Ante o exposto, dou provimento ao recurso especial para fixar a indenizacao em R$ 10.000,00.
             """,
-            "classe": "REsp",
+            "siglaClasse": "REsp",
+            "tipoDeDecisao": "ACORDAO",
             "assuntos": ["Direito Civil", "Responsabilidade Civil", "Dano Moral"]
         },
         {
-            "processo": "REsp 7654321/RJ",
-            "dataPublicacao": "2024-11-21T00:00:00",
-            "dataJulgamento": "2024-11-16T00:00:00",
-            "orgaoJulgador": "Quarta Turma",
-            "relator": "Ministra Maria Isabel Gallotti",
-            "ementa": "RECURSO ESPECIAL. DIREITO TRIBUTÁRIO. Recurso não conhecido.",
-            "inteiro_teor": """
+            "numeroProcesso": "7654321",
+            "dataPublicacao": "DJE        DATA:21/11/2024",
+            "dataDecisao": "20241116",
+            "nomeOrgaoJulgador": "Quarta Turma",
+            "ministroRelator": "MARIA ISABEL GALLOTTI",
+            "ementa": "RECURSO ESPECIAL. DIREITO TRIBUTARIO. Recurso nao conhecido.",
+            "decisao": """
                 EMENTA
-                RECURSO ESPECIAL. DIREITO TRIBUTÁRIO. AUSÊNCIA DE PREQUESTIONAMENTO.
+                RECURSO ESPECIAL. DIREITO TRIBUTARIO. AUSENCIA DE PREQUESTIONAMENTO.
 
-                RELATÓRIO
-                Recurso especial interposto contra acórdão do TRF que manteve cobrança de tributo.
+                RELATORIO
+                Recurso especial interposto contra acordao do TRF que manteve cobranca de tributo.
 
                 VOTO
-                O recurso não merece conhecimento por ausência de prequestionamento da matéria.
+                O recurso nao merece conhecimento por ausencia de prequestionamento da materia.
 
                 DISPOSITIVO
-                Ante o exposto, não conheço do recurso especial.
+                Ante o exposto, nao conheco do recurso especial.
             """,
-            "classe": "REsp",
-            "assuntos": ["Direito Tributário", "ICMS"]
+            "siglaClasse": "REsp",
+            "tipoDeDecisao": "ACORDAO",
+            "assuntos": ["Direito Tributario", "ICMS"]
         },
         {
-            "processo": "REsp 9999999/MG",
-            "dataPublicacao": "2024-11-22T00:00:00",
-            "dataJulgamento": "2024-11-17T00:00:00",
-            "orgaoJulgador": "Segunda Turma",
-            "relator": "Ministro Herman Benjamin",
+            "numeroProcesso": "9999999",
+            "dataPublicacao": "DJE        DATA:22/11/2024",
+            "dataDecisao": "20241117",
+            "nomeOrgaoJulgador": "Segunda Turma",
+            "ministroRelator": "HERMAN BENJAMIN",
             "ementa": "RECURSO ESPECIAL. DIREITO AMBIENTAL. Recurso parcialmente provido.",
-            "inteiro_teor": """
+            "decisao": """
                 EMENTA
-                RECURSO ESPECIAL. DIREITO AMBIENTAL. DANO AMBIENTAL. QUANTUM INDENIZATÓRIO.
+                RECURSO ESPECIAL. DIREITO AMBIENTAL. DANO AMBIENTAL. QUANTUM INDENIZATORIO.
 
-                RELATÓRIO
-                Trata-se de recurso especial em ação de dano ambiental.
+                RELATORIO
+                Trata-se de recurso especial em acao de dano ambiental.
 
                 VOTO
-                O recurso merece parcial provimento para reduzir o valor da indenização.
+                O recurso merece parcial provimento para reduzir o valor da indenizacao.
 
                 DISPOSITIVO
-                Dou parcial provimento ao recurso especial para reduzir a indenização para R$ 500.000,00.
+                Dou parcial provimento ao recurso especial para reduzir a indenizacao para R$ 500.000,00.
             """,
-            "classe": "REsp",
+            "siglaClasse": "REsp",
+            "tipoDeDecisao": "ACORDAO",
             "assuntos": ["Direito Ambiental", "Dano Ambiental"]
         },
         {
-            "processo": "REsp 8888888/RS",
-            "dataPublicacao": "2024-11-23T00:00:00",
-            "dataJulgamento": "2024-11-18T00:00:00",
-            "orgaoJulgador": "Primeira Turma",
-            "relator": "Ministro Benedito Gonçalves",
+            "numeroProcesso": "8888888",
+            "dataPublicacao": "DJE        DATA:23/11/2024",
+            "dataDecisao": "20241118",
+            "nomeOrgaoJulgador": "Primeira Turma",
+            "ministroRelator": "BENEDITO GONCALVES",
             "ementa": "RECURSO ESPECIAL. DIREITO PROCESSUAL CIVIL. Recurso improvido.",
-            "inteiro_teor": """
+            "decisao": """
                 EMENTA
-                RECURSO ESPECIAL. DIREITO PROCESSUAL CIVIL. CERCEAMENTO DE DEFESA. INOCORRÊNCIA.
+                RECURSO ESPECIAL. DIREITO PROCESSUAL CIVIL. CERCEAMENTO DE DEFESA. INOCORRENCIA.
 
-                RELATÓRIO
+                RELATORIO
                 Recurso especial alegando cerceamento de defesa.
 
                 VOTO
-                Não houve cerceamento de defesa. O recurso não merece provimento.
+                Nao houve cerceamento de defesa. O recurso nao merece provimento.
 
                 DISPOSITIVO
                 Nego provimento ao recurso especial.
             """,
-            "classe": "REsp",
+            "siglaClasse": "REsp",
+            "tipoDeDecisao": "ACORDAO",
             "assuntos": ["Direito Processual Civil"]
         }
     ]
@@ -222,10 +226,10 @@ class TestPipelineIntegration:
         classifications = {rec['numero_processo']: rec['resultado_julgamento']
                           for rec in processed_records}
 
-        assert classifications["REsp 1234567/SP"] == ResultadoJulgamento.PROVIMENTO.value
-        assert classifications["REsp 7654321/RJ"] == ResultadoJulgamento.NAO_CONHECIDO.value
-        assert classifications["REsp 9999999/MG"] == ResultadoJulgamento.PARCIAL_PROVIMENTO.value
-        assert classifications["REsp 8888888/RS"] == ResultadoJulgamento.DESPROVIMENTO.value
+        assert classifications["1234567"] == ResultadoJulgamento.PROVIMENTO.value
+        assert classifications["7654321"] == ResultadoJulgamento.NAO_CONHECIDO.value
+        assert classifications["9999999"] == ResultadoJulgamento.PARCIAL_PROVIMENTO.value
+        assert classifications["8888888"] == ResultadoJulgamento.DESPROVIMENTO.value
 
         # Verify all records have ementa
         assert processor.stats.com_ementa == 4
@@ -251,19 +255,19 @@ class TestPipelineIntegration:
             assert stats['por_orgao']['Segunda Turma'] == 1
             assert stats['por_orgao']['Primeira Turma'] == 1
 
-            # Verify by tipo_decisao
-            assert stats['por_tipo']['Acórdão'] == 4
+            # Verify by tipo_decisao (valor vem do CKAN)
+            assert stats['por_tipo']['ACORDAO'] == 4
 
             # Step 6: Search and verify text search (using direct SQL for exact match)
             # Verify we can query the data
             query_results = db.conn.execute("""
                 SELECT numero_processo, ementa
                 FROM acordaos
-                WHERE numero_processo = 'REsp 1234567/SP'
+                WHERE numero_processo = '1234567'
             """).fetchall()
 
             assert len(query_results) == 1, "Should find the inserted record"
-            assert query_results[0][0] == "REsp 1234567/SP"
+            assert query_results[0][0] == "1234567"
             assert "DANO MORAL" in query_results[0][1] or "Dano Moral" in query_results[0][1]
 
             # Verify search by orgao works

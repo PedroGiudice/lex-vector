@@ -304,6 +304,43 @@ def extrair_relator(texto: str) -> str:
     return ""
 
 
+def parse_data_publicacao(valor: str) -> str | None:
+    """
+    Parseia 'DJE        DATA:DD/MM/YYYY' -> 'YYYY-MM-DD'
+
+    Formato consistente em 100% dos registros testados.
+    Retorna None se formato inesperado (para auditoria).
+    """
+    if not valor or "DATA:" not in valor:
+        return None
+
+    try:
+        parte_data = valor.split("DATA:")[-1].strip()
+        dt = datetime.strptime(parte_data, "%d/%m/%Y")
+        return dt.strftime("%Y-%m-%d")
+    except ValueError:
+        logger.warning(f"[AUDIT] Formato dataPublicacao inesperado: {valor}")
+        return None
+
+
+def parse_data_decisao(valor: str) -> str | None:
+    """
+    Parseia 'YYYYMMDD' -> 'YYYY-MM-DD'
+
+    Formato: 8 digitos sem separador.
+    Retorna None se formato inesperado.
+    """
+    if not valor or len(valor) != 8:
+        return None
+
+    try:
+        dt = datetime.strptime(valor, "%Y%m%d")
+        return dt.strftime("%Y-%m-%d")
+    except ValueError:
+        logger.warning(f"[AUDIT] Formato dataDecisao inesperado: {valor}")
+        return None
+
+
 def processar_publicacao_stj(json_data: Dict) -> Dict:
     """
     Processa publicação JSON do STJ Dados Abertos.
@@ -331,9 +368,9 @@ def processar_publicacao_stj(json_data: Dict) -> Dict:
     # Initialize classifier
     classifier = LegalResultClassifier()
 
-    # Extrair campos principais
-    numero_processo = json_data.get('processo', '')
-    texto_integral = json_data.get('inteiro_teor', '')
+    # Extrair campos principais (nomes CKAN)
+    numero_processo = json_data.get('numeroProcesso', '')
+    texto_integral = json_data.get('decisao', '')
 
     # Se não tem inteiro teor, tentar concatenar partes
     if not texto_integral:
@@ -358,27 +395,19 @@ def processar_publicacao_stj(json_data: Dict) -> Dict:
     if not ementa and texto_integral:
         ementa = extrair_ementa(texto_integral)
 
-    # Extrair relator
-    # STJ geralmente tem campo 'relator' ou 'ministro'
-    relator = json_data.get('relator') or json_data.get('ministro')
+    # Extrair relator (nome CKAN: ministroRelator)
+    relator = json_data.get('ministroRelator', '')
     if not relator and texto_integral:
         relator = extrair_relator(texto_integral)
 
-    # Converter datas
-    data_publicacao = json_data.get('dataPublicacao')
-    data_julgamento = json_data.get('dataJulgamento')
+    # Converter datas (formatos CKAN)
+    # dataPublicacao: "DJE        DATA:DD/MM/YYYY" -> "YYYY-MM-DD"
+    # dataDecisao: "YYYYMMDD" -> "YYYY-MM-DD"
+    data_publicacao = parse_data_publicacao(json_data.get('dataPublicacao', ''))
+    data_julgamento = parse_data_decisao(json_data.get('dataDecisao', ''))
 
-    # Se as datas vierem em timestamp (milliseconds)
-    if isinstance(data_publicacao, (int, float)):
-        data_publicacao = datetime.fromtimestamp(data_publicacao / 1000).isoformat()
-    if isinstance(data_julgamento, (int, float)):
-        data_julgamento = datetime.fromtimestamp(data_julgamento / 1000).isoformat()
-
-    # Classificar tipo (STJ é sempre acórdão ou decisão monocrática)
-    tipo_decisao = 'Acórdão'
-    texto_inicio = texto_integral.lower()[:500]
-    if 'monocr' in texto_inicio:  # Matches both monocrática and monocratica
-        tipo_decisao = 'Decisão Monocrática'
+    # Tipo de decisao vem direto do CKAN (tipoDeDecisao)
+    tipo_decisao = json_data.get('tipoDeDecisao', 'Acordao')
 
     # Classificar resultado do julgamento
     # Prioridade: dispositivo > ementa > indeterminado
@@ -399,9 +428,9 @@ def processar_publicacao_stj(json_data: Dict) -> Dict:
         'numero_processo': numero_processo,
         'hash_conteudo': hash_conteudo,
         'tribunal': 'STJ',
-        'orgao_julgador': json_data.get('orgaoJulgador', ''),
+        'orgao_julgador': json_data.get('nomeOrgaoJulgador', ''),
         'tipo_decisao': tipo_decisao,
-        'classe_processual': json_data.get('classe', ''),
+        'classe_processual': json_data.get('siglaClasse', ''),
         'ementa': ementa,
         'texto_integral': texto_integral,
         'relator': relator,

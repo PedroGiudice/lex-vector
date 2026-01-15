@@ -37,6 +37,7 @@ ARCHIVE_DIR: Final[Path] = DATA_ROOT / "archive"
 DATABASE_DIR: Final[Path] = DATA_ROOT / "database"
 LOGS_DIR: Final[Path] = DATA_ROOT / "logs"
 METADATA_DIR: Final[Path] = DATA_ROOT / "metadata"
+RAW_DATA_PATH: Final[Path] = DATA_ROOT / "raw"  # JSONs originais do CKAN (auditoria)
 
 # Database paths
 DATABASE_PATH: Final[Path] = DATABASE_DIR / "stj.duckdb"
@@ -46,7 +47,7 @@ STATS_PATH: Final[Path] = METADATA_DIR / "stats.json"
 
 # Create all necessary directories
 for dir_path in [STAGING_DIR, ARCHIVE_DIR, DATABASE_DIR, LOGS_DIR,
-                 METADATA_DIR, DATABASE_BACKUP_DIR]:
+                 METADATA_DIR, DATABASE_BACKUP_DIR, RAW_DATA_PATH]:
     dir_path.mkdir(parents=True, exist_ok=True)
 
 # CKAN API Configuration (New Data Source)

@@ -18,8 +18,10 @@ from tenacity import retry, stop_after_attempt, wait_exponential
 
 import sys
 sys.path.append(str(Path(__file__).parent.parent))
+import shutil
 from config import (
     STAGING_DIR,
+    RAW_DATA_PATH,
     DEFAULT_TIMEOUT,
     DEFAULT_RETRY_ATTEMPTS,
     DEFAULT_RETRY_DELAY,
@@ -336,6 +338,16 @@ class STJDownloader:
 
             # Use existing batch download logic
             downloaded_files = self.download_batch(url_configs, show_progress)
+
+            # Persist to raw/ directory for audit trail
+            if downloaded_files:
+                raw_dir = RAW_DATA_PATH / orgao
+                raw_dir.mkdir(parents=True, exist_ok=True)
+                for file_path in downloaded_files:
+                    raw_dest = raw_dir / file_path.name
+                    if not raw_dest.exists():
+                        shutil.copy(file_path, raw_dest)
+                        logger.debug(f"Arquivo copiado para raw/: {raw_dest}")
 
         return downloaded_files
 
