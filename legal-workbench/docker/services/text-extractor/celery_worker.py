@@ -4,12 +4,21 @@ import signal
 import time
 import sqlite3
 import json
+import logging
 from datetime import datetime
 from pathlib import Path
 from typing import Optional, Dict, Any
 
 from celery import Celery, Task
 from celery.signals import task_prerun, task_postrun, task_failure
+
+# Configure logger
+logger = logging.getLogger("celery_worker")
+log_level = logging.DEBUG if os.getenv("LOG_LEVEL", "INFO").upper() == "DEBUG" else logging.INFO
+logging.basicConfig(
+    level=log_level,
+    format='%(asctime)s [%(levelname)s] %(name)s: %(message)s'
+)
 
 # Environment variables
 CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", "redis://redis:6379/0")
@@ -63,11 +72,11 @@ def get_marker_artifacts():
     if _marker_artifacts is None:
         try:
             from marker.models import create_model_dict
-            print("Loading Marker models... (this may take a while)")
+            logger.info("Loading Marker models... (this may take a while)")
             _marker_artifacts = create_model_dict()
-            print("Marker models loaded successfully")
+            logger.info("Marker models loaded successfully")
         except Exception as e:
-            print(f"Failed to load Marker models: {e}")
+            logger.error("Failed to load Marker models: %s", e)
             raise
 
     return _marker_artifacts
@@ -100,7 +109,7 @@ def extract_with_marker(pdf_path: str, options: Dict[str, Any]) -> tuple[str, in
         # Get Marker model artifacts
         artifact_dict = get_marker_artifacts()
 
-        print(f"Starting Marker extraction for: {pdf_path}")
+        logger.info("Starting Marker extraction for: %s", pdf_path)
 
         # OTIMIZACAO: Config igual ao marker_engine.py
         config_dict = {
@@ -112,6 +121,9 @@ def extract_with_marker(pdf_path: str, options: Dict[str, Any]) -> tuple[str, in
             "keep_pageheader_in_output": False,
             "keep_pagefooter_in_output": False,
         }
+
+        logger.debug("Marker config: %s", config_dict)
+        logger.debug("PDF path: %s, size: %d bytes", pdf_path, os.path.getsize(pdf_path))
 
         # Create config parser
         config_parser = ConfigParser(config_dict)
@@ -153,12 +165,12 @@ def extract_with_marker(pdf_path: str, options: Dict[str, Any]) -> tuple[str, in
             "config_applied": config_dict,
         }
 
-        print(f"Marker extraction completed: {pages_processed} pages")
+        logger.info("Marker extraction completed: %d pages", pages_processed)
 
         return full_text, pages_processed, extraction_metadata
 
     except Exception as e:
-        print(f"Marker extraction failed: {e}")
+        logger.error("Marker extraction failed: %s", e)
         raise
 
 
@@ -167,7 +179,7 @@ def extract_with_pdfplumber(pdf_path: str, options: Dict[str, Any]) -> tuple[str
     try:
         import pdfplumber
 
-        print(f"Starting pdfplumber extraction")
+        logger.info("Starting pdfplumber extraction")
 
         extracted_text = []
         pages_processed = 0
@@ -186,19 +198,19 @@ def extract_with_pdfplumber(pdf_path: str, options: Dict[str, Any]) -> tuple[str
             "ocr_applied": False
         }
 
-        print(f"pdfplumber extraction completed: {pages_processed} pages")
+        logger.info("pdfplumber extraction completed: %d pages", pages_processed)
 
         return full_text, pages_processed, extraction_metadata
 
     except Exception as e:
-        print(f"pdfplumber extraction failed: {e}")
+        logger.error("pdfplumber extraction failed: %s", e)
         raise
 
 
 def enhance_with_gemini(text: str, options: Dict[str, Any]) -> str:
     """Post-process extracted text with Gemini."""
     if not GEMINI_API_KEY:
-        print("Gemini API key not configured, skipping enhancement")
+        logger.info("Gemini API key not configured, skipping enhancement")
         return text
 
     try:
@@ -216,17 +228,17 @@ def enhance_with_gemini(text: str, options: Dict[str, Any]) -> str:
         {text}
         """).format(text=text[:8000])  # Limit to avoid token limits
 
-        print("Enhancing text with Gemini...")
+        logger.info("Enhancing text with Gemini...")
 
         response = model.generate_content(prompt)
         enhanced_text = response.text
 
-        print("Gemini enhancement completed")
+        logger.info("Gemini enhancement completed")
 
         return enhanced_text
 
     except Exception as e:
-        print(f"Gemini enhancement failed: {e}, returning original text")
+        logger.warning("Gemini enhancement failed: %s, returning original text", e)
         return text
 
 
@@ -238,7 +250,7 @@ class ExtractionTask(Task):
         job_id = task_id
         error_msg = str(exc)[:500]  # Limit error message length
 
-        print(f"Task {job_id} failed: {error_msg}")
+        logger.error("Task %s failed: %s", job_id, error_msg)
 
         update_job_db(
             job_id,
@@ -249,7 +261,7 @@ class ExtractionTask(Task):
 
     def on_success(self, retval, task_id, args, kwargs):
         """Handle task success."""
-        print(f"Task {task_id} completed successfully")
+        logger.info("Task %s completed successfully", task_id)
 
 
 @celery_app.task(
@@ -291,7 +303,7 @@ def extract_pdf(
             progress=0.0
         )
 
-        print(f"Processing job {job_id} with engine: {engine}")
+        logger.info("Processing job %s with engine: %s", job_id, engine)
 
         # Validate PDF exists
         if not os.path.exists(pdf_path):
@@ -334,7 +346,7 @@ def extract_pdf(
             metadata=json.dumps(metadata)
         )
 
-        print(f"Job {job_id} completed in {execution_time:.2f}s")
+        logger.info("Job %s completed in %.2fs", job_id, execution_time)
 
         return {
             "job_id": job_id,
@@ -345,7 +357,7 @@ def extract_pdf(
 
     except Exception as e:
         # Error handling is done by on_failure
-        print(f"Job {job_id} failed with error: {e}")
+        logger.error("Job %s failed with error: %s", job_id, e)
         raise
 
     finally:
@@ -353,21 +365,21 @@ def extract_pdf(
         try:
             if os.path.exists(pdf_path):
                 os.remove(pdf_path)
-                print(f"Cleaned up temporary file: {pdf_path}")
+                logger.debug("Cleaned up temporary file: %s", pdf_path)
         except Exception as e:
-            print(f"Failed to cleanup temporary file: {e}")
+            logger.warning("Failed to cleanup temporary file: %s", e)
 
 
 @task_prerun.connect
 def task_prerun_handler(sender=None, task_id=None, task=None, **kwargs):
     """Handle task prerun signal."""
-    print(f"Task {task_id} starting: {task.name}")
+    logger.info("Task %s starting: %s", task_id, task.name)
 
 
 @task_postrun.connect
 def task_postrun_handler(sender=None, task_id=None, task=None, **kwargs):
     """Handle task postrun signal."""
-    print(f"Task {task_id} finished: {task.name}")
+    logger.info("Task %s finished: %s", task_id, task.name)
 
 
 if __name__ == "__main__":
