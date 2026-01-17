@@ -69,6 +69,7 @@ Não crie hooks para cada erro — documente aqui primeiro. Esta seção cresce 
 | 2026-01-13 | Feedback loop so roda no commit, nao proativamente | Commitar apos cada mudanca logica para validar cedo |
 | 2026-01-13 | Troquei modelo especificado pelo usuario (gemini-3-pro-preview) | **NUNCA substituir modelo indicado pelo usuario - usar EXATAMENTE o especificado** |
 | 2026-01-17 | Build local (bun) nao atualiza Docker no OCI - fiz rsync do dist mas container usa build interno | **SEMPRE usar cicd-operator para deploy no LW** - Docker faz build interno, rsync nao basta |
+| 2026-01-17 | Assumi que testes falhando = deps faltando. Na verdade, LTE usa Marker (nao pytesseract/pdf2image/anthropic) | **VER CLAUDE.md DO MODULO antes de rodar testes** - codigo legado tem imports obsoletos |
 
 <!--
 Formato para adicionar:
