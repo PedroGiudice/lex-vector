@@ -32,6 +32,11 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 # Marker-specific timeout (30 minutes for CPU-only processing of large legal documents)
 MARKER_TIMEOUT = int(os.getenv("MARKER_TIMEOUT", "1800"))
 
+# Modal GPU acceleration
+MODAL_ENABLED = os.getenv("MODAL_ENABLED", "false").lower() == "true"
+MODAL_TOKEN_ID = os.getenv("MODAL_TOKEN_ID")
+MODAL_TOKEN_SECRET = os.getenv("MODAL_TOKEN_SECRET")
+
 # Create Celery app
 celery_app = Celery(
     "text_extractor",
@@ -242,6 +247,69 @@ def extract_with_pdfplumber(pdf_path: str, options: Dict[str, Any]) -> tuple[str
         raise
 
 
+def extract_with_modal(pdf_path: str, options: Dict[str, Any]) -> tuple[str, int, Dict]:
+    """
+    Extract text using Modal GPU-accelerated Marker.
+
+    Requires:
+    - MODAL_ENABLED=true
+    - MODAL_TOKEN_ID and MODAL_TOKEN_SECRET set
+    - modal package installed
+
+    Falls back to local Marker if Modal fails.
+    """
+    if not MODAL_ENABLED:
+        raise RuntimeError("Modal is not enabled")
+
+    if not MODAL_TOKEN_ID or not MODAL_TOKEN_SECRET:
+        raise RuntimeError("Modal tokens not configured (MODAL_TOKEN_ID, MODAL_TOKEN_SECRET)")
+
+    try:
+        import modal
+
+        logger.info("Starting Modal GPU extraction for: %s", pdf_path)
+
+        # Read PDF file
+        with open(pdf_path, 'rb') as f:
+            pdf_bytes = f.read()
+
+        pdf_size_mb = len(pdf_bytes) / (1024 * 1024)
+        logger.info("PDF size: %.2f MB, sending to Modal GPU...", pdf_size_mb)
+
+        # Get reference to deployed Modal function (Modal 1.0+ API)
+        # from_name is lazy - hydrates on first use (remote call)
+        extract_fn = modal.Function.from_name("lw-marker-extractor", "extract_pdf")
+
+        # Call Modal function (blocking)
+        start_time = time.time()
+        result = extract_fn.remote(pdf_bytes, force_ocr=False)
+        modal_time = time.time() - start_time
+
+        logger.info("Modal extraction completed in %.2fs", modal_time)
+        logger.info("  Pages: %d (%d native, %d OCR)",
+                   result["pages"], result["native_pages"], result["ocr_pages"])
+        logger.info("  Characters: %d", result["chars"])
+
+        extraction_metadata = {
+            "ocr_applied": result["ocr_pages"] > 0,
+            "file_size_bytes": len(pdf_bytes),
+            "modal_gpu": "A10G",
+            "modal_processing_time": result["processing_time"],
+            "modal_convert_time": result["convert_time"],
+            "native_pages": result["native_pages"],
+            "ocr_pages": result["ocr_pages"],
+        }
+
+        return result["text"], result["pages"], extraction_metadata
+
+    except ImportError:
+        logger.error("modal package not installed, falling back to local Marker")
+        raise RuntimeError("modal package not installed")
+    except Exception as e:
+        logger.error("Modal extraction failed: %s", e)
+        raise
+
+
 def enhance_with_gemini(text: str, options: Dict[str, Any]) -> str:
     """Post-process extracted text with Gemini."""
     if not GEMINI_API_KEY:
@@ -351,9 +419,19 @@ def extract_pdf(
 
         # Extract text based on engine
         if engine == "marker":
-            full_text, pages_processed, metadata = extract_with_marker(pdf_path, options)
+            # Use Modal GPU when enabled (NO fallback - VM ARM cannot handle local Marker)
+            if MODAL_ENABLED:
+                save_job_log(job_id, "INFO", "Using Modal GPU acceleration (A10 24GB)")
+                full_text, pages_processed, metadata = extract_with_modal(pdf_path, options)
+                metadata["extraction_mode"] = "modal_gpu"
+            else:
+                # CPU-only mode (requires high-memory server, not suitable for ARM VM)
+                save_job_log(job_id, "INFO", "Using CPU Marker (slow, requires >10GB RAM)")
+                full_text, pages_processed, metadata = extract_with_marker(pdf_path, options)
+                metadata["extraction_mode"] = "cpu"
         elif engine == "pdfplumber":
             full_text, pages_processed, metadata = extract_with_pdfplumber(pdf_path, options)
+            metadata["extraction_mode"] = "pdfplumber"
         else:
             raise ValueError(f"Unknown engine: {engine}")
         save_job_log(job_id, "INFO", f"Extraction completed: {pages_processed} pages")

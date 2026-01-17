@@ -25,7 +25,13 @@ export function initSentry(): void {
         maskAllText: false,
         blockAllMedia: false,
       }),
+      // Send console.log, console.warn, and console.error as logs to Sentry
+      Sentry.consoleLoggingIntegration({ levels: ['log', 'warn', 'error'] }),
     ],
+    // Enable logs to be sent to Sentry
+    _experiments: {
+      enableLogs: true,
+    },
     // Performance Monitoring
     tracesSampleRate: import.meta.env.MODE === 'production' ? 0.1 : 1.0,
     // Session Replay

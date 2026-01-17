@@ -29,3 +29,6 @@ python-dateutil==2.8.2
 
 # Error tracking and performance monitoring
 sentry-sdk[fastapi]>=2.0.0
+
+# Modal GPU serverless (optional - for GPU-accelerated extraction)
+modal>=0.64.0

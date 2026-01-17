@@ -101,6 +101,10 @@ services:
       - TORCH_DEVICE=cpu
       - DETECTOR_BATCH_SIZE=${DETECTOR_BATCH_SIZE:-4}
       - RECOGNITION_BATCH_SIZE=${RECOGNITION_BATCH_SIZE:-8}
+      # Modal GPU serverless (optional - set MODAL_ENABLED=true to use)
+      - MODAL_ENABLED=${MODAL_ENABLED:-false}
+      - MODAL_TOKEN_ID=${MODAL_TOKEN_ID:-}
+      - MODAL_TOKEN_SECRET=${MODAL_TOKEN_SECRET:-}
     networks:
       - legal-network
     depends_on:
