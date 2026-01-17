@@ -99,6 +99,20 @@ def update_job_db(job_id: str, **fields):
         conn.commit()
 
 
+def save_job_log(job_id: str, level: str, message: str):
+    """Save log entry to job_logs table."""
+    db_path = Path(JOBS_DB_PATH)
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+
+    with sqlite3.connect(JOBS_DB_PATH) as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            "INSERT INTO job_logs (job_id, timestamp, level, message) VALUES (?, ?, ?, ?)",
+            (job_id, datetime.utcnow().isoformat(), level, message)
+        )
+        conn.commit()
+
+
 def extract_with_marker(pdf_path: str, options: Dict[str, Any]) -> tuple[str, int, Dict]:
     """Extract text using Marker engine with optimized config."""
     try:
@@ -302,12 +316,14 @@ def extract_pdf(
             started_at=datetime.utcnow().isoformat(),
             progress=0.0
         )
+        save_job_log(job_id, "INFO", f"Job started with engine: {engine}")
 
         logger.info("Processing job %s with engine: %s", job_id, engine)
 
         # Validate PDF exists
         if not os.path.exists(pdf_path):
             raise FileNotFoundError(f"PDF file not found: {pdf_path}")
+        save_job_log(job_id, "INFO", f"File validated: {pdf_path}")
 
         # Update progress
         update_job_db(job_id, progress=10.0)
@@ -319,6 +335,7 @@ def extract_pdf(
             full_text, pages_processed, metadata = extract_with_pdfplumber(pdf_path, options)
         else:
             raise ValueError(f"Unknown engine: {engine}")
+        save_job_log(job_id, "INFO", f"Extraction completed: {pages_processed} pages")
 
         # Update progress
         update_job_db(job_id, progress=70.0)
@@ -357,6 +374,7 @@ def extract_pdf(
 
     except Exception as e:
         # Error handling is done by on_failure
+        save_job_log(job_id, "ERROR", f"Job failed: {str(e)[:200]}")
         logger.error("Job %s failed with error: %s", job_id, e)
         raise
 
