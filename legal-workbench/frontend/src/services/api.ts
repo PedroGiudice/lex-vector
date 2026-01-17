@@ -1,5 +1,11 @@
 import axios, { AxiosInstance } from 'axios';
-import type { UploadResponse, SaveTemplateRequest, Template, PatternMatch, TemplateDetails } from '@/types';
+import type {
+  UploadResponse,
+  SaveTemplateRequest,
+  Template,
+  PatternMatch,
+  TemplateDetails,
+} from '@/types';
 
 const API_BASE = '/api/doc/api/v1/builder';
 
@@ -19,11 +25,14 @@ class ApiService {
     const formData = new FormData();
     formData.append('file', file);
 
-    const response = await this.client.post<UploadResponse>('/upload', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
+    // CRITICAL: Use axios directly, NOT this.client
+    // this.client has default Content-Type: application/json which corrupts FormData
+    // Browser must set Content-Type with correct multipart boundary automatically
+    const response = await axios.post<UploadResponse>(
+      `${API_BASE}/upload`,
+      formData
+      // No headers - browser sets Content-Type: multipart/form-data; boundary=...
+    );
 
     return response.data;
   }
