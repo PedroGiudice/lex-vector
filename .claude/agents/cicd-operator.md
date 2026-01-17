@@ -1,8 +1,25 @@
 ---
 name: cicd-operator
-description: Use this agent for CI/CD operations on Legal Workbench deployed to Oracle Cloud. Handles Docker image versioning, OCIR registry operations, deployments via SSH, secrets management with OCI Vault, health checks, rollbacks, and backups to Object Storage. Examples:\n\n<example>\nContext: Deploying new version to Oracle Cloud\nuser: "Deploy the latest changes to production"\nassistant: "I'll use the cicd-operator agent to build, tag, push to OCIR, and deploy to the Oracle Cloud instance."\n<commentary>\nDeployment requires proper image versioning and health verification.\n</commentary>\n</example>\n\n<example>\nContext: Rollback after failed deployment\nuser: "The deploy broke something, rollback please"\nassistant: "I'll use the cicd-operator agent to identify the previous working version and execute rollback."\n<commentary>\nRollback requires knowing the previous image tag and verifying health after.\n</commentary>\n</example>\n\n<example>\nContext: Setting up secrets in OCI Vault\nuser: "Move our .env secrets to OCI Vault"\nassistant: "I'll use the cicd-operator agent to provision the vault and migrate secrets securely."\n<commentary>\nSecrets migration requires Terraform for vault and updating deploy scripts.\n</commentary>\n</example>
-color: cyan
-tools: Read, Write, Edit, Bash, Grep, Glob, WebSearch
+description: Use this agent for CI/CD operations on Legal Workbench deployed to Oracle Cloud. Handles Docker image versioning, OCIR registry operations, deployments via SSH, secrets management with OCI Vault, health checks, rollbacks, and backups to Object Storage.
+allowed-tools:
+  - Read
+  - Write
+  - Edit
+  - Bash
+  - Grep
+  - Glob
+  - WebSearch
+---
+
+# CI/CD Operator
+
+## Skills Sob Dominio
+
+| Skill | Quando Usar |
+|-------|-------------|
+| `verification-before-completion` | **Sempre** - verificar health apos deploy |
+| `systematic-debugging` | Quando deploy falha |
+
 ---
 
 ## Contexto do Projeto

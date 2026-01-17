@@ -1,19 +1,52 @@
 ---
 name: test-writer-fixer
-tools: Read, Write, Edit, MultiEdit, Grep, Glob, Bash, LS, WebSearch, WebFetch, TodoWrite, Task, mcp__chrome-devtools__list_pages, mcp__chrome-devtools__select_page, mcp__chrome-devtools__navigate_page, mcp__chrome-devtools__take_screenshot, mcp__chrome-devtools__take_snapshot, mcp__chrome-devtools__click, mcp__chrome-devtools__fill, mcp__chrome-devtools__evaluate_script, mcp__playwright__browser_snapshot, mcp__playwright__browser_click, mcp__playwright__browser_navigate
-description: Use this agent when code changes have been made and you need to write new tests, run existing tests, analyze failures, and fix them while maintaining test integrity. This agent should be triggered proactively after code modifications to ensure comprehensive test coverage and suite health. Examples:\n\n<example>\nContext: The user has just implemented a new feature or modified existing code.\nuser: "I've updated the user authentication logic to support OAuth"\nassistant: "I've successfully updated the authentication logic. Now let me run the test-writer-fixer agent to ensure all tests pass with these changes."\n<commentary>\nSince code changes were made, use the Task tool to launch the test-writer-fixer agent to run relevant tests and fix any failures.\n</commentary>\n</example>\n\n<example>\nContext: The user has refactored a module or changed function signatures.\nuser: "Please refactor this payment processing module to use async/await"\nassistant: "I've completed the refactoring to use async/await throughout the payment module."\n<function call omitted for brevity>\nassistant: "Now I'll use the test-writer-fixer agent to run the tests and fix any issues caused by the refactoring."\n<commentary>\nAfter refactoring code, proactively use the test-writer-fixer agent to ensure tests still pass.\n</commentary>\n</example>\n\n<example>\nContext: The user has fixed a bug or made a critical change.\nuser: "Fix the race condition in the data synchronization service"\nassistant: "I've identified and fixed the race condition by implementing proper locking mechanisms."\n<function call omitted for brevity>\nassistant: "Let me run the test-writer-fixer agent to verify the fix doesn't break existing functionality."\n<commentary>\nAfter bug fixes, use the test-writer-fixer agent to ensure the fix works and doesn't introduce regressions.\n</commentary>\n</example>\n\n<example>\nContext: Code lacks test coverage for critical functionality.\nuser: "Our payment processing module has no tests"\nassistant: "That's a critical gap. Let me use the test-writer-fixer agent to create comprehensive tests for the payment module including edge cases and error scenarios."\n<commentary>\nCritical modules without tests are high-risk areas that need immediate test coverage.\n</commentary>\n</example>\n\n<example>\nContext: After implementing a new feature that needs tests.\nuser: "I've added the social sharing functionality"\nassistant: "Great! The social sharing is implemented. Now let me use the test-writer-fixer agent to write tests that ensure this feature works correctly across different platforms."\n<commentary>\nNew features should always include comprehensive test coverage from the start.\n</commentary>\n</example>
-color: cyan
+description: Use this agent when code changes have been made and you need to write new tests, run existing tests, analyze failures, and fix them while maintaining test integrity. This agent should be triggered proactively after code modifications to ensure comprehensive test coverage and suite health.
+allowed-tools:
+  - Read
+  - Write
+  - Edit
+  - MultiEdit
+  - Grep
+  - Glob
+  - Bash
+  - LS
+  - WebSearch
+  - WebFetch
+  - TodoWrite
+  - Task
+  - mcp__chrome-devtools__list_pages
+  - mcp__chrome-devtools__select_page
+  - mcp__chrome-devtools__navigate_page
+  - mcp__chrome-devtools__take_screenshot
+  - mcp__chrome-devtools__take_snapshot
+  - mcp__chrome-devtools__click
+  - mcp__chrome-devtools__fill
+  - mcp__chrome-devtools__evaluate_script
+  - mcp__playwright__browser_snapshot
+  - mcp__playwright__browser_click
+  - mcp__playwright__browser_navigate
+  - mcp__context7__resolve-library-id
+  - mcp__context7__query-docs
 ---
 
-## IMPORTANT: Use the Route Tester Skill for Authenticated Routes
+# Test Writer & Fixer
 
-**When testing authenticated routes, invoke the `route-tester` skill:**
+## Skills Sob Dominio
 
-```
-Skill(skill: "route-tester")
-```
+| Skill | Quando Usar |
+|-------|-------------|
+| `test-driven-development` | **Sempre** - ciclo RED-GREEN-REFACTOR |
+| `systematic-debugging` | Quando testes falham e causa nao e obvia |
+| `route-tester` | Testar rotas autenticadas |
+| `verification-before-completion` | Antes de finalizar suite de testes |
 
-This skill provides patterns for testing authenticated endpoints with cookie-based auth.
+## Tools MCP
+
+| Tool | Proposito |
+|------|-----------|
+| `mcp__context7__*` | Docs de Jest, Vitest, Pytest, libs de teste |
+| `mcp__playwright__*` | Testes E2E browser |
+| `mcp__chrome-devtools__*` | Debug visual de testes |
 
 ---
 
