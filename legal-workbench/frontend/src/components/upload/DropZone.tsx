@@ -6,17 +6,26 @@ interface DropZoneProps {
   onFileSelect: (file: File) => void;
   accept?: string;
   disabled?: boolean;
+  compact?: boolean;
 }
 
-export function DropZone({ onFileSelect, accept = '.docx', disabled = false }: DropZoneProps) {
+export function DropZone({
+  onFileSelect,
+  accept = '.docx',
+  disabled = false,
+  compact = false,
+}: DropZoneProps) {
   const [isDragging, setIsDragging] = useState(false);
 
-  const handleDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    if (!disabled) {
-      setIsDragging(true);
-    }
-  }, [disabled]);
+  const handleDragOver = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      if (!disabled) {
+        setIsDragging(true);
+      }
+    },
+    [disabled]
+  );
 
   const handleDragLeave = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -52,6 +61,49 @@ export function DropZone({ onFileSelect, accept = '.docx', disabled = false }: D
     [onFileSelect]
   );
 
+  // Compact variant: single line, horizontal layout
+  if (compact) {
+    return (
+      <div
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+        className={clsx(
+          'relative border-2 border-dashed rounded-lg px-3 py-2 transition-all',
+          'flex items-center gap-2',
+          isDragging && !disabled
+            ? 'border-gh-accent-primary bg-gh-highlight-bg'
+            : 'border-gh-border-default bg-gh-bg-tertiary',
+          disabled
+            ? 'opacity-50 cursor-not-allowed'
+            : 'cursor-pointer hover:border-gh-accent-primary'
+        )}
+        title="Drag and drop .docx file or click to browse (max 10MB)"
+      >
+        <input
+          type="file"
+          accept={accept}
+          onChange={handleFileInput}
+          disabled={disabled}
+          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+          aria-label="Upload document"
+        />
+
+        <div className="pointer-events-none flex items-center gap-2 flex-1">
+          {isDragging ? (
+            <File className="w-4 h-4 text-gh-accent-primary flex-shrink-0" />
+          ) : (
+            <Upload className="w-4 h-4 text-gh-text-secondary flex-shrink-0" />
+          )}
+          <span className="text-sm text-gh-text-secondary truncate">
+            {isDragging ? 'Solte o arquivo aqui' : 'Upload .docx'}
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  // Full variant: vertical layout with all details
   return (
     <div
       onDragOver={handleDragOver}
@@ -91,9 +143,7 @@ export function DropZone({ onFileSelect, accept = '.docx', disabled = false }: D
           Drag and drop your .docx file here, or click to browse
         </p>
 
-        <p className="text-xs text-gh-text-secondary">
-          Maximum file size: 10MB
-        </p>
+        <p className="text-xs text-gh-text-secondary">Maximum file size: 10MB</p>
       </div>
     </div>
   );

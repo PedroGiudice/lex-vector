@@ -4,11 +4,12 @@ import { FieldList } from '@/components/document/FieldList';
 import { FieldEditorPanel } from '@/components/document/FieldEditorPanel';
 import { TemplateList } from '@/components/templates/TemplateList';
 import { useDocumentStore } from '@/store/documentStore';
-import { FileText, Upload, Save } from 'lucide-react';
+import { FileText, Upload, Save, LayoutTemplate, Tag } from 'lucide-react';
 import { DropZone } from '@/components/upload/DropZone';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/Input';
+import { CollapsibleSection } from '@/components/ui/CollapsibleSection';
 
 function EmptyState() {
   return (
@@ -78,31 +79,41 @@ export default function DocAssemblerModule() {
 
       {/* Main Content */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Left Sidebar - Upload, Fields, Templates */}
+        {/* Left Sidebar - Upload, Templates, Fields */}
         <aside className="w-72 border-r border-border-default flex flex-col bg-bg-panel-1">
-          {/* Upload */}
-          <div className="p-4 border-b border-border-default">
-            <h2 className="text-sm font-semibold text-text-muted mb-3 uppercase tracking-wide">
-              Upload
-            </h2>
-            <DropZone onFileSelect={handleFileSelect} disabled={isUploading} />
-          </div>
+          {/* Upload - compact at top */}
+          <CollapsibleSection
+            title="Upload"
+            icon={Upload}
+            defaultExpanded={true}
+            className="border-b border-border-default"
+          >
+            <DropZone onFileSelect={handleFileSelect} disabled={isUploading} compact />
+          </CollapsibleSection>
 
-          {/* Campos criados */}
-          <div className="p-4 border-b border-border-default">
-            <h2 className="text-sm font-semibold text-text-muted mb-3 uppercase tracking-wide">
-              Campos ({annotations?.length || 0})
-            </h2>
-            <FieldList />
-          </div>
-
-          {/* Templates - scrollable */}
-          <div className="flex-1 overflow-y-auto p-4">
-            <h2 className="text-sm font-semibold text-text-muted mb-3 uppercase tracking-wide">
-              Templates
-            </h2>
+          {/* Templates - main section, gets most space */}
+          <CollapsibleSection
+            title="Templates"
+            icon={LayoutTemplate}
+            badge={templates.length || undefined}
+            defaultExpanded={true}
+            className="flex-1 min-h-0 border-b border-border-default"
+            contentClassName="overflow-y-auto max-h-[calc(100%-36px)]"
+          >
             <TemplateList />
-          </div>
+          </CollapsibleSection>
+
+          {/* Campos criados - secondary section */}
+          <CollapsibleSection
+            title="Campos"
+            icon={Tag}
+            badge={annotations?.length || undefined}
+            defaultExpanded={true}
+            className="flex-shrink-0 max-h-48"
+            contentClassName="overflow-y-auto max-h-32"
+          >
+            <FieldList />
+          </CollapsibleSection>
         </aside>
 
         {/* Center - Document Viewer */}
