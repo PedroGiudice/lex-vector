@@ -25,4 +25,4 @@ pandas==2.2.3
 python-multipart==0.0.12
 
 # Error tracking and performance monitoring
-sentry-sdk[fastapi]>=1.40.0
+sentry-sdk[fastapi]>=2.0.0

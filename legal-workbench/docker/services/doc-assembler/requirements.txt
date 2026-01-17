@@ -15,4 +15,4 @@ rich>=13.0.0
 tqdm>=4.66.0
 
 # Error tracking and performance monitoring
-sentry-sdk[fastapi]>=1.40.0
+sentry-sdk[fastapi]>=2.0.0
