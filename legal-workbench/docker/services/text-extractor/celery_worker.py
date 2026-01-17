@@ -80,9 +80,10 @@ def update_job_db(job_id: str, **fields):
 
 
 def extract_with_marker(pdf_path: str, options: Dict[str, Any]) -> tuple[str, int, Dict]:
-    """Extract text using Marker engine (v1.x API)."""
+    """Extract text using Marker engine with optimized config."""
     try:
         from marker.converters.pdf import PdfConverter
+        from marker.config.parser import ConfigParser
         from marker.output import text_from_rendered
 
         # Get Marker model artifacts
@@ -90,22 +91,45 @@ def extract_with_marker(pdf_path: str, options: Dict[str, Any]) -> tuple[str, in
 
         print(f"Starting Marker extraction for: {pdf_path}")
 
-        # Create converter
-        converter = PdfConverter(artifact_dict=artifact_dict)
+        # OTIMIZACAO: Config igual ao marker_engine.py
+        config_dict = {
+            "output_format": "markdown",
+            "paginate_output": True,
+            "disable_image_extraction": True,  # CRITICO: evita 80MB de base64
+            "disable_links": True,
+            "drop_repeated_text": True,
+            "keep_pageheader_in_output": False,
+            "keep_pagefooter_in_output": False,
+        }
+
+        # Create config parser
+        config_parser = ConfigParser(config_dict)
+
+        # Create converter with optimized config
+        converter = PdfConverter(
+            config=config_parser.generate_config_dict(),
+            artifact_dict=artifact_dict,
+            processor_list=config_parser.get_processors(),
+            renderer=config_parser.get_renderer(),
+        )
 
         # Convert PDF
         rendered = converter(pdf_path)
 
         # Extract text from rendered output
-        full_text, _, images = text_from_rendered(rendered)
+        full_text = rendered.markdown if hasattr(rendered, 'markdown') else ""
+
+        # Fallback for older Marker API
+        if not full_text:
+            full_text, _, images = text_from_rendered(rendered)
 
         # Get metadata from rendered document
         pages_processed = len(rendered.children) if hasattr(rendered, 'children') else 1
 
         extraction_metadata = {
-            "ocr_applied": True,  # Marker always uses OCR when needed
+            "ocr_applied": True,
             "file_size_bytes": os.path.getsize(pdf_path),
-            "images_extracted": len(images) if images else 0
+            "config_applied": config_dict,
         }
 
         print(f"Marker extraction completed: {pages_processed} pages")
