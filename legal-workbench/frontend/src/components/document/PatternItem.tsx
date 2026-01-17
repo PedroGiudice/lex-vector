@@ -13,7 +13,7 @@ export function PatternItem({ patternMatch }: PatternItemProps) {
 
   const handleAcceptPattern = () => {
     const fieldName =
-      patternMatch.pattern.toLowerCase().replace(/[^a-z0-9_]/g, '_ ') +
+      patternMatch.pattern.toLowerCase().replace(/[^a-z0-9_]/g, '_') +
       '_' +
       Math.random().toString(36).substring(7);
 

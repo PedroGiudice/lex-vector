@@ -44,6 +44,7 @@ interface DocumentState {
 
   // Color management
   nextColorIndex: number;
+  getNextColor: () => string;
 
   // Actions
   uploadDocument: (file: File) => Promise<void>;
@@ -77,6 +78,13 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
   toasts: [],
   nextColorIndex: 0,
 
+  // Get next color from palette (cycles through colors)
+  getNextColor: () => {
+    const color = FIELD_COLORS[get().nextColorIndex % FIELD_COLORS.length];
+    set({ nextColorIndex: get().nextColorIndex + 1 });
+    return color;
+  },
+
   // Upload document
   uploadDocument: async (file: File) => {
     set({ isUploading: true, uploadProgress: 0, detectedPatterns: [], annotations: [] });
@@ -103,20 +111,19 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
 
   // Add annotation
   addAnnotation: (annotation: FieldAnnotationInput) => {
-    const { annotations, nextColorIndex } = get();
+    const { annotations } = get();
 
     if (annotations.some((a) => a.fieldName === annotation.fieldName)) {
       get().addToast('Field name already exists', 'error');
       return;
     }
 
-    // Assign color from palette (cycles through colors)
-    const color = FIELD_COLORS[nextColorIndex % FIELD_COLORS.length];
+    // Assign color from palette using getNextColor
+    const color = get().getNextColor();
     const annotationWithColor = { ...annotation, color };
 
     set({
       annotations: [...annotations, annotationWithColor],
-      nextColorIndex: nextColorIndex + 1,
     });
     get().addToast(`Field "${annotation.fieldName}" created`, 'success');
   },
@@ -236,6 +243,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       const templateDetails = await api.getTemplateDetails(templateId);
       set({
         annotations: templateDetails.annotations,
+        nextColorIndex: templateDetails.annotations.length, // Sync color index with loaded annotations
         selectedText: null,
         detectedPatterns: [], // Clear detected patterns as they might not apply to new annotations
         isLoadingTemplate: false,
