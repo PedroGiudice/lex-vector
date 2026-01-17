@@ -7,11 +7,14 @@ Este modulo e o frontend React do Legal Workbench.
 ## Regras Especificas
 
 ### Stack
-- React 18 + TypeScript
-- Vite como bundler
-- TanStack Router
-- Zustand para estado
-- MUI v7 para componentes
+- React 18.2 + TypeScript 5.2
+- Vite 5.0 como bundler
+- React Router 7.11 para rotas
+- Zustand 4.4 para estado global
+- TipTap 3.15 para rich text editor (Doc Assembler)
+- Tailwind CSS 3.3 para styling
+- Lucide React para icones
+- Sentry 2.0 para error tracking
 
 ### Comandos Locais
 ```bash
@@ -48,15 +51,33 @@ const Component: React.FC<Props> = ({ prop }) => {
 ```
 frontend/
 ├── src/
-│   ├── components/    # Componentes reutilizaveis
-│   ├── pages/         # Paginas/rotas
-│   ├── services/      # APIs e servicos
-│   ├── hooks/         # Custom hooks
-│   ├── stores/        # Zustand stores
-│   └── types/         # TypeScript types
+│   ├── components/       # Componentes React
+│   │   ├── document/     # TipTapDocumentViewer, FieldList, FieldEditorPanel
+│   │   ├── templates/    # TemplateList, AssemblePanel
+│   │   ├── upload/       # DropZone (full e compact)
+│   │   └── ui/           # Button, Modal, Input, CollapsibleSection
+│   ├── extensions/       # TipTap extensions
+│   │   └── FieldAnnotationMark.ts  # Mark para anotacoes de campo
+│   ├── pages/            # Paginas/rotas (DocAssemblerModule, STJModule, etc)
+│   ├── services/         # API clients (api.ts)
+│   ├── store/            # Zustand stores (documentStore.ts)
+│   └── types/            # TypeScript types (index.ts)
 ├── public/
+├── Dockerfile            # Multi-stage: bun build + nginx
+├── nginx.conf            # Config nginx para SPA
 └── index.html
 ```
+
+### Modulos Principais
+
+| Modulo | Rota | Descricao |
+|--------|------|-----------|
+| HubHome | `/` | Dashboard principal |
+| DocAssembler | `/doc-assembler` | Editor de templates com TipTap |
+| STJ | `/stj` | Consulta dados STJ |
+| TrelloModule | `/trello` | Command center Trello |
+| TextExtractor | `/text-extractor` | OCR + AI extraction |
+| LedesConverter | `/ledes` | Conversor LEDES |
 
 ---
 
@@ -93,4 +114,51 @@ Usar Chrome MCP ou Playwright para verificar:
 
 ---
 
+## TipTap (Doc Assembler)
+
+### Extensoes Customizadas
+- `FieldAnnotationMark`: Mark para destacar campos de anotacao com cores
+
+### Padroes de Posicionamento
+```typescript
+// Calculo de posicao global a partir de paragrafo + offset local
+let globalStart = 0;
+for (let i = 0; i < paragraphIndex; i++) {
+  globalStart += paragraphs[i].length + 2; // +2 para "\n\n"
+}
+globalStart += localOffset;
+```
+
+### Estrutura do Document
+- Documento = array de paragrafos
+- Paragrafos unidos com `\n\n` no textContent
+- Posicoes sao relativas ao paragrafo (paragraphIndex + localOffset)
+
+---
+
+## Deploy
+
+### Build Docker
+```bash
+# Multi-stage build
+bun install && bun run build  # Stage 1: build
+nginx                          # Stage 2: serve
+```
+
+### Sincronizar para Producao
+```bash
+rsync -avz --delete \
+  --exclude=node_modules --exclude=.git \
+  -e "ssh -i ~/.ssh/oci_lw" \
+  ./ opc@64.181.162.38:/home/opc/lex-vector/legal-workbench/frontend/
+
+ssh -i ~/.ssh/oci_lw opc@64.181.162.38 \
+  "cd /home/opc/lex-vector/legal-workbench && \
+   docker compose build frontend-react && \
+   docker compose up -d frontend-react"
+```
+
+---
+
 *Herdado de: legal-workbench/CLAUDE.md*
+*Ultima atualizacao: 2026-01-17*

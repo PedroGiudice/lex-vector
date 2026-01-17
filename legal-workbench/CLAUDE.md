@@ -4,25 +4,33 @@ Regras para desenvolvimento no Legal Workbench.
 
 ---
 
-## Arquitetura Atual (2025-12-18)
+## Arquitetura Atual (2026-01-17)
 
-**Stack: All-React SPA + FastAPI Services**
+**Stack: React SPA (Vite) + FastAPI Services + Traefik**
 
 ```
-Browser ──> React SPA (/) ──> FastAPI Services (/api/*)
+Browser ──> Traefik (:80) ──> React SPA (/)
                 │
-                └── Traefik reverse proxy (:80)
+                └──> FastAPI Services (/api/*)
 ```
 
 ### Servicos Docker
-| Servico | Rota | Porta |
-|---------|------|-------|
-| frontend-react | `/` | 3000 |
-| api-stj | `/api/stj` | 8000 |
-| api-text-extractor | `/api/text` | 8001 |
-| api-doc-assembler | `/api/doc` | 8002 |
-| api-trello | `/api/trello` | 8004 |
-| redis | - | 6379 |
+| Servico | Rota | Porta | Stack |
+|---------|------|-------|-------|
+| reverse-proxy | - | 80, 8080 | Traefik v3.6.5 |
+| frontend-react | `/` | 3000 | Vite + React 18 + nginx |
+| api-stj | `/api/stj` | 8000 | FastAPI |
+| api-text-extractor | `/api/text` | 8001 | FastAPI + Celery |
+| api-doc-assembler | `/api/doc` | 8002 | FastAPI |
+| api-ledes-converter | `/api/ledes` | 8003 | FastAPI |
+| api-trello | `/api/trello` | 8004 | Bun |
+| redis | - | 6379 | Redis 7 Alpine |
+| prometheus | - | 9090 | Prometheus v2.47.0 |
+
+### Producao
+- **Servidor:** Oracle Cloud (64.181.162.38)
+- **Deploy:** rsync + docker compose build + up -d
+- **SSH:** `opc@64.181.162.38` com chave `~/.ssh/oci_lw`
 
 ---
 
@@ -42,16 +50,27 @@ Browser ──> React SPA (/) ──> FastAPI Services (/api/*)
 
 ```
 legal-workbench/
-├── frontend/           # React SPA (Vite + TypeScript)
+├── frontend/                # React SPA (Vite + TypeScript)
 │   └── src/
-│       ├── pages/      # HubHome, TrelloModule, DocAssembler, STJ
-│       ├── components/ # Componentes React
-│       ├── store/      # Zustand stores
-│       └── routes.tsx  # React Router config
-├── docker/             # Dockerfiles dos servicos
-├── ferramentas/        # Backends Python (legado, usar docker/)
-├── docs/               # Documentacao
-└── _archived/          # POCs e arquiteturas antigas
+│       ├── pages/           # HubHome, TrelloModule, DocAssembler, STJ
+│       ├── components/      # Componentes React
+│       │   ├── document/    # TipTapDocumentViewer, FieldList, FieldEditorPanel
+│       │   ├── templates/   # TemplateList
+│       │   ├── upload/      # DropZone
+│       │   └── ui/          # Button, Modal, Input, CollapsibleSection
+│       ├── extensions/      # TipTap extensions (FieldAnnotationMark)
+│       ├── store/           # Zustand stores (documentStore)
+│       ├── services/        # API clients
+│       └── types/           # TypeScript types
+├── docker/                  # Configuracao Docker
+│   ├── services/            # Backends (doc-assembler, stj-api, etc)
+│   ├── scripts/             # deploy.sh, health-check.sh
+│   └── docker-compose.yml
+├── ferramentas/             # Python tools standalone
+│   ├── stj-dados-abertos/   # STJ data pipeline
+│   └── legal-text-extractor/# OCR + AI extraction
+├── docs/                    # Documentacao
+└── _archived/               # POCs e arquiteturas antigas
 ```
 
 ---
@@ -136,4 +155,4 @@ http://localhost/stj
 
 ---
 
-*Ultima atualizacao: 2025-12-18*
+*Ultima atualizacao: 2026-01-17*
