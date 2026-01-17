@@ -1,15 +1,6 @@
 import { create } from 'zustand';
 import { textExtractorApi } from '@/services/textExtractorApi';
-import type {
-  ExtractionEngine,
-  ExtractionStatus,
-  FileInfo,
-  Margins,
-  ExtractionResult,
-  LogEntry,
-  LogLevel,
-  TextExtractorState,
-} from '@/types/textExtractor';
+import type { FileInfo, Margins, LogEntry, TextExtractorState } from '@/types/textExtractor';
 
 // LGPD preset terms
 const LGPD_PRESET_TERMS = [
@@ -36,13 +27,7 @@ const COURT_PRESET_TERMS = [
 ];
 
 // Contract preset
-const CONTRACT_PRESET_TERMS = [
-  'Rubrica:',
-  'Visto:',
-  'Pagina',
-  'Testemunhas:',
-  'Autenticacao:',
-];
+const CONTRACT_PRESET_TERMS = ['Rubrica:', 'Visto:', 'Pagina', 'Testemunhas:', 'Autenticacao:'];
 
 const DEFAULT_MARGINS: Margins = {
   top: 15,
@@ -53,14 +38,6 @@ const DEFAULT_MARGINS: Margins = {
 
 const generateLogId = (): string => {
   return `log-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-};
-
-const formatTime = (date: Date): string => {
-  return date.toLocaleTimeString('pt-BR', {
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-  });
 };
 
 export const useTextExtractorStore = create<TextExtractorState>((set, get) => ({
@@ -94,7 +71,10 @@ export const useTextExtractorStore = create<TextExtractorState>((set, get) => ({
         type: file.type,
       };
       set({ file, fileInfo, status: 'preflight' });
-      get().addLog(`File selected: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`, 'info');
+      get().addLog(
+        `File selected: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`,
+        'info'
+      );
 
       // Simulate preflight check
       setTimeout(() => {
@@ -205,8 +185,17 @@ export const useTextExtractorStore = create<TextExtractorState>((set, get) => ({
           try {
             const result = await textExtractorApi.getJobResult(jobId);
             set({ result, status: 'success' });
-            addLog(`Processed ${result.metadata.pages_processed} pages in ${result.metadata.execution_time_seconds.toFixed(1)}s`, 'success');
-            addLog(`Total characters: ${result.metadata.total_chars.toLocaleString()}`, 'info');
+            addLog(
+              `Processed ${result.pages_processed} pages in ${result.execution_time_seconds.toFixed(1)}s`,
+              'success'
+            );
+            addLog(`Total characters: ${result.text.length.toLocaleString()}`, 'info');
+            if (result.metadata?.extraction_mode) {
+              addLog(
+                `Mode: ${result.metadata.extraction_mode}${result.metadata.modal_gpu ? ` (${result.metadata.modal_gpu})` : ''}`,
+                'info'
+              );
+            }
           } catch (resultError: any) {
             set({ status: 'error' });
             addLog('Failed to fetch results', 'error');

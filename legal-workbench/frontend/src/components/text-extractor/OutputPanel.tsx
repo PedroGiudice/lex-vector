@@ -49,7 +49,7 @@ export function OutputPanel() {
           extension = 'txt';
           break;
         case 'md':
-          content = `# Extracted Text\n\n${result.text}\n\n---\n\n## Metadata\n\n- Pages: ${result.metadata.pages_processed}\n- Time: ${result.metadata.execution_time_seconds}s\n- Engine: ${result.metadata.engine_used}\n- Characters: ${result.metadata.total_chars}\n`;
+          content = `# Extracted Text\n\n${result.text}\n\n---\n\n## Metadata\n\n- Pages: ${result.pages_processed}\n- Time: ${result.execution_time_seconds}s\n- Engine: ${result.engine_used}\n- Characters: ${result.text.length}\n`;
           mimeType = 'text/markdown';
           extension = 'md';
           break;
@@ -124,10 +124,7 @@ export function OutputPanel() {
               <span className="te-progress-text">{progress}% complete</span>
             </div>
             <div className="te-progress-bar">
-              <div
-                className="te-progress-fill"
-                style={{ width: `${progress}%` }}
-              />
+              <div className="te-progress-fill" style={{ width: `${progress}%` }} />
             </div>
           </div>
         )}
@@ -152,11 +149,7 @@ export function OutputPanel() {
         {status === 'error' && (
           <div className="te-error-state">
             <span className="te-error-text">Extraction failed</span>
-            <button
-              type="button"
-              onClick={reset}
-              className="te-btn-retry"
-            >
+            <button type="button" onClick={reset} className="te-btn-retry">
               <RefreshCw size={14} />
               <span>Try Again</span>
             </button>
@@ -266,23 +259,23 @@ export function OutputPanel() {
                 <div className="te-metadata-list">
                   <div className="te-metadata-item">
                     <FileText size={12} />
-                    <span>Pages: {result.metadata.pages_processed}</span>
+                    <span>Pages: {result.pages_processed}</span>
                   </div>
                   <div className="te-metadata-item">
                     <Clock size={12} />
-                    <span>Time: {result.metadata.execution_time_seconds.toFixed(1)}s</span>
+                    <span>Time: {result.execution_time_seconds.toFixed(1)}s</span>
                   </div>
                   <div className="te-metadata-item">
                     <Zap size={12} />
-                    <span>Engine: {result.metadata.engine_used}</span>
+                    <span>Engine: {result.engine_used}</span>
                   </div>
                   <div className="te-metadata-item">
                     <Hash size={12} />
-                    <span>Chars: {result.metadata.total_chars.toLocaleString()}</span>
+                    <span>Chars: {result.text.length.toLocaleString()}</span>
                   </div>
-                  {result.metadata.filtered_terms > 0 && (
+                  {result.metadata?.extraction_mode && (
                     <div className="te-metadata-item">
-                      <span>Filtered: {result.metadata.filtered_terms} terms</span>
+                      <span>Mode: {result.metadata.extraction_mode}</span>
                     </div>
                   )}
                 </div>

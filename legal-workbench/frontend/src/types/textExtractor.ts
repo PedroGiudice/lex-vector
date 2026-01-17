@@ -1,7 +1,13 @@
 // Text Extractor Types
 
 export type ExtractionEngine = 'marker' | 'pdfplumber';
-export type ExtractionStatus = 'idle' | 'preflight' | 'configuring' | 'processing' | 'success' | 'error';
+export type ExtractionStatus =
+  | 'idle'
+  | 'preflight'
+  | 'configuring'
+  | 'processing'
+  | 'success'
+  | 'error';
 export type LogLevel = 'info' | 'warning' | 'error' | 'success';
 
 export interface FileInfo {
@@ -44,19 +50,33 @@ export interface ExtractedEntity {
   count: number;
 }
 
-export interface ExtractionMetadata {
-  pages_processed: number;
-  execution_time_seconds: number;
-  engine_used: string;
-  total_chars: number;
-  filtered_terms: number;
-  ocr_detected?: boolean;
+/**
+ * Additional metadata from extraction (varies by engine/mode).
+ * This is the `metadata` field from backend, NOT structured.
+ */
+export interface ExtractionMetadataExtra {
+  file_size_bytes?: number;
+  ocr_applied?: boolean;
+  extraction_mode?: 'modal_gpu' | 'cpu' | 'pdfplumber';
+  modal_gpu?: string;
+  modal_processing_time?: number;
+  native_pages?: number;
+  ocr_pages?: number;
+  [key: string]: unknown;
 }
 
+/**
+ * Extraction result from backend.
+ * Fields are at root level, NOT nested in metadata.
+ */
 export interface ExtractionResult {
   job_id: string;
   text: string;
-  metadata: ExtractionMetadata;
+  pages_processed: number;
+  execution_time_seconds: number;
+  engine_used: string;
+  gemini_enhanced: boolean;
+  metadata?: ExtractionMetadataExtra;
   entities?: ExtractedEntity[];
 }
 
