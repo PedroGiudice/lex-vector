@@ -41,7 +41,9 @@ from .models import (
     ExtractionResult,
     HealthResponse,
     JobStatus,
-    EngineType
+    EngineType,
+    LogEntry,
+    JobLogsResponse
 )
 
 # Environment variables
@@ -108,6 +110,16 @@ async def init_db():
                 pages_processed INTEGER,
                 execution_time REAL,
                 metadata TEXT
+            )
+        """)
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS job_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                job_id TEXT NOT NULL,
+                timestamp TEXT NOT NULL,
+                level TEXT NOT NULL,
+                message TEXT NOT NULL,
+                FOREIGN KEY (job_id) REFERENCES jobs(job_id)
             )
         """)
         await db.commit()
@@ -362,6 +374,40 @@ async def get_job_result(job_id: str):
         gemini_enhanced=bool(job["use_gemini"]),
         metadata=metadata
     )
+
+
+@app.get("/api/v1/jobs/{job_id}/logs", response_model=JobLogsResponse)
+async def get_job_logs(job_id: str, since: Optional[datetime] = None):
+    """Get logs for a specific job."""
+    # Verify job exists first
+    job = await get_job(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+
+    query = "SELECT timestamp, level, message FROM job_logs WHERE job_id = ?"
+    params = [job_id]
+
+    if since:
+        query += " AND timestamp > ?"
+        params.append(since.isoformat())
+
+    query += " ORDER BY timestamp ASC"
+
+    async with aiosqlite.connect(JOBS_DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute(query, params) as cursor:
+            rows = await cursor.fetchall()
+
+    logs = [
+        LogEntry(
+            timestamp=datetime.fromisoformat(row["timestamp"]),
+            level=row["level"],
+            message=row["message"]
+        )
+        for row in rows
+    ]
+
+    return JobLogsResponse(job_id=job_id, logs=logs)
 
 
 @app.get("/debug/sentry", tags=["Debug"])

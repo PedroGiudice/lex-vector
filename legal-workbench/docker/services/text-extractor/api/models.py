@@ -1,7 +1,7 @@
 """Pydantic models for Text Extractor API."""
 from datetime import datetime
 from enum import Enum
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 from pydantic import BaseModel, Field
 
 
@@ -162,5 +162,32 @@ class HealthResponse(BaseModel):
                     "redis": "connected",
                     "celery": "running"
                 }
+            }
+        }
+
+
+class LogEntry(BaseModel):
+    """Individual log entry."""
+    timestamp: datetime
+    level: str
+    message: str
+
+
+class JobLogsResponse(BaseModel):
+    """Response model for job logs query."""
+    job_id: str = Field(description="Job identifier")
+    logs: List[LogEntry] = Field(description="List of log entries")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "job_id": "550e8400-e29b-41d4-a716-446655440000",
+                "logs": [
+                    {
+                        "timestamp": "2025-12-11T10:30:15Z",
+                        "level": "INFO",
+                        "message": "Job started with engine: marker"
+                    }
+                ]
             }
         }
