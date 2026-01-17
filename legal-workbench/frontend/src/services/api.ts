@@ -72,17 +72,28 @@ class ApiService {
   }
 
   async saveTemplate(data: SaveTemplateRequest): Promise<{ templateId: string }> {
+    // Convert paragraph-relative positions to global positions
+    // Backend joins paragraphs with "\n\n" (2 chars) so we need to account for that
+    const toGlobalPosition = (paragraphIndex: number, localOffset: number): number => {
+      let globalPos = 0;
+      for (let i = 0; i < paragraphIndex; i++) {
+        globalPos += data.paragraphs[i].length + 2; // +2 for "\n\n" separator
+      }
+      return globalPos + localOffset;
+    };
+
     // Map frontend camelCase to backend snake_case
     const payload = {
       template_name: data.name,
       document_id: data.documentId,
       description: data.description,
       // Map annotation fields: fieldName->field_name, text->original_text
+      // Convert local positions to global positions for backend validation
       annotations: data.annotations.map((a) => ({
         field_name: a.fieldName,
         original_text: a.text,
-        start: a.start,
-        end: a.end,
+        start: toGlobalPosition(a.paragraphIndex, a.start),
+        end: toGlobalPosition(a.paragraphIndex, a.end),
         paragraph_index: a.paragraphIndex,
       })),
     };

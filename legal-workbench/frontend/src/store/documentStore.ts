@@ -161,7 +161,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
 
   // Save template
   saveTemplate: async (name: string, description?: string) => {
-    const { documentId, annotations } = get();
+    const { documentId, annotations, paragraphs } = get();
 
     if (!documentId) {
       get().addToast('No document loaded', 'error');
@@ -174,7 +174,8 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
     }
 
     try {
-      await api.saveTemplate({ name, documentId, annotations, description });
+      // Pass paragraphs for position conversion (local -> global)
+      await api.saveTemplate({ name, documentId, annotations, paragraphs, description });
       get().addToast(`Template "${name}" saved successfully`, 'success');
       get().fetchTemplates();
     } catch (error) {
