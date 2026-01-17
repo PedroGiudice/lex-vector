@@ -38,18 +38,55 @@ python main.py
 ```
 lex-vector/
 ├── legal-workbench/      # Lex-Vector (LV) - PROJETO PRINCIPAL
-│   ├── frontend/         # React frontend (Next.js 15 + React 19)
+│   ├── frontend/         # React SPA (Vite + React 18 + TipTap)
 │   ├── ferramentas/      # Python tools (stj-dados-abertos, legal-text-extractor)
-│   ├── docker/           # Services (stj-api, trello-mcp, doc-assembler, etc)
+│   ├── docker/           # Dockerized services
+│   │   └── services/     # FastAPI backends + Traefik
 │   └── docs/             # LV-specific documentation
 ├── docs/                 # Global documentation and plans
-├── infra/                # Infrastructure configs (oracle)
+├── infra/                # Infrastructure configs (Oracle Cloud)
 ├── _archived/            # Archived code for future reference
 └── .claude/              # Config (agents, hooks, skills managed)
 ```
 
 > **Nota:** Projetos experimentais (adk-agents, CCui, etc) foram migrados para
 > https://github.com/PedroGiudice/claude-experiments
+
+---
+
+## Legal Workbench - Arquitetura de Servicos
+
+### Producao (Oracle Cloud - 64.181.162.38)
+
+```
+Internet (:80)
+    |
+    v
++------------------+
+| Traefik v3.6.5   |  Reverse proxy + routing
++------------------+
+    |
+    +---> / ---------> frontend-react (nginx:alpine)
+    +---> /api/stj --> api-stj (FastAPI)
+    +---> /api/text -> api-text-extractor (FastAPI + Celery)
+    +---> /api/doc --> api-doc-assembler (FastAPI)
+    +---> /api/ledes -> api-ledes-converter (FastAPI)
+    +---> /api/trello -> api-trello (Bun)
+```
+
+### Servicos Docker
+
+| Servico | Porta | Stack | Health |
+|---------|-------|-------|--------|
+| reverse-proxy | 80, 8080 | Traefik v3.6.5 | - |
+| frontend-react | 3000 | Bun + Vite + nginx | /health |
+| api-stj | 8000 | Python/FastAPI | /health |
+| api-text-extractor | 8001 | Python/FastAPI + Celery | /health |
+| api-doc-assembler | 8002 | Python/FastAPI | /health |
+| api-ledes-converter | 8003 | Python/FastAPI | /health |
+| api-trello | 8004 | Bun | /health |
+| redis | 6379 | Redis 7 Alpine | - |
+| prometheus | 9090 | Prometheus v2.47.0 | /-/healthy |
 
 ---
 
@@ -85,12 +122,24 @@ Hooks JS usam `bun run` em vez de `node` (~25% mais rapido). Bun 1.3.4 instalado
 
 ## Stack
 
-Python 3.11 | Bun 1.3.4 | Node.js v22 | Ubuntu 24.04 (WSL2) | Git | Claude Code
+| Tecnologia | Versao | Uso |
+|------------|--------|-----|
+| Python | 3.11+ | Backends FastAPI |
+| Bun | 1.3.4 | Frontend build, hooks JS |
+| Node.js | v22 | Fallback |
+| React | 18.2 | Frontend SPA |
+| TipTap | 3.15 | Rich text editor (Doc Assembler) |
+| Vite | 5.0 | Build tool |
+| FastAPI | 0.109+ | APIs Python |
+| Docker | 24+ | Containerizacao |
+| Traefik | 3.6.5 | Reverse proxy |
+| Sentry | 2.0.0 | Error tracking |
+| Ubuntu | 24.04 (WSL2) | Dev environment |
 
 ---
 
-**Ultima atualizacao:** 2026-01-09
-- Estrutura atualizada removendo pastas-fantasma (adk-agents, CCui, etc)
-- Adicionada nota sobre migracao para claude-experiments repo
-- ADR-004 atualizado: skills agora apenas em .claude/skills/
-- Removida restricao obsoleta sobre skills custom
+**Ultima atualizacao:** 2026-01-17
+- Adicionada secao "Legal Workbench - Arquitetura de Servicos"
+- Stack atualizada com TipTap, Sentry v2, versoes especificas
+- Frontend atualizado: Vite + React 18 (nao Next.js)
+- Infraestrutura Oracle Cloud documentada
