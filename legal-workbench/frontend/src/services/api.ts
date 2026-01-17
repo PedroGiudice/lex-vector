@@ -61,8 +61,15 @@ class ApiService {
   }
 
   async saveTemplate(data: SaveTemplateRequest): Promise<{ templateId: string }> {
-    const response = await this.client.post<{ templateId: string }>('/save', data);
-    return response.data;
+    // Map frontend camelCase to backend snake_case
+    const payload = {
+      template_name: data.name,
+      document_id: data.documentId,
+      annotations: data.annotations,
+      description: data.description,
+    };
+    const response = await this.client.post<{ template_id: string }>('/save', payload);
+    return { templateId: response.data.template_id };
   }
 
   async getTemplates(): Promise<Template[]> {
