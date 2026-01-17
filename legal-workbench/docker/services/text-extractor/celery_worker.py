@@ -1,5 +1,6 @@
 """Celery worker for PDF text extraction."""
 import os
+import signal
 import time
 import sqlite3
 import json
@@ -40,6 +41,16 @@ celery_app.conf.update(
     worker_prefetch_multiplier=1,
     result_expires=3600,  # 1 hour
 )
+
+class MarkerTimeoutError(Exception):
+    """Raised when Marker extraction exceeds timeout."""
+    pass
+
+
+def marker_timeout_handler(signum, frame):
+    """Handle timeout signal for Marker extraction."""
+    raise MarkerTimeoutError("Marker extraction timed out after 5 minutes")
+
 
 # Singleton for Marker model artifacts (lazy loading)
 _marker_artifacts = None
@@ -113,8 +124,18 @@ def extract_with_marker(pdf_path: str, options: Dict[str, Any]) -> tuple[str, in
             renderer=config_parser.get_renderer(),
         )
 
-        # Convert PDF
-        rendered = converter(pdf_path)
+        # Set timeout for Marker extraction (5 minutes)
+        MARKER_TIMEOUT = 300
+        original_handler = signal.signal(signal.SIGALRM, marker_timeout_handler)
+        signal.alarm(MARKER_TIMEOUT)
+
+        try:
+            # Convert PDF
+            rendered = converter(pdf_path)
+        finally:
+            # Always restore original handler and cancel alarm
+            signal.alarm(0)
+            signal.signal(signal.SIGALRM, original_handler)
 
         # Extract text from rendered output
         full_text = rendered.markdown if hasattr(rendered, 'markdown') else ""
