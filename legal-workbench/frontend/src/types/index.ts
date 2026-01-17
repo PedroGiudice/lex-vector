@@ -101,3 +101,25 @@ export interface LedesFileValidation {
   valid: boolean;
   error?: string;
 }
+
+// Doc Assembler Types
+export interface AssembleRequest {
+  template_path: string;
+  data: Record<string, string>;
+  output_filename?: string;
+  auto_normalize?: boolean;
+}
+
+export interface AssembleResponse {
+  success: boolean;
+  output_path: string;
+  download_url: string;
+  filename: string;
+  message: string;
+}
+
+export interface TemplateField {
+  name: string;
+  value: string;
+  category?: string;
+}
