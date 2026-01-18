@@ -293,7 +293,7 @@ def extract_with_modal(pdf_path: str, options: Dict[str, Any]) -> tuple[str, int
         extraction_metadata = {
             "ocr_applied": result["ocr_pages"] > 0,
             "file_size_bytes": len(pdf_bytes),
-            "modal_gpu": "A10G",
+            "modal_gpu": "A100",
             "modal_processing_time": result["processing_time"],
             "modal_convert_time": result["convert_time"],
             "native_pages": result["native_pages"],
@@ -421,7 +421,7 @@ def extract_pdf(
         if engine == "marker":
             # Use Modal GPU when enabled (NO fallback - VM ARM cannot handle local Marker)
             if MODAL_ENABLED:
-                save_job_log(job_id, "INFO", "Using Modal GPU acceleration (A10 24GB)")
+                save_job_log(job_id, "INFO", "Using Modal GPU acceleration (A100 80GB)")
                 full_text, pages_processed, metadata = extract_with_modal(pdf_path, options)
                 metadata["extraction_mode"] = "modal_gpu"
             else:

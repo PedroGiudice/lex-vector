@@ -16,8 +16,8 @@ Usage (API):
     from modal_worker import extract_pdf
     result = extract_pdf.remote(pdf_bytes)
 
-Cost: ~$1.10/hour (A10G GPU), billed per second
-Free tier: $30/month covers ~27 hours of GPU time
+Cost: ~$3.50/hour (A100 80GB GPU), billed per second
+Performance: 3-5x faster than A10G for Marker extraction
 """
 
 import modal
@@ -48,7 +48,7 @@ model_cache = modal.Volume.from_name("marker-model-cache", create_if_missing=Tru
 
 @app.function(
     image=image,
-    gpu="A10G",  # 24GB VRAM - perfect for Marker
+    gpu="A100-80GB",  # 80GB VRAM - max performance for Marker
     timeout=1800,  # 30 minutes max
     volumes={"/cache": model_cache},
     secrets=[],  # Add secrets here if needed
@@ -140,7 +140,7 @@ def extract_pdf(pdf_bytes: bytes, force_ocr: bool = False) -> dict:
 
 @app.function(
     image=image,
-    gpu="A10G",
+    gpu="A100-80GB",  # 80GB VRAM - full performance
     timeout=600,  # 10 minutes for initial model download (~1.5GB)
     volumes={"/cache": model_cache},
 )
@@ -164,7 +164,7 @@ def warmup_models():
     return {"status": "ok", "models_loaded": len(models)}
 
 
-@app.function(image=image, gpu="A10G", timeout=30)
+@app.function(image=image, gpu="A100-80GB", timeout=30)
 def health_check():
     """
     Verify GPU is available and working.
