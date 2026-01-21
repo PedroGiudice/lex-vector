@@ -34,6 +34,13 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.middlewares.auth.basicauth.usersfile=/etc/traefik/.htpasswd"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "traefik", "healthcheck"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
 
   # ============================================================
   # 2. REACT FRONTEND - Legal Workbench SPA
@@ -54,6 +61,13 @@ services:
     depends_on:
       - reverse-proxy
       - api-doc-assembler
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
 
   # ============================================================
   # 3. STJ SERVICE - Jurisprudence API
@@ -85,6 +99,13 @@ services:
       - APP_VERSION=${APP_VERSION:-1.0.0}
     networks:
       - legal-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8000/health', timeout=5).raise_for_status()"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
   # ============================================================
   # 4. TEXT EXTRACTOR SERVICE - PDF Processing
@@ -132,6 +153,13 @@ services:
       - legal-network
     depends_on:
       - redis
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
 
   # ============================================================
   # 5. DOC ASSEMBLER SERVICE - Document Generation
@@ -162,6 +190,13 @@ services:
       - APP_VERSION=${APP_VERSION:-1.0.0}
     networks:
       - legal-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
 
   # ============================================================
   # 6. TRELLO MCP SERVICE - Task Integration
@@ -188,6 +223,13 @@ services:
       - APP_VERSION=${APP_VERSION:-1.0.0}
     networks:
       - legal-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8004/health').raise_for_status()"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
 
   # ============================================================
   # 7. LEDES CONVERTER - DOCX to LEDES Format
