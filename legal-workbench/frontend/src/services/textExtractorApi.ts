@@ -62,6 +62,7 @@ export const textExtractorApi = {
     formData.append('file', file);
     formData.append('engine', options.engine);
     formData.append('use_gemini', String(options.useGemini));
+    formData.append('cleanup_mode', options.cleanupMode);
 
     // Send options as JSON string
     const optionsPayload = {

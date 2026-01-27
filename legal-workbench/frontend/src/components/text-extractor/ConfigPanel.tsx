@@ -5,7 +5,8 @@ import { IgnoreTermsList } from './IgnoreTermsList';
 import { Play, Loader2 } from 'lucide-react';
 
 export function ConfigPanel() {
-  const { engine, setEngine, status, file, submitJob } = useTextExtractorStore();
+  const { engine, setEngine, cleanupMode, setCleanupMode, status, file, submitJob } =
+    useTextExtractorStore();
 
   const isDisabled = status === 'processing';
   const canSubmit = file && (status === 'configuring' || status === 'preflight');
@@ -55,14 +56,44 @@ export function ConfigPanel() {
             </label>
           </div>
           <label className="te-checkbox-label te-checkbox-indent">
-            <input
-              type="checkbox"
-              checked={true}
-              disabled={true}
-              className="te-checkbox"
-            />
+            <input type="checkbox" checked={true} disabled={true} className="te-checkbox" />
             <span>Auto-detect OCR</span>
           </label>
+        </div>
+
+        <div className="te-divider" />
+
+        {/* Cleanup Mode Selection */}
+        <div className="te-section">
+          <div className="te-subsection-header">
+            <span className="te-command">&gt; CLEANUP_MODE</span>
+          </div>
+          <div className="te-engine-options">
+            <label className="te-radio-label">
+              <input
+                type="radio"
+                name="cleanup"
+                value="script"
+                checked={cleanupMode === 'script'}
+                onChange={() => setCleanupMode('script')}
+                disabled={isDisabled}
+                className="te-radio"
+              />
+              <span className="te-radio-text">Script (fast)</span>
+            </label>
+            <label className="te-radio-label">
+              <input
+                type="radio"
+                name="cleanup"
+                value="gemini"
+                checked={cleanupMode === 'gemini'}
+                onChange={() => setCleanupMode('gemini')}
+                disabled={isDisabled}
+                className="te-radio"
+              />
+              <span className="te-radio-text">Gemini Polish (~12 min)</span>
+            </label>
+          </div>
         </div>
 
         <div className="te-divider" />

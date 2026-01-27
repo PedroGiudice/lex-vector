@@ -1,6 +1,12 @@
 import { create } from 'zustand';
 import { textExtractorApi } from '@/services/textExtractorApi';
-import type { FileInfo, Margins, LogEntry, TextExtractorState } from '@/types/textExtractor';
+import type {
+  FileInfo,
+  Margins,
+  LogEntry,
+  TextExtractorState,
+  CleanupMode,
+} from '@/types/textExtractor';
 
 // LGPD preset terms
 const LGPD_PRESET_TERMS = [
@@ -48,6 +54,7 @@ export const useTextExtractorStore = create<TextExtractorState>((set, get) => ({
   // Config
   engine: 'marker',
   useGemini: false,
+  cleanupMode: 'script',
   margins: { ...DEFAULT_MARGINS },
   ignoreTerms: [...LGPD_PRESET_TERMS],
 
@@ -93,6 +100,8 @@ export const useTextExtractorStore = create<TextExtractorState>((set, get) => ({
 
   setUseGemini: (useGemini) => set({ useGemini }),
 
+  setCleanupMode: (cleanupMode: CleanupMode) => set({ cleanupMode }),
+
   setMargins: (margins) => set({ margins }),
 
   setIgnoreTerms: (terms) => set({ ignoreTerms: terms }),
@@ -127,7 +136,7 @@ export const useTextExtractorStore = create<TextExtractorState>((set, get) => ({
   },
 
   submitJob: async () => {
-    const { file, engine, useGemini, margins, ignoreTerms, addLog } = get();
+    const { file, engine, useGemini, cleanupMode, margins, ignoreTerms, addLog } = get();
 
     if (!file) {
       addLog('Error: No file selected', 'error');
@@ -142,6 +151,7 @@ export const useTextExtractorStore = create<TextExtractorState>((set, get) => ({
       const response = await textExtractorApi.submitJob(file, {
         engine,
         useGemini,
+        cleanupMode,
         margins,
         ignoreTerms,
       });

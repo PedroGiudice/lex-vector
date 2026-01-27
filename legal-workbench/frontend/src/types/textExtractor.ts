@@ -1,6 +1,7 @@
 // Text Extractor Types
 
 export type ExtractionEngine = 'marker' | 'pdfplumber';
+export type CleanupMode = 'script' | 'gemini';
 export type ExtractionStatus =
   | 'idle'
   | 'preflight'
@@ -27,6 +28,7 @@ export interface Margins {
 export interface ExtractOptions {
   engine: ExtractionEngine;
   useGemini: boolean;
+  cleanupMode: CleanupMode;
   margins: Margins;
   ignoreTerms: string[];
 }
@@ -95,6 +97,7 @@ export interface TextExtractorState {
   // Config
   engine: ExtractionEngine;
   useGemini: boolean;
+  cleanupMode: CleanupMode;
   margins: Margins;
   ignoreTerms: string[];
 
@@ -113,6 +116,7 @@ export interface TextExtractorState {
   setFile: (file: File | null) => void;
   setEngine: (engine: ExtractionEngine) => void;
   setUseGemini: (useGemini: boolean) => void;
+  setCleanupMode: (mode: CleanupMode) => void;
   setMargins: (margins: Margins) => void;
   setIgnoreTerms: (terms: string[]) => void;
   addIgnoreTerm: (term: string) => void;
