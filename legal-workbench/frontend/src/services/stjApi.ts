@@ -1,7 +1,8 @@
 import axios from 'axios';
+import { getApiBaseUrl } from '@/lib/tauri';
 
 const api = axios.create({
-  baseURL: '/api/stj/api/v1',
+  baseURL: `${getApiBaseUrl()}/api/stj/api/v1`,
   timeout: 30000,
 });
 
@@ -53,8 +54,8 @@ export type SyncPeriod = '30' | '90' | '365' | 'desde_2022' | 'custom';
 export interface SyncParams {
   period: SyncPeriod;
   dataInicio?: string; // ISO date string for custom period
-  dataFim?: string;    // ISO date string for custom period
-  orgaos?: string[];   // Optional filter by orgaos
+  dataFim?: string; // ISO date string for custom period
+  orgaos?: string[]; // Optional filter by orgaos
 }
 
 export type SyncStatusType = 'idle' | 'downloading' | 'processing' | 'complete' | 'error';
@@ -97,27 +98,20 @@ export interface ExportParams {
 }
 
 export const stjApi = {
-  search: (params: SearchParams) =>
-    api.get<SearchResponse>('/search', { params }),
+  search: (params: SearchParams) => api.get<SearchResponse>('/search', { params }),
 
-  getCase: (id: string) =>
-    api.get<AcordaoDetail>(`/case/${id}`),
+  getCase: (id: string) => api.get<AcordaoDetail>(`/case/${id}`),
 
-  getStats: () =>
-    api.get<StatsResponse>('/stats'),
+  getStats: () => api.get<StatsResponse>('/stats'),
 
-  health: () =>
-    api.get('/health'),
+  health: () => api.get('/health'),
 
   // Sync operations
-  triggerSync: (params: SyncParams) =>
-    api.post<SyncTriggerResponse>('/sync', params),
+  triggerSync: (params: SyncParams) => api.post<SyncTriggerResponse>('/sync', params),
 
-  getSyncStatus: () =>
-    api.get<SyncStatusResponse>('/sync/status'),
+  getSyncStatus: () => api.get<SyncStatusResponse>('/sync/status'),
 
-  cancelSync: () =>
-    api.post<{ success: boolean; message: string }>('/sync/cancel'),
+  cancelSync: () => api.post<{ success: boolean; message: string }>('/sync/cancel'),
 
   // Export operations
   exportResults: (params: ExportParams) => {

@@ -6,8 +6,9 @@ import type {
   ExtractionResult,
 } from '@/types/textExtractor';
 import { lteLogger } from '@/utils/lteLogger';
+import { getApiBaseUrl } from '@/lib/tauri';
 
-const API_BASE_URL = '/api/text/api/v1';
+const API_BASE_URL = `${getApiBaseUrl()}/api/text/api/v1`;
 
 const api = axios.create({
   baseURL: API_BASE_URL,
