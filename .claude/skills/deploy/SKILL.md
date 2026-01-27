@@ -17,8 +17,8 @@ Roteiro prescritivo para build e deploy do Legal Workbench no Oracle Cloud.
 |----------|---------|
 | Build frontend local | `cd legal-workbench/frontend && bun run build` |
 | Build Docker | `cd legal-workbench && docker compose build --parallel` |
-| Sync para OCI | `rsync -avz --delete --exclude=node_modules --exclude=.git --exclude=e2e -e "ssh -i ~/.ssh/oci_lw" ./<service>/ opc@64.181.162.38:/home/opc/lex-vector/legal-workbench/<service>/` |
-| Deploy no servidor | `ssh -i ~/.ssh/oci_lw opc@64.181.162.38 "cd /home/opc/lex-vector/legal-workbench && docker compose build <service> && docker compose up -d <service>"` |
+| Sync para OCI | `rsync -avz --delete --exclude=node_modules --exclude=.git --exclude=e2e -e "ssh -i ~/.ssh/oci_lw" ./<service>/ opc@137.131.201.119:/home/opc/lex-vector/legal-workbench/<service>/` |
+| Deploy no servidor | `ssh -i ~/.ssh/oci_lw opc@137.131.201.119 "cd /home/opc/lex-vector/legal-workbench && docker compose build <service> && docker compose up -d <service>"` |
 | Health check | `docker compose ps` ou `curl http://localhost:<porta>/health` |
 
 ---
@@ -95,7 +95,7 @@ docker compose build --parallel
 ## 3. Deploy para Oracle Cloud
 
 ```
-Local Machine                    OCI Server (64.181.162.38)
+Local Machine                    OCI Server (137.131.201.119)
      |                                    |
      v                                    |
 +------------------+                      |
@@ -130,12 +130,12 @@ bun run build
 rsync -avz --delete \
   --exclude=node_modules --exclude=.git --exclude=e2e \
   -e "ssh -i ~/.ssh/oci_lw" \
-  ./frontend/ opc@64.181.162.38:/home/opc/lex-vector/legal-workbench/frontend/
+  ./frontend/ opc@137.131.201.119:/home/opc/lex-vector/legal-workbench/frontend/
 ```
 
 ### Passo 3: Build e restart no servidor
 ```bash
-ssh -i ~/.ssh/oci_lw opc@64.181.162.38 \
+ssh -i ~/.ssh/oci_lw opc@137.131.201.119 \
   "cd /home/opc/lex-vector/legal-workbench && \
    docker compose build frontend-react && \
    docker compose up -d frontend-react"

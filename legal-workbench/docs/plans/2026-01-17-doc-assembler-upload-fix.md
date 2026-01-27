@@ -192,19 +192,19 @@ bun run build
 **Step 2: Sync para Oracle Cloud**
 
 ```bash
-rsync -avz --delete dist/ opc@64.181.162.38:/home/opc/lex-vector/legal-workbench/frontend/dist/
+rsync -avz --delete dist/ opc@137.131.201.119:/home/opc/lex-vector/legal-workbench/frontend/dist/
 ```
 
 **Step 3: Rebuild container**
 
 ```bash
-ssh opc@64.181.162.38 "cd /home/opc/lex-vector/legal-workbench && docker compose build frontend-react && docker compose up -d frontend-react"
+ssh opc@137.131.201.119 "cd /home/opc/lex-vector/legal-workbench && docker compose build frontend-react && docker compose up -d frontend-react"
 ```
 
 **Step 4: Verificar deploy**
 
 ```bash
-ssh opc@64.181.162.38 "docker logs legal-workbench-frontend-react-1 --tail 5"
+ssh opc@137.131.201.119 "docker logs legal-workbench-frontend-react-1 --tail 5"
 ```
 
 ### Task 5: Deploy do backend
@@ -212,19 +212,19 @@ ssh opc@64.181.162.38 "docker logs legal-workbench-frontend-react-1 --tail 5"
 **Step 1: Sync arquivos**
 
 ```bash
-rsync -avz docker/services/doc-assembler/ opc@64.181.162.38:/home/opc/lex-vector/legal-workbench/docker/services/doc-assembler/
+rsync -avz docker/services/doc-assembler/ opc@137.131.201.119:/home/opc/lex-vector/legal-workbench/docker/services/doc-assembler/
 ```
 
 **Step 2: Rebuild container**
 
 ```bash
-ssh opc@64.181.162.38 "cd /home/opc/lex-vector/legal-workbench && docker compose build api-doc-assembler && docker compose up -d api-doc-assembler"
+ssh opc@137.131.201.119 "cd /home/opc/lex-vector/legal-workbench && docker compose build api-doc-assembler && docker compose up -d api-doc-assembler"
 ```
 
 **Step 3: Verificar logs**
 
 ```bash
-ssh opc@64.181.162.38 "docker logs legal-workbench-api-doc-assembler-1 --tail 10"
+ssh opc@137.131.201.119 "docker logs legal-workbench-api-doc-assembler-1 --tail 10"
 ```
 
 ### Task 6: Teste E2E
@@ -238,7 +238,7 @@ Usuario deve:
 
 **Step 2: Testar upload**
 
-1. Navegar para http://64.181.162.38/doc-assembler
+1. Navegar para http://137.131.201.119/doc-assembler
 2. Clicar em "Upload Document"
 3. Selecionar arquivo DOCX (ex: `Novartis_Acao_Monitoria_Guilherme_Higino_Lima.docx`)
 4. Verificar que o conteudo aparece na tela
@@ -246,7 +246,7 @@ Usuario deve:
 **Step 3: Verificar logs do backend**
 
 ```bash
-ssh opc@64.181.162.38 "docker logs legal-workbench-api-doc-assembler-1 --tail 20 | grep -i upload"
+ssh opc@137.131.201.119 "docker logs legal-workbench-api-doc-assembler-1 --tail 20 | grep -i upload"
 ```
 
 Expected: Log mostrando `size=XXXXX bytes` (nao zero)

@@ -43,7 +43,7 @@ Or with arguments:
 When the user invokes this command, execute:
 
 ```bash
-REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || echo "/home/cmr-auto/claude-work/repos/lex-vector")
+REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || echo "/home/opc/claude-work/repos/lex-vector")
 cd "$REPO_ROOT/adk-agents" && ./run-iterative-research.sh "$ARGUMENTS"
 ```
 
@@ -51,7 +51,7 @@ If `$ARGUMENTS` is empty, ask the user for a research topic.
 
 If `$ARGUMENTS` is `--check`, run:
 ```bash
-REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || echo "/home/cmr-auto/claude-work/repos/lex-vector")
+REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || echo "/home/opc/claude-work/repos/lex-vector")
 cd "$REPO_ROOT/adk-agents" && ./run-iterative-research.sh --check-deps
 ```
 

@@ -24,7 +24,7 @@ Deploy servicos do Legal Workbench para a VM Oracle Cloud Infrastructure.
 
 ## Infraestrutura
 
-**Servidor:** `opc@64.181.162.38`
+**Servidor:** `opc@137.131.201.119`
 **SSH Key:** `~/.ssh/oci_lw`
 **Diretorio remoto:** `/opt/legal-workbench`
 **Regiao OCI:** `sa-saopaulo-1`
@@ -66,13 +66,13 @@ rsync -avz --delete \
   --exclude='__pycache__' \
   -e "ssh -i ~/.ssh/oci_lw" \
   legal-workbench/ \
-  opc@64.181.162.38:/opt/legal-workbench/
+  opc@137.131.201.119:/opt/legal-workbench/
 ```
 
 ### 3. Deploy (Remoto via SSH)
 
 ```bash
-ssh -i ~/.ssh/oci_lw opc@64.181.162.38 << 'EOF'
+ssh -i ~/.ssh/oci_lw opc@137.131.201.119 << 'EOF'
   cd /opt/legal-workbench
 
   # Build e restart
@@ -88,11 +88,11 @@ EOF
 
 ```bash
 # Frontend
-curl -s http://64.181.162.38/ | head -20
+curl -s http://137.131.201.119/ | head -20
 
 # APIs
-curl -s http://64.181.162.38/api/text/health
-curl -s http://64.181.162.38/api/stj/health
+curl -s http://137.131.201.119/api/text/health
+curl -s http://137.131.201.119/api/stj/health
 ```
 
 ## Comandos Uteis no Servidor

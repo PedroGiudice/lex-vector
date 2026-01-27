@@ -19,8 +19,8 @@
 
 | Item | Status |
 |------|--------|
-| DNS legalworkbench.duckdns.org -> 64.181.162.38 | OK |
-| SSH acesso opc@64.181.162.38 | OK |
+| DNS legalworkbench.duckdns.org -> 137.131.201.119 | OK |
+| SSH acesso opc@137.131.201.119 | OK |
 | Docker Compose na VM | OK |
 | Modulo shared/ no repo | OK |
 
@@ -380,13 +380,13 @@ git commit -m "feat(lw): HTTPS Let's Encrypt + CCUI integration"
 **Step 1: Verificar firewall atual**
 
 ```bash
-ssh -i ~/.ssh/oci_lw opc@64.181.162.38 "sudo firewall-cmd --list-ports"
+ssh -i ~/.ssh/oci_lw opc@137.131.201.119 "sudo firewall-cmd --list-ports"
 ```
 
 **Step 2: Abrir porta 443**
 
 ```bash
-ssh -i ~/.ssh/oci_lw opc@64.181.162.38 "sudo firewall-cmd --permanent --add-port=443/tcp && sudo firewall-cmd --reload"
+ssh -i ~/.ssh/oci_lw opc@137.131.201.119 "sudo firewall-cmd --permanent --add-port=443/tcp && sudo firewall-cmd --reload"
 ```
 
 Expected: `success`
@@ -401,7 +401,7 @@ Expected: `success`
 **Step 4: Verificar portas abertas**
 
 ```bash
-ssh -i ~/.ssh/oci_lw opc@64.181.162.38 "sudo firewall-cmd --list-ports | grep 443"
+ssh -i ~/.ssh/oci_lw opc@137.131.201.119 "sudo firewall-cmd --list-ports | grep 443"
 ```
 
 Expected: `443/tcp` na lista
@@ -422,31 +422,31 @@ rsync -avz --delete \
   --exclude='dist' \
   -e "ssh -i ~/.ssh/oci_lw" \
   /home/cmr-auto/claude-work/repos/lex-vector/legal-workbench/ \
-  opc@64.181.162.38:/home/opc/lex-vector/legal-workbench/
+  opc@137.131.201.119:/home/opc/lex-vector/legal-workbench/
 ```
 
 **Step 2: Criar diretorio letsencrypt com permissoes**
 
 ```bash
-ssh -i ~/.ssh/oci_lw opc@64.181.162.38 "mkdir -p /home/opc/lex-vector/legal-workbench/docker/traefik/letsencrypt && chmod 700 /home/opc/lex-vector/legal-workbench/docker/traefik/letsencrypt"
+ssh -i ~/.ssh/oci_lw opc@137.131.201.119 "mkdir -p /home/opc/lex-vector/legal-workbench/docker/traefik/letsencrypt && chmod 700 /home/opc/lex-vector/legal-workbench/docker/traefik/letsencrypt"
 ```
 
 **Step 3: Parar containers antigos**
 
 ```bash
-ssh -i ~/.ssh/oci_lw opc@64.181.162.38 "cd /home/opc/lex-vector/legal-workbench && docker compose down"
+ssh -i ~/.ssh/oci_lw opc@137.131.201.119 "cd /home/opc/lex-vector/legal-workbench && docker compose down"
 ```
 
 **Step 4: Rebuild e iniciar todos os containers**
 
 ```bash
-ssh -i ~/.ssh/oci_lw opc@64.181.162.38 "cd /home/opc/lex-vector/legal-workbench && docker compose build --no-cache && docker compose up -d"
+ssh -i ~/.ssh/oci_lw opc@137.131.201.119 "cd /home/opc/lex-vector/legal-workbench && docker compose build --no-cache && docker compose up -d"
 ```
 
 **Step 5: Verificar containers**
 
 ```bash
-ssh -i ~/.ssh/oci_lw opc@64.181.162.38 "docker ps --format 'table {{.Names}}\t{{.Status}}' | grep legal-workbench"
+ssh -i ~/.ssh/oci_lw opc@137.131.201.119 "docker ps --format 'table {{.Names}}\t{{.Status}}' | grep legal-workbench"
 ```
 
 Expected: Todos containers `Up` e `healthy`
@@ -458,7 +458,7 @@ Expected: Todos containers `Up` e `healthy`
 **Step 1: Verificar logs do Traefik**
 
 ```bash
-ssh -i ~/.ssh/oci_lw opc@64.181.162.38 "docker logs legal-workbench-reverse-proxy-1 2>&1 | grep -i 'acme\|letsencrypt\|certificate' | tail -20"
+ssh -i ~/.ssh/oci_lw opc@137.131.201.119 "docker logs legal-workbench-reverse-proxy-1 2>&1 | grep -i 'acme\|letsencrypt\|certificate' | tail -20"
 ```
 
 Expected: Mensagens sobre obtencao de certificado bem-sucedida
@@ -466,7 +466,7 @@ Expected: Mensagens sobre obtencao de certificado bem-sucedida
 **Step 2: Verificar arquivo acme.json**
 
 ```bash
-ssh -i ~/.ssh/oci_lw opc@64.181.162.38 "ls -la /home/opc/lex-vector/legal-workbench/docker/traefik/letsencrypt/"
+ssh -i ~/.ssh/oci_lw opc@137.131.201.119 "ls -la /home/opc/lex-vector/legal-workbench/docker/traefik/letsencrypt/"
 ```
 
 Expected: Arquivo `acme.json` criado
@@ -530,19 +530,19 @@ Expected: `HTTP/1.1 301` ou `308` com `Location: https://...`
 **Step 1: Verificar PM2**
 
 ```bash
-ssh -i ~/.ssh/oci_lw opc@64.181.162.38 "pm2 list"
+ssh -i ~/.ssh/oci_lw opc@137.131.201.119 "pm2 list"
 ```
 
 **Step 2: Parar e remover processo PM2 antigo**
 
 ```bash
-ssh -i ~/.ssh/oci_lw opc@64.181.162.38 "pm2 delete claude-ui 2>/dev/null || echo 'Processo nao existia'"
+ssh -i ~/.ssh/oci_lw opc@137.131.201.119 "pm2 delete claude-ui 2>/dev/null || echo 'Processo nao existia'"
 ```
 
 **Step 3: Salvar estado PM2**
 
 ```bash
-ssh -i ~/.ssh/oci_lw opc@64.181.162.38 "pm2 save"
+ssh -i ~/.ssh/oci_lw opc@137.131.201.119 "pm2 save"
 ```
 
 ---
@@ -587,7 +587,7 @@ Se algo falhar:
 
 ```bash
 # 1. Reverter para versao anterior
-ssh -i ~/.ssh/oci_lw opc@64.181.162.38 "cd /home/opc/lex-vector/legal-workbench && git checkout HEAD~1 -- docker-compose.yml && docker compose down && docker compose up -d"
+ssh -i ~/.ssh/oci_lw opc@137.131.201.119 "cd /home/opc/lex-vector/legal-workbench && git checkout HEAD~1 -- docker-compose.yml && docker compose down && docker compose up -d"
 
 # 2. OU reverter localmente e re-deploy
 git revert HEAD
@@ -627,7 +627,7 @@ rsync -avz --delete \
   --exclude='.git' --exclude='coverage' --exclude='dist' \
   -e "ssh -i ~/.ssh/oci_lw" \
   /home/cmr-auto/claude-work/repos/lex-vector/legal-workbench/ \
-  opc@64.181.162.38:/home/opc/lex-vector/legal-workbench/
+  opc@137.131.201.119:/home/opc/lex-vector/legal-workbench/
 
-ssh -i ~/.ssh/oci_lw opc@64.181.162.38 "cd /home/opc/lex-vector/legal-workbench && docker compose build && docker compose up -d"
+ssh -i ~/.ssh/oci_lw opc@137.131.201.119 "cd /home/opc/lex-vector/legal-workbench && docker compose build && docker compose up -d"
 ```

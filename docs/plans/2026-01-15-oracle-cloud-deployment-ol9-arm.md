@@ -8,7 +8,7 @@
 
 **Tech Stack:** Docker, Docker Compose, Oracle Linux 9, ARM64/aarch64, Traefik, FastAPI, React
 
-**VM:** 64.181.162.38 | **SSH:** `ssh -i ~/.ssh/oci_lw opc@64.181.162.38`
+**VM:** 137.131.201.119 | **SSH:** `ssh -i ~/.ssh/oci_lw opc@137.131.201.119`
 
 ---
 
@@ -19,7 +19,7 @@
 **Step 1: Atualizar sistema e instalar dependencias**
 
 ```bash
-ssh -i ~/.ssh/oci_lw opc@64.181.162.38 "sudo dnf update -y && sudo dnf install -y dnf-utils git"
+ssh -i ~/.ssh/oci_lw opc@137.131.201.119 "sudo dnf update -y && sudo dnf install -y dnf-utils git"
 ```
 
 Expected: Pacotes atualizados sem erros.
@@ -27,7 +27,7 @@ Expected: Pacotes atualizados sem erros.
 **Step 2: Adicionar repositorio Docker**
 
 ```bash
-ssh -i ~/.ssh/oci_lw opc@64.181.162.38 "sudo dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo"
+ssh -i ~/.ssh/oci_lw opc@137.131.201.119 "sudo dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo"
 ```
 
 Expected: Repositorio adicionado.
@@ -35,7 +35,7 @@ Expected: Repositorio adicionado.
 **Step 3: Instalar Docker**
 
 ```bash
-ssh -i ~/.ssh/oci_lw opc@64.181.162.38 "sudo dnf install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin"
+ssh -i ~/.ssh/oci_lw opc@137.131.201.119 "sudo dnf install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin"
 ```
 
 Expected: Docker instalado.
@@ -43,7 +43,7 @@ Expected: Docker instalado.
 **Step 4: Iniciar e habilitar Docker**
 
 ```bash
-ssh -i ~/.ssh/oci_lw opc@64.181.162.38 "sudo systemctl start docker && sudo systemctl enable docker"
+ssh -i ~/.ssh/oci_lw opc@137.131.201.119 "sudo systemctl start docker && sudo systemctl enable docker"
 ```
 
 Expected: Docker rodando.
@@ -51,7 +51,7 @@ Expected: Docker rodando.
 **Step 5: Adicionar usuario ao grupo docker**
 
 ```bash
-ssh -i ~/.ssh/oci_lw opc@64.181.162.38 "sudo usermod -aG docker opc"
+ssh -i ~/.ssh/oci_lw opc@137.131.201.119 "sudo usermod -aG docker opc"
 ```
 
 Expected: Usuario adicionado (requer novo login para efetivar).
@@ -59,7 +59,7 @@ Expected: Usuario adicionado (requer novo login para efetivar).
 **Step 6: Verificar instalacao**
 
 ```bash
-ssh -i ~/.ssh/oci_lw opc@64.181.162.38 "sudo docker --version && sudo docker compose version"
+ssh -i ~/.ssh/oci_lw opc@137.131.201.119 "sudo docker --version && sudo docker compose version"
 ```
 
 Expected: Versoes do Docker e Compose exibidas.
@@ -73,7 +73,7 @@ Expected: Versoes do Docker e Compose exibidas.
 **Step 1: Abrir portas HTTP/HTTPS**
 
 ```bash
-ssh -i ~/.ssh/oci_lw opc@64.181.162.38 "sudo firewall-cmd --permanent --add-service=http && sudo firewall-cmd --permanent --add-service=https && sudo firewall-cmd --reload"
+ssh -i ~/.ssh/oci_lw opc@137.131.201.119 "sudo firewall-cmd --permanent --add-service=http && sudo firewall-cmd --permanent --add-service=https && sudo firewall-cmd --reload"
 ```
 
 Expected: success (3x).
@@ -81,7 +81,7 @@ Expected: success (3x).
 **Step 2: Verificar**
 
 ```bash
-ssh -i ~/.ssh/oci_lw opc@64.181.162.38 "sudo firewall-cmd --list-all"
+ssh -i ~/.ssh/oci_lw opc@137.131.201.119 "sudo firewall-cmd --list-all"
 ```
 
 Expected: services inclui http e https.
@@ -95,7 +95,7 @@ Expected: services inclui http e https.
 **Step 1: Clonar**
 
 ```bash
-ssh -i ~/.ssh/oci_lw opc@64.181.162.38 "cd ~ && git clone https://github.com/PedroGiudice/lex-vector.git"
+ssh -i ~/.ssh/oci_lw opc@137.131.201.119 "cd ~ && git clone https://github.com/PedroGiudice/lex-vector.git"
 ```
 
 Expected: Repositorio clonado em ~/lex-vector.
@@ -103,7 +103,7 @@ Expected: Repositorio clonado em ~/lex-vector.
 **Step 2: Verificar estrutura**
 
 ```bash
-ssh -i ~/.ssh/oci_lw opc@64.181.162.38 "ls ~/lex-vector/legal-workbench/"
+ssh -i ~/.ssh/oci_lw opc@137.131.201.119 "ls ~/lex-vector/legal-workbench/"
 ```
 
 Expected: docker, frontend, ferramentas, etc.
@@ -117,7 +117,7 @@ Expected: docker, frontend, ferramentas, etc.
 **Step 1: Criar .env**
 
 ```bash
-ssh -i ~/.ssh/oci_lw opc@64.181.162.38 "cat > ~/lex-vector/legal-workbench/.env << 'EOF'
+ssh -i ~/.ssh/oci_lw opc@137.131.201.119 "cat > ~/lex-vector/legal-workbench/.env << 'EOF'
 # Trello API
 TRELLO_API_KEY=270ff9a4fe79bdc7ecbe6e5f76aed1c0
 TRELLO_API_TOKEN=ATTA2a2be1f51e8ed1985a4186357f537ce6fb6e25c61c4c3d65826dfa4951c8a1f375D041BD
@@ -139,7 +139,7 @@ Expected: Arquivo criado.
 **Step 2: Verificar**
 
 ```bash
-ssh -i ~/.ssh/oci_lw opc@64.181.162.38 "cat ~/lex-vector/legal-workbench/.env | head -5"
+ssh -i ~/.ssh/oci_lw opc@137.131.201.119 "cat ~/lex-vector/legal-workbench/.env | head -5"
 ```
 
 Expected: Conteudo do .env exibido.
@@ -153,7 +153,7 @@ Expected: Conteudo do .env exibido.
 **Step 1: Build completo via docker compose**
 
 ```bash
-ssh -i ~/.ssh/oci_lw opc@64.181.162.38 "cd ~/lex-vector/legal-workbench && sudo docker compose build --progress=plain 2>&1" | tee /tmp/docker-build.log
+ssh -i ~/.ssh/oci_lw opc@137.131.201.119 "cd ~/lex-vector/legal-workbench && sudo docker compose build --progress=plain 2>&1" | tee /tmp/docker-build.log
 ```
 
 Expected: Todas as imagens construidas. NOTA: text-extractor pode demorar (~10-15min) devido a PyTorch ARM.
@@ -161,7 +161,7 @@ Expected: Todas as imagens construidas. NOTA: text-extractor pode demorar (~10-1
 **Step 2: Verificar imagens criadas**
 
 ```bash
-ssh -i ~/.ssh/oci_lw opc@64.181.162.38 "sudo docker images | grep legal-workbench"
+ssh -i ~/.ssh/oci_lw opc@137.131.201.119 "sudo docker images | grep legal-workbench"
 ```
 
 Expected: 6+ imagens listadas (frontend-react, api-stj, api-text-extractor, etc).
@@ -175,7 +175,7 @@ Expected: 6+ imagens listadas (frontend-react, api-stj, api-text-extractor, etc)
 **Step 1: Iniciar containers**
 
 ```bash
-ssh -i ~/.ssh/oci_lw opc@64.181.162.38 "cd ~/lex-vector/legal-workbench && sudo docker compose up -d"
+ssh -i ~/.ssh/oci_lw opc@137.131.201.119 "cd ~/lex-vector/legal-workbench && sudo docker compose up -d"
 ```
 
 Expected: Containers criados e iniciados.
@@ -183,7 +183,7 @@ Expected: Containers criados e iniciados.
 **Step 2: Verificar status**
 
 ```bash
-ssh -i ~/.ssh/oci_lw opc@64.181.162.38 "sudo docker compose ps"
+ssh -i ~/.ssh/oci_lw opc@137.131.201.119 "sudo docker compose ps"
 ```
 
 Expected: Todos containers com status "Up" ou "healthy".
@@ -191,7 +191,7 @@ Expected: Todos containers com status "Up" ou "healthy".
 **Step 3: Verificar logs (se houver erro)**
 
 ```bash
-ssh -i ~/.ssh/oci_lw opc@64.181.162.38 "sudo docker compose logs --tail=50"
+ssh -i ~/.ssh/oci_lw opc@137.131.201.119 "sudo docker compose logs --tail=50"
 ```
 
 Expected: Sem erros criticos.
@@ -205,7 +205,7 @@ Expected: Sem erros criticos.
 **Step 1: Testar frontend**
 
 ```bash
-curl -s -o /dev/null -w "%{http_code}" http://64.181.162.38/
+curl -s -o /dev/null -w "%{http_code}" http://137.131.201.119/
 ```
 
 Expected: 200
@@ -213,7 +213,7 @@ Expected: 200
 **Step 2: Testar health do Traefik**
 
 ```bash
-curl -s http://64.181.162.38:8080/api/overview | head -c 100
+curl -s http://137.131.201.119:8080/api/overview | head -c 100
 ```
 
 Expected: JSON do Traefik.
@@ -221,7 +221,7 @@ Expected: JSON do Traefik.
 **Step 3: Testar API STJ**
 
 ```bash
-curl -s http://64.181.162.38/api/stj/health
+curl -s http://137.131.201.119/api/stj/health
 ```
 
 Expected: {"status":"healthy"} ou similar.
@@ -229,7 +229,7 @@ Expected: {"status":"healthy"} ou similar.
 **Step 4: Testar API Trello**
 
 ```bash
-curl -s http://64.181.162.38/api/trello/health
+curl -s http://137.131.201.119/api/trello/health
 ```
 
 Expected: {"status":"healthy"} ou similar.
@@ -244,14 +244,14 @@ Expected: {"status":"healthy"} ou similar.
 - [ ] VM OL9 ARM rodando
 - [ ] Docker instalado e funcionando
 - [ ] Todos containers up
-- [ ] Frontend acessivel em http://64.181.162.38/
+- [ ] Frontend acessivel em http://137.131.201.119/
 - [ ] APIs respondendo health checks
 - [ ] Nenhum erro critico nos logs
 
 **Comando de verificacao completa:**
 
 ```bash
-echo "=== Docker ===" && ssh -i ~/.ssh/oci_lw opc@64.181.162.38 "sudo docker compose ps" && echo "=== Frontend ===" && curl -s -o /dev/null -w "%{http_code}\n" http://64.181.162.38/ && echo "=== APIs ===" && curl -s http://64.181.162.38/api/stj/health 2>/dev/null || echo "STJ: N/A"
+echo "=== Docker ===" && ssh -i ~/.ssh/oci_lw opc@137.131.201.119 "sudo docker compose ps" && echo "=== Frontend ===" && curl -s -o /dev/null -w "%{http_code}\n" http://137.131.201.119/ && echo "=== APIs ===" && curl -s http://137.131.201.119/api/stj/health 2>/dev/null || echo "STJ: N/A"
 ```
 
 ---
@@ -260,10 +260,10 @@ echo "=== Docker ===" && ssh -i ~/.ssh/oci_lw opc@64.181.162.38 "sudo docker com
 
 ```bash
 # Parar tudo
-ssh -i ~/.ssh/oci_lw opc@64.181.162.38 "cd ~/lex-vector/legal-workbench && sudo docker compose down"
+ssh -i ~/.ssh/oci_lw opc@137.131.201.119 "cd ~/lex-vector/legal-workbench && sudo docker compose down"
 
 # Limpar imagens
-ssh -i ~/.ssh/oci_lw opc@64.181.162.38 "sudo docker system prune -af"
+ssh -i ~/.ssh/oci_lw opc@137.131.201.119 "sudo docker system prune -af"
 
 # Recomecar do Task 5
 ```

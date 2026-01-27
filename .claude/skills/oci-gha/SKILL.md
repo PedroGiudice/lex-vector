@@ -242,7 +242,7 @@ jobs:
 | `OCI_NAMESPACE` | Namespace do OCIR |
 | `OCI_USER_EMAIL` | Email do usuario OCI |
 | `OCI_AUTH_TOKEN` | Auth token para OCIR |
-| `OCI_INSTANCE_IP` | IP publico da instancia (64.181.162.38) |
+| `OCI_INSTANCE_IP` | IP publico da instancia (137.131.201.119) |
 | `SSH_PRIVATE_KEY` | Chave SSH privada |
 
 ---
@@ -263,7 +263,7 @@ docker login sa-saopaulo-1.ocir.io \
 
 ## OCI CLI Reference
 
-**Servidor:** `opc@64.181.162.38`
+**Servidor:** `opc@137.131.201.119`
 **Regiao:** `sa-saopaulo-1`
 **Config:** `~/.oci/config`
 

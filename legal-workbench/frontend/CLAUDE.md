@@ -150,9 +150,9 @@ nginx                          # Stage 2: serve
 rsync -avz --delete \
   --exclude=node_modules --exclude=.git \
   -e "ssh -i ~/.ssh/oci_lw" \
-  ./ opc@64.181.162.38:/home/opc/lex-vector/legal-workbench/frontend/
+  ./ opc@137.131.201.119:/home/opc/lex-vector/legal-workbench/frontend/
 
-ssh -i ~/.ssh/oci_lw opc@64.181.162.38 \
+ssh -i ~/.ssh/oci_lw opc@137.131.201.119 \
   "cd /home/opc/lex-vector/legal-workbench && \
    docker compose build frontend-react && \
    docker compose up -d frontend-react"

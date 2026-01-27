@@ -212,12 +212,12 @@ Use este modo quando o usuario pedir:
 ```bash
 timeout 300 gemini -m gemini-2.5-flash --allowed-mcp-server-names chrome-devtools -y "
 ROLE: Technical QA Architect
-TARGET: http://64.181.162.38/
-AUTH URL: http://PGR:Chicago00%40@64.181.162.38/
+TARGET: http://137.131.201.119/
+AUTH URL: http://PGR:Chicago00%40@137.131.201.119/
 
 TESTS:
-1. Navigate to http://64.181.162.38/ - expect 401 (auth required)
-2. Navigate to http://PGR:Chicago00%40@64.181.162.38/ - Hub Home should load
+1. Navigate to http://137.131.201.119/ - expect 401 (auth required)
+2. Navigate to http://PGR:Chicago00%40@137.131.201.119/ - Hub Home should load
 3. Screenshot Hub Home
 4. Navigate to /trello - screenshot
 5. Navigate to /doc-assembler - screenshot
@@ -234,7 +234,7 @@ Para testar FUNCIONALIDADE de cada modulo:
 ```bash
 timeout 600 gemini -m gemini-2.5-flash --allowed-mcp-server-names chrome-devtools -y "
 ROLE: Technical QA Architect - FUNCTIONAL TESTING
-TARGET: http://PGR:Chicago00%40@64.181.162.38/
+TARGET: http://PGR:Chicago00%40@137.131.201.119/
 
 MISSION: Test FUNCTIONALITY of each module, not just existence.
 

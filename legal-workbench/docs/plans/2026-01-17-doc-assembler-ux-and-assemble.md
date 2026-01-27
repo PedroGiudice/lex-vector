@@ -429,13 +429,13 @@ bun run build
 ```bash
 rsync -avz --exclude 'node_modules' --exclude 'dist' \
   legal-workbench/frontend/ \
-  opc@64.181.162.38:/home/opc/lex-vector/legal-workbench/frontend/
+  opc@137.131.201.119:/home/opc/lex-vector/legal-workbench/frontend/
 ```
 
 **Step 3: Docker rebuild with CACHEBUST**
 
 ```bash
-ssh opc@64.181.162.38 "cd /home/opc/lex-vector/legal-workbench && \
+ssh opc@137.131.201.119 "cd /home/opc/lex-vector/legal-workbench && \
   docker compose build --build-arg CACHEBUST=\$(date +%s) frontend-react && \
   docker compose up -d frontend-react"
 ```

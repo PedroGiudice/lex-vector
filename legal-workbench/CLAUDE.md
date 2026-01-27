@@ -28,9 +28,9 @@ Browser ──> Traefik (:80) ──> React SPA (/)
 | prometheus | - | 9090 | Prometheus v2.47.0 |
 
 ### Producao
-- **Servidor:** Oracle Cloud (64.181.162.38)
+- **Servidor:** Oracle Cloud (137.131.201.119)
 - **Deploy:** rsync + docker compose build + up -d
-- **SSH:** `opc@64.181.162.38` com chave `~/.ssh/oci_lw`
+- **SSH:** `opc@137.131.201.119` com chave `~/.ssh/oci_lw`
 
 ---
 

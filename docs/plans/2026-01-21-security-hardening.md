@@ -328,7 +328,7 @@ git commit -m "feat(docker): add explicit healthchecks to all services"
 
 SSH na VM e criar o arquivo manualmente (pois esta no .gitignore):
 ```bash
-ssh -i ~/.ssh/oci_lw opc@64.181.162.38 "mkdir -p /home/opc/lex-vector/legal-workbench/docker/traefik && cat > /home/opc/lex-vector/legal-workbench/docker/traefik/.htpasswd << 'EOF'
+ssh -i ~/.ssh/oci_lw opc@137.131.201.119 "mkdir -p /home/opc/lex-vector/legal-workbench/docker/traefik && cat > /home/opc/lex-vector/legal-workbench/docker/traefik/.htpasswd << 'EOF'
 PGR:\$apr1\$srv7aVBj\$lh5oVstYMwaEi5vB6ppgC/
 MCBS:\$apr1\$tFXQKb/8\$EfbMbctlMOT5RsYlUkDtI/
 ABP:\$apr1\$kvqG8i1i\$RE9g6iKuWL/VoPnNOTQmU1
@@ -341,13 +341,13 @@ EOF"
 rsync -avz --delete \
   --exclude=node_modules --exclude=.git --exclude='.env*' --exclude='docker/traefik/letsencrypt/acme.json' \
   -e "ssh -i ~/.ssh/oci_lw" \
-  legal-workbench/ opc@64.181.162.38:/home/opc/lex-vector/legal-workbench/
+  legal-workbench/ opc@137.131.201.119:/home/opc/lex-vector/legal-workbench/
 ```
 
 **Step 3: Rebuild e reiniciar containers**
 
 ```bash
-ssh -i ~/.ssh/oci_lw opc@64.181.162.38 "cd /home/opc/lex-vector/legal-workbench && \
+ssh -i ~/.ssh/oci_lw opc@137.131.201.119 "cd /home/opc/lex-vector/legal-workbench && \
   docker compose build --no-cache reverse-proxy api-ccui-ws api-doc-assembler && \
   docker compose up -d"
 ```
@@ -355,7 +355,7 @@ ssh -i ~/.ssh/oci_lw opc@64.181.162.38 "cd /home/opc/lex-vector/legal-workbench 
 **Step 4: Verificar healthchecks**
 
 ```bash
-ssh -i ~/.ssh/oci_lw opc@64.181.162.38 "docker ps --format 'table {{.Names}}\t{{.Status}}'"
+ssh -i ~/.ssh/oci_lw opc@137.131.201.119 "docker ps --format 'table {{.Names}}\t{{.Status}}'"
 ```
 
 Esperado: Todos os containers com status `healthy`
@@ -373,7 +373,7 @@ curl -s -o /dev/null -w "%{http_code}" -u "PGR:senha" https://legalworkbench.duc
 **Step 6: Verificar CCUI-WS rodando como non-root**
 
 ```bash
-ssh -i ~/.ssh/oci_lw opc@64.181.162.38 "docker exec legal-workbench-api-ccui-ws-1 whoami"
+ssh -i ~/.ssh/oci_lw opc@137.131.201.119 "docker exec legal-workbench-api-ccui-ws-1 whoami"
 ```
 
 Esperado: `appuser`

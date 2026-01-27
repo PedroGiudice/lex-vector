@@ -56,7 +56,7 @@ lex-vector/
 
 ## Legal Workbench - Arquitetura de Servicos
 
-### Producao (Oracle Cloud - 64.181.162.38)
+### Producao (Oracle Cloud - 137.131.201.119)
 
 ```
 Internet (:80)

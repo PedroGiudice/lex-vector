@@ -1,7 +1,7 @@
 # STJ Download Massivo - Teste Funcional E2E
 
 **Data:** 2026-01-15
-**URL Alvo:** http://64.181.162.38/stj
+**URL Alvo:** http://137.131.201.119/stj
 **Auth:** Basic Auth (PGR:Chicago00@)
 
 ---
@@ -156,7 +156,7 @@ O MCP chrome-devtools do Gemini CLI **NAO suporta HTTP Basic Auth**. Tentativas:
 ## Recomendacoes
 
 1. **Fix Bug Pydantic:** Corrigir criacao de `SyncStatus` no `main.py` linha 356-360
-2. **Teste Manual:** Acessar http://64.181.162.38/stj via browser, clicar em "Download Massivo"
+2. **Teste Manual:** Acessar http://137.131.201.119/stj via browser, clicar em "Download Massivo"
 3. **Habilitar CORS para MCP:** Ou usar autenticacao por token/cookie para testes E2E
 
 ---

@@ -2,7 +2,7 @@
 
 **Objetivo:** Securizar o deploy atual adicionando autenticacao e fechando endpoints expostos.
 
-**VM:** 64.181.162.38 | **SSH:** `ssh -i ~/.ssh/oci_lw opc@64.181.162.38`
+**VM:** 137.131.201.119 | **SSH:** `ssh -i ~/.ssh/oci_lw opc@137.131.201.119`
 
 ---
 
@@ -94,20 +94,20 @@ VITE_SENTRY_DSN=https://xxx@xxx.ingest.sentry.io/xxx
 
 ```bash
 # 1. Atualizar docker-compose.yml na VM (git pull ou editar)
-ssh -i ~/.ssh/oci_lw opc@64.181.162.38 "cd ~/lex-vector && git pull"
+ssh -i ~/.ssh/oci_lw opc@137.131.201.119 "cd ~/lex-vector && git pull"
 
 # 2. Rebuild e restart
-ssh -i ~/.ssh/oci_lw opc@64.181.162.38 "cd ~/lex-vector/legal-workbench && sudo docker compose up -d --force-recreate reverse-proxy frontend-react"
+ssh -i ~/.ssh/oci_lw opc@137.131.201.119 "cd ~/lex-vector/legal-workbench && sudo docker compose up -d --force-recreate reverse-proxy frontend-react"
 ```
 
 ---
 
 ## Verificacao
 
-1. Acessar http://64.181.162.38/ - deve pedir usuario/senha
+1. Acessar http://137.131.201.119/ - deve pedir usuario/senha
 2. Testar login com PGR/Chicago00@
-3. Acessar http://64.181.162.38:8080 - deve dar timeout/connection refused
-4. Testar APIs: `curl http://64.181.162.38/api/stj/health` (APIs ficam sem auth para integracao)
+3. Acessar http://137.131.201.119:8080 - deve dar timeout/connection refused
+4. Testar APIs: `curl http://137.131.201.119/api/stj/health` (APIs ficam sem auth para integracao)
 
 ---
 

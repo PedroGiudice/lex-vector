@@ -2,7 +2,7 @@ import { test, expect, Page } from '@playwright/test';
 
 test.describe('Doc Assembler E2E Tests', () => {
   test.setTimeout(60000); // Increase timeout to 60 seconds
-  const baseURL = 'http://PGR:Chicago00%40@64.181.162.38/doc-assembler';
+  const baseURL = 'http://PGR:Chicago00%40@137.131.201.119/doc-assembler';
   let page: Page;
   let consoleErrors: string[] = [];
 
@@ -23,7 +23,7 @@ test.describe('Doc Assembler E2E Tests', () => {
   });
 
   test('TEST 1: PAGE LOAD', async () => {
-    // 1. Navigate to http://PGR:Chicago00%40@64.181.162.38/doc-assembler (handled in beforeEach)
+    // 1. Navigate to http://PGR:Chicago00%40@137.131.201.119/doc-assembler (handled in beforeEach)
     // 2. Wait for page to fully load (3-5 seconds)
     await page.waitForTimeout(3000); // Wait for 3 seconds
 

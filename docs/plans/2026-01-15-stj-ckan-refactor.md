@@ -1060,37 +1060,37 @@ EOF
 **Step 1: Sync changes to Oracle Cloud**
 
 ```bash
-rsync -avz legal-workbench/ferramentas/stj-dados-abertos/ opc@64.181.162.38:/home/opc/lex-vector/legal-workbench/ferramentas/stj-dados-abertos/
+rsync -avz legal-workbench/ferramentas/stj-dados-abertos/ opc@137.131.201.119:/home/opc/lex-vector/legal-workbench/ferramentas/stj-dados-abertos/
 ```
 
 **Step 2: Rebuild and restart container**
 
 ```bash
-ssh opc@64.181.162.38 "cd /home/opc/lex-vector/legal-workbench && docker compose build api-stj && docker compose up -d api-stj"
+ssh opc@137.131.201.119 "cd /home/opc/lex-vector/legal-workbench && docker compose build api-stj && docker compose up -d api-stj"
 ```
 
 **Step 3: Verify health**
 
 ```bash
-ssh opc@64.181.162.38 "curl -s http://localhost/api/stj/health | jq"
+ssh opc@137.131.201.119 "curl -s http://localhost/api/stj/health | jq"
 ```
 
 **Step 4: Test sync with CKAN**
 
 ```bash
-ssh opc@64.181.162.38 "curl -X POST http://localhost/api/stj/api/v1/sync -H 'Content-Type: application/json' -d '{\"orgaos\": [\"primeira_turma\"], \"dias\": 30}'"
+ssh opc@137.131.201.119 "curl -X POST http://localhost/api/stj/api/v1/sync -H 'Content-Type: application/json' -d '{\"orgaos\": [\"primeira_turma\"], \"dias\": 30}'"
 ```
 
 **Step 5: Check sync status**
 
 ```bash
-ssh opc@64.181.162.38 "curl -s http://localhost/api/stj/api/v1/sync/status | jq"
+ssh opc@137.131.201.119 "curl -s http://localhost/api/stj/api/v1/sync/status | jq"
 ```
 
 **Step 6: Verify data in database**
 
 ```bash
-ssh opc@64.181.162.38 "curl -s 'http://localhost/api/stj/api/v1/stats' | jq"
+ssh opc@137.131.201.119 "curl -s 'http://localhost/api/stj/api/v1/stats' | jq"
 ```
 
 ---

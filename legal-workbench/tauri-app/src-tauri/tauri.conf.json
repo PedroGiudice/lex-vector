@@ -21,7 +21,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; connect-src 'self' http://64.181.162.38 https://*.lexvector.com.br"
+      "csp": "default-src 'self'; connect-src 'self' http://137.131.201.119 https://*.lexvector.com.br"
     }
   },
   "bundle": {

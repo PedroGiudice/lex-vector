@@ -44,7 +44,7 @@ The agent restricts searches to official Brazilian court domains:
 When the user invokes this command, execute:
 
 ```bash
-REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || echo "/home/cmr-auto/claude-work/repos/lex-vector")
+REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || echo "/home/opc/claude-work/repos/lex-vector")
 cd "$REPO_ROOT/adk-agents/jurisprudence_agent" && source .venv/bin/activate && python agent.py "$ARGUMENTS"
 ```
 
@@ -52,13 +52,13 @@ If `$ARGUMENTS` is empty, ask the user for a legal research topic in Portuguese.
 
 If `$ARGUMENTS` is `--check`, run:
 ```bash
-REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || echo "/home/cmr-auto/claude-work/repos/lex-vector")
+REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || echo "/home/opc/claude-work/repos/lex-vector")
 cd "$REPO_ROOT/adk-agents/jurisprudence_agent" && source .venv/bin/activate && python -c "from agent import JurisprudenceAgent; print('OK')"
 ```
 
 If `$ARGUMENTS` is `--help`, show available courts:
 ```bash
-REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || echo "/home/cmr-auto/claude-work/repos/lex-vector")
+REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || echo "/home/opc/claude-work/repos/lex-vector")
 cd "$REPO_ROOT/adk-agents/jurisprudence_agent" && source .venv/bin/activate && python agent.py
 ```
 

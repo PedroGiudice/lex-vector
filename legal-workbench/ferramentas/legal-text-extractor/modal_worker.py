@@ -11,6 +11,7 @@ Setup:
 
 Usage (CLI):
     modal run modal_worker.py --pdf-path /path/to/document.pdf
+    modal run modal_worker.py --pdf-path /path/to/document.pdf --polish  # Add Gemini cleanup
 
 Usage (API):
     from modal_worker import extract_pdf
@@ -21,6 +22,44 @@ Performance: 3-5x faster than A10G for Marker extraction
 """
 
 import modal
+import re
+
+
+# =============================================================================
+# LOCAL CLEANUP (runs instantly, no external API)
+# =============================================================================
+
+def script_cleanup(text: str) -> str:
+    """
+    Fast regex-based cleanup. Removes known Marker artifacts.
+    Runs in ~0.1s for large documents.
+    """
+    # Remove image references: ![](path)
+    text = re.sub(r'!\[\]\([^)]+\)\s*', '', text)
+
+    # Remove page markers: {123}---
+    text = re.sub(r'\{?\d+\}?-{2,}\s*', '', text)
+
+    # Remove standalone page numbers: {123}
+    text = re.sub(r'^\{\d+\}\s*$', '', text, flags=re.MULTILINE)
+
+    # Replace <br> with newline
+    text = re.sub(r'<br\s*/?>', '\n', text, flags=re.IGNORECASE)
+
+    # Remove excessive blank lines (more than 2)
+    text = re.sub(r'\n{4,}', '\n\n\n', text)
+
+    # Remove trailing whitespace on lines
+    text = re.sub(r'[ \t]+$', '', text, flags=re.MULTILINE)
+
+    # Remove repeated dashes (separators)
+    text = re.sub(r'-{10,}', '', text)
+
+    # Fix common OCR spacing issues
+    text = re.sub(r'R\s*\$\s*', 'R$ ', text)  # Fix R$ spacing
+    text = re.sub(r'BRL\s+', 'BRL ', text)     # Fix BRL spacing
+
+    return text.strip()
 
 # Define the Modal app
 app = modal.App("lw-marker-extractor")
@@ -123,6 +162,9 @@ def extract_pdf(pdf_bytes: bytes, force_ocr: bool = False) -> dict:
 
         print(f"Extraction complete: {len(text):,} chars, {pages} pages in {convert_time:.1f}s")
 
+        # Persist cache to volume
+        model_cache.commit()
+
         return {
             "text": text,
             "pages": pages,
@@ -160,6 +202,10 @@ def warmup_models():
 
     print("Warming up Marker models...")
     models = create_model_dict()
+
+    # Persist cache to volume
+    model_cache.commit()
+
     print("Models cached successfully!")
     return {"status": "ok", "models_loaded": len(models)}
 
@@ -186,7 +232,14 @@ def health_check():
 
 
 @app.local_entrypoint()
-def main(pdf_path: str = None, warmup: bool = False, health: bool = False):
+def main(
+    pdf_path: str = None,
+    output: str = None,
+    warmup: bool = False,
+    health: bool = False,
+    raw: bool = False,
+    polish: bool = False,
+):
     """
     CLI entrypoint for testing.
 
@@ -194,7 +247,12 @@ def main(pdf_path: str = None, warmup: bool = False, health: bool = False):
         modal run modal_worker.py --health
         modal run modal_worker.py --warmup
         modal run modal_worker.py --pdf-path /path/to/doc.pdf
+        modal run modal_worker.py --pdf-path /path/to/doc.pdf --raw      # No cleanup
+        modal run modal_worker.py --pdf-path /path/to/doc.pdf --polish   # Add Gemini polish
     """
+    import os
+    import time
+
     if health:
         result = health_check.remote()
         print(f"Health check: {result}")
@@ -212,16 +270,84 @@ def main(pdf_path: str = None, warmup: bool = False, health: bool = False):
         print(f"Sending {len(pdf_bytes):,} bytes to Modal...")
         result = extract_pdf.remote(pdf_bytes)
 
+        text = result['text']
+        raw_chars = len(text)
+
         print("\n" + "=" * 60)
-        print(f"RESULT")
+        print("EXTRACTION RESULT")
         print("=" * 60)
         print(f"Pages: {result['pages']} ({result['native_pages']} native, {result['ocr_pages']} OCR)")
-        print(f"Chars: {result['chars']:,}")
+        print(f"Raw chars: {raw_chars:,}")
         print(f"Time: {result['processing_time']}s (convert: {result['convert_time']}s)")
+
+        # Step 2: Script cleanup (default, unless --raw)
+        if not raw:
+            print("\n" + "=" * 60)
+            print("SCRIPT CLEANUP")
+            print("=" * 60)
+            cleanup_start = time.time()
+            text = script_cleanup(text)
+            cleanup_time = time.time() - cleanup_start
+            print(f"Cleaned: {raw_chars:,} -> {len(text):,} chars ({cleanup_time:.2f}s)")
+            print(f"Removed: {raw_chars - len(text):,} chars ({(1 - len(text)/raw_chars)*100:.1f}%)")
+
+        # Step 3: Gemini polish (optional, with --polish)
+        if polish:
+            print("\n" + "=" * 60)
+            print("GEMINI POLISH")
+            print("=" * 60)
+            gemini_key = os.environ.get("GEMINI_API_KEY")
+            if not gemini_key:
+                print("ERROR: GEMINI_API_KEY not set. Skipping polish.")
+            else:
+                try:
+                    from gemini_postprocess import process_document
+                    import tempfile
+
+                    # Write temp file for Gemini processing
+                    with tempfile.NamedTemporaryFile(mode='w', suffix='.md', delete=False) as f:
+                        f.write(text)
+                        temp_path = f.name
+
+                    temp_out = temp_path.replace('.md', '_polished.md')
+                    stats = process_document(temp_path, temp_out)
+
+                    with open(temp_out, 'r') as f:
+                        text = f.read()
+
+                    os.unlink(temp_path)
+                    os.unlink(temp_out)
+
+                    print(f"Polished: {stats['input_chars']:,} -> {stats['output_chars']:,} chars")
+                    print(f"Time: {stats['time_seconds']}s")
+                except ImportError:
+                    print("ERROR: gemini_postprocess.py not found. Skipping polish.")
+                except Exception as e:
+                    print(f"ERROR: Gemini polish failed: {e}")
+
+        # Save output to file
+        if output:
+            output_path = output
+        else:
+            # Default: same name as PDF but with .md extension
+            output_path = os.path.splitext(pdf_path)[0] + "_extracted.md"
+
+        with open(output_path, "w", encoding="utf-8") as f:
+            f.write(text)
+
+        print("\n" + "=" * 60)
+        print("OUTPUT")
+        print("=" * 60)
+        print(f"File: {output_path}")
+        print(f"Size: {os.path.getsize(output_path):,} bytes")
+        print(f"Chars: {len(text):,}")
+
         print("\nText preview:")
-        print(result['text'][:500] + "..." if len(result['text']) > 500 else result['text'])
+        print(text[:500] + "..." if len(text) > 500 else text)
     else:
         print("Usage:")
         print("  modal run modal_worker.py --health")
         print("  modal run modal_worker.py --warmup")
         print("  modal run modal_worker.py --pdf-path /path/to/document.pdf")
+        print("  modal run modal_worker.py --pdf-path /path/to/document.pdf --raw     # No cleanup")
+        print("  modal run modal_worker.py --pdf-path /path/to/document.pdf --polish  # Gemini polish")
