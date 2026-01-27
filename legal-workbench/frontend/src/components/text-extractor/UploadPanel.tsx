@@ -1,6 +1,7 @@
 import React, { useCallback, useState } from 'react';
-import { Upload, FileText, X, Sparkles } from 'lucide-react';
+import { Upload, FileText, X, Sparkles, FolderOpen } from 'lucide-react';
 import { useTextExtractorStore } from '@/store/textExtractorStore';
+import { isTauri, selectPdfNative } from '@/lib/tauri';
 import clsx from 'clsx';
 
 export function UploadPanel() {
@@ -51,6 +52,14 @@ export function UploadPanel() {
     },
     [setFile]
   );
+
+  const handleNativeSelect = useCallback(async () => {
+    if (isDisabled) return;
+    const selectedFile = await selectPdfNative();
+    if (selectedFile) {
+      setFile(selectedFile);
+    }
+  }, [isDisabled, setFile]);
 
   const handleClearFile = useCallback(() => {
     setFile(null);
@@ -104,6 +113,17 @@ export function UploadPanel() {
                 <span className="te-comment">| // Drag file or click to browse</span>
               </div>
               <p className="te-hint">Supported: .pdf (max 50MB)</p>
+              {isTauri() && (
+                <button
+                  type="button"
+                  onClick={handleNativeSelect}
+                  disabled={isDisabled}
+                  className="te-btn-native"
+                >
+                  <FolderOpen size={16} />
+                  <span>Selecionar arquivo</span>
+                </button>
+              )}
             </div>
           </div>
         ) : (

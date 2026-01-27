@@ -33,3 +33,32 @@ export function buildApiUrl(path: string): string {
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
   return `${base}${normalizedPath}`;
 }
+
+/**
+ * Open native file picker for PDF selection (Tauri only)
+ * Returns null if not in Tauri or user cancels
+ */
+export async function selectPdfNative(): Promise<File | null> {
+  if (!isTauri()) return null;
+
+  try {
+    const { open } = await import('@tauri-apps/plugin-dialog');
+    const { readFile } = await import('@tauri-apps/plugin-fs');
+
+    const path = await open({
+      multiple: false,
+      filters: [{ name: 'PDF', extensions: ['pdf'] }],
+      title: 'Selecione o PDF',
+    });
+
+    if (path && typeof path === 'string') {
+      const content = await readFile(path);
+      const filename = path.split('/').pop() || 'document.pdf';
+      return new File([content], filename, { type: 'application/pdf' });
+    }
+  } catch (error) {
+    console.error('Native file picker error:', error);
+  }
+
+  return null;
+}
