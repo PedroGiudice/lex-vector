@@ -44,6 +44,16 @@ export function useAutoUpdate(): UseAutoUpdateReturn {
           date: update.date ?? '',
           body: update.body ?? '',
         });
+        // Show native notification
+        try {
+          const { sendNotification } = await import('@tauri-apps/plugin-notification');
+          sendNotification({
+            title: 'Atualizacao disponivel',
+            body: `Legal Workbench v${update.version} esta disponivel. Reinicie para atualizar.`,
+          });
+        } catch {
+          // Notification permission may not be granted
+        }
       } else {
         setUpdateInfo(null);
       }
