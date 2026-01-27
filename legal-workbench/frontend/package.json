@@ -5,6 +5,9 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
+    "tauri:dev": "vite --port 1420",
+    "tauri": "tauri",
+    "tauri:build": "tauri build",
     "lint": "eslint src --ext .ts,.tsx --fix",
     "lint:check": "eslint src --ext .ts,.tsx --report-unused-disable-directives --max-warnings 0",
     "format": "prettier --write \"src/**/*.{ts,tsx,json,css}\"",
@@ -31,6 +34,12 @@
     ]
   },
   "dependencies": {
+    "@tauri-apps/api": "^2",
+    "@tauri-apps/plugin-dialog": "^2.6.0",
+    "@tauri-apps/plugin-fs": "^2.4.5",
+    "@tauri-apps/plugin-notification": "^2.3.3",
+    "@tauri-apps/plugin-opener": "^2",
+    "@tauri-apps/plugin-store": "^2.4.2",
     "@sentry/react": "^10.34.0",
     "@tiptap/core": "^3.15.3",
     "@tiptap/extension-document": "^3.15.3",
@@ -48,6 +57,7 @@
     "zustand": "^4.4.7"
   },
   "devDependencies": {
+    "@tauri-apps/cli": "^2",
     "@playwright/test": "^1.57.0",
     "@testing-library/jest-dom": "^6.1.5",
     "@testing-library/react": "^14.1.2",

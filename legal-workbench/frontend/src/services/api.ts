@@ -6,8 +6,9 @@ import type {
   PatternMatch,
   TemplateDetails,
 } from '@/types';
+import { getApiBaseUrl } from '@/lib/tauri';
 
-const API_BASE = '/api/doc/api/v1/builder';
+const API_BASE = `${getApiBaseUrl()}/api/doc/api/v1/builder`;
 
 class ApiService {
   private client: AxiosInstance;
@@ -134,7 +135,7 @@ class ApiService {
     message: string;
   }> {
     // Use main API endpoint, not builder
-    const response = await axios.post('/api/doc/api/v1/assemble', data);
+    const response = await axios.post(`${getApiBaseUrl()}/api/doc/api/v1/assemble`, data);
     return response.data;
   }
 }
