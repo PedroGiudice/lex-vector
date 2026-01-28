@@ -247,7 +247,7 @@ def extract_with_pdfplumber(pdf_path: str, options: Dict[str, Any]) -> tuple[str
         raise
 
 
-def extract_with_modal(pdf_path: str, options: Dict[str, Any]) -> tuple[str, int, Dict]:
+def extract_with_modal(pdf_path: str, options: Dict[str, Any], gpu_mode: str = "auto") -> tuple[str, int, Dict]:
     """
     Extract text using Modal GPU-accelerated Marker.
 
@@ -255,6 +255,11 @@ def extract_with_modal(pdf_path: str, options: Dict[str, Any]) -> tuple[str, int
     - MODAL_ENABLED=true
     - MODAL_TOKEN_ID and MODAL_TOKEN_SECRET set
     - modal package installed
+
+    Args:
+        pdf_path: Path to PDF file
+        options: Extraction options
+        gpu_mode: GPU mode - 'auto', 'economy' (multi-T4), or 'performance' (A100)
 
     Falls back to local Marker if Modal fails.
     """
@@ -268,6 +273,7 @@ def extract_with_modal(pdf_path: str, options: Dict[str, Any]) -> tuple[str, int
         import modal
 
         logger.info("Starting Modal GPU extraction for: %s", pdf_path)
+        logger.info("GPU mode: %s", gpu_mode)
 
         # Read PDF file
         with open(pdf_path, 'rb') as f:
@@ -276,29 +282,40 @@ def extract_with_modal(pdf_path: str, options: Dict[str, Any]) -> tuple[str, int
         pdf_size_mb = len(pdf_bytes) / (1024 * 1024)
         logger.info("PDF size: %.2f MB, sending to Modal GPU...", pdf_size_mb)
 
-        # Get reference to deployed Modal function (Modal 1.0+ API)
-        # from_name is lazy - hydrates on first use (remote call)
-        extract_fn = modal.Function.from_name("lw-marker-extractor", "extract_pdf")
+        # Use extract_smart which respects gpu_mode
+        extract_fn = modal.Function.from_name("lw-marker-extractor", "extract_smart")
 
-        # Call Modal function (blocking)
+        # Call Modal function (blocking) with gpu_mode
         start_time = time.time()
-        result = extract_fn.remote(pdf_bytes, force_ocr=False)
+        result = extract_fn.remote(pdf_bytes, force_ocr=False, mode=gpu_mode)
         modal_time = time.time() - start_time
 
         logger.info("Modal extraction completed in %.2fs", modal_time)
         logger.info("  Pages: %d (%d native, %d OCR)",
                    result["pages"], result["native_pages"], result["ocr_pages"])
         logger.info("  Characters: %d", result["chars"])
+        logger.info("  Mode used: %s", result.get("mode", "unknown"))
+
+        # Determine GPU type based on mode used
+        mode_used = result.get("mode", "unknown")
+        gpu_type = "T4" if "t4" in mode_used.lower() or "parallel" in mode_used.lower() else "A100"
 
         extraction_metadata = {
             "ocr_applied": result["ocr_pages"] > 0,
             "file_size_bytes": len(pdf_bytes),
-            "modal_gpu": "A100",
-            "modal_processing_time": result["processing_time"],
-            "modal_convert_time": result["convert_time"],
+            "modal_gpu": gpu_type,
+            "modal_mode": mode_used,
+            "modal_processing_time": result.get("processing_time", result.get("total_time")),
             "native_pages": result["native_pages"],
             "ocr_pages": result["ocr_pages"],
+            "gpu_mode_requested": gpu_mode,
         }
+
+        # Add parallel-specific stats if available
+        if "workers_used" in result:
+            extraction_metadata["workers_used"] = result["workers_used"]
+        if "estimated_cost_usd" in result:
+            extraction_metadata["estimated_cost_usd"] = result["estimated_cost_usd"]
 
         return result["text"], result["pages"], extraction_metadata
 
@@ -379,7 +396,8 @@ def extract_pdf(
     job_id: str,
     pdf_path: str,
     engine: str,
-    use_gemini: bool,
+    gpu_mode: str = "auto",
+    use_gemini: bool = False,
     options: Optional[Dict[str, Any]] = None
 ):
     """
@@ -389,6 +407,7 @@ def extract_pdf(
         job_id: Unique job identifier
         pdf_path: Path to PDF file
         engine: Extraction engine ('marker' or 'pdfplumber')
+        gpu_mode: GPU mode for Modal ('auto', 'economy', 'performance')
         use_gemini: Whether to use Gemini for post-processing
         options: Engine-specific options
     """
@@ -405,9 +424,9 @@ def extract_pdf(
             started_at=datetime.utcnow().isoformat(),
             progress=0.0
         )
-        save_job_log(job_id, "INFO", f"Job started with engine: {engine}")
+        save_job_log(job_id, "INFO", f"Job started with engine: {engine}, gpu_mode: {gpu_mode}")
 
-        logger.info("Processing job %s with engine: %s", job_id, engine)
+        logger.info("Processing job %s with engine: %s, gpu_mode: %s", job_id, engine, gpu_mode)
 
         # Validate PDF exists
         if not os.path.exists(pdf_path):
@@ -421,8 +440,13 @@ def extract_pdf(
         if engine == "marker":
             # Use Modal GPU when enabled (NO fallback - VM ARM cannot handle local Marker)
             if MODAL_ENABLED:
-                save_job_log(job_id, "INFO", "Using Modal GPU acceleration (A100 80GB)")
-                full_text, pages_processed, metadata = extract_with_modal(pdf_path, options)
+                gpu_mode_display = {
+                    "auto": "auto-select",
+                    "economy": "multi-T4 parallel",
+                    "performance": "A100 80GB"
+                }.get(gpu_mode, gpu_mode)
+                save_job_log(job_id, "INFO", f"Using Modal GPU ({gpu_mode_display})")
+                full_text, pages_processed, metadata = extract_with_modal(pdf_path, options, gpu_mode)
                 metadata["extraction_mode"] = "modal_gpu"
             else:
                 # CPU-only mode (requires high-memory server, not suitable for ARM VM)

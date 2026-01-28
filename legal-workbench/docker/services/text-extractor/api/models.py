@@ -11,6 +11,13 @@ class EngineType(str, Enum):
     PDFPLUMBER = "pdfplumber"
 
 
+class GpuMode(str, Enum):
+    """GPU mode for Modal extraction."""
+    AUTO = "auto"  # Auto-select based on PDF size
+    ECONOMY = "economy"  # Multi-T4 parallel (cheaper)
+    PERFORMANCE = "performance"  # A100 single (faster for small PDFs)
+
+
 class JobStatus(str, Enum):
     """Job processing status."""
     QUEUED = "queued"
@@ -25,6 +32,10 @@ class ExtractionRequest(BaseModel):
         default=EngineType.MARKER,
         description="Extraction engine to use"
     )
+    gpu_mode: GpuMode = Field(
+        default=GpuMode.AUTO,
+        description="GPU mode for Modal extraction (auto/economy/performance)"
+    )
     use_gemini: bool = Field(
         default=False,
         description="Use Gemini for post-processing"
@@ -38,6 +49,7 @@ class ExtractionRequest(BaseModel):
         json_schema_extra = {
             "example": {
                 "engine": "marker",
+                "gpu_mode": "auto",
                 "use_gemini": False,
                 "options": {
                     "low_memory_mode": True

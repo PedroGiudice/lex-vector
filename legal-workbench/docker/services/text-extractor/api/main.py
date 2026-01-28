@@ -43,6 +43,7 @@ from .models import (
     HealthResponse,
     JobStatus,
     EngineType,
+    GpuMode,
     LogEntry,
     JobLogsResponse
 )
@@ -233,6 +234,7 @@ async def extract_text(
     file: Optional[UploadFile] = File(None),
     file_base64: Optional[str] = Form(None),
     engine: EngineType = Form(EngineType.MARKER),
+    gpu_mode: GpuMode = Form(GpuMode.AUTO),
     use_gemini: bool = Form(False),
     options: Optional[str] = Form(None)
 ):
@@ -296,7 +298,7 @@ async def extract_text(
         # Queue Celery task
         from celery_worker import extract_pdf
         task = extract_pdf.apply_async(
-            args=[job_id, temp_path, engine.value, use_gemini, parsed_options],
+            args=[job_id, temp_path, engine.value, gpu_mode.value, use_gemini, parsed_options],
             task_id=job_id
         )
 
@@ -306,6 +308,7 @@ async def extract_text(
         logger.info("Extraction job submitted", extra={
             "job_id": job_id,
             "engine": engine.value,
+            "gpu_mode": gpu_mode.value,
             "use_gemini": use_gemini
         })
 
