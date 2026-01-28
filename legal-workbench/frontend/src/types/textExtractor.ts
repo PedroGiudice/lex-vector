@@ -1,6 +1,7 @@
 // Text Extractor Types
 
 export type ExtractionEngine = 'marker' | 'pdfplumber';
+export type GpuMode = 'auto' | 'economy' | 'performance';
 export type ExtractionStatus =
   | 'idle'
   | 'preflight'
@@ -26,6 +27,7 @@ export interface Margins {
 
 export interface ExtractOptions {
   engine: ExtractionEngine;
+  gpuMode: GpuMode;
   useGemini: boolean;
   margins: Margins;
   ignoreTerms: string[];
@@ -94,6 +96,7 @@ export interface TextExtractorState {
 
   // Config
   engine: ExtractionEngine;
+  gpuMode: GpuMode;
   useGemini: boolean;
   margins: Margins;
   ignoreTerms: string[];
@@ -112,6 +115,7 @@ export interface TextExtractorState {
   // Actions
   setFile: (file: File | null) => void;
   setEngine: (engine: ExtractionEngine) => void;
+  setGpuMode: (mode: GpuMode) => void;
   setUseGemini: (useGemini: boolean) => void;
   setMargins: (margins: Margins) => void;
   setIgnoreTerms: (terms: string[]) => void;

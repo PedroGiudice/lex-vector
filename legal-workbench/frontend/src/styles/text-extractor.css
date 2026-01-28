@@ -578,6 +578,20 @@
   margin-left: 16px;
 }
 
+.te-gpu-options {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-left: 16px;
+}
+
+.te-radio-description {
+  font-size: 0.75rem;
+  color: var(--te-text-secondary, #888);
+  margin: 0 0 0.5rem 1.5rem;
+  font-style: italic;
+}
+
 .te-divider {
   height: 1px;
   background: var(--te-border-default);

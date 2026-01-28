@@ -1,6 +1,12 @@
 import { create } from 'zustand';
 import { textExtractorApi } from '@/services/textExtractorApi';
-import type { FileInfo, Margins, LogEntry, TextExtractorState } from '@/types/textExtractor';
+import type {
+  FileInfo,
+  Margins,
+  LogEntry,
+  TextExtractorState,
+  GpuMode,
+} from '@/types/textExtractor';
 
 // LGPD preset terms
 const LGPD_PRESET_TERMS = [
@@ -47,6 +53,7 @@ export const useTextExtractorStore = create<TextExtractorState>((set, get) => ({
 
   // Config
   engine: 'marker',
+  gpuMode: 'auto' as GpuMode,
   useGemini: false,
   margins: { ...DEFAULT_MARGINS },
   ignoreTerms: [...LGPD_PRESET_TERMS],
@@ -91,6 +98,8 @@ export const useTextExtractorStore = create<TextExtractorState>((set, get) => ({
 
   setEngine: (engine) => set({ engine }),
 
+  setGpuMode: (gpuMode) => set({ gpuMode }),
+
   setUseGemini: (useGemini) => set({ useGemini }),
 
   setMargins: (margins) => set({ margins }),
@@ -127,7 +136,7 @@ export const useTextExtractorStore = create<TextExtractorState>((set, get) => ({
   },
 
   submitJob: async () => {
-    const { file, engine, useGemini, margins, ignoreTerms, addLog } = get();
+    const { file, engine, gpuMode, useGemini, margins, ignoreTerms, addLog } = get();
 
     if (!file) {
       addLog('Error: No file selected', 'error');
@@ -136,11 +145,12 @@ export const useTextExtractorStore = create<TextExtractorState>((set, get) => ({
 
     set({ status: 'processing', progress: 0 });
     addLog(`Submitting extraction job...`, 'info');
-    addLog(`Engine: ${engine}${useGemini ? ' + Gemini enhancement' : ''}`, 'info');
+    addLog(`Engine: ${engine}${useGemini ? ' + Gemini' : ''} | GPU: ${gpuMode}`, 'info');
 
     try {
       const response = await textExtractorApi.submitJob(file, {
         engine,
+        gpuMode,
         useGemini,
         margins,
         ignoreTerms,

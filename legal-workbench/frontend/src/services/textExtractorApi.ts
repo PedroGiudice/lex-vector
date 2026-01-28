@@ -62,6 +62,7 @@ export const textExtractorApi = {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('engine', options.engine);
+    formData.append('gpu_mode', options.gpuMode);
     formData.append('use_gemini', String(options.useGemini));
 
     // Send options as JSON string

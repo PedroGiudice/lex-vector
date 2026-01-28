@@ -5,7 +5,8 @@ import { IgnoreTermsList } from './IgnoreTermsList';
 import { Play, Loader2 } from 'lucide-react';
 
 export function ConfigPanel() {
-  const { engine, setEngine, status, file, submitJob } = useTextExtractorStore();
+  const { engine, setEngine, gpuMode, setGpuMode, status, file, submitJob } =
+    useTextExtractorStore();
 
   const isDisabled = status === 'processing';
   const canSubmit = file && (status === 'configuring' || status === 'preflight');
@@ -55,15 +56,71 @@ export function ConfigPanel() {
             </label>
           </div>
           <label className="te-checkbox-label te-checkbox-indent">
-            <input
-              type="checkbox"
-              checked={true}
-              disabled={true}
-              className="te-checkbox"
-            />
+            <input type="checkbox" checked={true} disabled={true} className="te-checkbox" />
             <span>Auto-detect OCR</span>
           </label>
         </div>
+
+        {/* GPU Mode Selection - only show when engine is marker */}
+        {engine === 'marker' && (
+          <>
+            <div className="te-divider" />
+            <div className="te-section">
+              <div className="te-subsection-header">
+                <span className="te-command">&gt; GPU_MODE</span>
+              </div>
+              <div className="te-gpu-options">
+                <label className="te-radio-label">
+                  <input
+                    type="radio"
+                    name="gpuMode"
+                    value="auto"
+                    checked={gpuMode === 'auto'}
+                    onChange={() => setGpuMode('auto')}
+                    disabled={isDisabled}
+                    className="te-radio"
+                  />
+                  <span className="te-radio-text">Automatico</span>
+                </label>
+                <p className="te-radio-description">
+                  Seleciona o melhor modo baseado no tamanho do PDF
+                </p>
+
+                <label className="te-radio-label">
+                  <input
+                    type="radio"
+                    name="gpuMode"
+                    value="economy"
+                    checked={gpuMode === 'economy'}
+                    onChange={() => setGpuMode('economy')}
+                    disabled={isDisabled}
+                    className="te-radio"
+                  />
+                  <span className="te-radio-text">Economia</span>
+                </label>
+                <p className="te-radio-description">
+                  Multi-T4 paralelo - mais barato para PDFs grandes
+                </p>
+
+                <label className="te-radio-label">
+                  <input
+                    type="radio"
+                    name="gpuMode"
+                    value="performance"
+                    checked={gpuMode === 'performance'}
+                    onChange={() => setGpuMode('performance')}
+                    disabled={isDisabled}
+                    className="te-radio"
+                  />
+                  <span className="te-radio-text">Performance</span>
+                </label>
+                <p className="te-radio-description">
+                  A100 dedicada - mais rapido para PDFs pequenos
+                </p>
+              </div>
+            </div>
+          </>
+        )}
 
         <div className="te-divider" />
 

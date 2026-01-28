@@ -56,6 +56,8 @@ model_cache = modal.Volume.from_name("marker-model-cache", create_if_missing=Tru
 
 # Constants
 DEFAULT_CHUNK_SIZE = 100  # Pages per chunk for large PDFs
+PARALLEL_THRESHOLD = 300  # Pages above this use multi-T4 parallel
+MAX_PARALLEL_WORKERS = 8  # Modal limit for concurrent GPU containers
 
 
 @app.function(
@@ -422,6 +424,339 @@ def extract_pdf_chunked(
 
 @app.function(
     image=image,
+    gpu="T4",  # 16GB VRAM - economia mode
+    timeout=1800,  # 30 min per chunk
+    volumes={"/cache": model_cache},
+)
+def extract_chunk_t4(pdf_bytes: bytes, page_range: list[int], chunk_id: int, force_ocr: bool = False) -> dict:
+    """
+    Extract text from a specific page range using T4 GPU.
+
+    This function is designed to be called via .map() for parallel processing.
+    Each invocation runs on a separate T4 container.
+
+    Args:
+        pdf_bytes: Raw PDF file content
+        page_range: List of 0-indexed page numbers to process
+        chunk_id: Identifier for this chunk (for ordering results)
+        force_ocr: Force OCR on all pages
+
+    Returns:
+        dict with chunk_id, text, pages processed, and timing info
+    """
+    import os
+    import time
+    import tempfile
+
+    os.environ["HF_HOME"] = "/cache/huggingface"
+    os.environ["TORCH_HOME"] = "/cache/torch"
+    os.environ["MARKER_CACHE_DIR"] = "/cache/marker"
+
+    from marker.converters.pdf import PdfConverter
+    from marker.models import create_model_dict
+    from marker.output import text_from_rendered
+
+    start_time = time.time()
+
+    # Save PDF to temp file
+    with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as f:
+        f.write(pdf_bytes)
+        pdf_path = f.name
+
+    try:
+        # Load models
+        print(f"[Chunk {chunk_id}] Loading models for pages {page_range[0]+1}-{page_range[-1]+1}...")
+        models = create_model_dict()
+        model_time = time.time() - start_time
+        print(f"[Chunk {chunk_id}] Models loaded in {model_time:.1f}s")
+
+        # Configure converter
+        config = {
+            "output_format": "markdown",
+            "paginate_output": True,
+            "disable_image_extraction": True,
+            "force_ocr": force_ocr,
+            "common_element_threshold": 0.4,
+            "common_element_min_blocks": 5,
+            "drop_repeated_text": True,
+            "OcrBuilder_recognition_batch_size": 32,
+            "page_range": page_range,
+        }
+
+        converter = PdfConverter(artifact_dict=models, config=config)
+
+        # Process
+        print(f"[Chunk {chunk_id}] Processing {len(page_range)} pages...")
+        convert_start = time.time()
+        rendered = converter(pdf_path)
+        text, images, metadata = text_from_rendered(rendered)
+        convert_time = time.time() - convert_start
+
+        total_time = time.time() - start_time
+        print(f"[Chunk {chunk_id}] Done: {len(text):,} chars in {convert_time:.1f}s")
+
+        return {
+            "chunk_id": chunk_id,
+            "text": text,
+            "pages": len(page_range),
+            "page_range": [page_range[0], page_range[-1]],
+            "native_pages": metadata.get("native_pages", len(page_range)),
+            "ocr_pages": metadata.get("ocr_pages", 0),
+            "chars": len(text),
+            "model_time": round(model_time, 2),
+            "convert_time": round(convert_time, 2),
+            "total_time": round(total_time, 2),
+        }
+
+    finally:
+        os.unlink(pdf_path)
+
+
+@app.function(
+    image=image,
+    gpu=None,  # Orchestrator - no GPU needed
+    timeout=7200,  # 2 hours for large PDFs
+)
+def extract_pdf_parallel(
+    pdf_bytes: bytes,
+    force_ocr: bool = False,
+    chunk_size: int = DEFAULT_CHUNK_SIZE,
+    max_workers: int = MAX_PARALLEL_WORKERS,
+) -> dict:
+    """
+    Extract text from PDF using multiple T4 GPUs in parallel.
+
+    Splits the PDF into chunks and processes each chunk on a separate T4 container
+    using Modal's .map() for parallel execution. Faster and cheaper than A100 for
+    large PDFs (>300 pages).
+
+    Cost comparison (700 pages, ~50 min total processing):
+    - A100 sequential: ~$2.04 (35 min at $3.50/h)
+    - Multi-T4 parallel: ~$0.55 (7 workers x 8 min at $0.59/h)
+
+    Args:
+        pdf_bytes: Raw PDF file content
+        force_ocr: Force OCR on all pages
+        chunk_size: Pages per chunk (default: 100)
+        max_workers: Maximum parallel workers (default: 8, Modal limit)
+
+    Returns:
+        dict with combined text and detailed stats
+    """
+    import time
+    import tempfile
+    import pdfplumber
+
+    start_time = time.time()
+
+    # Get page count
+    with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as f:
+        f.write(pdf_bytes)
+        pdf_path = f.name
+
+    try:
+        with pdfplumber.open(pdf_path) as pdf:
+            total_pages = len(pdf.pages)
+    finally:
+        import os
+        os.unlink(pdf_path)
+
+    print(f"PDF has {total_pages} pages")
+
+    # Calculate chunks
+    chunks = []
+    for i in range(0, total_pages, chunk_size):
+        chunk_end = min(i + chunk_size, total_pages)
+        chunks.append(list(range(i, chunk_end)))
+
+    # Limit workers
+    actual_workers = min(len(chunks), max_workers)
+    print(f"Processing {total_pages} pages in {len(chunks)} chunks using {actual_workers} parallel T4 GPUs")
+
+    # Prepare arguments for .map()
+    # Each item is a tuple: (pdf_bytes, page_range, chunk_id, force_ocr)
+    map_args = [
+        (pdf_bytes, chunk, idx, force_ocr)
+        for idx, chunk in enumerate(chunks)
+    ]
+
+    # Execute in parallel using starmap
+    print(f"Launching {len(chunks)} parallel extraction jobs...")
+    parallel_start = time.time()
+
+    # Modal .starmap() unpacks each tuple as arguments
+    results = list(extract_chunk_t4.starmap(map_args))
+
+    parallel_time = time.time() - parallel_start
+    print(f"All {len(chunks)} chunks completed in {parallel_time:.1f}s")
+
+    # Sort results by chunk_id to maintain page order
+    results.sort(key=lambda x: x["chunk_id"])
+
+    # Combine text
+    combined_text = "\n\n".join(r["text"] for r in results)
+
+    # Aggregate stats
+    total_native = sum(r["native_pages"] for r in results)
+    total_ocr = sum(r["ocr_pages"] for r in results)
+    total_chars = sum(r["chars"] for r in results)
+
+    # Calculate cost estimate (T4 = $0.59/hour)
+    total_gpu_seconds = sum(r["total_time"] for r in results)
+    estimated_cost = (total_gpu_seconds / 3600) * 0.59
+
+    total_time = time.time() - start_time
+
+    return {
+        "text": combined_text,
+        "pages": total_pages,
+        "native_pages": total_native,
+        "ocr_pages": total_ocr,
+        "chars": total_chars,
+        "processing_time": round(total_time, 2),
+        "parallel_time": round(parallel_time, 2),
+        "workers_used": actual_workers,
+        "chunks": len(chunks),
+        "chunk_size": chunk_size,
+        "mode": "multi-t4-parallel",
+        "estimated_cost_usd": round(estimated_cost, 3),
+        "chunk_stats": [
+            {
+                "chunk_id": r["chunk_id"],
+                "pages": r["pages"],
+                "chars": r["chars"],
+                "time": r["total_time"],
+            }
+            for r in results
+        ],
+    }
+
+
+@app.function(
+    image=image,
+    gpu=None,  # Decision logic only
+    timeout=60,
+)
+def decide_extraction_mode(total_pages: int, mode: str = "auto") -> dict:
+    """
+    Decide the best extraction mode based on page count and user preference.
+
+    Modes:
+    - "auto": Automatic selection based on page count
+    - "economy": Always use multi-T4 parallel (cheapest)
+    - "performance": Always use A100 (fastest for small PDFs)
+
+    Args:
+        total_pages: Total pages in the PDF
+        mode: User-selected mode
+
+    Returns:
+        dict with recommended method and reasoning
+    """
+    if mode == "economy":
+        return {
+            "method": "parallel",
+            "gpu": "T4",
+            "reason": "User selected economy mode (multi-T4 parallel)",
+            "estimated_workers": min((total_pages // DEFAULT_CHUNK_SIZE) + 1, MAX_PARALLEL_WORKERS),
+        }
+
+    if mode == "performance":
+        return {
+            "method": "sequential",
+            "gpu": "A100-80GB",
+            "reason": "User selected performance mode (single A100)",
+            "estimated_workers": 1,
+        }
+
+    # Auto mode: decide based on page count
+    if total_pages > PARALLEL_THRESHOLD:
+        workers = min((total_pages // DEFAULT_CHUNK_SIZE) + 1, MAX_PARALLEL_WORKERS)
+        return {
+            "method": "parallel",
+            "gpu": "T4",
+            "reason": f"PDF has {total_pages} pages (>{PARALLEL_THRESHOLD}), multi-T4 parallel is faster and cheaper",
+            "estimated_workers": workers,
+        }
+    else:
+        return {
+            "method": "sequential",
+            "gpu": "A100-80GB",
+            "reason": f"PDF has {total_pages} pages (<={PARALLEL_THRESHOLD}), A100 is efficient for this size",
+            "estimated_workers": 1,
+        }
+
+
+@app.function(
+    image=image,
+    gpu=None,  # Orchestrator
+    timeout=14400,  # 4 hours max
+)
+def extract_smart(
+    pdf_bytes: bytes,
+    force_ocr: bool = False,
+    mode: str = "auto",
+    chunk_size: int = DEFAULT_CHUNK_SIZE,
+) -> dict:
+    """
+    Smart extraction that automatically chooses the best method.
+
+    This is the recommended entry point for production use. It analyzes the PDF
+    and selects the optimal extraction method (A100 sequential vs multi-T4 parallel).
+
+    Args:
+        pdf_bytes: Raw PDF file content
+        force_ocr: Force OCR on all pages
+        mode: "auto", "economy", or "performance"
+        chunk_size: Pages per chunk for parallel mode
+
+    Returns:
+        dict with extracted text and processing details
+    """
+    import time
+    import tempfile
+    import pdfplumber
+
+    start_time = time.time()
+
+    # Get page count
+    with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as f:
+        f.write(pdf_bytes)
+        pdf_path = f.name
+
+    try:
+        with pdfplumber.open(pdf_path) as pdf:
+            total_pages = len(pdf.pages)
+    finally:
+        import os
+        os.unlink(pdf_path)
+
+    # Decide method
+    decision = decide_extraction_mode.local(total_pages, mode)
+    print(f"Decision: {decision['reason']}")
+
+    # Execute with chosen method
+    if decision["method"] == "parallel":
+        print(f"Using multi-T4 parallel extraction...")
+        result = extract_pdf_parallel.local(
+            pdf_bytes,
+            force_ocr=force_ocr,
+            chunk_size=chunk_size,
+        )
+    else:
+        print(f"Using A100 sequential extraction...")
+        result = extract_pdf.remote(pdf_bytes, force_ocr=force_ocr)
+        result["mode"] = "a100-sequential"
+
+    # Add decision info
+    result["decision"] = decision
+    result["total_time"] = round(time.time() - start_time, 2)
+
+    return result
+
+
+@app.function(
+    image=image,
     gpu="A100-80GB",  # 80GB VRAM - full performance
     timeout=600,  # 10 minutes for initial model download (~1.5GB)
     volumes={"/cache": model_cache},
@@ -473,6 +808,9 @@ def main(
     warmup: bool = False,
     health: bool = False,
     chunked: bool = False,
+    parallel: bool = False,
+    smart: bool = False,
+    mode: str = "auto",
     chunk_size: int = DEFAULT_CHUNK_SIZE,
     count_pages: bool = False,
 ):
@@ -484,8 +822,15 @@ def main(
         modal run modal_worker.py --warmup
         modal run modal_worker.py --pdf-path /path/to/doc.pdf
         modal run modal_worker.py --pdf-path /path/to/doc.pdf --chunked
-        modal run modal_worker.py --pdf-path /path/to/doc.pdf --chunked --chunk-size 50
+        modal run modal_worker.py --pdf-path /path/to/doc.pdf --parallel
+        modal run modal_worker.py --pdf-path /path/to/doc.pdf --smart
+        modal run modal_worker.py --pdf-path /path/to/doc.pdf --smart --mode economy
         modal run modal_worker.py --pdf-path /path/to/doc.pdf --count-pages
+
+    Modes (for --smart):
+        auto: Automatic selection based on page count (default)
+        economy: Always use multi-T4 parallel (cheapest)
+        performance: Always use A100 (fastest for small PDFs)
     """
     if health:
         result = health_check.remote()
@@ -508,8 +853,39 @@ def main(
             print(f"PDF has {page_count} pages")
             return
 
-        if chunked:
-            # Use chunked extraction with progress
+        if smart:
+            # Smart extraction - auto-selects best method
+            print(f"Using smart extraction (mode={mode})")
+            result = extract_smart.remote(pdf_bytes, mode=mode, chunk_size=chunk_size)
+
+            print("\n" + "=" * 60)
+            print(f"RESULT ({result.get('mode', 'unknown')})")
+            print("=" * 60)
+            print(f"Pages: {result['pages']} ({result.get('native_pages', '?')} native, {result.get('ocr_pages', '?')} OCR)")
+            print(f"Chars: {result['chars']:,}")
+            print(f"Time: {result.get('total_time', result.get('processing_time', '?'))}s")
+            if "estimated_cost_usd" in result:
+                print(f"Estimated cost: ${result['estimated_cost_usd']:.3f}")
+            if "decision" in result:
+                print(f"Decision: {result['decision']['reason']}")
+
+        elif parallel:
+            # Force multi-T4 parallel extraction
+            print(f"Using multi-T4 parallel extraction (chunk_size={chunk_size})")
+            result = extract_pdf_parallel.remote(pdf_bytes, chunk_size=chunk_size)
+
+            print("\n" + "=" * 60)
+            print("RESULT (multi-T4 parallel)")
+            print("=" * 60)
+            print(f"Pages: {result['pages']} ({result['native_pages']} native, {result['ocr_pages']} OCR)")
+            print(f"Chars: {result['chars']:,}")
+            print(f"Total time: {result['processing_time']}s (parallel: {result['parallel_time']}s)")
+            print(f"Workers: {result['workers_used']} T4 GPUs")
+            print(f"Chunks: {result['chunks']}")
+            print(f"Estimated cost: ${result['estimated_cost_usd']:.3f}")
+
+        elif chunked:
+            # Use chunked extraction with progress (single A100)
             print(f"Using chunked extraction (chunk_size={chunk_size})")
             final_result = None
 
@@ -526,18 +902,18 @@ def main(
 
             result = final_result
             print("\n" + "=" * 60)
-            print("RESULT (chunked)")
+            print("RESULT (chunked A100)")
             print("=" * 60)
             print(f"Pages: {result['pages']} ({result['native_pages']} native, {result['ocr_pages']} OCR)")
             print(f"Chars: {result['chars']:,}")
             print(f"Time: {result['processing_time']}s")
             print(f"Chunks: {result['total_chunks']}")
         else:
-            # Use simple extraction
+            # Use simple extraction (single A100)
             result = extract_pdf.remote(pdf_bytes)
 
             print("\n" + "=" * 60)
-            print("RESULT")
+            print("RESULT (A100)")
             print("=" * 60)
             print(f"Pages: {result['pages']} ({result['native_pages']} native, {result['ocr_pages']} OCR)")
             print(f"Chars: {result['chars']:,}")
@@ -550,5 +926,13 @@ def main(
         print("  modal run modal_worker.py --health")
         print("  modal run modal_worker.py --warmup")
         print("  modal run modal_worker.py --pdf-path /path/to/document.pdf")
-        print("  modal run modal_worker.py --pdf-path /path/to/document.pdf --chunked")
+        print("  modal run modal_worker.py --pdf-path /path/to/document.pdf --chunked     # A100 com progress")
+        print("  modal run modal_worker.py --pdf-path /path/to/document.pdf --parallel    # Multi-T4 paralelo")
+        print("  modal run modal_worker.py --pdf-path /path/to/document.pdf --smart       # Auto-selecao")
+        print("  modal run modal_worker.py --pdf-path /path/to/document.pdf --smart --mode economy")
         print("  modal run modal_worker.py --pdf-path /path/to/document.pdf --count-pages")
+        print("")
+        print("Modes for --smart:")
+        print("  auto        - Seleciona automaticamente baseado em paginas (default)")
+        print("  economy     - Sempre usa multi-T4 paralelo (mais barato)")
+        print("  performance - Sempre usa A100 (mais rapido para PDFs pequenos)")
