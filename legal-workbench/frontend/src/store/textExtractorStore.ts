@@ -162,7 +162,7 @@ export const useTextExtractorStore = create<TextExtractorState>((set, get) => ({
         const arrayBuffer = await file.arrayBuffer();
         const hashBuffer = await crypto.subtle.digest('SHA-256', arrayBuffer);
         const hashArray = Array.from(new Uint8Array(hashBuffer));
-        const fileHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        const fileHash = hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
 
         // Check cache
         const cachedJson = await invoke<string | null>('get_cached_result', { fileHash });
@@ -171,7 +171,10 @@ export const useTextExtractorStore = create<TextExtractorState>((set, get) => ({
           const result = JSON.parse(cachedJson);
           set({ result, status: 'success', progress: 100 });
           addLog('Cache hit! Loaded from local storage.', 'success');
-          addLog(`Original extraction: ${result.pages_processed} pages in ${result.execution_time_seconds.toFixed(1)}s`, 'info');
+          addLog(
+            `Original extraction: ${result.pages_processed} pages in ${result.execution_time_seconds.toFixed(1)}s`,
+            'info'
+          );
           return;
         }
 
@@ -253,7 +256,7 @@ export const useTextExtractorStore = create<TextExtractorState>((set, get) => ({
                 const arrayBuffer = await file.arrayBuffer();
                 const hashBuffer = await crypto.subtle.digest('SHA-256', arrayBuffer);
                 const hashArray = Array.from(new Uint8Array(hashBuffer));
-                const fileHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+                const fileHash = hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
 
                 await invoke('save_cached_result', {
                   fileHash,
@@ -282,15 +285,16 @@ export const useTextExtractorStore = create<TextExtractorState>((set, get) => ({
       }
     }, 2000);
 
-    // Store interval reference for cleanup (timeout after 10 minutes)
+    // Store interval reference for cleanup (timeout after 30 minutes)
+    // PDFs grandes (500+ páginas) + cold start Modal podem levar 15-20 minutos
     setTimeout(() => {
       clearInterval(pollInterval);
       const currentStatus = get().status;
       if (currentStatus === 'processing') {
         set({ status: 'error' });
-        addLog('Job timed out after 10 minutes', 'error');
+        addLog('Job timed out after 30 minutes', 'error');
       }
-    }, 600000);
+    }, 1800000);
   },
 
   reset: () => {
@@ -330,13 +334,15 @@ export const useTextExtractorStore = create<TextExtractorState>((set, get) => ({
     set({ historyLoading: true });
     try {
       const { invoke } = await import('@tauri-apps/api/core');
-      const entries = await invoke<Array<{
-        file_hash: string;
-        file_path: string;
-        cached_at: number;
-      }>>('list_cache_entries');
+      const entries = await invoke<
+        Array<{
+          file_hash: string;
+          file_path: string;
+          cached_at: number;
+        }>
+      >('list_cache_entries');
 
-      const history: HistoryEntry[] = entries.map(e => ({
+      const history: HistoryEntry[] = entries.map((e) => ({
         ...e,
         file_name: e.file_path.split('/').pop() || e.file_path.split('\\').pop() || 'Unknown',
       }));
@@ -354,7 +360,7 @@ export const useTextExtractorStore = create<TextExtractorState>((set, get) => ({
     try {
       const { invoke } = await import('@tauri-apps/api/core');
       const cachedJson = await invoke<string | null>('get_cached_result', {
-        fileHash: entry.file_hash
+        fileHash: entry.file_hash,
       });
 
       if (cachedJson) {
@@ -366,8 +372,8 @@ export const useTextExtractorStore = create<TextExtractorState>((set, get) => ({
           fileInfo: {
             name: entry.file_name,
             size: 0,
-            type: 'application/pdf'
-          }
+            type: 'application/pdf',
+          },
         });
         addLog(`Loaded from cache: ${entry.file_name}`, 'success');
         addLog(`Cached at: ${new Date(entry.cached_at * 1000).toLocaleString('pt-BR')}`, 'info');
