@@ -21,7 +21,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; script-src 'self' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; connect-src 'self' http://100.114.203.28 https://*.lexvector.com.br ws://100.114.203.28; img-src 'self' data: blob:; font-src 'self' data:"
+      "csp": "default-src 'self'; script-src 'self' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; connect-src 'self' http://100.114.203.28 http://localhost:* https://*.lexvector.com.br ws://100.114.203.28 ws://localhost:*; img-src 'self' data: blob:; font-src 'self' data:"
     }
   },
   "plugins": {

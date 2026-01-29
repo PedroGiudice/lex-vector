@@ -88,13 +88,21 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# CORS middleware for Tauri app
+# CORS middleware for Tauri app - origins explícitas necessárias com credentials=True
+ALLOWED_ORIGINS = [
+    "tauri://localhost",           # Tauri default origin
+    "http://localhost",            # Dev local
+    "http://localhost:5173",       # Vite dev server
+    "http://100.114.203.28",       # VM Oracle via Tailscale
+    "https://lw-pro.tailnet.ts.net",  # Tailscale MagicDNS
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Tauri uses tauri://localhost
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization", "X-Requested-With"],
 )
 
 # Request ID middleware for request tracing

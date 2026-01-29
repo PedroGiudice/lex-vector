@@ -45,11 +45,22 @@ api.interceptors.response.use(
   (error) => {
     const url = `${error.config?.baseURL || ''}${error.config?.url || ''}`;
     const status = error.response?.status || 0;
-    lteLogger.error(`API Error: ${error.config?.method?.toUpperCase() || 'GET'} ${url}`, {
-      status,
-      message: error.message,
-      data: error.response?.data,
-    });
+
+    // Detectar erro CORS especificamente (sem response + Network Error)
+    if (!error.response && error.message === 'Network Error') {
+      lteLogger.error('CORS or Network Error - verifique:', {
+        url,
+        baseURL: error.config?.baseURL,
+        hint: 'Pode ser CORS bloqueado ou servidor inacessível',
+      });
+    } else {
+      lteLogger.error(`API Error: ${error.config?.method?.toUpperCase() || 'GET'} ${url}`, {
+        status,
+        message: error.message,
+        data: error.response?.data,
+      });
+    }
+
     return Promise.reject(error);
   }
 );
@@ -98,10 +109,19 @@ export const textExtractorApi = {
   },
 
   /**
-   * Health check
+   * Health check - retorna status do servidor
    */
-  healthCheck: async (): Promise<{ status: string }> => {
-    const response = await api.get<{ status: string }>('/health');
-    return response.data;
+  healthCheck: async (): Promise<{ ok: boolean; status?: string; error?: string }> => {
+    try {
+      // Health check está em /api/text/health, não em /api/v1/health
+      const baseUrl = API_BASE_URL.replace('/api/v1', '');
+      const response = await axios.get<{ status: string }>(`${baseUrl}/health`, {
+        timeout: 5000,
+      });
+      return { ok: response.status === 200, status: response.data.status };
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      return { ok: false, error: message };
+    }
   },
 };
