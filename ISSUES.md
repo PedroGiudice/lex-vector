@@ -15,7 +15,14 @@
 
 ## Em Progresso
 
-(nenhum)
+### [#3] Frontend Timeout de 10min Insuficiente
+- **Status:** Em Progresso
+- **Data:** 2026-01-29
+- **Componente:** frontend / textExtractorStore.ts
+- **Descricao:** Frontend tinha timeout de 10min, mas jobs podem levar 15-20min (cold start + PDF grande)
+- **Evidencia:** Job 3bf41e7d completou no backend (918s) mas frontend deu timeout antes
+- **Solucao Aplicada:** Aumentado timeout para 30min no textExtractorStore.ts
+- **Pendente:** Validar que novo .deb (v0.1.3) resolve o problema
 
 ---
 
