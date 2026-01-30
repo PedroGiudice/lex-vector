@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { useTextExtractorStore } from '@/store/textExtractorStore';
+import { isTauri, saveFileNative } from '@/lib/tauri';
 import {
   Copy,
   Download,
@@ -35,31 +36,47 @@ export function OutputPanel() {
   }, [result]);
 
   const handleDownload = useCallback(
-    (format: DownloadFormat) => {
+    async (format: DownloadFormat) => {
       if (!result) return;
 
       let content: string;
       let mimeType: string;
       let extension: string;
+      let filterName: string;
 
       switch (format) {
         case 'txt':
           content = result.text;
           mimeType = 'text/plain';
           extension = 'txt';
+          filterName = 'Text files';
           break;
         case 'md':
           content = `# Extracted Text\n\n${result.text}\n\n---\n\n## Metadata\n\n- Pages: ${result.pages_processed}\n- Time: ${result.execution_time_seconds}s\n- Engine: ${result.engine_used}\n- Characters: ${result.text.length}\n`;
           mimeType = 'text/markdown';
           extension = 'md';
+          filterName = 'Markdown files';
           break;
         case 'json':
           content = JSON.stringify(result, null, 2);
           mimeType = 'application/json';
           extension = 'json';
+          filterName = 'JSON files';
           break;
       }
 
+      // Try native Tauri save first
+      if (isTauri()) {
+        const saved = await saveFileNative(content, `extracted-text.${extension}`, [
+          { name: filterName, extensions: [extension] },
+        ]);
+        if (saved) {
+          setShowDownloadMenu(false);
+          return;
+        }
+      }
+
+      // Fallback to browser download
       const blob = new Blob([content], { type: mimeType });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
