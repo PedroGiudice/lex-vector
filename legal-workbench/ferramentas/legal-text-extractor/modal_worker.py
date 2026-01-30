@@ -422,6 +422,106 @@ def extract_pdf_chunked(
         os.unlink(pdf_path)
 
 
+@app.cls(
+    image=image,
+    gpu="T4",
+    timeout=1800,  # 30 min per chunk
+    volumes={"/cache": model_cache},
+    enable_memory_snapshot=True,
+    experimental_options={"enable_gpu_snapshot": True},
+)
+class T4Extractor:
+    """
+    T4 GPU extractor with memory snapshot for fast cold starts.
+
+    Uses Modal GPU Memory Snapshot to reduce cold start from ~2min to ~10s.
+    The snapshot captures loaded Marker models in VRAM.
+    """
+
+    @modal.enter(snap=True)
+    def warmup(self):
+        """Load models and capture in snapshot."""
+        import os
+        os.environ["HF_HOME"] = "/cache/huggingface"
+        os.environ["TORCH_HOME"] = "/cache/torch"
+        os.environ["MARKER_CACHE_DIR"] = "/cache/marker"
+
+        from marker.models import create_model_dict
+
+        print("[T4Extractor] Loading Marker models for snapshot...")
+        self.models = create_model_dict()
+        print("[T4Extractor] Models loaded and captured in snapshot")
+
+    @modal.method()
+    def extract_chunk(
+        self,
+        pdf_bytes: bytes,
+        page_range: list[int],
+        chunk_id: int,
+        force_ocr: bool = False
+    ) -> dict:
+        """
+        Extract text from a specific page range using T4 GPU.
+
+        Models are pre-loaded via snapshot, eliminating cold start.
+        """
+        import os
+        import time
+        import tempfile
+
+        from marker.converters.pdf import PdfConverter
+        from marker.output import text_from_rendered
+
+        start_time = time.time()
+
+        # Save PDF to temp file
+        with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as f:
+            f.write(pdf_bytes)
+            pdf_path = f.name
+
+        try:
+            print(f"[Chunk {chunk_id}] Processing pages {page_range[0]+1}-{page_range[-1]+1}...")
+
+            # Configure converter (models already loaded via snapshot)
+            config = {
+                "output_format": "markdown",
+                "paginate_output": True,
+                "disable_image_extraction": True,
+                "force_ocr": force_ocr,
+                "common_element_threshold": 0.4,
+                "common_element_min_blocks": 5,
+                "drop_repeated_text": True,
+                "OcrBuilder_recognition_batch_size": 64,
+                "page_range": page_range,
+            }
+
+            converter = PdfConverter(artifact_dict=self.models, config=config)
+
+            convert_start = time.time()
+            rendered = converter(pdf_path)
+            text, images, metadata = text_from_rendered(rendered)
+            convert_time = time.time() - convert_start
+
+            total_time = time.time() - start_time
+            print(f"[Chunk {chunk_id}] Done: {len(text):,} chars in {convert_time:.1f}s")
+
+            return {
+                "chunk_id": chunk_id,
+                "text": text,
+                "pages": len(page_range),
+                "page_range": [page_range[0], page_range[-1]],
+                "native_pages": metadata.get("native_pages", len(page_range)),
+                "ocr_pages": metadata.get("ocr_pages", 0),
+                "chars": len(text),
+                "convert_time": round(convert_time, 2),
+                "total_time": round(total_time, 2),
+                "snapshot_enabled": True,
+            }
+
+        finally:
+            os.unlink(pdf_path)
+
+
 @app.function(
     image=image,
     gpu="T4",  # 16GB VRAM - economia mode
@@ -526,22 +626,8 @@ def extract_pdf_parallel(
     """
     Extract text from PDF using multiple T4 GPUs in parallel.
 
-    Splits the PDF into chunks and processes each chunk on a separate T4 container
-    using Modal's .map() for parallel execution. Faster and cheaper than A100 for
-    large PDFs (>300 pages).
-
-    Cost comparison (700 pages, ~50 min total processing):
-    - A100 sequential: ~$2.04 (35 min at $3.50/h)
-    - Multi-T4 parallel: ~$0.55 (7 workers x 8 min at $0.59/h)
-
-    Args:
-        pdf_bytes: Raw PDF file content
-        force_ocr: Force OCR on all pages
-        chunk_size: Pages per chunk (default: 100)
-        max_workers: Maximum parallel workers (default: 8, Modal limit)
-
-    Returns:
-        dict with combined text and detailed stats
+    Uses T4Extractor with GPU Memory Snapshot for fast cold starts.
+    Each T4 container restores from snapshot in ~10s instead of ~2min.
     """
     import time
     import tempfile
@@ -571,21 +657,22 @@ def extract_pdf_parallel(
 
     # Limit workers
     actual_workers = min(len(chunks), max_workers)
-    print(f"Processing {total_pages} pages in {len(chunks)} chunks using {actual_workers} parallel T4 GPUs")
+    print(f"Processing {total_pages} pages in {len(chunks)} chunks using {actual_workers} parallel T4 GPUs (snapshot-enabled)")
 
-    # Prepare arguments for .map()
-    # Each item is a tuple: (pdf_bytes, page_range, chunk_id, force_ocr)
-    map_args = [
-        (pdf_bytes, chunk, idx, force_ocr)
-        for idx, chunk in enumerate(chunks)
-    ]
+    # Use T4Extractor with GPU snapshot
+    extractor = T4Extractor()
 
-    # Execute in parallel using starmap
-    print(f"Launching {len(chunks)} parallel extraction jobs...")
+    # Prepare arguments for parallel execution
+    print(f"Launching {len(chunks)} parallel extraction jobs with GPU snapshot...")
     parallel_start = time.time()
 
-    # Modal .starmap() unpacks each tuple as arguments
-    results = list(extract_chunk_t4.starmap(map_args))
+    # Use map with the class method
+    results = list(extractor.extract_chunk.map(
+        [pdf_bytes] * len(chunks),
+        chunks,
+        list(range(len(chunks))),
+        [force_ocr] * len(chunks),
+    ))
 
     parallel_time = time.time() - parallel_start
     print(f"All {len(chunks)} chunks completed in {parallel_time:.1f}s")
@@ -618,7 +705,8 @@ def extract_pdf_parallel(
         "workers_used": actual_workers,
         "chunks": len(chunks),
         "chunk_size": chunk_size,
-        "mode": "multi-t4-parallel",
+        "mode": "multi-t4-parallel-snapshot",
+        "snapshot_enabled": True,
         "estimated_cost_usd": round(estimated_cost, 3),
         "chunk_stats": [
             {
@@ -781,6 +869,26 @@ def warmup_models():
     return {"status": "ok", "models_loaded": len(models)}
 
 
+@app.function(image=image, gpu=None, timeout=300)
+def warmup_t4_snapshot():
+    """
+    Trigger T4Extractor snapshot creation.
+
+    Call this after deploy to pre-create the GPU memory snapshot.
+    Subsequent T4 containers will restore from snapshot in ~10s.
+
+    Usage:
+        modal run modal_worker.py::warmup_t4_snapshot
+    """
+    print("Triggering T4Extractor snapshot creation...")
+    extractor = T4Extractor()
+
+    # Just instantiating triggers the @modal.enter(snap=True) method
+    # which creates the snapshot
+    print("T4Extractor snapshot created successfully!")
+    return {"status": "ok", "message": "T4 GPU snapshot created"}
+
+
 @app.function(image=image, gpu="A100-80GB", timeout=30)
 def health_check():
     """
@@ -806,6 +914,7 @@ def health_check():
 def main(
     pdf_path: str = None,
     warmup: bool = False,
+    warmup_t4: bool = False,
     health: bool = False,
     chunked: bool = False,
     parallel: bool = False,
@@ -820,6 +929,7 @@ def main(
     Examples:
         modal run modal_worker.py --health
         modal run modal_worker.py --warmup
+        modal run modal_worker.py --warmup-t4              # Create T4 snapshot
         modal run modal_worker.py --pdf-path /path/to/doc.pdf
         modal run modal_worker.py --pdf-path /path/to/doc.pdf --chunked
         modal run modal_worker.py --pdf-path /path/to/doc.pdf --parallel
@@ -840,6 +950,11 @@ def main(
     if warmup:
         result = warmup_models.remote()
         print(f"Warmup complete: {result}")
+        return
+
+    if warmup_t4:
+        result = warmup_t4_snapshot.remote()
+        print(f"T4 snapshot warmup: {result}")
         return
 
     if pdf_path:

@@ -62,3 +62,35 @@ export async function selectPdfNative(): Promise<File | null> {
 
   return null;
 }
+
+/**
+ * Save file using native Tauri dialog (Tauri only)
+ * Returns true if saved successfully, false otherwise
+ */
+export async function saveFileNative(
+  content: string,
+  defaultFilename: string,
+  filters: { name: string; extensions: string[] }[]
+): Promise<boolean> {
+  if (!isTauri()) return false;
+
+  try {
+    const { save } = await import('@tauri-apps/plugin-dialog');
+    const { writeTextFile } = await import('@tauri-apps/plugin-fs');
+
+    const path = await save({
+      defaultPath: defaultFilename,
+      filters,
+      title: 'Salvar arquivo',
+    });
+
+    if (path) {
+      await writeTextFile(path, content);
+      return true;
+    }
+  } catch (error) {
+    console.error('Native save error:', error);
+  }
+
+  return false;
+}

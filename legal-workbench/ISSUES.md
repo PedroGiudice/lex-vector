@@ -6,21 +6,6 @@ Problemas identificados aguardando resolucao.
 
 ## Abertos
 
-### #2 - Modal Cold Start: Latencia inicial excessiva (PRIORIDADE ALTA)
-
-**Modulo:** Text Extractor (Modal serverless)
-**Sintoma:** Primeira extracao apos periodo de inatividade leva varios minutos extras
-**Data:** 2026-01-30
-
-O Modal precisa inicializar containers a cada cold start. Impacta experiencia do usuario.
-
-**Solucoes a investigar:**
-1. Keep-warm (cron ping periodico)
-2. Provisioned concurrency (custo adicional)
-3. Feedback visual diferenciando cold start de processamento
-
----
-
 ### #3 - UX: Feedback de progresso inadequado (PRIORIDADE MEDIA)
 
 **Modulo:** Text Extractor (frontend)
@@ -46,17 +31,64 @@ Atualizar label/UI para refletir que a limpeza e via script, nao mais Gemini.
 
 ---
 
-### #5 - Download nao funciona
+## Resolvidos
 
-**Modulo:** Text Extractor (frontend)
-**Sintoma:** Botao de download nao funciona apos extracao
+### #2 - Modal Cold Start: Latencia inicial excessiva
+
+**Modulo:** Text Extractor (Modal serverless)
+**Sintoma:** Primeira extracao apos periodo de inatividade leva varios minutos extras
+**Status:** Resolvido
 **Data:** 2026-01-30
+**Resolvido em:** 2026-01-30
 
-Investigar implementacao do download no app Tauri.
+**Causa Raiz:**
+- Cada container T4 precisava carregar modelos Marker (~1.35GB) do zero
+- Com multi-T4 parallel (7+ containers), todos sofriam cold start simultaneamente
+- Tempo total de cold start: ~2 minutos por container
+
+**Solucao:**
+Implementar GPU Memory Snapshot (Modal alpha feature):
+- Classe `T4Extractor` com `@app.cls(enable_memory_snapshot=True, experimental_options={"enable_gpu_snapshot": True})`
+- Metodo `@modal.enter(snap=True)` carrega modelos e captura na VRAM
+- Novos containers restauram snapshot em ~10s em vez de carregar modelos
+
+**Arquivos modificados:**
+- `ferramentas/legal-text-extractor/modal_worker.py`
+  - Adicionada classe `T4Extractor` com GPU snapshot
+  - Atualizada `extract_pdf_parallel()` para usar `T4Extractor`
+  - Adicionada funcao `warmup_t4_snapshot()` e CLI `--warmup-t4`
+
+**Comando para criar snapshot apos deploy:**
+```bash
+modal run modal_worker.py --warmup-t4
+```
 
 ---
 
-## Resolvidos
+### #5 - Download nao funciona
+
+**Modulo:** Text Extractor (frontend Tauri)
+**Sintoma:** Botao de download nao funciona apos extracao
+**Status:** Resolvido
+**Data:** 2026-01-30
+**Resolvido em:** 2026-01-30
+
+**Causa Raiz:**
+- Implementacao usava `document.createElement('a').click()` que nao funciona no WebKitGTK do Tauri Linux
+- WebKitGTK tem restricoes de seguranca que bloqueiam downloads via DOM manipulation
+
+**Solucao:**
+Usar APIs nativas do Tauri para salvar arquivo:
+- `@tauri-apps/plugin-dialog` para dialog de salvar
+- `@tauri-apps/plugin-fs` para escrever arquivo
+- Fallback para browser download quando nao esta no Tauri
+
+**Arquivos modificados:**
+- `frontend/src/lib/tauri.ts`: Adicionada funcao `saveFileNative()`
+- `frontend/src/components/text-extractor/OutputPanel.tsx`: `handleDownload` usa nativo no Tauri
+- `frontend/src-tauri/capabilities/default.json`: Adicionadas permissoes `dialog:default` e `fs:default`
+
+---
 
 ### #1 - Text Extractor: "Submission failed: Network Error"
 
