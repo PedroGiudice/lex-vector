@@ -869,6 +869,26 @@ def warmup_models():
     return {"status": "ok", "models_loaded": len(models)}
 
 
+@app.function(image=image, gpu=None, timeout=300)
+def warmup_t4_snapshot():
+    """
+    Trigger T4Extractor snapshot creation.
+
+    Call this after deploy to pre-create the GPU memory snapshot.
+    Subsequent T4 containers will restore from snapshot in ~10s.
+
+    Usage:
+        modal run modal_worker.py::warmup_t4_snapshot
+    """
+    print("Triggering T4Extractor snapshot creation...")
+    extractor = T4Extractor()
+
+    # Just instantiating triggers the @modal.enter(snap=True) method
+    # which creates the snapshot
+    print("T4Extractor snapshot created successfully!")
+    return {"status": "ok", "message": "T4 GPU snapshot created"}
+
+
 @app.function(image=image, gpu="A100-80GB", timeout=30)
 def health_check():
     """
@@ -894,6 +914,7 @@ def health_check():
 def main(
     pdf_path: str = None,
     warmup: bool = False,
+    warmup_t4: bool = False,
     health: bool = False,
     chunked: bool = False,
     parallel: bool = False,
@@ -908,6 +929,7 @@ def main(
     Examples:
         modal run modal_worker.py --health
         modal run modal_worker.py --warmup
+        modal run modal_worker.py --warmup-t4              # Create T4 snapshot
         modal run modal_worker.py --pdf-path /path/to/doc.pdf
         modal run modal_worker.py --pdf-path /path/to/doc.pdf --chunked
         modal run modal_worker.py --pdf-path /path/to/doc.pdf --parallel
@@ -928,6 +950,11 @@ def main(
     if warmup:
         result = warmup_models.remote()
         print(f"Warmup complete: {result}")
+        return
+
+    if warmup_t4:
+        result = warmup_t4_snapshot.remote()
+        print(f"T4 snapshot warmup: {result}")
         return
 
     if pdf_path:
