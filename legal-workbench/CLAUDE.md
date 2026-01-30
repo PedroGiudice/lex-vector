@@ -32,6 +32,38 @@ Browser ──> Traefik (:80) ──> React SPA (/)
 - **Deploy:** rsync + docker compose build + up -d
 - **SSH:** `opc@64.181.162.38` com chave `~/.ssh/oci_lw`
 
+### Ambiente de Desenvolvimento (IMPORTANTE)
+
+**Claude Code roda na VM Oracle, NAO no notebook local.**
+
+| Maquina | IP Tailscale | Funcao |
+|---------|--------------|--------|
+| VM Oracle (lw-pro) | 100.114.203.28 | Build server, Docker, Claude Code |
+| Notebook Linux | 100.102.249.9 | App Tauri desktop, testes manuais |
+
+**Fluxo para atualizar o app Tauri:**
+
+1. Claude Code builda na VM:
+   ```bash
+   cd frontend && bun run tauri build
+   ```
+
+2. Usuario baixa o .deb no notebook:
+   ```bash
+   scp opc@100.114.203.28:"/home/opc/lex-vector/legal-workbench/frontend/src-tauri/target/release/bundle/deb/Legal Workbench_*.deb" ~/Downloads/lw-latest.deb
+   ```
+
+3. Usuario instala no notebook:
+   ```bash
+   sudo dpkg -i ~/Downloads/lw-latest.deb
+   ```
+
+4. Usuario mata processo antigo e abre novo:
+   ```bash
+   pkill -9 tauri-app
+   # abrir via menu ou terminal
+   ```
+
 ---
 
 ## RULE 0: UMA UNICA ARQUITETURA
