@@ -31,6 +31,44 @@ Atualizar label/UI para refletir que a limpeza e via script, nao mais Gemini.
 
 ---
 
+### #6 - Feature: Batch Mode para processamento de multiplos PDFs
+
+**Modulo:** Text Extractor (frontend + backend)
+**Tipo:** Feature Request
+**Data:** 2026-01-31
+
+Implementar modo de processamento em lote para extrair texto de multiplos PDFs simultaneamente.
+
+**Requisitos:**
+1. Upload de multiplos arquivos de uma vez
+2. Fila de processamento com status individual
+3. Download em lote (ZIP) ou individual
+4. Progresso agregado e por arquivo
+
+---
+
+### #7 - Feature: Controle granular do Gemini por tipo de bloco
+
+**Modulo:** Text Extractor (backend Modal)
+**Tipo:** Feature Request (baixa prioridade)
+**Data:** 2026-01-31
+
+Atualmente `use_llm` e um toggle global no Marker. Permitir controle granular:
+- [ ] Melhorar tabelas (Table)
+- [ ] Melhorar formulas (Equation)
+- [ ] Melhorar manuscrito (Handwriting)
+- [ ] Melhorar formularios (Form)
+
+**Contexto:**
+- Documentos juridicos raramente tem handwriting/equacoes
+- Maioria das chamadas LLM sao para tabelas
+- Controle granular reduziria latencia sem perder qualidade
+
+**Implementacao:**
+Requer customizacao do `processor_list` no Marker. Nao e configuracao nativa.
+
+---
+
 ## Resolvidos
 
 ### #2 - Modal Cold Start: Latencia inicial excessiva
