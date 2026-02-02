@@ -52,6 +52,7 @@ export const useTextExtractorStore = create<TextExtractorState>((set, get) => ({
   // Upload
   file: null,
   fileInfo: null,
+  filePath: null,
 
   // Config
   engine: 'marker',
@@ -104,6 +105,8 @@ export const useTextExtractorStore = create<TextExtractorState>((set, get) => ({
     }
   },
 
+  setFilePath: (path) => set({ filePath: path }),
+
   setEngine: (engine) => set({ engine }),
 
   setGpuMode: (gpuMode) => set({ gpuMode }),
@@ -146,7 +149,8 @@ export const useTextExtractorStore = create<TextExtractorState>((set, get) => ({
   },
 
   submitJob: async () => {
-    const { file, engine, gpuMode, useGemini, useScript, margins, ignoreTerms, addLog } = get();
+    const { file, filePath, engine, gpuMode, useGemini, useScript, margins, ignoreTerms, addLog } =
+      get();
 
     if (!file) {
       addLog('Error: No file selected', 'error');
@@ -195,14 +199,18 @@ export const useTextExtractorStore = create<TextExtractorState>((set, get) => ({
     );
 
     try {
-      const response = await textExtractorApi.submitJob(file, {
-        engine,
-        gpuMode,
-        useGemini,
-        useScript,
-        margins,
-        ignoreTerms,
-      });
+      const response = await textExtractorApi.submitJob(
+        file,
+        {
+          engine,
+          gpuMode,
+          useGemini,
+          useScript,
+          margins,
+          ignoreTerms,
+        },
+        filePath || undefined
+      );
 
       set({ jobId: response.job_id });
       addLog(`Job submitted: ${response.job_id}`, 'success');
@@ -308,6 +316,7 @@ export const useTextExtractorStore = create<TextExtractorState>((set, get) => ({
     set({
       file: null,
       fileInfo: null,
+      filePath: null,
       jobId: null,
       status: 'idle',
       progress: 0,

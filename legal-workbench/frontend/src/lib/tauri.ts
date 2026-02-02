@@ -96,33 +96,47 @@ export async function saveFileNative(
 }
 
 /**
- * HTTP fetch using Tauri's native HTTP plugin
- * Bypasses WebKitGTK limitations (broken pipe, CORS issues)
+ * Upload PDF for extraction using native Tauri HTTP (bypasses WebKitGTK)
+ * Returns job submission response or null if not in Tauri
  */
-export async function tauriFetch(url: string, options: RequestInit = {}): Promise<Response> {
-  if (!isTauri()) {
-    // Fallback to native fetch for browser
-    return fetch(url, options);
-  }
-
-  const { fetch: tauriHttpFetch } = await import('@tauri-apps/plugin-http');
-  return tauriHttpFetch(url, options);
+export interface NativeJobSubmitResponse {
+  job_id: string;
+  status: string;
+  estimated_completion?: number;
+  created_at?: string;
 }
 
-/**
- * POST multipart/form-data using Tauri HTTP plugin
- */
-export async function tauriFetchFormData(url: string, formData: FormData): Promise<Response> {
-  if (!isTauri()) {
-    return fetch(url, {
-      method: 'POST',
-      body: formData,
-    });
-  }
+export interface NativeExtractOptions {
+  margins?: { top: number; bottom: number; left: number; right: number };
+  ignore_terms?: string[];
+}
 
-  const { fetch: tauriHttpFetch } = await import('@tauri-apps/plugin-http');
-  return tauriHttpFetch(url, {
-    method: 'POST',
-    body: formData,
-  });
+export async function uploadExtractionJobNative(
+  filePath: string,
+  engine: string,
+  gpuMode: string,
+  useGemini: boolean,
+  useScript: boolean,
+  options: NativeExtractOptions
+): Promise<NativeJobSubmitResponse | null> {
+  if (!isTauri()) return null;
+
+  try {
+    const { invoke } = await import('@tauri-apps/api/core');
+
+    const result = await invoke<NativeJobSubmitResponse>('upload_extraction_job', {
+      filePath,
+      apiBaseUrl: PRODUCTION_API,
+      engine,
+      gpuMode,
+      useGemini,
+      useScript,
+      optionsJson: JSON.stringify(options),
+    });
+
+    return result;
+  } catch (error) {
+    console.error('Native upload error:', error);
+    throw error;
+  }
 }

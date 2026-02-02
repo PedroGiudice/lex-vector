@@ -1,7 +1,7 @@
 mod commands;
 mod models;
 
-use commands::{filesystem, cache};
+use commands::{filesystem, cache, upload};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -9,7 +9,6 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
-        .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_updater::Builder::new().build())
@@ -22,6 +21,7 @@ pub fn run() {
             cache::save_cached_result,
             cache::hash_file,
             cache::list_cache_entries,
+            upload::upload_extraction_job,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

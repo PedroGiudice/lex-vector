@@ -1,3 +1,4 @@
+import axios from 'axios';
 import type {
   ExtractOptions,
   JobSubmitResponse,
@@ -5,49 +6,102 @@ import type {
   ExtractionResult,
 } from '@/types/textExtractor';
 import { lteLogger } from '@/utils/lteLogger';
-import { getApiBaseUrl, isTauri, tauriFetchFormData, tauriFetch } from '@/lib/tauri';
+import { getApiBaseUrl, isTauri, uploadExtractionJobNative } from '@/lib/tauri';
 
 const API_BASE_URL = `${getApiBaseUrl()}/api/text/api/v1`;
 
-/**
- * Make HTTP request using Tauri plugin (when in Tauri) or fetch (browser)
- * This bypasses WebKitGTK's broken pipe issues on Linux
- */
-async function makeRequest<T>(url: string, options: RequestInit = {}): Promise<T> {
-  const fullUrl = `${API_BASE_URL}${url}`;
+const api = axios.create({
+  baseURL: API_BASE_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
 
-  lteLogger.request(options.method || 'GET', fullUrl, options.body);
+// Request interceptor for logging
+api.interceptors.request.use(
+  (config) => {
+    const url = `${config.baseURL || ''}${config.url || ''}`;
+    lteLogger.request(config.method?.toUpperCase() || 'GET', url, config.data);
+    return config;
+  },
+  (error) => {
+    lteLogger.error('Request interceptor error', error);
+    return Promise.reject(error);
+  }
+);
 
-  try {
-    const response = await tauriFetch(fullUrl, options);
+// Response interceptor for logging
+api.interceptors.response.use(
+  (response) => {
+    const url = `${response.config.baseURL || ''}${response.config.url || ''}`;
+    lteLogger.response(
+      response.config.method?.toUpperCase() || 'GET',
+      url,
+      response.status,
+      response.data
+    );
+    return response;
+  },
+  (error) => {
+    const url = `${error.config?.baseURL || ''}${error.config?.url || ''}`;
+    const status = error.response?.status || 0;
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      lteLogger.error(`API Error: ${options.method || 'GET'} ${fullUrl}`, {
-        status: response.status,
-        data: errorData,
+    // Detectar erro CORS especificamente (sem response + Network Error)
+    if (!error.response && error.message === 'Network Error') {
+      lteLogger.error('CORS or Network Error - verifique:', {
+        url,
+        baseURL: error.config?.baseURL,
+        hint: 'Pode ser CORS bloqueado ou servidor inacessível',
       });
-      throw new Error(`HTTP ${response.status}: ${JSON.stringify(errorData)}`);
+    } else {
+      lteLogger.error(`API Error: ${error.config?.method?.toUpperCase() || 'GET'} ${url}`, {
+        status,
+        message: error.message,
+        data: error.response?.data,
+      });
     }
 
-    const data = await response.json();
-    lteLogger.response(options.method || 'GET', fullUrl, response.status, data);
-    return data as T;
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Unknown error';
-    lteLogger.error(`Request failed: ${options.method || 'GET'} ${fullUrl}`, {
-      message,
-      hint: isTauri() ? 'Using Tauri HTTP plugin' : 'Using native fetch',
-    });
-    throw error;
+    return Promise.reject(error);
   }
-}
+);
 
 export const textExtractorApi = {
   /**
    * Submit extraction job
+   * Uses native Tauri HTTP when in desktop app (bypasses WebKitGTK)
    */
-  submitJob: async (file: File, options: ExtractOptions): Promise<JobSubmitResponse> => {
+  submitJob: async (
+    file: File,
+    options: ExtractOptions,
+    filePath?: string
+  ): Promise<JobSubmitResponse> => {
+    // Try native upload first (Tauri desktop)
+    if (isTauri() && filePath) {
+      lteLogger.request('POST', '[NATIVE] /extract', { engine: options.engine, filePath });
+
+      const nativeResult = await uploadExtractionJobNative(
+        filePath,
+        options.engine,
+        options.gpuMode,
+        options.useGemini,
+        options.useScript,
+        {
+          margins: options.margins,
+          ignore_terms: options.ignoreTerms,
+        }
+      );
+
+      if (nativeResult) {
+        lteLogger.response('POST', '[NATIVE] /extract', 202, nativeResult);
+        return {
+          job_id: nativeResult.job_id,
+          status: nativeResult.status,
+          estimated_completion: nativeResult.estimated_completion?.toString(),
+        };
+      }
+    }
+
+    // Fallback to axios (browser or if native fails)
     const formData = new FormData();
     formData.append('file', file);
     formData.append('engine', options.engine);
@@ -62,47 +116,29 @@ export const textExtractorApi = {
     };
     formData.append('options', JSON.stringify(optionsPayload));
 
-    const fullUrl = `${API_BASE_URL}/extract`;
+    const response = await api.post<JobSubmitResponse>('/extract', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
 
-    lteLogger.request('POST', fullUrl, { file: file.name, options });
-
-    try {
-      const response = await tauriFetchFormData(fullUrl, formData);
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        lteLogger.error(`API Error: POST ${fullUrl}`, {
-          status: response.status,
-          data: errorData,
-        });
-        throw new Error(`HTTP ${response.status}: ${JSON.stringify(errorData)}`);
-      }
-
-      const data = await response.json();
-      lteLogger.response('POST', fullUrl, response.status, data);
-      return data as JobSubmitResponse;
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unknown error';
-      lteLogger.error(`Submission failed: ${fullUrl}`, {
-        message,
-        hint: isTauri() ? 'Using Tauri HTTP plugin' : 'Using native fetch',
-      });
-      throw error;
-    }
+    return response.data;
   },
 
   /**
    * Poll job status
    */
   getJobStatus: async (jobId: string): Promise<JobStatusResponse> => {
-    return makeRequest<JobStatusResponse>(`/jobs/${jobId}`);
+    const response = await api.get<JobStatusResponse>(`/jobs/${jobId}`);
+    return response.data;
   },
 
   /**
    * Get extraction results
    */
   getJobResult: async (jobId: string): Promise<ExtractionResult> => {
-    return makeRequest<ExtractionResult>(`/jobs/${jobId}/result`);
+    const response = await api.get<ExtractionResult>(`/jobs/${jobId}/result`);
+    return response.data;
   },
 
   /**
@@ -112,13 +148,10 @@ export const textExtractorApi = {
     try {
       // Health check está em /api/text/health, não em /api/v1/health
       const baseUrl = API_BASE_URL.replace('/api/v1', '');
-      const response = await tauriFetch(`${baseUrl}/health`);
-
-      if (response.ok) {
-        const data = await response.json();
-        return { ok: true, status: data.status };
-      }
-      return { ok: false, error: `HTTP ${response.status}` };
+      const response = await axios.get<{ status: string }>(`${baseUrl}/health`, {
+        timeout: 5000,
+      });
+      return { ok: response.status === 200, status: response.data.status };
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Unknown error';
       return { ok: false, error: message };

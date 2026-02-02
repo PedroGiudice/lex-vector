@@ -17,6 +17,9 @@ pub enum AppError {
 
     #[error("Erro de banco: {0}")]
     DatabaseError(String),
+
+    #[error("Erro HTTP: {0}")]
+    HttpError(String),
 }
 
 impl From<std::io::Error> for AppError {
@@ -32,5 +35,11 @@ impl From<std::io::Error> for AppError {
 impl From<rusqlite::Error> for AppError {
     fn from(err: rusqlite::Error) -> Self {
         AppError::DatabaseError(err.to_string())
+    }
+}
+
+impl From<reqwest::Error> for AppError {
+    fn from(err: reqwest::Error) -> Self {
+        AppError::HttpError(err.to_string())
     }
 }

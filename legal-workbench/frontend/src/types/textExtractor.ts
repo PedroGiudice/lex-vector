@@ -99,6 +99,7 @@ export interface TextExtractorState {
   // Upload
   file: File | null;
   fileInfo: FileInfo | null;
+  filePath: string | null;
 
   // Config
   engine: ExtractionEngine;
@@ -126,6 +127,7 @@ export interface TextExtractorState {
 
   // Actions
   setFile: (file: File | null) => void;
+  setFilePath: (path: string | null) => void;
   setEngine: (engine: ExtractionEngine) => void;
   setGpuMode: (mode: GpuMode) => void;
   setUseGemini: (useGemini: boolean) => void;

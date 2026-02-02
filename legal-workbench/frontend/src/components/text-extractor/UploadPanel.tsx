@@ -1,12 +1,21 @@
 import React, { useCallback, useState } from 'react';
 import { Upload, FileText, X, Sparkles, FolderOpen } from 'lucide-react';
 import { useTextExtractorStore } from '@/store/textExtractorStore';
-import { isTauri, selectPdfNative } from '@/lib/tauri';
+import { isTauri } from '@/lib/tauri';
 import clsx from 'clsx';
 
 export function UploadPanel() {
-  const { file, fileInfo, status, useGemini, useScript, setFile, setUseGemini, setUseScript } =
-    useTextExtractorStore();
+  const {
+    file,
+    fileInfo,
+    status,
+    useGemini,
+    useScript,
+    setFile,
+    setFilePath,
+    setUseGemini,
+    setUseScript,
+  } = useTextExtractorStore();
   const [isDragging, setIsDragging] = useState(false);
 
   const isDisabled = status === 'processing';
@@ -56,15 +65,33 @@ export function UploadPanel() {
 
   const handleNativeSelect = useCallback(async () => {
     if (isDisabled) return;
-    const selectedFile = await selectPdfNative();
-    if (selectedFile) {
-      setFile(selectedFile);
+
+    try {
+      const { open } = await import('@tauri-apps/plugin-dialog');
+      const { readFile } = await import('@tauri-apps/plugin-fs');
+
+      const path = await open({
+        multiple: false,
+        filters: [{ name: 'PDF', extensions: ['pdf'] }],
+        title: 'Selecione o PDF',
+      });
+
+      if (path && typeof path === 'string') {
+        const content = await readFile(path);
+        const filename = path.split('/').pop() || 'document.pdf';
+        const file = new File([content], filename, { type: 'application/pdf' });
+        setFile(file);
+        setFilePath(path);
+      }
+    } catch (error) {
+      console.error('Native file picker error:', error);
     }
-  }, [isDisabled, setFile]);
+  }, [isDisabled, setFile, setFilePath]);
 
   const handleClearFile = useCallback(() => {
     setFile(null);
-  }, [setFile]);
+    setFilePath(null);
+  }, [setFile, setFilePath]);
 
   const formatFileSize = (bytes: number): string => {
     if (bytes < 1024) return `${bytes} B`;
