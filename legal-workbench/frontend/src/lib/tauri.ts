@@ -94,3 +94,35 @@ export async function saveFileNative(
 
   return false;
 }
+
+/**
+ * HTTP fetch using Tauri's native HTTP plugin
+ * Bypasses WebKitGTK limitations (broken pipe, CORS issues)
+ */
+export async function tauriFetch(url: string, options: RequestInit = {}): Promise<Response> {
+  if (!isTauri()) {
+    // Fallback to native fetch for browser
+    return fetch(url, options);
+  }
+
+  const { fetch: tauriHttpFetch } = await import('@tauri-apps/plugin-http');
+  return tauriHttpFetch(url, options);
+}
+
+/**
+ * POST multipart/form-data using Tauri HTTP plugin
+ */
+export async function tauriFetchFormData(url: string, formData: FormData): Promise<Response> {
+  if (!isTauri()) {
+    return fetch(url, {
+      method: 'POST',
+      body: formData,
+    });
+  }
+
+  const { fetch: tauriHttpFetch } = await import('@tauri-apps/plugin-http');
+  return tauriHttpFetch(url, {
+    method: 'POST',
+    body: formData,
+  });
+}
