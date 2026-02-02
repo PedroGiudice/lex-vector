@@ -21,17 +21,28 @@ Usuario nao sabe se job travou ou esta processando. Sem nocao de tempo restante.
 
 ---
 
+## Resolvidos
+
 ### #4 - UI: Checker mostra "limpeza Gemini" mas agora e script
 
 **Modulo:** Text Extractor (frontend)
 **Sintoma:** Interface ainda mostra opcao "limpeza Gemini" mas a limpeza agora e feita por script
+**Status:** Resolvido
 **Data:** 2026-01-30
+**Resolvido em:** 2026-02-02
 
-Atualizar label/UI para refletir que a limpeza e via script, nao mais Gemini.
+**Solucao:**
+UI agora tem duas opcoes separadas:
+- "Use Gemini enhancement" - para limpeza via Gemini (opcional)
+- "Limpeza final (script)" - para limpeza via script local
+
+**Arquivos modificados:**
+- `frontend/src/components/text-extractor/UploadPanel.tsx`: Adicionado toggle `useScript`
+- `frontend/src/store/textExtractorStore.ts`: Estado `useScript`
+- `frontend/src/types/textExtractor.ts`: Tipo `useScript` em ExtractOptions
+- `docker/services/text-extractor/core/`: Modulo de limpeza por script (cleaner, detector, normalizer, patterns)
 
 ---
-
-## Resolvidos
 
 ### #2 - Modal Cold Start: Latencia inicial excessiva
 
@@ -96,7 +107,7 @@ Usar APIs nativas do Tauri para salvar arquivo:
 **Sintoma:** Ao submeter PDF para extracao, erro "Submission failed: Network Error"
 **Status:** Resolvido (DEFINITIVO)
 **Data:** 2026-01-29
-**Resolvido em:** 2026-01-30
+**Resolvido em:** 2026-02-02
 
 **Causa Raiz (descoberta incremental):**
 1. CORS invalido: `allow_origins=["*"]` + `allow_credentials=True`
