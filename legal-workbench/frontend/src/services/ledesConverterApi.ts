@@ -1,7 +1,9 @@
 import axios, { AxiosProgressEvent } from 'axios';
 import type { ConvertLedesResponse, LedesFileValidation } from '@/types';
+import { getApiBaseUrl } from '@/lib/tauri';
 
-const API_BASE_URL = '/api/ledes';
+// Use Tailscale IP for Tauri, relative URL for web
+const API_BASE_URL = `${getApiBaseUrl()}/api/ledes`;
 
 // Constants
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
@@ -122,9 +124,7 @@ export const ledesConverterApi = {
         },
         onUploadProgress: (progressEvent: AxiosProgressEvent) => {
           if (progressEvent.total && onProgress) {
-            const percentCompleted = Math.round(
-              (progressEvent.loaded * 100) / progressEvent.total
-            );
+            const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
             onProgress(percentCompleted);
           }
         },

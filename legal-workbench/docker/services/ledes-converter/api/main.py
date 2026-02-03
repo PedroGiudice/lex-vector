@@ -44,15 +44,29 @@ app = FastAPI(
 # Request ID middleware for request tracing
 app.add_middleware(RequestIDMiddleware)
 
-# CORS middleware - configured for production security
-allowed_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost,http://localhost:3000").split(",")
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=allowed_origins,
-    allow_credentials=True,
-    allow_methods=["GET", "POST"],
-    allow_headers=["Content-Type", "Authorization"],
-)
+# CORS middleware - configured for Tauri desktop app + web access
+# Tauri apps may send null or tauri:// origins, so we allow all origins for this service
+# Security is maintained via rate limiting and input validation
+allowed_origins_env = os.getenv("ALLOWED_ORIGINS", "")
+if allowed_origins_env == "*" or "tauri" in allowed_origins_env.lower() or "null" in allowed_origins_env.lower():
+    # Allow all origins for Tauri desktop app
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=False,  # Must be False when using allow_origins=["*"]
+        allow_methods=["GET", "POST", "OPTIONS"],
+        allow_headers=["*"],
+    )
+else:
+    # Production web-only mode
+    allowed_origins = allowed_origins_env.split(",") if allowed_origins_env else ["http://localhost", "http://localhost:3000"]
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=allowed_origins,
+        allow_credentials=True,
+        allow_methods=["GET", "POST", "OPTIONS"],
+        allow_headers=["Content-Type", "Authorization"],
+    )
 
 # Log startup
 @app.on_event("startup")

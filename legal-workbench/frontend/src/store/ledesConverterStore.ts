@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { AxiosError } from 'axios';
 import { ledesConverterApi, validateDocxFile } from '@/services/ledesConverterApi';
 import type { LedesConversionStatus, LedesExtractedData, LedesConfig } from '@/types';
 
@@ -34,7 +35,7 @@ const RETRY_DELAY_BASE = 1000; // 1 second
 /**
  * Delay helper for retry logic
  */
-const delay = (ms: number): Promise<void> => new Promise(resolve => setTimeout(resolve, ms));
+const delay = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
 
 export const useLedesConverterStore = create<LedesConversionState>((set, get) => ({
   // Initial state
@@ -132,8 +133,8 @@ export const useLedesConverterStore = create<LedesConversionState>((set, get) =>
       const isNetworkError =
         error instanceof Error &&
         (error.message.includes('Network') ||
-         error.message.includes('timeout') ||
-         error.message.includes('ECONNREFUSED'));
+          error.message.includes('timeout') ||
+          error.message.includes('ECONNREFUSED'));
 
       if (isNetworkError && retryCount < MAX_RETRIES) {
         const newRetryCount = retryCount + 1;
@@ -149,9 +150,18 @@ export const useLedesConverterStore = create<LedesConversionState>((set, get) =>
         return get().convertFile();
       }
 
-      const errorMessage = error instanceof Error
-        ? error.message
-        : 'Failed to convert file. Please try again.';
+      // Extract meaningful error message from Axios response
+      let errorMessage = 'Failed to convert file. Please try again.';
+
+      if (error instanceof AxiosError && error.response?.data) {
+        // FastAPI returns { detail: "..." }, other APIs may use { message: "..." }
+        const data = error.response.data as { detail?: string; message?: string };
+        errorMessage =
+          data.detail || data.message || `HTTP ${error.response.status}: Request failed`;
+        console.error('[LEDES] API Error:', error.response.status, data);
+      } else if (error instanceof Error) {
+        errorMessage = error.message;
+      }
 
       set({
         status: 'error',
@@ -192,14 +202,15 @@ export const useLedesConverterStore = create<LedesConversionState>((set, get) =>
     }
   },
 
-  reset: () => set({
-    file: null,
-    status: 'idle',
-    uploadProgress: 0,
-    ledesContent: null,
-    extractedData: null,
-    ledesConfig: null,
-    error: null,
-    retryCount: 0,
-  }),
+  reset: () =>
+    set({
+      file: null,
+      status: 'idle',
+      uploadProgress: 0,
+      ledesContent: null,
+      extractedData: null,
+      ledesConfig: null,
+      error: null,
+      retryCount: 0,
+    }),
 }));
