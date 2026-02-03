@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useLedesConverterStore } from '@/store/ledesConverterStore';
+import { isTauri, saveFileNative } from '@/lib/tauri';
 
 // --- Custom Brutalist Icons ---
 const Icons = {
@@ -503,19 +504,34 @@ export default function LedesConverterModule() {
     }
   }, [file, config, convertFile, status, error, addLog]);
 
-  const handleDownload = useCallback(() => {
+  const handleDownload = useCallback(async () => {
     if (!extractedData || !ledesContent) {
       addLog('ERROR: Missing data for download.');
       return;
     }
 
+    const filename = `${extractedData.invoice_number}_${config.clientId || 'LEDES'}.ldes`;
     addLog('Generating file...');
 
+    // Use native Tauri save dialog when in desktop app
+    if (isTauri()) {
+      const saved = await saveFileNative(ledesContent, filename, [
+        { name: 'LEDES', extensions: ['ldes', 'txt'] },
+      ]);
+      if (saved) {
+        addLog('File saved successfully.');
+      } else {
+        addLog('Download cancelled.');
+      }
+      return;
+    }
+
+    // Fallback for web browser
     const blob = new Blob([ledesContent], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${extractedData.invoice_number}_${config.clientId || 'LEDES'}.ldes`;
+    a.download = filename;
     a.click();
     URL.revokeObjectURL(url);
     addLog('Download initiated.');
