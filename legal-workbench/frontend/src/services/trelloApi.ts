@@ -7,7 +7,8 @@ export interface Board {
   // Potentially add other board-specific fields like 'desc', 'closed', 'prefs'
 }
 
-export interface TrelloList { // Renamed to TrelloList to avoid conflict with JS List
+export interface TrelloList {
+  // Renamed to TrelloList to avoid conflict with JS List
   id: string;
   name: string;
   idBoard: string;
@@ -98,7 +99,7 @@ export const CARD_FIELDS: FieldConfig[] = [
 ];
 
 export const DEFAULT_SELECTED_FIELDS = new Set<CardFieldKey>(
-  CARD_FIELDS.filter(f => f.default).map(f => f.key)
+  CARD_FIELDS.filter((f) => f.default).map((f) => f.key)
 );
 
 const API_BASE_URL = import.meta.env.VITE_TRELLO_API_URL || '/api/trello/api/v1';
@@ -106,7 +107,9 @@ const API_BASE_URL = import.meta.env.VITE_TRELLO_API_URL || '/api/trello/api/v1'
 async function fetchApi<T>(endpoint: string, options?: RequestInit): Promise<T> {
   // Use absolute URL to avoid issues with Basic Auth credentials in browser location
   const baseUrl = window.location.origin.replace(/\/\/[^@]*@/, '//');
-  const url = API_BASE_URL.startsWith('/') ? `${baseUrl}${API_BASE_URL}${endpoint}` : `${API_BASE_URL}${endpoint}`;
+  const url = API_BASE_URL.startsWith('/')
+    ? `${baseUrl}${API_BASE_URL}${endpoint}`
+    : `${API_BASE_URL}${endpoint}`;
 
   const response = await fetch(url, {
     ...options,
@@ -156,8 +159,12 @@ export const fetchBoardById = async (boardId: string): Promise<Board> => {
 
 // Fetch complete board structure (board + lists + cards) in one call - MODIFIED
 export const fetchBoardStructure = async (boardId: string): Promise<BoardStructureResponse> => {
-  console.log(`[API] Fetching board structure for ${boardId} from ${API_BASE_URL}/boards/${boardId}`);
-  const rawStructure = await fetchApi<Omit<BoardStructureResponse, 'labels' | 'members'>>(`/boards/${boardId}`);
+  console.log(
+    `[API] Fetching board structure for ${boardId} from ${API_BASE_URL}/boards/${boardId}`
+  );
+  const rawStructure = await fetchApi<Omit<BoardStructureResponse, 'labels' | 'members'>>(
+    `/boards/${boardId}`
+  );
 
   // --- MOCK DATA INJECTION START ---
   // This section mocks labels and members that are not provided by the current backend endpoint.
@@ -170,16 +177,27 @@ export const fetchBoardStructure = async (boardId: string): Promise<BoardStructu
 
   // Add null checks for rawStructure.cards and card properties
   if (rawStructure.cards) {
-    rawStructure.cards.forEach(card => {
-      (card.idLabels || []).forEach(labelId => uniqueLabelIds.add(labelId));
-      (card.idMembers || []).forEach(memberId => uniqueMemberIds.add(memberId));
+    rawStructure.cards.forEach((card) => {
+      (card.idLabels || []).forEach((labelId) => uniqueLabelIds.add(labelId));
+      (card.idMembers || []).forEach((memberId) => uniqueMemberIds.add(memberId));
     });
   }
 
-  const labelColors = ['blue', 'green', 'orange', 'red', 'purple', 'yellow', 'sky', 'lime', 'pink', 'black'];
+  const labelColors = [
+    'blue',
+    'green',
+    'orange',
+    'red',
+    'purple',
+    'yellow',
+    'sky',
+    'lime',
+    'pink',
+    'black',
+  ];
   let colorIndex = 0;
 
-  uniqueLabelIds.forEach(id => {
+  uniqueLabelIds.forEach((id) => {
     mockLabels.push({
       id: id,
       idBoard: boardId, // Associate with the current board
@@ -189,7 +207,7 @@ export const fetchBoardStructure = async (boardId: string): Promise<BoardStructu
     colorIndex++;
   });
 
-  uniqueMemberIds.forEach(id => {
+  uniqueMemberIds.forEach((id) => {
     mockMembers.push({
       id: id,
       fullName: `Member ${id.substring(0, 4)}`, // Generate a simple full name
@@ -217,7 +235,10 @@ export const fetchLists = async (boardId: string): Promise<TrelloList[]> => {
   return structure.lists;
 };
 
-export const fetchCards = async (boardId: string, params?: { customFields?: boolean; checklists?: 'all' }): Promise<Card[]> => {
+export const fetchCards = async (
+  boardId: string,
+  _params?: { customFields?: boolean; checklists?: 'all' }
+): Promise<Card[]> => {
   console.log(`[API] Fetching cards for board ${boardId} via board structure`);
   const structure = await fetchBoardStructure(boardId);
   return structure.cards;
@@ -231,7 +252,15 @@ export const searchCards = async (queryText: string): Promise<Card[]> => {
   return fetchApi<Card[]>(`/search?query=${encodeURIComponent(queryText)}&modelTypes=cards`);
 };
 
-export const createCard = async (cardData: { idList: string; name: string; desc?: string; pos?: string | number; due?: string | null; idMembers?: string[]; idLabels?: string[]; }): Promise<Card> => {
+export const createCard = async (cardData: {
+  idList: string;
+  name: string;
+  desc?: string;
+  pos?: string | number;
+  due?: string | null;
+  idMembers?: string[];
+  idLabels?: string[];
+}): Promise<Card> => {
   console.log(`[API] Creating card in list ${cardData.idList}`);
   return fetchApi<Card>('/cards', {
     method: 'POST',
@@ -257,14 +286,16 @@ export const archiveCard = async (cardId: string): Promise<Card> => {
   return updateCard(cardId, { closed: true });
 };
 
-export const deleteCard = async (cardId: string): Promise<{ message: string }> => { // Trello API returns success message or empty object
+export const deleteCard = async (cardId: string): Promise<{ message: string }> => {
+  // Trello API returns success message or empty object
   console.log(`[API] Deleting card ${cardId}`);
   return fetchApi<{ message: string }>(`/cards/${cardId}`, {
     method: 'DELETE',
   });
 };
 
-export const addComment = async (cardId: string, text: string): Promise<any> => { // Trello comment object can be large
+export const addComment = async (cardId: string, text: string): Promise<any> => {
+  // Trello comment object can be large
   console.log(`[API] Adding comment to card ${cardId}`);
   return fetchApi<any>(`/cards/${cardId}/actions/comments`, {
     method: 'POST',
@@ -283,18 +314,28 @@ export const addAttachment = async (cardId: string, file: File): Promise<Attachm
   });
 };
 
-export const updateChecklistItem = async (cardId: string, checklistId: string, checkItemId: string, state: 'complete' | 'incomplete'): Promise<any> => {
+export const updateChecklistItem = async (
+  cardId: string,
+  checklistId: string,
+  checkItemId: string,
+  state: 'complete' | 'incomplete'
+): Promise<any> => {
   console.log(`[API] Updating checklist item ${checkItemId} in card ${cardId} to ${state}`);
   // Trello API endpoint is /cards/{idCard}/checklist/{idChecklist}/checkItem/{idCheckItem}
   // This requires a bit more detail than what was specified. Assuming a simpler mapping for now.
   // The actual PUT body for Trello API usually has { state: 'complete' } or { state: 'incomplete' }
-  return fetchApi<any>(`/cards/${cardId}/checkItem/${checkItemId}`, { // Simplified path for this task
+  return fetchApi<any>(`/cards/${cardId}/checkItem/${checkItemId}`, {
+    // Simplified path for this task
     method: 'PUT',
     body: JSON.stringify({ state }),
   });
 };
 
-export const setCustomField = async (cardId: string, fieldId: string, value: any): Promise<CustomFieldItem> => {
+export const setCustomField = async (
+  cardId: string,
+  fieldId: string,
+  value: any
+): Promise<CustomFieldItem> => {
   console.log(`[API] Setting custom field ${fieldId} for card ${cardId} with value:`, value);
   // Trello API expects the value wrapped in a 'value' object: { value: { text: "..." } } or { value: { number: 123 } }
   // The backend mapping needs to handle this, so sending 'value' directly from frontend.
@@ -323,18 +364,20 @@ export const enrichCardsForExport = (
   labels: Label[],
   members: Member[]
 ): EnrichedCard[] => {
-  const listMap = new Map(lists.map(l => [l.id, l.name]));
-  const labelMap = new Map(labels.map(l => [l.id, { name: l.name, color: l.color }]));
-  const memberMap = new Map(members.map(m => [m.id, { fullName: m.fullName, username: m.username }]));
+  const listMap = new Map(lists.map((l) => [l.id, l.name]));
+  const labelMap = new Map(labels.map((l) => [l.id, { name: l.name, color: l.color }]));
+  const memberMap = new Map(
+    members.map((m) => [m.id, { fullName: m.fullName, username: m.username }])
+  );
 
-  return cards.map(card => ({
+  return cards.map((card) => ({
     ...card,
     listName: listMap.get(card.idList) || 'Unknown List',
     labelNames: card.idLabels
-      .map(id => labelMap.get(id))
+      .map((id) => labelMap.get(id))
       .filter((l): l is { name: string; color: string } => l !== undefined),
     memberNames: card.idMembers
-      .map(id => memberMap.get(id))
+      .map((id) => memberMap.get(id))
       .filter((m): m is { fullName: string; username: string } => m !== undefined),
   }));
 };
@@ -343,19 +386,29 @@ export const enrichCardsForExport = (
  * Generate CSV content from cards
  */
 const generateCSV = (cards: EnrichedCard[]): string => {
-  const headers = ['ID', 'Name', 'Description', 'List', 'Labels', 'Members', 'Due Date', 'Status', 'URL'];
-  const rows = cards.map(card => [
+  const headers = [
+    'ID',
+    'Name',
+    'Description',
+    'List',
+    'Labels',
+    'Members',
+    'Due Date',
+    'Status',
+    'URL',
+  ];
+  const rows = cards.map((card) => [
     card.id,
     `"${(card.name || '').replace(/"/g, '""')}"`,
     `"${(card.desc || '').replace(/"/g, '""').substring(0, 500)}"`,
     `"${card.listName || ''}"`,
-    `"${(card.labelNames || []).map(l => l.name).join(', ')}"`,
-    `"${(card.memberNames || []).map(m => m.fullName).join(', ')}"`,
+    `"${(card.labelNames || []).map((l) => l.name).join(', ')}"`,
+    `"${(card.memberNames || []).map((m) => m.fullName).join(', ')}"`,
     card.due ? new Date(card.due).toLocaleDateString('pt-BR') : '',
     card.closed ? 'Archived' : 'Open',
     card.shortUrl || '',
   ]);
-  return [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+  return [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
 };
 
 /**
@@ -379,13 +432,15 @@ const generateMarkdown = (cards: EnrichedCard[]): string => {
     if (card.due) {
       const dueDate = new Date(card.due);
       const isOverdue = dueDate < new Date() && !card.closed;
-      lines.push(`- **Due:** ${dueDate.toLocaleDateString('pt-BR')}${isOverdue ? ' ⚠️ OVERDUE' : ''}`);
+      lines.push(
+        `- **Due:** ${dueDate.toLocaleDateString('pt-BR')}${isOverdue ? ' ⚠️ OVERDUE' : ''}`
+      );
     }
     if (card.labelNames && card.labelNames.length > 0) {
-      lines.push(`- **Labels:** ${card.labelNames.map(l => '`' + l.name + '`').join(', ')}`);
+      lines.push(`- **Labels:** ${card.labelNames.map((l) => '`' + l.name + '`').join(', ')}`);
     }
     if (card.memberNames && card.memberNames.length > 0) {
-      lines.push(`- **Members:** ${card.memberNames.map(m => m.fullName).join(', ')}`);
+      lines.push(`- **Members:** ${card.memberNames.map((m) => m.fullName).join(', ')}`);
     }
     if (card.desc) {
       lines.push(``);
@@ -421,10 +476,10 @@ const generateText = (cards: EnrichedCard[]): string => {
       lines.push(`    Due: ${new Date(card.due).toLocaleDateString('pt-BR')}`);
     }
     if (card.labelNames && card.labelNames.length > 0) {
-      lines.push(`    Labels: ${card.labelNames.map(l => l.name).join(', ')}`);
+      lines.push(`    Labels: ${card.labelNames.map((l) => l.name).join(', ')}`);
     }
     if (card.memberNames && card.memberNames.length > 0) {
-      lines.push(`    Members: ${card.memberNames.map(m => m.fullName).join(', ')}`);
+      lines.push(`    Members: ${card.memberNames.map((m) => m.fullName).join(', ')}`);
     }
     if (card.desc) {
       lines.push(`    Description: ${card.desc.substring(0, 200).replace(/\n/g, ' ')}...`);
@@ -495,14 +550,16 @@ export const exportData = async (
   members: Member[] = [],
   selectedFields?: Set<CardFieldKey>
 ) => {
-  console.log(`[Export] Exporting ${cards.length} card(s) as ${format}${selectedFields ? ` (fields: ${[...selectedFields].join(', ')})` : ''}`);
+  console.log(
+    `[Export] Exporting ${cards.length} card(s) as ${format}${selectedFields ? ` (fields: ${[...selectedFields].join(', ')})` : ''}`
+  );
 
   // Enrich cards with resolved labels/members
   const enrichedCards = enrichCardsForExport(cards, lists, labels, members);
 
   // Filter fields if selectedFields is provided
   const cardsToExport = selectedFields
-    ? enrichedCards.map(card => filterCardFields(card, selectedFields))
+    ? enrichedCards.map((card) => filterCardFields(card, selectedFields))
     : enrichedCards;
 
   let content: string;
@@ -553,9 +610,10 @@ export const copyToClipboard = async (
   const enrichedCards = enrichCardsForExport(cards, lists, labels, members);
 
   // Filter fields for JSON export if selectedFields provided
-  const cardsForExport = selectedFields && format === 'json'
-    ? enrichedCards.map(card => filterCardFields(card, selectedFields))
-    : enrichedCards;
+  const cardsForExport =
+    selectedFields && format === 'json'
+      ? enrichedCards.map((card) => filterCardFields(card, selectedFields))
+      : enrichedCards;
 
   let content: string;
   switch (format) {
@@ -583,7 +641,7 @@ export const copyToClipboard = async (
  * Copy only card titles to clipboard (one per line)
  */
 export const copyTitlesToClipboard = async (cards: Card[]): Promise<void> => {
-  const titles = cards.map(card => card.name).join('\n');
+  const titles = cards.map((card) => card.name).join('\n');
   await navigator.clipboard.writeText(titles);
   console.log(`[Export] Copied ${cards.length} card title(s) to clipboard`);
 };

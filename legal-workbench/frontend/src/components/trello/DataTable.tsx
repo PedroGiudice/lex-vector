@@ -1,19 +1,16 @@
 import React from 'react';
-import useTrelloStore, { Card, TrelloList } from '@/store/trelloStore';
+import useTrelloStore, { Card } from '@/store/trelloStore';
 import { format } from 'date-fns';
 import { Loader2 } from 'lucide-react';
 
 export function DataTable() {
   const {
-    cards,
     lists,
     labels,
     members,
     selectedCardIds,
     toggleCardSelection,
     clearCardSelection,
-    selectAllCards,
-    selectedBoardId,
     selectedListId,
     isLoading,
     error,
@@ -26,16 +23,18 @@ export function DataTable() {
 
   const allCards = useTrelloStore((state) => state.cards);
 
-  const labelMap = new Map((labels || []).map(label => [label.id, label]));
-  const memberMap = new Map((members || []).map(member => [member.id, member]));
+  const labelMap = new Map((labels || []).map((label) => [label.id, label]));
+  const memberMap = new Map((members || []).map((member) => [member.id, member]));
 
-  const filteredCards = allCards.filter(card => {
+  const filteredCards = allCards.filter((card) => {
     if (selectedListId && card.idList !== selectedListId) {
       return false;
     }
 
     if (labelFilterIds.size > 0) {
-      const cardHasMatchingLabel = (card.idLabels || []).some(labelId => labelFilterIds.has(labelId));
+      const cardHasMatchingLabel = (card.idLabels || []).some((labelId) =>
+        labelFilterIds.has(labelId)
+      );
       if (!cardHasMatchingLabel) {
         return false;
       }
@@ -51,8 +50,16 @@ export function DataTable() {
       } else {
         const isOverdue = cardDueDate < now && !card.closed;
         const isToday = cardDueDate.toDateString() === now.toDateString();
-        const startOfWeek = new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay());
-        const endOfWeek = new Date(startOfWeek.getFullYear(), startOfWeek.getMonth(), startOfWeek.getDate() + 7);
+        const startOfWeek = new Date(
+          now.getFullYear(),
+          now.getMonth(),
+          now.getDate() - now.getDay()
+        );
+        const endOfWeek = new Date(
+          startOfWeek.getFullYear(),
+          startOfWeek.getMonth(),
+          startOfWeek.getDate() + 7
+        );
         const isThisWeek = cardDueDate >= startOfWeek && cardDueDate < endOfWeek;
 
         switch (dueFilter) {
@@ -75,7 +82,9 @@ export function DataTable() {
     }
 
     if (memberFilterIds.size > 0) {
-      const cardHasMatchingMember = (card.idMembers || []).some(memberId => memberFilterIds.has(memberId));
+      const cardHasMatchingMember = (card.idMembers || []).some((memberId) =>
+        memberFilterIds.has(memberId)
+      );
       if (!cardHasMatchingMember) {
         return false;
       }
@@ -89,7 +98,7 @@ export function DataTable() {
   const numFilteredCards = filteredCards.length;
 
   const getListName = (idList: string) => {
-    const list = lists.find(l => l.id === idList);
+    const list = lists.find((l) => l.id === idList);
     return list ? list.name : 'Unknown List';
   };
 
@@ -107,7 +116,7 @@ export function DataTable() {
     if (isAllSelected) {
       clearCardSelection();
     } else {
-      const filteredCardIds = new Set(filteredCards.map(card => card.id));
+      const filteredCardIds = new Set(filteredCards.map((card) => card.id));
       useTrelloStore.setState({ selectedCardIds: filteredCardIds });
     }
   };
@@ -152,22 +161,32 @@ export function DataTable() {
                 />
               </th>
               {/* CARD (name) - always visible */}
-              <th className="py-2 px-3 text-text-muted uppercase font-semibold text-xxs tracking-wider cursor-pointer hover:text-accent-indigo-light transition-colors">CARD ↕</th>
+              <th className="py-2 px-3 text-text-muted uppercase font-semibold text-xxs tracking-wider cursor-pointer hover:text-accent-indigo-light transition-colors">
+                CARD ↕
+              </th>
               {/* LIST - conditional */}
               {selectedFields.has('idList') && (
-                <th className="py-2 px-3 text-text-muted uppercase font-semibold text-xxs tracking-wider cursor-pointer hover:text-accent-indigo-light transition-colors">LIST ↕</th>
+                <th className="py-2 px-3 text-text-muted uppercase font-semibold text-xxs tracking-wider cursor-pointer hover:text-accent-indigo-light transition-colors">
+                  LIST ↕
+                </th>
               )}
               {/* DUE - conditional */}
               {selectedFields.has('due') && (
-                <th className="py-2 px-3 text-text-muted uppercase font-semibold text-xxs tracking-wider cursor-pointer hover:text-accent-indigo-light transition-colors">DUE ↕</th>
+                <th className="py-2 px-3 text-text-muted uppercase font-semibold text-xxs tracking-wider cursor-pointer hover:text-accent-indigo-light transition-colors">
+                  DUE ↕
+                </th>
               )}
               {/* LABELS - conditional */}
               {selectedFields.has('labels') && (
-                <th className="py-2 px-3 text-text-muted uppercase font-semibold text-xxs tracking-wider">LABELS</th>
+                <th className="py-2 px-3 text-text-muted uppercase font-semibold text-xxs tracking-wider">
+                  LABELS
+                </th>
               )}
               {/* MEMBERS - conditional */}
               {selectedFields.has('members') && (
-                <th className="py-2 px-3 text-text-muted uppercase font-semibold text-xxs tracking-wider">MEMBERS</th>
+                <th className="py-2 px-3 text-text-muted uppercase font-semibold text-xxs tracking-wider">
+                  MEMBERS
+                </th>
               )}
             </tr>
           </thead>
@@ -176,9 +195,7 @@ export function DataTable() {
               <tr
                 key={card.id}
                 className={`border-b border-border-default cursor-pointer transition-colors duration-100 ease-in-out
-                ${selectedCardIds.has(card.id)
-                  ? 'bg-accent-indigo/10'
-                  : 'hover:bg-bg-input'}`}
+                ${selectedCardIds.has(card.id) ? 'bg-accent-indigo/10' : 'hover:bg-bg-input'}`}
                 onClick={() => toggleCardSelection(card.id)}
               >
                 <td className="py-2 px-3">
@@ -197,7 +214,9 @@ export function DataTable() {
                 )}
                 {/* DUE - conditional */}
                 {selectedFields.has('due') && (
-                  <td className={`py-2 px-3 font-mono ${card.due && new Date(card.due) < new Date() && !card.closed ? 'text-status-red' : 'text-text-primary'}`}>
+                  <td
+                    className={`py-2 px-3 font-mono ${card.due && new Date(card.due) < new Date() && !card.closed ? 'text-status-red' : 'text-text-primary'}`}
+                  >
                     {card.due ? format(new Date(card.due), 'dd/MM') : '-'}
                   </td>
                 )}
@@ -222,9 +241,14 @@ export function DataTable() {
                   <td className="py-2 px-3">
                     {(card.idMembers || []).length > 0 ? (
                       <div className="flex items-center space-x-1">
-                        {(card.idMembers || []).map(memberId => {
+                        {(card.idMembers || []).map((memberId) => {
                           const memberFullName = getMemberFullName(memberId);
-                          const initials = memberFullName.split(' ').map(n => n[0]).join('').substring(0,2).toUpperCase();
+                          const initials = memberFullName
+                            .split(' ')
+                            .map((n) => n[0])
+                            .join('')
+                            .substring(0, 2)
+                            .toUpperCase();
                           return (
                             <span
                               key={memberId}
@@ -236,7 +260,9 @@ export function DataTable() {
                           );
                         })}
                       </div>
-                    ) : <span className="text-text-dark">-</span>}
+                    ) : (
+                      <span className="text-text-dark">-</span>
+                    )}
                   </td>
                 )}
               </tr>
@@ -247,10 +273,23 @@ export function DataTable() {
 
       {/* Status Bar */}
       <div className="flex justify-between items-center p-3 border-t border-border-default bg-bg-panel-1 text-xxs text-text-muted font-mono shrink-0">
-        <span>Selected: <span className="text-text-primary">{numSelectedCards}</span></span>
-        <span>Total: <span className="text-text-primary">{totalCards}</span></span>
-        <span>Filtered: <span className="text-text-primary">{numFilteredCards}</span></span>
-        <span>🔄 Last Sync: <span className="text-text-primary">{useTrelloStore.getState().lastSync ? format(useTrelloStore.getState().lastSync as Date, 'HH:mm:ss') : 'N/A'}</span></span>
+        <span>
+          Selected: <span className="text-text-primary">{numSelectedCards}</span>
+        </span>
+        <span>
+          Total: <span className="text-text-primary">{totalCards}</span>
+        </span>
+        <span>
+          Filtered: <span className="text-text-primary">{numFilteredCards}</span>
+        </span>
+        <span>
+          🔄 Last Sync:{' '}
+          <span className="text-text-primary">
+            {useTrelloStore.getState().lastSync
+              ? format(useTrelloStore.getState().lastSync as Date, 'HH:mm:ss')
+              : 'N/A'}
+          </span>
+        </span>
       </div>
     </main>
   );

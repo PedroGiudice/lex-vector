@@ -83,7 +83,10 @@ interface TrelloState {
   fetchCardsForBoard: (boardId: string) => Promise<void>;
   performSearch: (query: string) => Promise<void>;
   createCard: (cardData: Parameters<typeof trelloApi.createCard>[0]) => Promise<void>;
-  updateCard: (cardId: string, cardData: Parameters<typeof trelloApi.updateCard>[1]) => Promise<void>;
+  updateCard: (
+    cardId: string,
+    cardData: Parameters<typeof trelloApi.updateCard>[1]
+  ) => Promise<void>;
   archiveCard: (cardId: string) => Promise<void>;
   deleteCard: (cardId: string) => Promise<void>;
 
@@ -193,13 +196,14 @@ const useTrelloStore = create<TrelloState>((set, get) => ({
       }
       return { memberFilterIds: newFilter };
     }),
-  clearFilters: () => set({
-    labelFilterIds: new Set(),
-    dueFilter: 'all',
-    statusFilter: 'open',
-    memberFilterIds: new Set(),
-    searchQuery: '',
-  }),
+  clearFilters: () =>
+    set({
+      labelFilterIds: new Set(),
+      dueFilter: 'all',
+      statusFilter: 'open',
+      memberFilterIds: new Set(),
+      searchQuery: '',
+    }),
 
   // Field Selector Actions
   toggleField: (field: CardFieldKey) =>
@@ -223,7 +227,15 @@ const useTrelloStore = create<TrelloState>((set, get) => ({
   // Computed Selector: Get filtered cards based on current filter state
   getFilteredCards: () => {
     const state = get();
-    const { cards, lists, searchQuery, labelFilterIds, dueFilter, statusFilter, memberFilterIds, selectedListId } = state;
+    const {
+      cards,
+      searchQuery,
+      labelFilterIds,
+      dueFilter,
+      statusFilter,
+      memberFilterIds,
+      selectedListId,
+    } = state;
 
     return cards.filter((card) => {
       // List filter
@@ -263,7 +275,11 @@ const useTrelloStore = create<TrelloState>((set, get) => ({
         if (dueFilter === 'today') {
           if (!card.due) return false;
           const dueDate = new Date(card.due);
-          const dueDateOnly = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
+          const dueDateOnly = new Date(
+            dueDate.getFullYear(),
+            dueDate.getMonth(),
+            dueDate.getDate()
+          );
           if (dueDateOnly.getTime() !== today.getTime()) return false;
         }
         if (dueFilter === 'week') {
@@ -293,7 +309,7 @@ const useTrelloStore = create<TrelloState>((set, get) => ({
         set({ selectedBoardId: firstBoardId });
         await get().fetchBoardData(firstBoardId);
       } else {
-         set({ isLoading: false });
+        set({ isLoading: false });
       }
     } catch (err: any) {
       set({ error: err.message, boards: [], lists: [], cards: [], isLoading: false });
@@ -369,7 +385,7 @@ const useTrelloStore = create<TrelloState>((set, get) => ({
       await trelloApi.archiveCard(cardId);
       set((state) => ({
         cards: state.cards.filter((c) => c.id !== cardId),
-        selectedCardIds: new Set([...state.selectedCardIds].filter(id => id !== cardId)),
+        selectedCardIds: new Set([...state.selectedCardIds].filter((id) => id !== cardId)),
         lastSync: new Date(),
       }));
     } catch (err: any) {
@@ -383,7 +399,7 @@ const useTrelloStore = create<TrelloState>((set, get) => ({
       await trelloApi.deleteCard(cardId);
       set((state) => ({
         cards: state.cards.filter((c) => c.id !== cardId),
-        selectedCardIds: new Set([...state.selectedCardIds].filter(id => id !== cardId)),
+        selectedCardIds: new Set([...state.selectedCardIds].filter((id) => id !== cardId)),
         lastSync: new Date(),
       }));
     } catch (err: any) {
@@ -399,18 +415,18 @@ const useTrelloStore = create<TrelloState>((set, get) => ({
     const { selectedCardIds, updateCard } = get();
     set({ isLoading: true });
     try {
-      const promises = [...selectedCardIds].map(cardId =>
+      const promises = [...selectedCardIds].map((cardId) =>
         updateCard(cardId, { idList: targetListId })
       );
       await Promise.all(promises);
       set((state) => ({
-        cards: state.cards.map(card =>
+        cards: state.cards.map((card) =>
           selectedCardIds.has(card.id) ? { ...card, idList: targetListId } : card
         ),
         selectedCardIds: new Set(),
         moveCardsModalOpen: false,
       }));
-    } catch(err) {
+    } catch (err) {
       console.error('Failed to move cards:', err);
     } finally {
       set({ isLoading: false });
@@ -421,8 +437,8 @@ const useTrelloStore = create<TrelloState>((set, get) => ({
     const { selectedCardIds, cards, updateCard } = get();
     set({ isLoading: true });
     try {
-      const promises = [...selectedCardIds].map(cardId => {
-        const card = cards.find(c => c.id === cardId);
+      const promises = [...selectedCardIds].map((cardId) => {
+        const card = cards.find((c) => c.id === cardId);
         if (!card) return Promise.resolve();
         const newLabelIds = [...new Set([...card.idLabels, ...labelIds])];
         return updateCard(cardId, { idLabels: newLabelIds });
@@ -440,9 +456,7 @@ const useTrelloStore = create<TrelloState>((set, get) => ({
     set({ isLoading: true });
     try {
       const dueValue = dueDate ? dueDate.toISOString() : null;
-      const promises = [...selectedCardIds].map(cardId =>
-        updateCard(cardId, { due: dueValue })
-      );
+      const promises = [...selectedCardIds].map((cardId) => updateCard(cardId, { due: dueValue }));
       await Promise.all(promises);
       if (get().selectedBoardId) await get().fetchBoardData(get().selectedBoardId!);
       set({ selectedCardIds: new Set() });
@@ -455,8 +469,8 @@ const useTrelloStore = create<TrelloState>((set, get) => ({
     const { selectedCardIds, cards, updateCard } = get();
     set({ isLoading: true });
     try {
-      const promises = [...selectedCardIds].map(cardId => {
-        const card = cards.find(c => c.id === cardId);
+      const promises = [...selectedCardIds].map((cardId) => {
+        const card = cards.find((c) => c.id === cardId);
         if (!card) return Promise.resolve();
         const newMemberIds = [...new Set([...card.idMembers, ...memberIds])];
         return updateCard(cardId, { idMembers: newMemberIds });
@@ -473,7 +487,7 @@ const useTrelloStore = create<TrelloState>((set, get) => ({
     const { selectedCardIds, archiveCard } = get();
     set({ isLoading: true });
     try {
-      const promises = [...selectedCardIds].map(cardId => archiveCard(cardId));
+      const promises = [...selectedCardIds].map((cardId) => archiveCard(cardId));
       await Promise.all(promises);
     } finally {
       set({ isLoading: false });
@@ -484,7 +498,7 @@ const useTrelloStore = create<TrelloState>((set, get) => ({
     const { selectedCardIds, deleteCard } = get();
     set({ isLoading: true });
     try {
-      const promises = [...selectedCardIds].map(cardId => deleteCard(cardId));
+      const promises = [...selectedCardIds].map((cardId) => deleteCard(cardId));
       await Promise.all(promises);
     } finally {
       set({ isLoading: false });

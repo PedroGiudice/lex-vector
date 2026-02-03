@@ -10,32 +10,33 @@ export function PatternList() {
   const [showAllPatterns, setShowAllPatterns] = useState(false);
 
   // Group patterns by paragraph index for easier rendering
-  const patternsByParagraph: { [key: number]: PatternMatch[] } = detectedPatterns.reduce((acc, pattern) => {
-    const paragraphIndex = pattern.paragraphIndex;
-    if (!acc[paragraphIndex]) {
-      acc[paragraphIndex] = [];
-    }
-    acc[paragraphIndex].push(pattern);
-    return acc;
-  }, {} as { [key: number]: PatternMatch[] });
+  const patternsByParagraph: { [key: number]: PatternMatch[] } = detectedPatterns.reduce(
+    (acc, pattern) => {
+      const paragraphIndex = pattern.paragraphIndex;
+      if (!acc[paragraphIndex]) {
+        acc[paragraphIndex] = [];
+      }
+      acc[paragraphIndex].push(pattern);
+      return acc;
+    },
+    {} as { [key: number]: PatternMatch[] }
+  );
 
-  const paragraphsWithPatterns = Object.keys(patternsByParagraph).sort((a, b) => parseInt(a) - parseInt(b));
+  const paragraphsWithPatterns = Object.keys(patternsByParagraph).sort(
+    (a, b) => parseInt(a) - parseInt(b)
+  );
 
   if (!documentId || detectedPatterns.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-center px-4 py-8">
         <Sparkles className="w-12 h-12 text-gh-text-secondary mb-4" />
-        <h3 className="text-md font-semibold text-gh-text-primary mb-2">
-          No Patterns Detected
-        </h3>
+        <h3 className="text-md font-semibold text-gh-text-primary mb-2">No Patterns Detected</h3>
         <p className="text-xs text-gh-text-secondary max-w-md">
           Upload a document to automatically detect common patterns like CPF, dates, and more.
         </p>
       </div>
     );
   }
-
-  const patternsToShow = showAllPatterns ? detectedPatterns : detectedPatterns.slice(0, 5);
 
   return (
     <div className="space-y-4">
@@ -67,10 +68,7 @@ export function PatternList() {
                 Paragraph {paragraphIndex + 1}
               </h3>
               {visiblePatterns.map((pattern, index) => (
-                <PatternItem
-                  key={`${paragraphIndex}-${index}`}
-                  patternMatch={pattern}
-                />
+                <PatternItem key={`${paragraphIndex}-${index}`} patternMatch={pattern} />
               ))}
             </div>
           );
