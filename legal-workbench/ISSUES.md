@@ -4,7 +4,60 @@ Problemas identificados aguardando resolucao.
 
 ---
 
+## Quick Reference: Instalacao do App Tauri
+
+**Desinstalar versao atual:**
+```bash
+sudo dpkg --purge legal-workbench
+```
+
+**Instalar nova versao (via Tailscale):**
+```bash
+scp opc@100.114.203.28:/tmp/lw.deb /tmp/ && sudo dpkg -i /tmp/lw.deb
+```
+
+**Rodar app com logs (debug):**
+```bash
+/opt/Legal\ Workbench/tauri-app 2>&1 | tee /tmp/lw-log.txt
+```
+
+**Verificar versao instalada:**
+```bash
+dpkg -s legal-workbench | grep Version
+```
+
+---
+
 ## Abertos
+
+### #1 - Text Extractor: "Submission failed: Network Error"
+
+**Modulo:** Text Extractor (frontend + Tauri)
+**Sintoma:** Ao submeter PDF para extracao, erro "Submission failed: Network Error"
+**Status:** Aberto (solucao anterior revertida)
+**Data:** 2026-01-29
+
+**Causa Raiz (descoberta incremental):**
+1. CORS invalido: `allow_origins=["*"]` + `allow_credentials=True`
+2. IP hardcoded em `dynamic.yml` apontava para container antigo
+3. WebKitGTK (engine Tauri Linux) tem limitacoes com fetch/CORS causando "Broken pipe"
+
+**Tentativa de Solucao (2026-02-02) - REVERTIDA:**
+Tentamos usar `tauri-plugin-http` em vez do fetch nativo do WebView.
+
+**Problema:** Nossa implementacao do tauri-plugin-http causou freeze/crash do app ao enviar FormData.
+Bugs conhecidos no plugin:
+- [Issue #2588](https://github.com/tauri-apps/plugins-workspace/issues/2588): http fetch freezes in POST
+- [Issue #13498](https://github.com/tauri-apps/tauri/issues/13498): Webview window random freezing
+
+**Status Atual:**
+Revertido para axios. App funciona mas pode ter "Network Error" esporadico no WebKitGTK.
+Investigar alternativas ou aguardar fix upstream do tauri-plugin-http.
+
+**Tech Debt:**
+- Binario Tauri se chama `tauri-app` (generico) - deveria ser `legal-workbench`
+
+---
 
 ### #3 - UX: Feedback de progresso inadequado (PRIORIDADE MEDIA)
 
@@ -99,29 +152,3 @@ Usar APIs nativas do Tauri para salvar arquivo:
 - `frontend/src/components/text-extractor/OutputPanel.tsx`: `handleDownload` usa nativo no Tauri
 - `frontend/src-tauri/capabilities/default.json`: Adicionadas permissoes `dialog:default` e `fs:default`
 
----
-
-### #1 - Text Extractor: "Submission failed: Network Error"
-
-**Modulo:** Text Extractor (frontend + Tauri)
-**Sintoma:** Ao submeter PDF para extracao, erro "Submission failed: Network Error"
-**Status:** Resolvido (DEFINITIVO)
-**Data:** 2026-01-29
-**Resolvido em:** 2026-02-02
-
-**Causa Raiz (descoberta incremental):**
-1. CORS invalido: `allow_origins=["*"]` + `allow_credentials=True`
-2. IP hardcoded em `dynamic.yml` apontava para container antigo
-3. **(DEFINITIVO)** WebKitGTK (engine Tauri Linux) tem limitacoes com fetch/CORS causando "Broken pipe"
-
-**Solucao Definitiva:**
-Usar `tauri-plugin-http` em vez do fetch nativo do WebView.
-
-**Arquivos modificados:**
-- `Cargo.toml`: `tauri-plugin-http = "2"`
-- `lib.rs`: `.plugin(tauri_plugin_http::init())`
-- `capabilities/default.json`: `"http:default"`
-- `textExtractorApi.ts`: usa `tauriFetch` quando `isTauri()` = true
-
-**Tech Debt:**
-- Binario Tauri se chama `tauri-app` (generico) - deveria ser `legal-workbench`

@@ -75,29 +75,45 @@ export const textExtractorApi = {
     options: ExtractOptions,
     filePath?: string
   ): Promise<JobSubmitResponse> => {
+    // Debug: log incoming params
+    lteLogger.request('POST', '/extract', {
+      isTauri: isTauri(),
+      hasFilePath: !!filePath,
+      filePath: filePath || '(not set)',
+      engine: options.engine,
+    });
+
     // Try native upload first (Tauri desktop)
     if (isTauri() && filePath) {
       lteLogger.request('POST', '[NATIVE] /extract', { engine: options.engine, filePath });
 
-      const nativeResult = await uploadExtractionJobNative(
-        filePath,
-        options.engine,
-        options.gpuMode,
-        options.useGemini,
-        options.useScript,
-        {
-          margins: options.margins,
-          ignore_terms: options.ignoreTerms,
-        }
-      );
+      try {
+        const nativeResult = await uploadExtractionJobNative(
+          filePath,
+          options.engine,
+          options.gpuMode,
+          options.useGemini,
+          options.useScript,
+          {
+            margins: options.margins,
+            ignore_terms: options.ignoreTerms,
+          }
+        );
 
-      if (nativeResult) {
-        lteLogger.response('POST', '[NATIVE] /extract', 202, nativeResult);
-        return {
-          job_id: nativeResult.job_id,
-          status: nativeResult.status,
-          estimated_completion: nativeResult.estimated_completion?.toString(),
-        };
+        if (nativeResult) {
+          lteLogger.response('POST', '[NATIVE] /extract', 202, nativeResult);
+          return {
+            job_id: nativeResult.job_id,
+            status: nativeResult.status,
+            estimated_completion: nativeResult.estimated_completion?.toString(),
+          };
+        }
+        // If nativeResult is null, fall through to axios
+        lteLogger.error('[NATIVE] Upload returned null, falling back to axios');
+      } catch (nativeError) {
+        // Re-throw native errors instead of falling back to axios (which will fail with broken pipe)
+        lteLogger.error('[NATIVE] Upload failed', nativeError);
+        throw nativeError;
       }
     }
 

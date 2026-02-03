@@ -105,7 +105,10 @@ export const useTextExtractorStore = create<TextExtractorState>((set, get) => ({
     }
   },
 
-  setFilePath: (path) => set({ filePath: path }),
+  setFilePath: (path) => {
+    console.log('[Store] setFilePath called with:', path);
+    set({ filePath: path });
+  },
 
   setEngine: (engine) => set({ engine }),
 
@@ -149,8 +152,7 @@ export const useTextExtractorStore = create<TextExtractorState>((set, get) => ({
   },
 
   submitJob: async () => {
-    const { file, filePath, engine, gpuMode, useGemini, useScript, margins, ignoreTerms, addLog } =
-      get();
+    const { file, engine, gpuMode, useGemini, useScript, margins, ignoreTerms, addLog } = get();
 
     if (!file) {
       addLog('Error: No file selected', 'error');
@@ -198,6 +200,10 @@ export const useTextExtractorStore = create<TextExtractorState>((set, get) => ({
       'info'
     );
 
+    // Re-fetch filePath from store to ensure we have the latest value
+    const currentFilePath = get().filePath;
+    addLog(`FilePath: ${currentFilePath || '(not set)'} | Tauri: ${isTauri()}`, 'info');
+
     try {
       const response = await textExtractorApi.submitJob(
         file,
@@ -209,7 +215,7 @@ export const useTextExtractorStore = create<TextExtractorState>((set, get) => ({
           margins,
           ignoreTerms,
         },
-        filePath || undefined
+        currentFilePath || undefined
       );
 
       set({ jobId: response.job_id });

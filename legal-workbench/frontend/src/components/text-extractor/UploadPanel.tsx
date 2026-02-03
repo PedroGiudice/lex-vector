@@ -77,16 +77,24 @@ export function UploadPanel() {
       });
 
       if (path && typeof path === 'string') {
+        console.log('[UploadPanel] Native dialog returned path:', path);
         const content = await readFile(path);
         const filename = path.split('/').pop() || 'document.pdf';
         const file = new File([content], filename, { type: 'application/pdf' });
-        setFile(file);
-        setFilePath(path);
+        console.log('[UploadPanel] File created, setting both file and filePath');
+        // Use getState() to avoid any potential closure issues with destructured setters
+        const store = useTextExtractorStore.getState();
+        store.setFile(file);
+        store.setFilePath(path);
+        console.log('[UploadPanel] Both setters called, verifying state...');
+        // Verify immediately after setting
+        const currentPath = useTextExtractorStore.getState().filePath;
+        console.log('[UploadPanel] Verified filePath in store:', currentPath);
       }
     } catch (error) {
       console.error('Native file picker error:', error);
     }
-  }, [isDisabled, setFile, setFilePath]);
+  }, [isDisabled]);
 
   const handleClearFile = useCallback(() => {
     setFile(null);
