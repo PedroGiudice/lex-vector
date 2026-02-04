@@ -9,7 +9,6 @@ from __future__ import annotations
 import logging
 import os
 import shutil
-import warnings
 from pathlib import Path
 from datetime import datetime, timedelta
 from typing import Final, TypedDict
@@ -97,12 +96,6 @@ INTEGRAS_PROGRESS_FILE: Final[Path] = INTEGRAS_DIR / ".download_progress.json"
 # Criar diretorios de integras
 for dir_path in [INTEGRAS_STAGING_DIR, INTEGRAS_TEXTOS_DIR, INTEGRAS_METADATA_DIR]:
     dir_path.mkdir(parents=True, exist_ok=True)
-
-# Legacy URL (DEPRECATED - returns 404)
-STJ_BASE_URL_LEGACY: Final[str] = "https://www.stj.jus.br/sites/portalp/SiteAssets/documentos/noticias/abertos/"
-
-# Keep old name for backward compatibility (DEPRECATED)
-STJ_BASE_URL: Final[str] = STJ_BASE_URL_LEGACY
 
 
 def get_orgao_dataset_id(orgao: str) -> str:
@@ -223,55 +216,6 @@ SCHEMA_FIELDS_EXPECTED: Final[list[str]] = [
     "textoIntegral"
 ]
 
-
-def get_date_range_urls(start_date: datetime, end_date: datetime, orgao: str) -> list[dict[str, str | int]]:
-    """
-    DEPRECATED: Legacy URL pattern no longer works (returns 404).
-
-    Use CKANClient.get_resources() instead to discover available CSV files
-    via the CKAN API.
-
-    Args:
-        start_date: Data inicial do periodo (ignored)
-        end_date: Data final do periodo (ignored)
-        orgao: Chave do orgao julgador (ignored)
-
-    Returns:
-        Empty list (legacy URLs return 404)
-    """
-    warnings.warn(
-        "get_date_range_urls() is deprecated. Legacy STJ URLs return 404. "
-        "Use CKANClient.get_resources() to discover available files via CKAN API.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    logger.warning(
-        "get_date_range_urls() called but is deprecated. "
-        "Legacy URL pattern %s no longer works. Use CKAN API instead.",
-        STJ_BASE_URL_LEGACY,
-    )
-    return []
-
-
-def get_mvp_urls() -> list[dict[str, str | int]]:
-    """
-    DEPRECATED: Legacy URL pattern no longer works (returns 404).
-
-    Use CKANClient to discover and download resources via CKAN API.
-
-    Returns:
-        Empty list (legacy URLs return 404)
-    """
-    warnings.warn(
-        "get_mvp_urls() is deprecated. Legacy STJ URLs return 404. "
-        "Use CKANClient to discover available files via CKAN API.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    logger.warning(
-        "get_mvp_urls() called but is deprecated. Use CKAN API instead."
-    )
-    return []
 
 
 def get_storage_info() -> dict[str, str | float | bool]:
