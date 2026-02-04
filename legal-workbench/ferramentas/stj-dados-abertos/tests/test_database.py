@@ -577,5 +577,231 @@ class TestDatabaseStats:
             assert db.stats.duplicados == 0
 
 
+class TestIntegrasSchema:
+    """Testes para tabela integras."""
+
+    def test_criar_tabela_integras(self, temp_db):
+        """Tabela integras criada com schema correto."""
+        with STJDatabase(temp_db) as db:
+            db.criar_schema()
+            result = db.conn.execute("SELECT * FROM integras LIMIT 0").description
+            colunas = [col[0] for col in result]
+            assert "seq_documento" in colunas
+            assert "texto_completo" in colunas
+            assert "numero_processo" in colunas
+            assert "tipo_documento" in colunas
+            assert "hash_conteudo" in colunas
+
+    def test_criar_indices_integras(self, temp_db):
+        """Verifica indices da tabela integras."""
+        with STJDatabase(temp_db) as db:
+            db.criar_schema()
+            indexes = db.conn.execute(
+                "SELECT index_name FROM duckdb_indexes() WHERE table_name = 'integras'"
+            ).fetchall()
+            index_names = [idx[0] for idx in indexes]
+            assert 'idx_integras_processo' in index_names
+            assert 'idx_integras_tipo' in index_names
+            assert 'idx_integras_data_pub' in index_names
+
+
+class TestIntegrasInsert:
+    """Testes de insercao na tabela integras."""
+
+    @pytest.fixture
+    def sample_integra(self):
+        return {
+            'seq_documento': 353186704,
+            'numero_processo': '2591846',
+            'classe_processual': 'AREsp',
+            'numero_registro': '202400836220',
+            'hash_conteudo': f'hash_integra_{uuid.uuid4()}',
+            'tipo_documento': 'DECISAO',
+            'ministro': 'PAULO SERGIO DOMINGUES',
+            'teor': 'Nao Conhecendo',
+            'descricao_monocratica': None,
+            'texto_completo': 'Trata-se de agravo em recurso especial interposto contra decisao...',
+            'data_publicacao': '2026-01-22',
+            'data_recebimento': None,
+            'data_distribuicao': None,
+            'recurso': None,
+            'assuntos': '["9992", "10433"]',
+            'data_insercao': '2026-01-22T10:00:00',
+        }
+
+    def test_inserir_integra(self, temp_db, sample_integra):
+        """Insere registro de integra."""
+        with STJDatabase(temp_db) as db:
+            db.criar_schema()
+            inseridos, duplicados, erros = db.inserir_integras_batch([sample_integra])
+            assert inseridos == 1
+            assert duplicados == 0
+            assert erros == 0
+
+            count = db.conn.execute("SELECT COUNT(*) FROM integras").fetchone()[0]
+            assert count == 1
+
+    def test_deduplicar_por_seq_documento(self, temp_db, sample_integra):
+        """SeqDocumento e PK natural - duplicata ignorada."""
+        with STJDatabase(temp_db) as db:
+            db.criar_schema()
+            db.inserir_integras_batch([sample_integra])
+            inseridos, duplicados, erros = db.inserir_integras_batch([sample_integra])
+            assert inseridos == 0
+            assert duplicados == 1
+
+            count = db.conn.execute("SELECT COUNT(*) FROM integras").fetchone()[0]
+            assert count == 1
+
+    def test_inserir_batch_integras(self, temp_db):
+        """Insere lote de integras."""
+        with STJDatabase(temp_db) as db:
+            db.criar_schema()
+            registros = []
+            for i in range(50):
+                registros.append({
+                    'seq_documento': 1000 + i,
+                    'numero_processo': str(i),
+                    'classe_processual': 'REsp',
+                    'numero_registro': f'2024{i:08d}',
+                    'hash_conteudo': f'hash_{i}_{uuid.uuid4()}',
+                    'tipo_documento': 'DECISAO' if i % 2 == 0 else 'ACORDAO',
+                    'ministro': 'Ministro Teste',
+                    'teor': 'Teste',
+                    'descricao_monocratica': None,
+                    'texto_completo': f'Texto completo {i}',
+                    'data_publicacao': '2026-01-22',
+                    'data_recebimento': None,
+                    'data_distribuicao': None,
+                    'recurso': None,
+                    'assuntos': '[]',
+                    'data_insercao': '2026-01-22T10:00:00',
+                })
+            inseridos, duplicados, erros = db.inserir_integras_batch(registros)
+            assert inseridos == 50
+            assert erros == 0
+
+
+class TestIntegrasSearch:
+    """Testes de busca nas integras."""
+
+    @pytest.fixture
+    def db_integras(self, temp_db):
+        """Banco com integras de teste."""
+        with STJDatabase(temp_db) as db:
+            db.criar_schema()
+            registros = [
+                {
+                    'seq_documento': 1001,
+                    'numero_processo': '111111',
+                    'classe_processual': 'REsp',
+                    'numero_registro': '202400000001',
+                    'hash_conteudo': f'h1_{uuid.uuid4()}',
+                    'tipo_documento': 'ACORDAO',
+                    'ministro': 'MINISTRO TESTE',
+                    'teor': 'Provimento',
+                    'descricao_monocratica': None,
+                    'texto_completo': 'Trata-se de recurso especial sobre responsabilidade civil por dano moral em relacao de consumo.',
+                    'data_publicacao': '2025-12-01',
+                    'data_recebimento': None,
+                    'data_distribuicao': None,
+                    'recurso': None,
+                    'assuntos': '["11806"]',
+                    'data_insercao': '2026-01-01T00:00:00',
+                },
+                {
+                    'seq_documento': 1002,
+                    'numero_processo': '222222',
+                    'classe_processual': 'HC',
+                    'numero_registro': '202400000002',
+                    'hash_conteudo': f'h2_{uuid.uuid4()}',
+                    'tipo_documento': 'DECISAO',
+                    'ministro': 'MINISTRO DOIS',
+                    'teor': 'Nao Conhecendo',
+                    'descricao_monocratica': 'Decisao monocratica',
+                    'texto_completo': 'Trata-se de habeas corpus impetrado contra decisao que denegou liminar.',
+                    'data_publicacao': '2025-12-01',
+                    'data_recebimento': None,
+                    'data_distribuicao': None,
+                    'recurso': None,
+                    'assuntos': '["9992"]',
+                    'data_insercao': '2026-01-01T00:00:00',
+                },
+            ]
+            db.inserir_integras_batch(registros)
+            db.rebuild_fts_integras()
+        return STJDatabase(temp_db)
+
+    def test_buscar_texto_completo(self, db_integras):
+        """FTS no texto_completo das integras."""
+        with db_integras as db:
+            resultados = db.buscar_integras("responsabilidade", dias=365)
+            assert len(resultados) > 0
+
+    def test_buscar_por_tipo(self, db_integras):
+        """Filtra por tipo de documento."""
+        with db_integras as db:
+            resultados = db.buscar_integras("habeas corpus", tipo="DECISAO", dias=365)
+            assert len(resultados) > 0
+            assert all(r['tipo_documento'] == 'DECISAO' for r in resultados)
+
+
+class TestCorrelacao:
+    """Testes de correlacao espelho<->integra."""
+
+    def test_buscar_por_processo_integra(self, temp_db):
+        """Busca integra por numero_processo."""
+        with STJDatabase(temp_db) as db:
+            db.criar_schema()
+            db.inserir_integras_batch([{
+                'seq_documento': 5001,
+                'numero_processo': '999999',
+                'classe_processual': 'REsp',
+                'numero_registro': '202400000099',
+                'hash_conteudo': str(uuid.uuid4()),
+                'tipo_documento': 'ACORDAO',
+                'ministro': 'TESTE',
+                'teor': 'Provimento',
+                'descricao_monocratica': None,
+                'texto_completo': 'Texto do acordao 999999',
+                'data_publicacao': '2026-01-01',
+                'data_recebimento': None,
+                'data_distribuicao': None,
+                'recurso': None,
+                'assuntos': '[]',
+                'data_insercao': '2026-01-01T00:00:00',
+            }])
+            resultado = db.buscar_por_processo("999999")
+            assert resultado is not None
+            assert 'integras' in resultado
+            assert len(resultado['integras']) == 1
+
+    def test_estatisticas_integras(self, temp_db):
+        """Estatisticas basicas da tabela integras."""
+        with STJDatabase(temp_db) as db:
+            db.criar_schema()
+            db.inserir_integras_batch([{
+                'seq_documento': 6001,
+                'numero_processo': '888888',
+                'classe_processual': 'HC',
+                'numero_registro': '202400000088',
+                'hash_conteudo': str(uuid.uuid4()),
+                'tipo_documento': 'DECISAO',
+                'ministro': 'TESTE',
+                'teor': 'Teste',
+                'descricao_monocratica': None,
+                'texto_completo': 'Texto teste',
+                'data_publicacao': '2026-01-01',
+                'data_recebimento': None,
+                'data_distribuicao': None,
+                'recurso': None,
+                'assuntos': '[]',
+                'data_insercao': '2026-01-01T00:00:00',
+            }])
+            stats = db.estatisticas_integras()
+            assert stats['total_integras'] == 1
+            assert 'por_tipo' in stats
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

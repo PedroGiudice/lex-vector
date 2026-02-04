@@ -248,6 +248,43 @@ class STJDatabase:
                 )
             """)
 
+            # Tabela de integras (decisoes terminativas + acordaos com texto completo)
+            self.conn.execute("""
+                CREATE TABLE IF NOT EXISTS integras (
+                    seq_documento BIGINT PRIMARY KEY,
+                    numero_processo VARCHAR NOT NULL,
+                    classe_processual VARCHAR,
+                    numero_registro VARCHAR,
+                    hash_conteudo VARCHAR UNIQUE NOT NULL,
+
+                    -- Classificacao
+                    tipo_documento VARCHAR NOT NULL,
+                    ministro VARCHAR,
+                    teor VARCHAR,
+                    descricao_monocratica TEXT,
+                    recurso VARCHAR,
+
+                    -- Conteudo
+                    texto_completo TEXT NOT NULL,
+
+                    -- Datas
+                    data_publicacao DATE,
+                    data_recebimento DATE,
+                    data_distribuicao DATE,
+                    data_insercao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+                    -- Metadata
+                    assuntos TEXT
+                )
+            """)
+
+            # Indices para integras
+            self.conn.execute("CREATE INDEX IF NOT EXISTS idx_integras_processo ON integras(numero_processo)")
+            self.conn.execute("CREATE INDEX IF NOT EXISTS idx_integras_tipo ON integras(tipo_documento)")
+            self.conn.execute("CREATE INDEX IF NOT EXISTS idx_integras_ministro ON integras(ministro)")
+            self.conn.execute("CREATE INDEX IF NOT EXISTS idx_integras_data_pub ON integras(data_publicacao DESC)")
+            self.conn.execute("CREATE INDEX IF NOT EXISTS idx_integras_hash ON integras(hash_conteudo)")
+
             logger.info("Schema criado com sucesso")
             console.print("[green][OK] Schema do banco criado[/green]")
 
@@ -628,6 +665,207 @@ class STJDatabase:
         except Exception as e:
             logger.error(f"Erro ao reconstruir indice FTS: {e}")
             raise
+
+    def rebuild_fts_integras(self):
+        """Rebuild FTS index para tabela integras."""
+        try:
+            logger.info("Criando/reconstruindo indice FTS para integras...")
+            self.conn.execute("""
+                PRAGMA create_fts_index(
+                    'integras', 'seq_documento', 'texto_completo',
+                    stemmer = 'portuguese',
+                    stopwords = 'stopwords_juridico',
+                    strip_accents = 1,
+                    lower = 1,
+                    overwrite = 1
+                )
+            """)
+            logger.info("Indice FTS integras criado")
+        except Exception as e:
+            logger.warning(f"FTS integras warning: {e}")
+
+    def inserir_integras_batch(self, registros: list[dict]) -> tuple[int, int, int]:
+        """Insere batch de integras com deduplicacao por seq_documento."""
+        if not registros:
+            return 0, 0, 0
+
+        inseridos = 0
+        duplicados = 0
+        erros = 0
+
+        try:
+            for i in range(0, len(registros), BATCH_SIZE):
+                batch = registros[i:i + BATCH_SIZE]
+
+                # Verificar quais seq_documento ja existem
+                seqs = [r['seq_documento'] for r in batch]
+                placeholders = ','.join(['?' for _ in seqs])
+                existing = set(
+                    row[0] for row in self.conn.execute(
+                        f"SELECT seq_documento FROM integras WHERE seq_documento IN ({placeholders})",
+                        seqs
+                    ).fetchall()
+                )
+
+                novos = [r for r in batch if r['seq_documento'] not in existing]
+                duplicados += len(batch) - len(novos)
+
+                if novos:
+                    self.conn.executemany("""
+                        INSERT INTO integras (
+                            seq_documento, numero_processo, classe_processual,
+                            numero_registro, hash_conteudo,
+                            tipo_documento, ministro, teor,
+                            descricao_monocratica, recurso,
+                            texto_completo,
+                            data_publicacao, data_recebimento, data_distribuicao,
+                            data_insercao, assuntos
+                        ) VALUES (
+                            ?, ?, ?, ?, ?,
+                            ?, ?, ?, ?, ?,
+                            ?,
+                            ?, ?, ?,
+                            ?, ?
+                        )
+                    """, [
+                        (
+                            r['seq_documento'], r['numero_processo'], r.get('classe_processual'),
+                            r.get('numero_registro'), r['hash_conteudo'],
+                            r['tipo_documento'], r.get('ministro'), r.get('teor'),
+                            r.get('descricao_monocratica'), r.get('recurso'),
+                            r['texto_completo'],
+                            r.get('data_publicacao'), r.get('data_recebimento'), r.get('data_distribuicao'),
+                            r.get('data_insercao'), r.get('assuntos', '[]'),
+                        )
+                        for r in novos
+                    ])
+                    inseridos += len(novos)
+
+        except Exception as e:
+            logger.error(f"Erro ao inserir integras: {e}")
+            erros += len(registros) - inseridos - duplicados
+
+        return inseridos, duplicados, erros
+
+    def buscar_integras(
+        self,
+        termo: str,
+        tipo: str = None,
+        dias: int = 365,
+        limit: int = 20
+    ) -> list[dict]:
+        """FTS no texto_completo das integras."""
+        try:
+            query = f"""
+                SELECT
+                    seq_documento, numero_processo, classe_processual,
+                    tipo_documento, ministro, teor,
+                    data_publicacao,
+                    LEFT(texto_completo, 200) as preview,
+                    score
+                FROM (
+                    SELECT *,
+                        fts_main_integras.match_bm25(seq_documento, ?) AS score
+                    FROM integras
+                    WHERE data_publicacao >= CURRENT_DATE - INTERVAL '{dias} DAY'
+            """
+            params = [termo]
+
+            if tipo:
+                query += " AND tipo_documento = ?"
+                params.append(tipo)
+
+            query += """
+                ) sq
+                WHERE score IS NOT NULL
+                ORDER BY score DESC
+                LIMIT ?
+            """
+            params.append(limit)
+
+            results = self.conn.execute(query, params).fetchall()
+            columns = ['seq_documento', 'numero_processo', 'classe_processual',
+                       'tipo_documento', 'ministro', 'teor',
+                       'data_publicacao', 'preview', 'score']
+            return [dict(zip(columns, row)) for row in results]
+
+        except Exception as e:
+            logger.error(f"Erro na busca de integras: {e}")
+            return []
+
+    def buscar_por_processo(self, numero_processo: str) -> dict:
+        """
+        Busca unificada: retorna espelho (acordao) + integra(s) do mesmo processo.
+        """
+        resultado = {'numero_processo': numero_processo, 'acordaos': [], 'integras': []}
+
+        try:
+            # Buscar nos espelhos (acordaos)
+            acordaos = self.conn.execute(
+                "SELECT * FROM acordaos WHERE numero_processo LIKE ?",
+                [f'%{numero_processo}%']
+            ).fetchall()
+            if acordaos:
+                cols = [desc[0] for desc in self.conn.execute("SELECT * FROM acordaos LIMIT 0").description]
+                resultado['acordaos'] = [dict(zip(cols, row)) for row in acordaos]
+        except Exception:
+            pass
+
+        try:
+            # Buscar nas integras
+            integras = self.conn.execute(
+                "SELECT * FROM integras WHERE numero_processo = ?",
+                [numero_processo]
+            ).fetchall()
+            if integras:
+                cols = [desc[0] for desc in self.conn.execute("SELECT * FROM integras LIMIT 0").description]
+                resultado['integras'] = [dict(zip(cols, row)) for row in integras]
+        except Exception:
+            pass
+
+        return resultado
+
+    def estatisticas_integras(self) -> dict:
+        """Estatisticas da tabela integras."""
+        try:
+            stats = {}
+            stats['total_integras'] = self.conn.execute(
+                "SELECT COUNT(*) FROM integras"
+            ).fetchone()[0]
+
+            stats['por_tipo'] = dict(
+                self.conn.execute("""
+                    SELECT tipo_documento, COUNT(*)
+                    FROM integras
+                    GROUP BY tipo_documento
+                    ORDER BY COUNT(*) DESC
+                """).fetchall()
+            )
+
+            stats['por_ministro_top10'] = dict(
+                self.conn.execute("""
+                    SELECT ministro, COUNT(*)
+                    FROM integras
+                    WHERE ministro IS NOT NULL
+                    GROUP BY ministro
+                    ORDER BY COUNT(*) DESC
+                    LIMIT 10
+                """).fetchall()
+            )
+
+            periodo = self.conn.execute("""
+                SELECT MIN(data_publicacao), MAX(data_publicacao)
+                FROM integras
+            """).fetchone()
+            stats['periodo'] = {
+                'mais_antigo': periodo[0],
+                'mais_recente': periodo[1]
+            }
+
+            return stats
+        except Exception as e:
+            logger.error(f"Erro ao obter estatisticas de integras: {e}")
+            return {}
 
     def exportar_csv(self, query: str, output_path: Path):
         """
