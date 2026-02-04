@@ -35,6 +35,7 @@ from defusedxml import ElementTree
 import json
 
 from .models import LedesData, ConversionResponse, HealthResponse, LineItem, LedesConfig
+from .utbms_mapper import infer_task_code, infer_activity_code
 
 app = FastAPI(
     title="LEDES Converter API",
@@ -318,6 +319,9 @@ def generate_ledes_1998b(data: dict) -> str:
     # LINE_ITEM_DATE must be within billing period - use billing_start
     line_item_date = billing_start if billing_start else data["invoice_date"]
 
+    # Check if auto-mapping is enabled (default: True)
+    auto_map_codes = data.get("auto_map_codes", True)
+
     # Data rows: Each line item becomes a row with 24 fields
     for i, item in enumerate(data["line_items"], 1):
         # Calculate units: LINE_ITEM_TOTAL / UNIT_COST
@@ -326,6 +330,26 @@ def generate_ledes_1998b(data: dict) -> str:
         if unit_cost and unit_cost > 0:
             calculated_units = line_item_total / unit_cost
             units = f"{calculated_units:.2f}"
+
+        # Determine task and activity codes:
+        # 1. Explicit code from item takes precedence
+        # 2. Auto-infer from description if enabled
+        # 3. Fall back to config defaults
+        item_description = item.get("description", "")
+
+        if item.get("task_code"):
+            item_task_code = item["task_code"]
+        elif auto_map_codes:
+            item_task_code = infer_task_code(item_description, default_task_code)
+        else:
+            item_task_code = default_task_code
+
+        if item.get("activity_code"):
+            item_activity_code = item["activity_code"]
+        elif auto_map_codes:
+            item_activity_code = infer_activity_code(item_description, default_activity_code)
+        else:
+            item_activity_code = default_activity_code
 
         row = [
             sanitize_ledes_field(data["invoice_date"], 8),           # 1. INVOICE_DATE
@@ -342,11 +366,11 @@ def generate_ledes_1998b(data: dict) -> str:
             "",                                                      # 12. LINE_ITEM_ADJUSTMENT_AMOUNT
             format_ledes_currency(line_item_total),                  # 13. LINE_ITEM_TOTAL
             sanitize_ledes_field(line_item_date, 8),                 # 14. LINE_ITEM_DATE (within billing period)
-            item.get("task_code", default_task_code),                # 15. LINE_ITEM_TASK_CODE
+            item_task_code,                                          # 15. LINE_ITEM_TASK_CODE
             "",                                                      # 16. LINE_ITEM_EXPENSE_CODE
-            item.get("activity_code", default_activity_code),        # 17. LINE_ITEM_ACTIVITY_CODE
+            item_activity_code,                                      # 17. LINE_ITEM_ACTIVITY_CODE
             sanitize_ledes_field(timekeeper_id, 20),                 # 18. TIMEKEEPER_ID
-            sanitize_ledes_field(item["description"], 500),          # 19. LINE_ITEM_DESCRIPTION
+            sanitize_ledes_field(item_description, 500),             # 19. LINE_ITEM_DESCRIPTION
             sanitize_ledes_field(data.get("law_firm_id", ""), 50),   # 20. LAW_FIRM_ID
             format_ledes_currency(unit_cost) if unit_cost else "",   # 21. LINE_ITEM_UNIT_COST
             sanitize_ledes_field(timekeeper_name, 50),               # 22. TIMEKEEPER_NAME

@@ -89,7 +89,7 @@ ACTIVITY_CODE_PATTERNS: Dict[str, List[str]] = {
     "A106": [  # Communicate
         "meeting", "reunião", "reuniao", "conference", "conferência", "conferencia",
         "call", "ligação", "ligacao", "email", "correspond", "discuss", "discutir",
-        "communicate", "comunicar"
+        "communicate", "comunicar", "negotiat"  # covers "negotiation" and "negotiate"
     ],
     "A102": [  # Research
         "research", "pesquisa", "investigate", "investigar", "study",

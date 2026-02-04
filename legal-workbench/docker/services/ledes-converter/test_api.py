@@ -309,3 +309,140 @@ def test_ledes_ascii_and_special_char_sanitization():
 
     # Test negative amounts
     assert format_ledes_currency(-100.00) == ""  # Negative not allowed
+
+
+def test_utbms_auto_mapping_integration():
+    """
+    Test that UTBMS codes are automatically inferred from line item descriptions.
+
+    The sample invoice contains:
+    - "Draft and file a Special Appeal" -> L510 (appeals), A103 (draft)
+    - "Settlement negotiation" -> L160 (settlement), A106 (communicate)
+    - "Legal research" -> L110 (research), A102 (research)
+    """
+    sample_file = "tests/fixtures/sample.docx"
+
+    if not os.path.exists(sample_file):
+        pytest.skip(f"Sample file not found at {sample_file}")
+
+    config_data = {
+        "law_firm_id": "FIRM-001",
+        "law_firm_name": "Test Firm LLP",
+        "client_id": "CLIENT-001",
+        "matter_id": "MATTER-001",
+        # Note: auto_map_codes defaults to True
+    }
+
+    with open(sample_file, "rb") as f:
+        response = client.post(
+            "/convert/docx-to-ledes",
+            files={
+                "file": (
+                    "sample.docx",
+                    f.read(),
+                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                )
+            },
+            data={"config": json.dumps(config_data)}
+        )
+
+    assert response.status_code == 200
+    data = response.json()
+    ledes_content = data["ledes_content"]
+
+    # Parse LEDES content to check task codes
+    ledes_lines = ledes_content.split("\r\n")
+
+    # Line 0: LEDES1998B[]
+    # Line 1: Header
+    # Line 2+: Data rows
+    # Field 15 is LINE_ITEM_TASK_CODE (index 14)
+    # Field 17 is LINE_ITEM_ACTIVITY_CODE (index 16)
+
+    # First data row should be about "Draft and file a Special Appeal" -> L510
+    if len(ledes_lines) > 2:
+        first_data_row = ledes_lines[2][:-2].split("|")  # Remove [] and split
+        task_code = first_data_row[14]
+        activity_code = first_data_row[16]
+
+        # "Draft and file a Special Appeal" should map to:
+        # - L510 (contains "appeal")
+        # - A103 (contains "draft")
+        assert task_code == "L510", f"Expected L510 for appeals, got {task_code}"
+        assert activity_code == "A103", f"Expected A103 for draft, got {activity_code}"
+
+
+def test_utbms_codes_with_explicit_override():
+    """
+    Test that explicit task/activity codes in line items override auto-mapping.
+    """
+    from api.main import generate_ledes_1998b
+
+    test_data = {
+        "invoice_date": "20260115",
+        "invoice_number": "INV-001",
+        "client_id": "CLIENT-001",
+        "matter_id": "MATTER-001",
+        "invoice_total": 1000.0,
+        "law_firm_id": "FIRM-001",
+        "line_items": [
+            {
+                "description": "Draft appeal document",  # Would auto-map to L510
+                "amount": 500.0,
+                "task_code": "L100",  # Explicit override
+                "activity_code": "A108"  # Explicit override
+            },
+            {
+                "description": "Settlement negotiation",  # Should auto-map
+                "amount": 500.0
+                # No explicit codes - should use auto-mapping
+            }
+        ],
+        "auto_map_codes": True
+    }
+
+    ledes_content = generate_ledes_1998b(test_data)
+    lines = ledes_content.split("\r\n")
+
+    # First item: explicit override
+    first_row = lines[2][:-2].split("|")
+    assert first_row[14] == "L100", "Explicit task_code should override auto-mapping"
+    assert first_row[16] == "A108", "Explicit activity_code should override auto-mapping"
+
+    # Second item: auto-mapped
+    second_row = lines[3][:-2].split("|")
+    assert second_row[14] == "L160", "Auto-mapped task_code for settlement"
+    assert second_row[16] == "A106", "Auto-mapped activity_code for negotiation"
+
+
+def test_utbms_auto_mapping_disabled():
+    """
+    Test that auto-mapping can be disabled via auto_map_codes=False.
+    """
+    from api.main import generate_ledes_1998b
+
+    test_data = {
+        "invoice_date": "20260115",
+        "invoice_number": "INV-002",
+        "client_id": "CLIENT-001",
+        "matter_id": "MATTER-001",
+        "invoice_total": 500.0,
+        "law_firm_id": "FIRM-001",
+        "task_code": "L999",  # Default code
+        "activity_code": "A999",
+        "line_items": [
+            {
+                "description": "Draft appeal document",  # Would auto-map to L510 if enabled
+                "amount": 500.0
+            }
+        ],
+        "auto_map_codes": False  # Disable auto-mapping
+    }
+
+    ledes_content = generate_ledes_1998b(test_data)
+    lines = ledes_content.split("\r\n")
+
+    data_row = lines[2][:-2].split("|")
+    # Should use defaults, not auto-mapped codes
+    assert data_row[14] == "L999", "Should use default task_code when auto_map_codes=False"
+    assert data_row[16] == "A999", "Should use default activity_code when auto_map_codes=False"
