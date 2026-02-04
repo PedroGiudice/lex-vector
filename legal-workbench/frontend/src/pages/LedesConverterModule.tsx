@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useLedesConverterStore } from '@/store/ledesConverterStore';
+import { useMatterPresetsStore } from '@/store/matterPresetsStore';
 import { isTauri, saveFileNative } from '@/lib/tauri';
+import type { MatterPreset, MatterPresetInput } from '@/types';
 
 // --- Custom Brutalist Icons ---
 const Icons = {
@@ -224,6 +226,108 @@ const Icons = {
       <rect x="7" y="7" width="10" height="10" fill="currentColor" />
     </svg>
   ),
+};
+
+// --- Preset Selector Component ---
+
+const PresetSelector = ({
+  onSelect,
+  onSaveNew,
+}: {
+  onSelect: (preset: MatterPreset) => void;
+  onSaveNew: (name: string) => void;
+}) => {
+  const { presets, selectedPresetId, selectPreset, deletePreset } = useMatterPresetsStore();
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [newPresetName, setNewPresetName] = useState('');
+
+  const handleSelect = (presetId: string) => {
+    const preset = presets.find((p) => p.id === presetId);
+    if (preset) {
+      selectPreset(presetId);
+      onSelect(preset);
+    }
+  };
+
+  const handleSave = () => {
+    if (newPresetName.trim()) {
+      onSaveNew(newPresetName.trim());
+      setNewPresetName('');
+      setShowSaveDialog(false);
+    }
+  };
+
+  return (
+    <div className="space-y-3">
+      <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
+        Matter Preset
+      </label>
+      <div className="flex gap-2">
+        <select
+          value={selectedPresetId || ''}
+          onChange={(e) => e.target.value && handleSelect(e.target.value)}
+          className="flex-1 bg-[#121214] border-2 border-zinc-800 rounded-sm px-3 py-2.5 text-sm text-zinc-200 outline-none focus:border-violet-500 font-['Manrope']"
+        >
+          <option value="">-- Select Preset --</option>
+          {presets.map((preset) => (
+            <option key={preset.id} value={preset.id}>
+              {preset.name}
+            </option>
+          ))}
+        </select>
+        {selectedPresetId && (
+          <button
+            onClick={() => {
+              if (confirm('Delete this preset?')) {
+                deletePreset(selectedPresetId);
+              }
+            }}
+            className="px-3 py-2 bg-rose-950/30 border border-rose-900 text-rose-400 rounded-sm hover:bg-rose-900/40 transition-colors"
+            title="Delete preset"
+          >
+            <Icons.Trash size={14} />
+          </button>
+        )}
+      </div>
+
+      {!showSaveDialog ? (
+        <button
+          onClick={() => setShowSaveDialog(true)}
+          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-zinc-400 hover:text-violet-400 bg-zinc-800/50 hover:bg-zinc-800 border border-zinc-700/50 hover:border-violet-500/50 rounded-sm transition-all"
+        >
+          <Icons.Save size={12} />
+          Save Current as Preset
+        </button>
+      ) : (
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={newPresetName}
+            onChange={(e) => setNewPresetName(e.target.value)}
+            placeholder="Preset name..."
+            className="flex-1 bg-[#121214] border-2 border-zinc-800 rounded-sm px-3 py-2 text-sm text-zinc-200 outline-none focus:border-violet-500"
+            autoFocus
+            onKeyDown={(e) => e.key === 'Enter' && handleSave()}
+          />
+          <button
+            onClick={handleSave}
+            className="px-4 py-2 bg-teal-500 text-black text-xs font-bold rounded-sm hover:bg-teal-400"
+          >
+            Save
+          </button>
+          <button
+            onClick={() => {
+              setShowSaveDialog(false);
+              setNewPresetName('');
+            }}
+            className="px-3 py-2 text-zinc-500 hover:text-zinc-300"
+          >
+            X
+          </button>
+        </div>
+      )}
+    </div>
+  );
 };
 
 // --- Types & Constants ---
@@ -490,6 +594,54 @@ export default function LedesConverterModule() {
     // Clear the "saved" indicator after 2 seconds
     setTimeout(() => setConfigSaved(false), 2000);
   }, [config, addLog]);
+
+  // Preset handlers
+  const { addPreset } = useMatterPresetsStore();
+
+  const handlePresetSelect = useCallback(
+    (preset: MatterPreset) => {
+      setConfig({
+        ...config,
+        lawFirmId: preset.lawFirmId,
+        lawFirmName: preset.lawFirmName,
+        clientId: preset.clientId,
+        clientName: preset.clientName,
+        matterId: preset.matterId,
+        matterName: preset.matterName,
+        timekeeperId: preset.timekeeperId,
+        timekeeperName: preset.timekeeperName,
+        timekeeperClassification: preset.timekeeperClassification,
+        unitCost: preset.unitCost,
+        taskCode: preset.defaultTaskCode,
+        activityCode: preset.defaultActivityCode,
+      });
+      addLog(`Loaded preset: ${preset.name}`);
+    },
+    [config, addLog]
+  );
+
+  const handleSavePreset = useCallback(
+    (name: string) => {
+      const presetInput: MatterPresetInput = {
+        name,
+        clientId: config.clientId,
+        clientName: config.clientName,
+        matterId: config.matterId,
+        matterName: config.matterName,
+        lawFirmId: config.lawFirmId,
+        lawFirmName: config.lawFirmName,
+        timekeeperId: config.timekeeperId,
+        timekeeperName: config.timekeeperName,
+        timekeeperClassification: config.timekeeperClassification,
+        unitCost: config.unitCost,
+        defaultTaskCode: config.taskCode,
+        defaultActivityCode: config.activityCode,
+      };
+      addPreset(presetInput);
+      addLog(`Saved preset: ${name}`);
+    },
+    [config, addPreset, addLog]
+  );
 
   const handleFileUpload = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -843,6 +995,11 @@ export default function LedesConverterModule() {
               <Icons.Settings size={18} className="text-violet-500" />
               Config
             </h2>
+          </div>
+
+          {/* Preset Selector */}
+          <div className="px-8 py-4 border-b border-zinc-800/50">
+            <PresetSelector onSelect={handlePresetSelect} onSaveNew={handleSavePreset} />
           </div>
 
           {/* Navigation Pills */}
