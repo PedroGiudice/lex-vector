@@ -75,6 +75,17 @@ export interface LedesConfig {
   clientName?: string;
   matterId: string;
   matterName?: string;
+  // Timekeeper info
+  timekeeperId?: string;
+  timekeeperName?: string;
+  timekeeperClassification?: string;
+  unitCost?: number;
+  // Billing period (YYYYMMDD format)
+  billingStartDate?: string;
+  billingEndDate?: string;
+  // UTBMS codes
+  taskCode?: string;
+  activityCode?: string;
 }
 
 export interface LedesExtractedData {

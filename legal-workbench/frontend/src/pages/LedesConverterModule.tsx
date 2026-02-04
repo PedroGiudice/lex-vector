@@ -235,6 +235,17 @@ interface LEDESConfig {
   clientName: string;
   matterId: string;
   matterName: string;
+  // Timekeeper info
+  timekeeperId: string;
+  timekeeperName: string;
+  timekeeperClassification: string;
+  unitCost: number;
+  // Billing period (YYYYMMDD format)
+  billingStartDate: string;
+  billingEndDate: string;
+  // UTBMS codes
+  taskCode: string;
+  activityCode: string;
 }
 
 const STORAGE_KEY = 'ledes_converter_config';
@@ -246,6 +257,16 @@ const INITIAL_CONFIG: LEDESConfig = {
   clientName: '',
   matterId: '',
   matterName: '',
+  // CMR defaults
+  timekeeperId: 'CMR',
+  timekeeperName: 'RODRIGUES, CARLOS MAGNO',
+  timekeeperClassification: 'PARTNR',
+  unitCost: 300,
+  billingStartDate: '',
+  billingEndDate: '',
+  // UTBMS codes (L510=Appeals, A103=Draft/Revise)
+  taskCode: 'L100',
+  activityCode: 'A103',
 };
 
 // --- Google Fonts ---
@@ -420,7 +441,9 @@ export default function LedesConverterModule() {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       try {
-        setConfig(JSON.parse(saved));
+        const parsed = JSON.parse(saved);
+        // Merge with defaults to handle new fields added in updates
+        setConfig({ ...INITIAL_CONFIG, ...parsed });
         setConfigLoaded(true);
         // Log is intentionally not a dependency - runs only on mount
         const time = new Date().toLocaleTimeString('en-US', {
@@ -510,13 +533,13 @@ export default function LedesConverterModule() {
       return;
     }
 
-    const filename = `${extractedData.invoice_number}_${config.clientId || 'LEDES'}.ldes`;
+    const filename = `${extractedData.invoice_number}_${config.clientId || 'LEDES'}.txt`;
     addLog('Generating file...');
 
     // Use native Tauri save dialog when in desktop app
     if (isTauri()) {
       const saved = await saveFileNative(ledesContent, filename, [
-        { name: 'LEDES', extensions: ['ldes', 'txt'] },
+        { name: 'LEDES 1998B', extensions: ['txt'] },
       ]);
       if (saved) {
         addLog('File saved successfully.');
@@ -538,7 +561,17 @@ export default function LedesConverterModule() {
   }, [extractedData, ledesContent, config.clientId, addLog]);
 
   const isConfigValid = () => {
-    return config.lawFirmId && config.lawFirmName && config.clientId && config.matterId;
+    return (
+      config.lawFirmId &&
+      config.lawFirmName &&
+      config.clientId &&
+      config.matterId &&
+      config.timekeeperId &&
+      config.timekeeperName &&
+      config.unitCost &&
+      config.billingStartDate &&
+      config.billingEndDate
+    );
   };
 
   const isProcessing = status === 'uploading' || status === 'processing' || status === 'validating';
@@ -897,6 +930,82 @@ export default function LedesConverterModule() {
                 value={config.matterName}
                 onChange={(v) => setConfig({ ...config, matterName: v })}
                 placeholder="OPTIONAL"
+              />
+            </div>
+
+            {/* Timekeeper / Billing Section */}
+            <div className="space-y-6 scroll-mt-4 pt-6">
+              <div className="flex items-center gap-3 pb-3 border-b border-zinc-800/50">
+                <Icons.Settings size={16} className="text-zinc-500" />
+                <h3 className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
+                  Timekeeper / Billing
+                </h3>
+              </div>
+              <InputField
+                label="Timekeeper ID"
+                required
+                value={config.timekeeperId}
+                onChange={(v) => setConfig({ ...config, timekeeperId: v })}
+                placeholder="CMR"
+                description="Timekeeper code (e.g., CMR)"
+              />
+              <InputField
+                label="Timekeeper Name"
+                required
+                value={config.timekeeperName}
+                onChange={(v) => setConfig({ ...config, timekeeperName: v })}
+                placeholder="RODRIGUES, CARLOS MAGNO"
+                description="Full name in LEDES format (LASTNAME, FIRSTNAME)"
+              />
+              <InputField
+                label="Classification"
+                required
+                value={config.timekeeperClassification}
+                onChange={(v) => setConfig({ ...config, timekeeperClassification: v })}
+                placeholder="PARTNR"
+                description="LEDES code: PARTNR, ASSOC, PRLGL, etc."
+              />
+              <InputField
+                label="Unit Cost (USD)"
+                required
+                value={config.unitCost.toString()}
+                onChange={(v) => setConfig({ ...config, unitCost: parseFloat(v) || 0 })}
+                placeholder="300.00"
+                description="Hourly rate in USD"
+              />
+              <div className="h-4"></div>
+              <InputField
+                label="Billing Start Date"
+                required
+                value={config.billingStartDate}
+                onChange={(v) => setConfig({ ...config, billingStartDate: v })}
+                placeholder="YYYYMMDD (e.g., 20251201)"
+                description="First day of billing period"
+              />
+              <InputField
+                label="Billing End Date"
+                required
+                value={config.billingEndDate}
+                onChange={(v) => setConfig({ ...config, billingEndDate: v })}
+                placeholder="YYYYMMDD (e.g., 20251231)"
+                description="Last day of billing period"
+              />
+              <div className="h-4"></div>
+              <InputField
+                label="Task Code (UTBMS)"
+                required
+                value={config.taskCode}
+                onChange={(v) => setConfig({ ...config, taskCode: v })}
+                placeholder="L100"
+                description="L210=Pleadings, L510=Appeals, L160=ADR, L250=Motions"
+              />
+              <InputField
+                label="Activity Code (UTBMS)"
+                required
+                value={config.activityCode}
+                onChange={(v) => setConfig({ ...config, activityCode: v })}
+                placeholder="A103"
+                description="A103=Draft/Revise, A106=Communicate"
               />
             </div>
           </div>

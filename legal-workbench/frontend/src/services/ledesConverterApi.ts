@@ -96,6 +96,14 @@ export const ledesConverterApi = {
       clientName?: string;
       matterId: string;
       matterName?: string;
+      unitCost?: number;
+      timekeeperId?: string;
+      timekeeperName?: string;
+      timekeeperClassification?: string;
+      billingStartDate?: string;
+      billingEndDate?: string;
+      taskCode?: string;
+      activityCode?: string;
     },
     onProgress?: (progress: number) => void
   ): Promise<ConvertLedesResponse> => {
@@ -111,6 +119,17 @@ export const ledesConverterApi = {
         client_name: config.clientName || '',
         matter_id: config.matterId,
         matter_name: config.matterName || '',
+        // Timekeeper and billing fields
+        unit_cost: config.unitCost || 300.0,
+        timekeeper_id: config.timekeeperId || 'CMR',
+        timekeeper_name: config.timekeeperName || 'RODRIGUES, CARLOS MAGNO',
+        timekeeper_classification: config.timekeeperClassification || 'PARTNR',
+        // Billing period (YYYYMMDD format)
+        billing_start_date: config.billingStartDate || '',
+        billing_end_date: config.billingEndDate || '',
+        // UTBMS codes
+        task_code: config.taskCode || 'L100',
+        activity_code: config.activityCode || 'A103',
       };
       formData.append('config', JSON.stringify(configPayload));
     }

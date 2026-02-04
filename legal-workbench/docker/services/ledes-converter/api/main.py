@@ -26,7 +26,8 @@ from typing import Annotated, Optional
 import docx
 import re
 import tempfile
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
+import calendar
 from collections import defaultdict
 import time
 import magic
@@ -219,7 +220,11 @@ def extract_ledes_data(text: str) -> dict:
 
     # Regex patterns (case-insensitive for robustness)
     date_pattern = re.compile(r"Date\s*of\s*Issuance:\s*(.*)", re.IGNORECASE)
-    invoice_num_pattern = re.compile(r"Invoice\s*#\s*(\d+)", re.IGNORECASE)
+    # Invoice number: "Invoice: #123456" format
+    invoice_num_pattern = re.compile(
+        r"Invoice\s*:\s*#?\s*([A-Za-z0-9\-]+)",
+        re.IGNORECASE
+    )
     total_pattern = re.compile(r"Total\s*Gross\s*Amount:\s*(?:US\s*)?\$?([\d,]+\.?\d*)", re.IGNORECASE)
 
     # Line items pattern
@@ -305,12 +310,21 @@ def generate_ledes_1998b(data: dict) -> str:
     unit_cost = data.get("unit_cost", 0)
     invoice_desc = data.get("invoice_description", "Legal Services")
 
+
+    # Get default task_code and activity_code from config
+    default_task_code = data.get("task_code", "L100")  # L510 = Appeals
+    default_activity_code = data.get("activity_code", "A103")  # A103 = Draft/Revise
+
+    # LINE_ITEM_DATE must be within billing period - use billing_start
+    line_item_date = billing_start if billing_start else data["invoice_date"]
+
     # Data rows: Each line item becomes a row with 24 fields
     for i, item in enumerate(data["line_items"], 1):
-        # Calculate units if unit_cost is provided
+        # Calculate units: LINE_ITEM_TOTAL / UNIT_COST
         units = ""
+        line_item_total = item['amount']
         if unit_cost and unit_cost > 0:
-            calculated_units = item['amount'] / unit_cost
+            calculated_units = line_item_total / unit_cost
             units = f"{calculated_units:.2f}"
 
         row = [
@@ -326,11 +340,11 @@ def generate_ledes_1998b(data: dict) -> str:
             "F",                                                     # 10. EXP/FEE/INV_ADJ_TYPE (F=Fee)
             units,                                                   # 11. LINE_ITEM_NUMBER_OF_UNITS
             "",                                                      # 12. LINE_ITEM_ADJUSTMENT_AMOUNT
-            format_ledes_currency(item['amount']),                   # 13. LINE_ITEM_TOTAL
-            sanitize_ledes_field(data["invoice_date"], 8),           # 14. LINE_ITEM_DATE
-            item.get("task_code", ""),                               # 15. LINE_ITEM_TASK_CODE
+            format_ledes_currency(line_item_total),                  # 13. LINE_ITEM_TOTAL
+            sanitize_ledes_field(line_item_date, 8),                 # 14. LINE_ITEM_DATE (within billing period)
+            item.get("task_code", default_task_code),                # 15. LINE_ITEM_TASK_CODE
             "",                                                      # 16. LINE_ITEM_EXPENSE_CODE
-            item.get("activity_code", ""),                           # 17. LINE_ITEM_ACTIVITY_CODE
+            item.get("activity_code", default_activity_code),        # 17. LINE_ITEM_ACTIVITY_CODE
             sanitize_ledes_field(timekeeper_id, 20),                 # 18. TIMEKEEPER_ID
             sanitize_ledes_field(item["description"], 500),          # 19. LINE_ITEM_DESCRIPTION
             sanitize_ledes_field(data.get("law_firm_id", ""), 50),   # 20. LAW_FIRM_ID
@@ -342,7 +356,8 @@ def generate_ledes_1998b(data: dict) -> str:
 
         lines.append("|".join(row) + "[]")
 
-    return "\n".join(lines)
+    # LEDES 1998B spec requires CRLF line endings (Windows format)
+    return "\r\n".join(lines)
 
 
 @app.get("/health", response_model=HealthResponse)
