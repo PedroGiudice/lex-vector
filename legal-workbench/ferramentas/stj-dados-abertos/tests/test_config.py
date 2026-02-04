@@ -41,3 +41,18 @@ def test_get_orgao_dataset_id_invalid():
     """Invalid orgao should raise KeyError."""
     with pytest.raises(KeyError):
         get_orgao_dataset_id("invalid_orgao")
+
+
+def test_integras_dataset_id_exists():
+    from config import INTEGRAS_DATASET_ID
+    assert INTEGRAS_DATASET_ID == "integras-de-decisoes-terminativas-e-acordaos-do-diario-da-justica"
+
+def test_integras_dirs_exist():
+    from config import INTEGRAS_DIR, INTEGRAS_STAGING_DIR, INTEGRAS_TEXTOS_DIR
+    assert INTEGRAS_DIR is not None
+    assert INTEGRAS_STAGING_DIR is not None
+    assert INTEGRAS_TEXTOS_DIR is not None
+
+def test_get_integras_dataset_id():
+    from config import get_integras_dataset_id
+    assert get_integras_dataset_id() == "integras-de-decisoes-terminativas-e-acordaos-do-diario-da-justica"

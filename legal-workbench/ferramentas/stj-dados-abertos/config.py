@@ -78,6 +78,26 @@ CKAN_DATASETS: Final[dict[str, str]] = {
     "sexta_turma": "espelhos-de-acordaos-sexta-turma",
 }
 
+# Dataset de Integras (decisoes terminativas + acordaos com texto completo)
+INTEGRAS_DATASET_ID: Final[str] = "integras-de-decisoes-terminativas-e-acordaos-do-diario-da-justica"
+
+def get_integras_dataset_id() -> str:
+    """Get CKAN dataset ID for integras."""
+    return INTEGRAS_DATASET_ID
+
+# Diretorios de integras
+INTEGRAS_DIR: Final[Path] = DATA_ROOT / "integras"
+INTEGRAS_STAGING_DIR: Final[Path] = INTEGRAS_DIR / "staging"   # ZIPs e JSONs baixados
+INTEGRAS_TEXTOS_DIR: Final[Path] = INTEGRAS_DIR / "textos"     # TXTs extraidos
+INTEGRAS_METADATA_DIR: Final[Path] = INTEGRAS_DIR / "metadata"  # JSONs de metadados
+
+# Controle de progresso
+INTEGRAS_PROGRESS_FILE: Final[Path] = INTEGRAS_DIR / ".download_progress.json"
+
+# Criar diretorios de integras
+for dir_path in [INTEGRAS_STAGING_DIR, INTEGRAS_TEXTOS_DIR, INTEGRAS_METADATA_DIR]:
+    dir_path.mkdir(parents=True, exist_ok=True)
+
 # Legacy URL (DEPRECATED - returns 404)
 STJ_BASE_URL_LEGACY: Final[str] = "https://www.stj.jus.br/sites/portalp/SiteAssets/documentos/noticias/abertos/"
 
