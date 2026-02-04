@@ -3,9 +3,20 @@ import { AxiosError } from 'axios';
 import { ledesConverterApi, validateDocxFile } from '@/services/ledesConverterApi';
 import type { LedesConversionStatus, LedesExtractedData, LedesConfig } from '@/types';
 
+interface BatchResult {
+  filename: string;
+  status: 'success' | 'error';
+  error?: string;
+}
+
 interface LedesConversionState {
   // File state
   file: File | null;
+
+  // Batch mode
+  files: File[];
+  batchMode: boolean;
+  batchResults: BatchResult[];
 
   // Conversion state
   status: LedesConversionStatus;
@@ -24,6 +35,8 @@ interface LedesConversionState {
 
   // Actions
   setFile: (file: File | null) => void;
+  setFiles: (files: File[]) => void;
+  setBatchMode: (enabled: boolean) => void;
   convertFile: () => Promise<void>;
   downloadResult: () => void;
   reset: () => void;
@@ -40,6 +53,9 @@ const delay = (ms: number): Promise<void> => new Promise((resolve) => setTimeout
 export const useLedesConverterStore = create<LedesConversionState>((set, get) => ({
   // Initial state
   file: null,
+  files: [],
+  batchMode: false,
+  batchResults: [],
   status: 'idle',
   uploadProgress: 0,
   ledesContent: null,
@@ -85,6 +101,29 @@ export const useLedesConverterStore = create<LedesConversionState>((set, get) =>
       retryCount: 0,
     });
   },
+
+  setFiles: (files: File[]) => {
+    if (files.length === 0) {
+      set({ files: [], batchMode: false, batchResults: [] });
+      return;
+    }
+    // Validate all files
+    const validFiles: File[] = [];
+    for (const file of files) {
+      const validation = validateDocxFile(file);
+      if (validation.valid) {
+        validFiles.push(file);
+      }
+    }
+    set({
+      files: validFiles,
+      batchMode: validFiles.length > 1,
+      status: 'idle',
+      error: validFiles.length === 0 ? 'No valid files selected' : null,
+    });
+  },
+
+  setBatchMode: (enabled: boolean) => set({ batchMode: enabled }),
 
   convertFile: async () => {
     const { file, retryCount, ledesConfig } = get();
@@ -205,6 +244,9 @@ export const useLedesConverterStore = create<LedesConversionState>((set, get) =>
   reset: () =>
     set({
       file: null,
+      files: [],
+      batchMode: false,
+      batchResults: [],
       status: 'idle',
       uploadProgress: 0,
       ledesContent: null,

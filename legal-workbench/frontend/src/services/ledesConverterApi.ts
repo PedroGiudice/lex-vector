@@ -12,6 +12,38 @@ const VALID_MIME_TYPES = [
   'application/octet-stream', // Fallback for some browsers
 ];
 
+// Batch processing types
+export interface LedesExtractedData {
+  invoice_number?: string;
+  invoice_date?: string;
+  total_amount?: number;
+  client_name?: string;
+  matter_name?: string;
+  line_items?: Array<{
+    date?: string;
+    description?: string;
+    hours?: number;
+    rate?: number;
+    amount?: number;
+  }>;
+}
+
+export interface BatchFileResult {
+  filename: string;
+  status: 'success' | 'error';
+  error?: string;
+  extracted_data?: LedesExtractedData;
+  ledes_content?: string;
+}
+
+export interface BatchConversionResponse {
+  total_files: number;
+  successful: number;
+  failed: number;
+  results: BatchFileResult[];
+  consolidated_content?: string;
+}
+
 /**
  * Validate a DOCX file before upload
  * @param file - File to validate
@@ -148,6 +180,78 @@ export const ledesConverterApi = {
           }
         },
         timeout: 30000, // 30 second timeout for large files
+      }
+    );
+
+    return response.data;
+  },
+
+  /**
+   * Convert multiple DOCX files to LEDES format (batch processing)
+   * @param files - Array of DOCX files to convert (max 10MB each)
+   * @param config - Optional LEDES configuration
+   * @param consolidate - Whether to consolidate all results into a single file
+   * @param onProgress - Optional progress callback (0-100 percent)
+   * @returns Promise resolving to batch conversion results
+   * @throws Error if conversion fails
+   */
+  convertBatch: async (
+    files: File[],
+    config?: {
+      lawFirmId: string;
+      lawFirmName: string;
+      clientId: string;
+      clientName?: string;
+      matterId: string;
+      matterName?: string;
+      unitCost?: number;
+      timekeeperId?: string;
+      timekeeperName?: string;
+      timekeeperClassification?: string;
+      billingStartDate?: string;
+      billingEndDate?: string;
+      taskCode?: string;
+      activityCode?: string;
+    },
+    consolidate: boolean = false,
+    onProgress?: (progress: number) => void
+  ): Promise<BatchConversionResponse> => {
+    const formData = new FormData();
+    files.forEach((file) => formData.append('files', file));
+
+    if (config) {
+      const configPayload = {
+        law_firm_id: config.lawFirmId,
+        law_firm_name: config.lawFirmName,
+        client_id: config.clientId,
+        client_name: config.clientName || '',
+        matter_id: config.matterId,
+        matter_name: config.matterName || '',
+        unit_cost: config.unitCost || 300.0,
+        timekeeper_id: config.timekeeperId || '',
+        timekeeper_name: config.timekeeperName || '',
+        timekeeper_classification: config.timekeeperClassification || '',
+        billing_start_date: config.billingStartDate || '',
+        billing_end_date: config.billingEndDate || '',
+        task_code: config.taskCode || 'L100',
+        activity_code: config.activityCode || 'A103',
+      };
+      formData.append('config', JSON.stringify(configPayload));
+    }
+
+    formData.append('consolidate', String(consolidate));
+
+    const response = await axios.post<BatchConversionResponse>(
+      `${API_BASE_URL}/convert/batch`,
+      formData,
+      {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        onUploadProgress: (progressEvent: AxiosProgressEvent) => {
+          if (progressEvent.total && onProgress) {
+            onProgress(Math.round((progressEvent.loaded * 100) / progressEvent.total));
+          }
+        },
+        timeout: 120000, // 2 minutes for batch
       }
     );
 
