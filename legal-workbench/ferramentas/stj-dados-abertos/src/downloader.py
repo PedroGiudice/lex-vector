@@ -417,10 +417,10 @@ class STJDownloader:
     def print_stats(self):
         """Imprime estatísticas do download."""
         console.print("\n[bold cyan]Estatísticas de Download:[/bold cyan]")
-        console.print(f"✅ Baixados: {self.stats.downloaded}")
+        console.print(f"[OK] Baixados: {self.stats.downloaded}")
         console.print(f"⏭️  Pulados: {self.stats.skipped}")
         console.print(f"ℹ️  Não encontrados (404): {self.stats.not_found}")
-        console.print(f"❌ Falhas: {self.stats.failed}")
+        console.print(f"[ERRO] Falhas: {self.stats.failed}")
 
 
 def test_download_single():
@@ -440,11 +440,11 @@ def test_download_single():
             # Validar conteúdo
             with open(file_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
-                console.print(f"✅ Arquivo válido com {len(data)} registros")
+                console.print(f"[OK] Arquivo válido com {len(data)} registros")
                 if data:
                     console.print(f"Exemplo de campos: {list(data[0].keys())[:5]}...")
         else:
-            console.print("[red]❌ Download falhou ou arquivo não existe[/red]")
+            console.print("[red][ERRO] Download falhou ou arquivo não existe[/red]")
 
 
 if __name__ == "__main__":

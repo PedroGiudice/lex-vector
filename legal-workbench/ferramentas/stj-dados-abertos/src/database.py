@@ -249,7 +249,7 @@ class STJDatabase:
             """)
 
             logger.info("Schema criado com sucesso")
-            console.print("[green]✅ Schema do banco criado[/green]")
+            console.print("[green][OK] Schema do banco criado[/green]")
 
         except Exception as e:
             logger.error(f"Erro ao criar schema: {e}")
@@ -646,7 +646,7 @@ class STJDatabase:
                 (HEADER, DELIMITER ',')
             """)
 
-            console.print(f"[green]✅ Exportado para {output_path}[/green]")
+            console.print(f"[green][OK] Exportado para {output_path}[/green]")
 
         except Exception as e:
             logger.error(f"Erro ao exportar CSV: {e}")
@@ -671,7 +671,7 @@ class STJDatabase:
                 EXPORT DATABASE '{backup_dir}' (FORMAT PARQUET)
             """)
 
-            console.print(f"[green]✅ Backup criado: {backup_path}[/green]")
+            console.print(f"[green][OK] Backup criado: {backup_path}[/green]")
             return backup_path
 
         except Exception as e:
@@ -681,10 +681,10 @@ class STJDatabase:
     def print_stats(self):
         """Imprime estatísticas de operações."""
         console.print("\n[bold cyan]Estatísticas do Banco:[/bold cyan]")
-        console.print(f"✅ Inseridos: {self.stats.inseridos}")
+        console.print(f"[OK] Inseridos: {self.stats.inseridos}")
         console.print(f"🔄 Duplicados: {self.stats.duplicados}")
         console.print(f"♻️  Atualizados: {self.stats.atualizados}")
-        console.print(f"❌ Erros: {self.stats.erros}")
+        console.print(f"[ERRO] Erros: {self.stats.erros}")
 
 
 def test_database():
@@ -717,11 +717,11 @@ def test_database():
         }]
 
         inseridos, duplicados, erros = db.inserir_batch(test_data)
-        console.print(f"✅ Teste inserção: {inseridos} inseridos, {duplicados} duplicados")
+        console.print(f"[OK] Teste inserção: {inseridos} inseridos, {duplicados} duplicados")
 
         # Obter estatísticas
         stats = db.obter_estatisticas()
-        console.print(f"📊 Total no banco: {stats.get('total_acordaos', 0)}")
+        console.print(f" Total no banco: {stats.get('total_acordaos', 0)}")
 
 
 if __name__ == "__main__":

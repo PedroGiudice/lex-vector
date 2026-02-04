@@ -539,7 +539,7 @@ class STJProcessor:
         console.print(f"📝 Com ementa: {self.stats.com_ementa} ({self.stats.com_ementa*100//max(self.stats.processados,1)}%)")
         console.print(f"👨‍⚖️ Com relator: {self.stats.com_relator} ({self.stats.com_relator*100//max(self.stats.processados,1)}%)")
         console.print(f"🏛️ Classificados: {self.stats.classificados} ({self.stats.classificados*100//max(self.stats.processados,1)}%)")
-        console.print(f"❌ Erros: {self.stats.erros}")
+        console.print(f"[ERRO] Erros: {self.stats.erros}")
 
 
 def test_processor():
@@ -567,11 +567,11 @@ def test_processor():
 
     # Validar
     console.print("[bold green]Teste de Processamento:[/bold green]")
-    console.print(f"✅ ID gerado: {resultado['id'][:8]}...")
-    console.print(f"✅ Hash: {resultado['hash_conteudo'][:16]}...")
-    console.print(f"✅ Ementa extraída: {resultado['ementa'][:50]}...")
-    console.print(f"✅ Relator: {resultado['relator']}")
-    console.print(f"✅ Órgão: {resultado['orgao_julgador']}")
+    console.print(f"[OK] ID gerado: {resultado['id'][:8]}...")
+    console.print(f"[OK] Hash: {resultado['hash_conteudo'][:16]}...")
+    console.print(f"[OK] Ementa extraída: {resultado['ementa'][:50]}...")
+    console.print(f"[OK] Relator: {resultado['relator']}")
+    console.print(f"[OK] Órgão: {resultado['orgao_julgador']}")
 
 
 if __name__ == "__main__":

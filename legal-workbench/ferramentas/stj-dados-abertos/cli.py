@@ -17,7 +17,9 @@ from config import (
     ORGAOS_JULGADORES,
     get_date_range_urls,
     get_mvp_urls,
-    EXTERNAL_DRIVE
+    DATA_ROOT,
+    DATABASE_PATH,
+    LOGS_DIR
 )
 from src.downloader import STJDownloader
 from src.processor import STJProcessor
@@ -54,7 +56,7 @@ def download_periodo(
     try:
         # Validar órgão
         if orgao not in ORGAOS_JULGADORES:
-            console.print(f"[red]❌ Órgão inválido: {orgao}[/red]")
+            console.print(f"[red][ERRO]Órgão inválido: {orgao}[/red]")
             console.print(f"Órgãos disponíveis: {', '.join(ORGAOS_JULGADORES.keys())}")
             raise typer.Exit(1)
 
@@ -63,19 +65,19 @@ def download_periodo(
             start_date = datetime.strptime(inicio, "%Y-%m-%d")
             end_date = datetime.strptime(fim, "%Y-%m-%d")
         except ValueError:
-            console.print("[red]❌ Formato de data inválido. Use: YYYY-MM-DD[/red]")
+            console.print("[red][ERRO]Formato de data inválido. Use: YYYY-MM-DD[/red]")
             raise typer.Exit(1)
 
         if start_date > end_date:
-            console.print("[red]❌ Data início deve ser anterior à data fim[/red]")
+            console.print("[red][ERRO]Data início deve ser anterior à data fim[/red]")
             raise typer.Exit(1)
 
         # Gerar URLs
-        console.print(f"[cyan]📥 Baixando acórdãos de {ORGAOS_JULGADORES[orgao]['name']}[/cyan]")
-        console.print(f"[cyan]📅 Período: {inicio} até {fim}[/cyan]")
+        console.print(f"[cyan]Baixando acórdãos de {ORGAOS_JULGADORES[orgao]['name']}[/cyan]")
+        console.print(f"[cyan]Período: {inicio} até {fim}[/cyan]")
 
         url_configs = get_date_range_urls(start_date, end_date, orgao)
-        console.print(f"[cyan]📊 Total de arquivos: {len(url_configs)}[/cyan]\n")
+        console.print(f"[cyan]Total de arquivos: {len(url_configs)}[/cyan]\n")
 
         # Preparar configs para download
         download_configs = [
@@ -92,12 +94,12 @@ def download_periodo(
             files = downloader.download_batch(download_configs)
             downloader.print_stats()
 
-        console.print(f"\n[green]✅ Download concluído: {len(files)} arquivos[/green]")
-        console.print(f"[cyan]📁 Diretório: {STAGING_DIR}[/cyan]")
+        console.print(f"\n[green][OK]Download concluído: {len(files)} arquivos[/green]")
+        console.print(f"[cyan]Diretório: {STAGING_DIR}[/cyan]")
 
     except Exception as e:
         logger.error(f"Erro no download: {e}")
-        console.print(f"[red]❌ Erro: {e}[/red]")
+        console.print(f"[red][ERRO]Erro: {e}[/red]")
         raise typer.Exit(1)
 
 
@@ -116,7 +118,7 @@ def download_orgao(
     try:
         # Validar órgão
         if orgao not in ORGAOS_JULGADORES:
-            console.print(f"[red]❌ Órgão inválido: {orgao}[/red]")
+            console.print(f"[red][ERRO]Órgão inválido: {orgao}[/red]")
             console.print("\nÓrgãos disponíveis:")
             for key, info in ORGAOS_JULGADORES.items():
                 console.print(f"  • {key}: {info['name']}")
@@ -126,8 +128,8 @@ def download_orgao(
         end_date = datetime.now()
         start_date = end_date - timedelta(days=meses * 30)
 
-        console.print(f"[cyan]📥 Baixando acórdãos de {ORGAOS_JULGADORES[orgao]['name']}[/cyan]")
-        console.print(f"[cyan]📅 Últimos {meses} meses[/cyan]")
+        console.print(f"[cyan]Baixando acórdãos de {ORGAOS_JULGADORES[orgao]['name']}[/cyan]")
+        console.print(f"[cyan]Últimos {meses} meses[/cyan]")
 
         # Gerar URLs
         url_configs = get_date_range_urls(start_date, end_date, orgao)
@@ -146,11 +148,11 @@ def download_orgao(
             files = downloader.download_batch(download_configs)
             downloader.print_stats()
 
-        console.print(f"\n[green]✅ Download concluído: {len(files)} arquivos[/green]")
+        console.print(f"\n[green][OK]Download concluído: {len(files)} arquivos[/green]")
 
     except Exception as e:
         logger.error(f"Erro no download: {e}")
-        console.print(f"[red]❌ Erro: {e}[/red]")
+        console.print(f"[red][ERRO]Erro: {e}[/red]")
         raise typer.Exit(1)
 
 
@@ -162,7 +164,7 @@ def download_mvp():
     Útil para testes rápidos e validação do sistema.
     """
     try:
-        console.print("[cyan]📥 Download MVP: Últimos 30 dias da Corte Especial[/cyan]\n")
+        console.print("[cyan]Download MVP: Últimos 30 dias da Corte Especial[/cyan]\n")
 
         url_configs = get_mvp_urls()
 
@@ -179,11 +181,11 @@ def download_mvp():
             files = downloader.download_batch(download_configs)
             downloader.print_stats()
 
-        console.print(f"\n[green]✅ MVP concluído: {len(files)} arquivos[/green]")
+        console.print(f"\n[green][OK]MVP concluído: {len(files)} arquivos[/green]")
 
     except Exception as e:
         logger.error(f"Erro no download MVP: {e}")
-        console.print(f"[red]❌ Erro: {e}[/red]")
+        console.print(f"[red][ERRO]Erro: {e}[/red]")
         raise typer.Exit(1)
 
 
@@ -203,23 +205,17 @@ def processar_staging(
         stj-processar-staging --pattern "corte_especial_*.json"
     """
     try:
-        console.print("[cyan]⚙️  Processando arquivos do staging...[/cyan]\n")
-
-        # Verificar HD externo
-        if not EXTERNAL_DRIVE.exists():
-            console.print(f"[red]❌ HD externo não acessível: {EXTERNAL_DRIVE}[/red]")
-            console.print("[yellow]💡 Monte o HD externo em /mnt/e/ e tente novamente[/yellow]")
-            raise typer.Exit(1)
+        console.print("[cyan]Processando arquivos do staging...[/cyan]\n")
 
         # Listar arquivos
         staging_files = sorted(STAGING_DIR.glob(pattern))
 
         if not staging_files:
-            console.print(f"[yellow]⚠️  Nenhum arquivo encontrado com pattern: {pattern}[/yellow]")
-            console.print(f"[yellow]📁 Diretório: {STAGING_DIR}[/yellow]")
+            console.print(f"[yellow][AVISO]Nenhum arquivo encontrado com pattern: {pattern}[/yellow]")
+            console.print(f"[yellow]Diretório: {STAGING_DIR}[/yellow]")
             raise typer.Exit(0)
 
-        console.print(f"[cyan]📊 Arquivos encontrados: {len(staging_files)}[/cyan]")
+        console.print(f"[cyan]Arquivos encontrados: {len(staging_files)}[/cyan]")
         for f in staging_files[:5]:
             console.print(f"  • {f.name}")
         if len(staging_files) > 5:
@@ -229,7 +225,7 @@ def processar_staging(
         processor = STJProcessor()
         registros = processor.processar_batch(staging_files)
 
-        console.print(f"\n[cyan]📝 Total de registros processados: {len(registros)}[/cyan]")
+        console.print(f"\n[cyan]Total de registros processados: {len(registros)}[/cyan]")
 
         # Inserir no banco
         if registros:
@@ -240,20 +236,20 @@ def processar_staging(
                 # Inserir batch
                 inseridos, duplicados, erros = db.inserir_batch(registros, atualizar_duplicados=atualizar)
 
-                console.print(f"\n[green]✅ Processamento concluído:[/green]")
+                console.print(f"\n[green][OK]Processamento concluído:[/green]")
                 console.print(f"  • Inseridos: {inseridos}")
                 console.print(f"  • Duplicados: {duplicados}")
                 console.print(f"  • Erros: {erros}")
 
                 # Estatísticas do banco
                 stats = db.obter_estatisticas()
-                console.print(f"\n[cyan]📊 Total no banco: {stats.get('total_acordaos', 0)} acórdãos[/cyan]")
+                console.print(f"\n[cyan]Total no banco: {stats.get('total_acordaos', 0)} acórdãos[/cyan]")
         else:
-            console.print("[yellow]⚠️  Nenhum registro processado[/yellow]")
+            console.print("[yellow][AVISO]Nenhum registro processado[/yellow]")
 
     except Exception as e:
         logger.error(f"Erro no processamento: {e}")
-        console.print(f"[red]❌ Erro: {e}[/red]")
+        console.print(f"[red][ERRO]Erro: {e}[/red]")
         raise typer.Exit(1)
 
 
@@ -275,14 +271,14 @@ def buscar_ementa(
         stj-buscar-ementa "responsabilidade civil" --orgao terceira_turma --dias 90
     """
     try:
-        console.print(f"[cyan]🔍 Buscando '{termo}' nas ementas...[/cyan]")
-        console.print(f"[cyan]📅 Período: últimos {dias} dias[/cyan]\n")
+        console.print(f"[cyan]Buscando '{termo}' nas ementas...[/cyan]")
+        console.print(f"[cyan]Período: últimos {dias} dias[/cyan]\n")
 
         with STJDatabase() as db:
             resultados = db.buscar_ementa(termo, orgao, dias, limit)
 
             if not resultados:
-                console.print("[yellow]⚠️  Nenhum resultado encontrado[/yellow]")
+                console.print("[yellow][AVISO]Nenhum resultado encontrado[/yellow]")
                 raise typer.Exit(0)
 
             # Mostrar resultados em tabela
@@ -304,11 +300,11 @@ def buscar_ementa(
                 )
 
             console.print(table)
-            console.print(f"\n[green]✅ {len(resultados)} resultado(s) encontrado(s)[/green]")
+            console.print(f"\n[green][OK]{len(resultados)} resultado(s) encontrado(s)[/green]")
 
     except Exception as e:
         logger.error(f"Erro na busca: {e}")
-        console.print(f"[red]❌ Erro: {e}[/red]")
+        console.print(f"[red][ERRO]Erro: {e}[/red]")
         raise typer.Exit(1)
 
 
@@ -328,15 +324,15 @@ def buscar_acordao(
         stj-buscar-acordao "dano moral" --dias 30 --limit 10
     """
     try:
-        console.print(f"[cyan]🔍 Buscando '{termo}' no inteiro teor dos acórdãos...[/cyan]")
-        console.print(f"[yellow]⚠️  Busca no texto completo pode demorar...[/yellow]")
-        console.print(f"[cyan]📅 Período: últimos {dias} dias[/cyan]\n")
+        console.print(f"[cyan]Buscando '{termo}' no inteiro teor dos acórdãos...[/cyan]")
+        console.print(f"[yellow][AVISO]Busca no texto completo pode demorar...[/yellow]")
+        console.print(f"[cyan]Período: últimos {dias} dias[/cyan]\n")
 
         with STJDatabase() as db:
             resultados = db.buscar_acordao(termo, orgao, dias, limit)
 
             if not resultados:
-                console.print("[yellow]⚠️  Nenhum resultado encontrado[/yellow]")
+                console.print("[yellow][AVISO]Nenhum resultado encontrado[/yellow]")
                 raise typer.Exit(0)
 
             # Mostrar resultados
@@ -357,11 +353,11 @@ def buscar_acordao(
                 )
 
             console.print(table)
-            console.print(f"\n[green]✅ {len(resultados)} acórdão(s) encontrado(s)[/green]")
+            console.print(f"\n[green][OK]{len(resultados)} acórdão(s) encontrado(s)[/green]")
 
     except Exception as e:
         logger.error(f"Erro na busca: {e}")
-        console.print(f"[red]❌ Erro: {e}[/red]")
+        console.print(f"[red][ERRO]Erro: {e}[/red]")
         raise typer.Exit(1)
 
 
@@ -377,7 +373,7 @@ def estatisticas():
     Exibe contagens por órgão, tipo de decisão, período coberto, etc.
     """
     try:
-        console.print("[cyan]📊 Estatísticas do Banco STJ[/cyan]\n")
+        console.print("[cyan]Estatísticas do Banco STJ[/cyan]\n")
 
         with STJDatabase() as db:
             stats = db.obter_estatisticas()
@@ -420,7 +416,7 @@ def estatisticas():
 
     except Exception as e:
         logger.error(f"Erro ao obter estatísticas: {e}")
-        console.print(f"[red]❌ Erro: {e}[/red]")
+        console.print(f"[red][ERRO]Erro: {e}[/red]")
         raise typer.Exit(1)
 
 
@@ -438,17 +434,17 @@ def exportar(
     try:
         output_path = Path(output)
 
-        console.print(f"[cyan]📤 Exportando para: {output_path}[/cyan]\n")
+        console.print(f"[cyan]Exportando para: {output_path}[/cyan]\n")
         console.print(f"[cyan]Query:[/cyan] {query}\n")
 
         with STJDatabase() as db:
             db.exportar_csv(query, output_path)
 
-        console.print(f"[green]✅ Exportação concluída[/green]")
+        console.print(f"[green][OK]Exportação concluída[/green]")
 
     except Exception as e:
         logger.error(f"Erro na exportação: {e}")
-        console.print(f"[red]❌ Erro: {e}[/red]")
+        console.print(f"[red][ERRO]Erro: {e}[/red]")
         raise typer.Exit(1)
 
 
@@ -462,32 +458,28 @@ def init():
     Inicializa o sistema: cria diretórios e schema do banco.
     """
     try:
-        console.print("[cyan]🚀 Inicializando sistema STJ Dados Abertos...[/cyan]\n")
+        console.print("[cyan]Inicializando sistema STJ Dados Abertos...[/cyan]\n")
 
-        # Verificar HD externo
-        if not EXTERNAL_DRIVE.exists():
-            console.print(f"[red]❌ HD externo não acessível: {EXTERNAL_DRIVE}[/red]")
-            console.print("[yellow]💡 Dicas:[/yellow]")
-            console.print("  1. Conecte o HD externo")
-            console.print("  2. Verifique se está montado em /mnt/e/")
-            console.print("  3. Use: ls /mnt/e/ para verificar")
-            raise typer.Exit(1)
-
-        console.print(f"[green]✅ HD externo acessível: {EXTERNAL_DRIVE}[/green]")
+        # Verificar se DATA_ROOT existe e tem espaco
+        if not DATA_ROOT.exists():
+            DATA_ROOT.mkdir(parents=True, exist_ok=True)
+            console.print(f"[green]Diretorio de dados criado: {DATA_ROOT}[/green]")
+        else:
+            console.print(f"[green]Diretorio de dados: {DATA_ROOT}[/green]")
 
         # Criar schema do banco
         with STJDatabase() as db:
             db.criar_schema()
 
-        console.print("\n[green]✅ Sistema inicializado com sucesso![/green]")
-        console.print(f"\n[cyan]Diretórios criados:[/cyan]")
-        console.print(f"  • Staging: {STAGING_DIR}")
-        console.print(f"  • Database: {EXTERNAL_DRIVE / 'stj-data/database'}")
-        console.print(f"  • Logs: {EXTERNAL_DRIVE / 'stj-data/logs'}")
+        console.print("\n[green]Sistema inicializado com sucesso![/green]")
+        console.print(f"\n[cyan]Diretorios:[/cyan]")
+        console.print(f"  Staging: {STAGING_DIR}")
+        console.print(f"  Database: {DATABASE_PATH}")
+        console.print(f"  Logs: {LOGS_DIR}")
 
     except Exception as e:
         logger.error(f"Erro na inicialização: {e}")
-        console.print(f"[red]❌ Erro: {e}[/red]")
+        console.print(f"[red][ERRO]Erro: {e}[/red]")
         raise typer.Exit(1)
 
 
@@ -500,10 +492,11 @@ def info():
 
     # Paths
     console.print("[bold]Paths:[/bold]")
-    console.print(f"  • HD Externo: {EXTERNAL_DRIVE}")
-    console.print(f"  • Staging: {STAGING_DIR}")
-    console.print(f"  • Database: {EXTERNAL_DRIVE / 'stj-data/database'}")
-    console.print(f"  • HD acessível: {'✅ Sim' if EXTERNAL_DRIVE.exists() else '❌ Não'}\n")
+    console.print(f"  Data Root: {DATA_ROOT}")
+    console.print(f"  Staging: {STAGING_DIR}")
+    console.print(f"  Database: {DATABASE_PATH}")
+    console.print(f"  Logs: {LOGS_DIR}")
+    console.print(f"  Acessivel: {'Sim' if DATA_ROOT.exists() else 'Nao'}\n")
 
     # Órgãos julgadores
     console.print("[bold]Órgãos Julgadores Disponíveis:[/bold]")

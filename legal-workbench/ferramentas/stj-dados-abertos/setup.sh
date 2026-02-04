@@ -10,26 +10,26 @@ echo ""
 
 # Verificar se estamos no diretório correto
 if [ ! -f "config.py" ]; then
-    echo "❌ Erro: Execute este script no diretório stj-dados-abertos/"
+    echo "[ERRO] Erro: Execute este script no diretório stj-dados-abertos/"
     exit 1
 fi
 
 # Verificar Python
 echo "1. Verificando Python..."
 if ! command -v python3 &> /dev/null; then
-    echo "❌ Python 3 não encontrado"
+    echo "[ERRO] Python 3 não encontrado"
     exit 1
 fi
 
 PYTHON_VERSION=$(python3 --version)
-echo "✅ $PYTHON_VERSION"
+echo "[OK] $PYTHON_VERSION"
 echo ""
 
 # Criar venv se não existir
 if [ ! -d ".venv" ]; then
     echo "2. Criando virtual environment..."
     python3 -m venv .venv
-    echo "✅ Virtual environment criado"
+    echo "[OK] Virtual environment criado"
 else
     echo "2. Virtual environment já existe"
 fi
@@ -38,49 +38,46 @@ echo ""
 # Ativar venv
 echo "3. Ativando virtual environment..."
 source .venv/bin/activate
-echo "✅ Virtual environment ativado"
+echo "[OK] Virtual environment ativado"
 echo ""
 
 # Atualizar pip
 echo "4. Atualizando pip..."
 pip install --upgrade pip --quiet
-echo "✅ pip atualizado"
+echo "[OK] pip atualizado"
 echo ""
 
 # Instalar dependências
 echo "5. Instalando dependências..."
 pip install -r requirements.txt --quiet
-echo "✅ Dependências instaladas"
+echo "[OK] Dependências instaladas"
 echo ""
 
 # Verificar instalação
 echo "6. Verificando instalação..."
 python3 -c "import duckdb; import typer; import httpx" 2>/dev/null
 if [ $? -eq 0 ]; then
-    echo "✅ Módulos principais importados com sucesso"
+    echo "[OK] Módulos principais importados com sucesso"
 else
-    echo "❌ Erro ao importar módulos"
+    echo "[ERRO] Erro ao importar módulos"
     exit 1
 fi
 echo ""
 
-# Verificar HD externo
-echo "7. Verificando HD externo..."
-if [ -d "/mnt/e" ]; then
-    echo "✅ HD externo acessível: /mnt/e"
-else
-    echo "⚠️  HD externo NÃO acessível: /mnt/e"
-    echo "   Dados serão salvos localmente em: data_local/"
-fi
+# Verificar diretorio de dados
+echo "7. Verificando diretorio de dados..."
+DATA_DIR="${DATA_PATH:-./data}"
+mkdir -p "$DATA_DIR"
+echo "[OK] Diretorio de dados: $DATA_DIR"
 echo ""
 
 # Testar CLI
 echo "8. Testando CLI..."
 python3 cli.py --help > /dev/null 2>&1
 if [ $? -eq 0 ]; then
-    echo "✅ CLI funcionando"
+    echo "[OK] CLI funcionando"
 else
-    echo "❌ Erro na CLI"
+    echo "[ERRO] Erro na CLI"
     exit 1
 fi
 echo ""
@@ -88,11 +85,11 @@ echo ""
 # Criar diretórios de teste
 echo "9. Criando estrutura de diretórios..."
 mkdir -p tests
-echo "✅ Diretórios criados"
+echo "[OK] Diretórios criados"
 echo ""
 
 echo "=========================================="
-echo "✅ Setup concluído com sucesso!"
+echo "[OK] Setup concluído com sucesso!"
 echo "=========================================="
 echo ""
 echo "Próximos passos:"

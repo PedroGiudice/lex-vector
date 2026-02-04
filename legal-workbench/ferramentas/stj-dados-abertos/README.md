@@ -38,21 +38,24 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### 3. Verificar HD Externo
+### 3. Configurar Armazenamento
 
-O sistema armazena dados em `/mnt/e/` (HD externo):
+O sistema suporta duas opcoes de armazenamento:
 
+**Opcao A: Local (desenvolvimento/testes)**
 ```bash
-ls /mnt/e/
+# Dados em ./data/ (padrao)
+python cli.py stj-init
 ```
 
-Se não estiver montado:
+**Opcao B: Volume de Bloco OCI (producao)**
 ```bash
-# Verificar discos disponíveis
-lsblk
+# Ver guia completo
+cat OCI_VOLUME_SETUP.md
 
-# Montar (ajustar /dev/sdX conforme necessário)
-sudo mount /dev/sdc1 /mnt/e
+# Apos configurar o volume:
+export DATA_PATH=/mnt/juridico-data/stj
+python cli.py stj-init
 ```
 
 ### 4. Inicializar Sistema
@@ -62,7 +65,7 @@ python cli.py stj-init
 ```
 
 Isso criará:
-- Diretórios de dados em `/mnt/e/stj-data/`
+- Diretórios de dados (local ou volume configurado)
 - Schema do banco DuckDB
 - Índices para full-text search
 
@@ -178,7 +181,7 @@ python cli.py stj-info
 
 Mostra:
 - Paths configurados
-- Status do HD externo
+- Status do armazenamento
 - Órgãos julgadores disponíveis
 - Comandos principais
 
@@ -201,13 +204,13 @@ Mostra:
 
 **IMPORTANTE:** Usar grafia correta em código e documentação:
 
-- ✅ **acórdão** (plural: acórdãos) - decisão colegiada do tribunal
-- ✅ **decisão monocrática** - decisão individual do relator
-- ✅ **ementa** - resumo oficial do acórdão
-- ✅ **inteiro teor** - texto completo do acórdão
-- ✅ **órgão julgador** (não "orgão") - turma/seção que julgou
-- ✅ **relator** - ministro responsável pelo processo
-- ✅ **jurisprudência** - conjunto de decisões
+- [OK]**acórdão** (plural: acórdãos) - decisão colegiada do tribunal
+- [OK]**decisão monocrática** - decisão individual do relator
+- [OK]**ementa** - resumo oficial do acórdão
+- [OK]**inteiro teor** - texto completo do acórdão
+- [OK]**órgão julgador** (não "orgão") - turma/seção que julgou
+- [OK]**relator** - ministro responsável pelo processo
+- [OK]**jurisprudência** - conjunto de decisões
 
 ## Schema do Banco
 
@@ -255,7 +258,7 @@ CREATE TABLE acordaos (
 
 ### Otimizações Implementadas
 
-1. **WAL mode** - Melhor performance em HD externo
+1. **WAL mode** - Melhor performance em storage persistente
 2. **Batch insert** - 1000 registros por transação (configurável)
 3. **Deduplicação por hash** - Evita inserções duplicadas
 4. **Compressão ZSTD** - Automática pelo DuckDB
@@ -264,10 +267,10 @@ CREATE TABLE acordaos (
 
 ### Limites Testados
 
-- ✅ **Volume:** Otimizado para 50GB+ de dados
-- ✅ **Threads:** 4 threads DuckDB
-- ✅ **Memória:** Limite de 4GB (configurável em `config.py`)
-- ✅ **Batch size:** 1000 registros/transação
+- [OK]**Volume:** Otimizado para 50GB+ de dados
+- [OK]**Threads:** 4 threads DuckDB
+- [OK]**Memória:** Limite de 4GB (configurável em `config.py`)
+- [OK]**Batch size:** 1000 registros/transação
 
 ### Dicas de Performance
 
@@ -293,25 +296,6 @@ python cli.py stj-exportar "SELECT ... WHERE ..." --output resultado.csv
 
 ## Troubleshooting
 
-### HD Externo Não Acessível
-
-**Erro:**
-```
-❌ HD externo não acessível: /mnt/e/
-```
-
-**Solução:**
-```bash
-# Verificar discos
-lsblk
-
-# Montar HD
-sudo mount /dev/sdc1 /mnt/e
-
-# Verificar montagem
-df -h | grep /mnt/e
-```
-
 ### Arquivo JSON Vazio ou Inválido
 
 **Erro:**
@@ -327,8 +311,8 @@ Resposta não é JSON válido de URL
 
 **Solução:**
 ```bash
-# Criar backup
-cp /mnt/e/stj-data/database/stj.duckdb /mnt/e/stj-data/database/stj.duckdb.backup
+# Criar backup (ajustar path conforme configuracao)
+cp data/database/stj.duckdb data/database/stj.duckdb.backup
 
 # Re-criar schema
 python cli.py stj-init
@@ -412,7 +396,7 @@ from processador_texto import (
 
 **Desenvolvido para:** Coleta automatizada de jurisprudência do STJ
 **Stack:** Python 3.12 + DuckDB + Typer + Rich
-**Armazenamento:** HD externo (50GB+)
+**Armazenamento:** Volume de Bloco OCI (100GB recomendado)
 
 ---
 
