@@ -88,6 +88,40 @@ export interface LedesConfig {
   activityCode?: string;
 }
 
+/**
+ * Matter Preset - Pre-configured settings for a specific client/matter combination.
+ * Allows users to save and quickly apply configurations.
+ */
+export interface MatterPreset {
+  id: string;
+  name: string; // Display name (e.g., "Salesforce Litigation")
+  // Client/Matter identifiers
+  clientId: string;
+  clientName: string;
+  matterId: string;
+  matterName: string;
+  clientMatterId?: string;
+  // Firm info
+  lawFirmId: string;
+  lawFirmName: string;
+  // Timekeeper defaults
+  timekeeperId: string;
+  timekeeperName: string;
+  timekeeperClassification: string;
+  unitCost: number;
+  // Default UTBMS codes (can be overridden by auto-mapping)
+  defaultTaskCode: string;
+  defaultActivityCode: string;
+  // Metadata
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Input for creating a new preset (id and timestamps auto-generated)
+ */
+export type MatterPresetInput = Omit<MatterPreset, 'id' | 'createdAt' | 'updatedAt'>;
+
 export interface LedesExtractedData {
   invoice_date: string;
   invoice_number: string;
