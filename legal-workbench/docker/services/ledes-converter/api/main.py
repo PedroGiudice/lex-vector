@@ -34,7 +34,10 @@ import magic
 from defusedxml import ElementTree
 import json
 
-from .models import LedesData, ConversionResponse, HealthResponse, LineItem, LedesConfig
+from .models import (
+    LedesData, ConversionResponse, HealthResponse, LineItem, LedesConfig,
+    BatchFileResult, BatchConversionResponse
+)
 from .utbms_mapper import infer_task_code, infer_activity_code
 
 app = FastAPI(
@@ -578,6 +581,243 @@ async def convert_docx_to_ledes(
                 os.remove(tmp_path)
             except Exception as cleanup_error:
                 logger.error(f"Failed to cleanup temp file: {cleanup_error}")
+
+
+@app.post("/convert/batch", response_model=BatchConversionResponse)
+async def convert_batch(
+    request: Request,
+    files: Annotated[list[UploadFile], File(description="DOCX files to convert (max 10)")],
+    config: Annotated[Optional[str], Form(description="JSON string with LEDES configuration")] = None,
+    consolidate: Annotated[bool, Form(description="Combine all into single LEDES file")] = False
+) -> BatchConversionResponse:
+    """
+    Convert multiple DOCX invoice files to LEDES 1998B format.
+
+    - **files**: List of DOCX files (max 10, each max 10MB)
+    - **config**: Optional JSON string with LEDES configuration
+    - **consolidate**: If True, combine all line items into single LEDES file
+
+    Returns results for each file and optionally a consolidated LEDES output.
+    """
+    # Validate file count
+    if len(files) > 10:
+        raise HTTPException(
+            status_code=400,
+            detail="Maximum 10 files allowed per batch."
+        )
+
+    if len(files) == 0:
+        raise HTTPException(
+            status_code=400,
+            detail="At least one file is required."
+        )
+
+    # Rate limiting (stricter for batch: 5 requests/minute)
+    client_ip = request.client.host if request.client else "unknown"
+    if not rate_limit_check(client_ip, max_requests=5, window_seconds=60):
+        raise HTTPException(
+            status_code=429,
+            detail="Too many requests. Please try again later."
+        )
+
+    # Parse config once
+    ledes_config = None
+    if config:
+        try:
+            config_dict = json.loads(config)
+            ledes_config = LedesConfig(**config_dict)
+        except json.JSONDecodeError as e:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid JSON in config parameter: {str(e)}"
+            )
+        except Exception as e:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid config data: {str(e)}"
+            )
+
+    results = []
+    all_line_items = []
+    base_data = None
+
+    for file in files:
+        tmp_path = ""
+        try:
+            # Validate filename
+            if not file.filename:
+                results.append(BatchFileResult(
+                    filename="unknown",
+                    status="error",
+                    error="Filename is required"
+                ))
+                continue
+
+            if not file.filename.lower().endswith('.docx'):
+                results.append(BatchFileResult(
+                    filename=file.filename,
+                    status="error",
+                    error="Invalid file type. Only .docx files are allowed."
+                ))
+                continue
+
+            # Read and validate file
+            content = await file.read()
+
+            if len(content) == 0:
+                results.append(BatchFileResult(
+                    filename=file.filename,
+                    status="error",
+                    error="Empty file"
+                ))
+                continue
+
+            if len(content) > MAX_FILE_SIZE:
+                results.append(BatchFileResult(
+                    filename=file.filename,
+                    status="error",
+                    error=f"File too large (max {MAX_FILE_SIZE // (1024*1024)}MB)"
+                ))
+                continue
+
+            if not validate_file_type(content, file.filename):
+                results.append(BatchFileResult(
+                    filename=file.filename,
+                    status="error",
+                    error="Invalid file format"
+                ))
+                continue
+
+            # Save temp file
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".docx", mode='wb') as tmp:
+                tmp.write(content)
+                tmp_path = tmp.name
+
+            os.chmod(tmp_path, 0o600)
+
+            # Process DOCX
+            try:
+                doc = docx.Document(tmp_path)
+            except Exception as docx_error:
+                logger.error(f"Failed to parse DOCX {file.filename}: {docx_error}")
+                results.append(BatchFileResult(
+                    filename=file.filename,
+                    status="error",
+                    error="Unable to parse DOCX file"
+                ))
+                continue
+
+            full_text = []
+            for para in doc.paragraphs:
+                if para.text:
+                    full_text.append(para.text)
+            for table in doc.tables:
+                for row in table.rows:
+                    for cell in row.cells:
+                        if cell.text:
+                            full_text.append(cell.text)
+
+            text_content = "\n".join(full_text)
+
+            if not text_content.strip():
+                results.append(BatchFileResult(
+                    filename=file.filename,
+                    status="error",
+                    error="No text content found in DOCX file"
+                ))
+                continue
+
+            # Extract data
+            extracted_data = extract_ledes_data(text_content)
+
+            if not extracted_data.get("line_items"):
+                results.append(BatchFileResult(
+                    filename=file.filename,
+                    status="error",
+                    error="No line items found in invoice"
+                ))
+                continue
+
+            # Apply config
+            if ledes_config:
+                extracted_data["law_firm_id"] = ledes_config.law_firm_id
+                extracted_data["law_firm_name"] = ledes_config.law_firm_name
+                extracted_data["client_id"] = ledes_config.client_id
+                extracted_data["client_name"] = ledes_config.client_name
+                extracted_data["matter_id"] = ledes_config.matter_id
+                extracted_data["matter_name"] = ledes_config.matter_name
+                extracted_data["client_matter_id"] = ledes_config.client_matter_id or ""
+                extracted_data["timekeeper_id"] = ledes_config.timekeeper_id or ""
+                extracted_data["timekeeper_name"] = ledes_config.timekeeper_name or ""
+                extracted_data["timekeeper_classification"] = ledes_config.timekeeper_classification or ""
+                extracted_data["unit_cost"] = ledes_config.unit_cost or 0
+                extracted_data["billing_start_date"] = ledes_config.billing_start_date or ""
+                extracted_data["billing_end_date"] = ledes_config.billing_end_date or ""
+            else:
+                extracted_data["law_firm_id"] = ""
+                extracted_data["client_matter_id"] = ""
+
+            # Generate LEDES for this file
+            ledes_content = generate_ledes_1998b(extracted_data)
+
+            # Collect for consolidation
+            if consolidate:
+                if base_data is None:
+                    base_data = extracted_data.copy()
+                    base_data["line_items"] = []
+                all_line_items.extend(extracted_data["line_items"])
+
+            # Create response models
+            line_items = [LineItem(**item) for item in extracted_data["line_items"]]
+            ledes_data = LedesData(
+                invoice_date=extracted_data["invoice_date"],
+                invoice_number=extracted_data["invoice_number"],
+                client_id=extracted_data["client_id"],
+                matter_id=extracted_data["matter_id"],
+                invoice_total=extracted_data["invoice_total"],
+                line_items=line_items
+            )
+
+            results.append(BatchFileResult(
+                filename=file.filename,
+                status="success",
+                extracted_data=ledes_data,
+                ledes_content=ledes_content
+            ))
+
+            logger.info(f"Batch: Successfully converted {file.filename} (lines: {len(extracted_data['line_items'])})")
+
+        except Exception as e:
+            logger.error(f"Batch file error for {file.filename if file.filename else 'unknown'}: {e}")
+            results.append(BatchFileResult(
+                filename=file.filename if file.filename else "unknown",
+                status="error",
+                error=str(e)
+            ))
+        finally:
+            if tmp_path and os.path.exists(tmp_path):
+                try:
+                    os.remove(tmp_path)
+                except Exception as cleanup_error:
+                    logger.error(f"Failed to cleanup temp file: {cleanup_error}")
+
+    # Generate consolidated LEDES if requested
+    consolidated_content = None
+    if consolidate and base_data and all_line_items:
+        base_data["line_items"] = all_line_items
+        base_data["invoice_total"] = sum(item["amount"] for item in all_line_items)
+        consolidated_content = generate_ledes_1998b(base_data)
+        logger.info(f"Batch: Generated consolidated LEDES with {len(all_line_items)} line items")
+
+    successful = sum(1 for r in results if r.status == "success")
+
+    return BatchConversionResponse(
+        total_files=len(files),
+        successful=successful,
+        failed=len(files) - successful,
+        results=results,
+        consolidated_content=consolidated_content
+    )
 
 
 @app.get("/debug/sentry", tags=["Debug"])

@@ -79,3 +79,26 @@ class HealthResponse(BaseModel):
     """Health check response."""
     status: str = Field(default="ok", description="Service health status")
     service: str = Field(default="ledes-converter", description="Service name")
+
+
+# Batch Processing Models
+
+class BatchFileResult(BaseModel):
+    """Result for a single file in batch processing."""
+    filename: str = Field(..., description="Original filename")
+    status: str = Field(..., description="Processing status: 'success' or 'error'")
+    error: Optional[str] = Field(None, description="Error message if status is 'error'")
+    extracted_data: Optional[LedesData] = Field(None, description="Extracted data if successful")
+    ledes_content: Optional[str] = Field(None, description="LEDES content if successful")
+
+
+class BatchConversionResponse(BaseModel):
+    """API response for batch conversion."""
+    total_files: int = Field(..., description="Total number of files processed")
+    successful: int = Field(..., description="Number of successfully converted files")
+    failed: int = Field(..., description="Number of failed files")
+    results: List[BatchFileResult] = Field(..., description="Results for each file")
+    consolidated_content: Optional[str] = Field(
+        None,
+        description="Combined LEDES content if consolidate=True"
+    )

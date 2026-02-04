@@ -446,3 +446,141 @@ def test_utbms_auto_mapping_disabled():
     # Should use defaults, not auto-mapped codes
     assert data_row[14] == "L999", "Should use default task_code when auto_map_codes=False"
     assert data_row[16] == "A999", "Should use default activity_code when auto_map_codes=False"
+
+
+# Batch Processing Tests
+
+def test_batch_endpoint_no_files():
+    """Test that batch endpoint rejects empty file list."""
+    response = client.post(
+        "/convert/batch",
+        files=[],
+        data={}
+    )
+    assert response.status_code == 422  # FastAPI validation error for empty list
+
+
+def test_batch_endpoint_too_many_files():
+    """Test that batch endpoint rejects more than 10 files."""
+    # Create 11 fake files
+    files = [
+        ("files", (f"test{i}.docx", b"PK" + b"x" * 100, "application/vnd.openxmlformats-officedocument.wordprocessingml.document"))
+        for i in range(11)
+    ]
+
+    response = client.post(
+        "/convert/batch",
+        files=files
+    )
+    assert response.status_code == 400
+    assert "Maximum 10 files" in response.json()["detail"]
+
+
+def test_batch_endpoint_invalid_file_type():
+    """Test that batch endpoint handles invalid file types gracefully."""
+    files = [
+        ("files", ("test.pdf", b"PDF content", "application/pdf"))
+    ]
+
+    response = client.post(
+        "/convert/batch",
+        files=files
+    )
+
+    # Should return 200 with error in results, not fail the whole request
+    assert response.status_code == 200
+    data = response.json()
+    assert data["total_files"] == 1
+    assert data["failed"] == 1
+    assert data["successful"] == 0
+    assert data["results"][0]["status"] == "error"
+    assert "Invalid file type" in data["results"][0]["error"]
+
+
+def test_batch_endpoint_success_single_file():
+    """Test batch endpoint with single valid file."""
+    sample_file = "tests/fixtures/sample.docx"
+
+    if not os.path.exists(sample_file):
+        pytest.skip(f"Sample file not found at {sample_file}")
+
+    config_data = {
+        "law_firm_id": "BATCH-FIRM",
+        "law_firm_name": "Batch Test Firm",
+        "client_id": "BATCH-CLIENT",
+        "matter_id": "BATCH-MATTER"
+    }
+
+    with open(sample_file, "rb") as f:
+        files = [("files", ("sample.docx", f.read(), "application/vnd.openxmlformats-officedocument.wordprocessingml.document"))]
+
+    response = client.post(
+        "/convert/batch",
+        files=files,
+        data={"config": json.dumps(config_data)}
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+
+    assert data["total_files"] == 1
+    assert data["successful"] == 1
+    assert data["failed"] == 0
+    assert len(data["results"]) == 1
+    assert data["results"][0]["status"] == "success"
+    assert data["results"][0]["filename"] == "sample.docx"
+    assert "LEDES1998B[]" in data["results"][0]["ledes_content"]
+    assert data["consolidated_content"] is None  # Not requested
+
+
+def test_batch_endpoint_consolidate():
+    """Test batch endpoint with consolidation enabled."""
+    sample_file = "tests/fixtures/sample.docx"
+
+    if not os.path.exists(sample_file):
+        pytest.skip(f"Sample file not found at {sample_file}")
+
+    config_data = {
+        "law_firm_id": "CONSOL-FIRM",
+        "law_firm_name": "Consolidation Test Firm",
+        "client_id": "CONSOL-CLIENT",
+        "matter_id": "CONSOL-MATTER"
+    }
+
+    # Upload the same file twice to test consolidation
+    with open(sample_file, "rb") as f:
+        content = f.read()
+        files = [
+            ("files", ("sample1.docx", content, "application/vnd.openxmlformats-officedocument.wordprocessingml.document")),
+            ("files", ("sample2.docx", content, "application/vnd.openxmlformats-officedocument.wordprocessingml.document"))
+        ]
+
+    response = client.post(
+        "/convert/batch",
+        files=files,
+        data={
+            "config": json.dumps(config_data),
+            "consolidate": "true"
+        }
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+
+    assert data["total_files"] == 2
+    assert data["successful"] == 2
+    assert data["failed"] == 0
+    assert data["consolidated_content"] is not None
+    assert "LEDES1998B[]" in data["consolidated_content"]
+
+    # Consolidated content should have line items from both files
+    # The sample has multiple line items, so consolidated should have double
+    consolidated_lines = data["consolidated_content"].split("\r\n")
+    individual_lines = data["results"][0]["ledes_content"].split("\r\n")
+
+    # Consolidated should have more data lines than individual
+    # (header lines are same, but data lines should be 2x)
+    consolidated_data_lines = len([l for l in consolidated_lines if l and not l.startswith("LEDES") and "INVOICE_DATE" not in l])
+    individual_data_lines = len([l for l in individual_lines if l and not l.startswith("LEDES") and "INVOICE_DATE" not in l])
+
+    assert consolidated_data_lines == individual_data_lines * 2
