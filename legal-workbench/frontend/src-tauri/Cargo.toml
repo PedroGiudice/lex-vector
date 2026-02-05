@@ -1,6 +1,6 @@
 [package]
 name = "legal-workbench"
-version = "0.1.3"
+version = "0.1.4"
 description = "Legal Workbench - Thin Client Desktop"
 authors = ["LexVector"]
 edition = "2021"
