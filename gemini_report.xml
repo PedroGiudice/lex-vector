@@ -1,0 +1,81 @@
+<gemini_context_report scope="full_project_map" timestamp="2026-02-07T12:00:00Z">
+  <project_structure>
+    ├── legal-workbench/
+    │   ├── ferramentas/
+    │   │   ├── stj-dados-abertos/       # CORE: Lógica de negócio do STJ
+    │   │   │   ├── src/
+    │   │   │   │   ├── downloader.py    # Cliente da API CKAN do STJ
+    │   │   │   │   ├── processor.py     # Processamento de JSONs e normalização
+    │   │   │   │   ├── database.py      # Gerenciamento DuckDB e FTS
+    │   │   │   │   ├── ckan_client.py   # Cliente HTTP para dadosabertos.web.stj.jus.br
+    │   │   │   │   └── ...
+    │   │   │   ├── cli.py               # Interface de linha de comando
+    │   │   │   ├── config.py            # Configurações e caminhos
+    │   │   │   └── app.py               # Dashboard legado (Streamlit)
+    │   │   └── ...
+    │   ├── docker/
+    │   │   ├── services/
+    │   │   │   ├── stj-api/             # Wrapper FastAPI para o core
+    │   │   │   │   ├── api/             # Endpoints (main.py, scheduler.py)
+    │   │   │   │   └── Dockerfile
+    │   │   │   └── ...
+    │   │   └── ...
+    │   ├── frontend/
+    │   │   ├── src/
+    │   │   │   ├── pages/STJModule.tsx  # UI React principal
+    │   │   │   ├── services/stjApi.ts   # Cliente API Frontend
+    │   │   │   └── store/stjStore.ts    # Gerenciamento de estado (Zustand)
+    │   │   └── ...
+    │   └── ...
+    ├── adk-agents/                      # Agentes autônomos (pesquisa, jurisprudência)
+    │   ├── jurisprudence_agent/         # Scrapers alternativos (quando API falha)
+    │   └── ...
+    └── ...
+  </project_structure>
+
+  <dependencies>
+    <dep name="duckdb" version="unknown" type="runtime" context="Database principal (OLAP + FTS)" />
+    <dep name="fastapi" version="unknown" type="runtime" context="API REST (stj-api)" />
+    <dep name="streamlit" version="unknown" type="runtime" context="Dashboard legado" />
+    <dep name="react" version="18+" type="runtime" context="Frontend (STJModule)" />
+    <dep name="ckan-api" version="v3" type="external" context="Fonte de dados (dadosabertos.web.stj.jus.br)" />
+  </dependencies>
+
+  <analysis_data>
+    <component name="stj-dados-abertos" type="module" complexity="HIGH">
+      <description>
+        Módulo responsável pela ingestão, processamento e disponibilização de dados do STJ.
+        Opera como um pipeline ETL que alimenta um DuckDB, exposto via FastAPI.
+      </description>
+      <architecture>
+        1. **Ingestão:** `downloader.py` e `ckan_client.py` baixam JSONs da API CKAN do STJ.
+        2. **Processamento:** `processor.py` normaliza os dados e extrai metadados.
+        3. **Armazenamento:** `database.py` gerencia o DuckDB, incluindo índices FTS (Full-Text Search).
+        4. **Exposição:** `stj-api` (Docker) expõe endpoints REST.
+        5. **Consumo:** Frontend React consome a API para busca e visualização.
+      </architecture>
+      <data_flow>
+        CKAN API (STJ) -> JSON Files (Staging) -> Processor -> DuckDB (Persistent) -> FastAPI -> Frontend
+      </data_flow>
+      <storage>
+        DuckDB persistido em volume Docker (`stj-data`).
+        Schema inclui tabelas para `acordaos` e índices para busca textual.
+      </storage>
+      <integration_check>
+        Nenhuma referência direta encontrada a `~/.claude/legal-knowledge-base/` no código.
+        A integração parece ser via consumo da API REST ou exportação manual de dados (CSV/JSON).
+        O agente `jurisprudence_agent` em `adk-agents` possui scrapers para o STJ, mas opera separadamente.
+      </integration_check>
+    </component>
+
+    <ast_match file="legal-workbench/ferramentas/stj-dados-abertos/config.py" type="config" name="CKAN_BASE_URL" complexity="LOW">
+      CKAN_BASE_URL: Final[str] = "https://dadosabertos.web.stj.jus.br"
+    </ast_match>
+  </analysis_data>
+
+  <points_of_attention>
+    <point level="CRITICAL">A URL base antiga do STJ (`www.stj.jus.br/...`) retornava 404. O sistema foi migrado para a nova API CKAN (`dadosabertos.web.stj.jus.br`).</point>
+    <point level="WARNING">O DuckDB é usado como banco principal. Concorrência de escrita pode ser um problema se não gerenciada (o `api-stj` usa singleton). Apenas um processo deve escrever por vez.</point>
+    <point level="INFO">Existem múltiplos entrypoints: CLI (`cli.py`), API (`stj-api`), e Dashboard Legado (`app.py`). O foco atual parece ser a API + Frontend React.</point>
+  </points_of_attention>
+</gemini_context_report>

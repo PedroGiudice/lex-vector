@@ -127,6 +127,20 @@ http://localhost/stj
 
 ---
 
+## Context Offloading (Gemini Bridge Plugin)
+
+Plugin `gemini-bridge@opc-plugins` invoca Gemini CLI via MCP server para exploracao
+e analise pesada de codigo. Preserva a janela de contexto do Claude.
+
+- **Plugin:** `gemini-bridge@opc-plugins` (MCP server Python, zero deps)
+- **Tool:** `mcp__gemini_bridge__explore` (modes: onboarding, targeted, verify, research)
+- **Subagente:** `gemini-bridge-explorer` (restrito a apenas a tool acima)
+- **Skill:** `gemini-bridge:delegation` (protocolo de delegacao)
+- **Hook:** PreToolUse bloqueia Task(Explore) e redireciona para o plugin
+- **Regras detalhadas:** `~/.claude/rules/gemini-offloading.md`
+
+---
+
 ## Definition of Done
 
 1. Backend funcionando (teste via curl ou E2E)
