@@ -21,6 +21,9 @@ docker compose build frontend-react \
   --build-arg "CACHEBUST=$CACHEBUST" \
   --no-cache
 
+# Prune dangling images left by multi-stage build
+docker image prune -f 2>/dev/null
+
 # Recreate container with new image
 TRELLO_API_KEY="${TRELLO_API_KEY}" \
 TRELLO_API_TOKEN="${TRELLO_API_TOKEN}" \

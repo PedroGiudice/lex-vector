@@ -132,6 +132,13 @@ build_images() {
     fi
 
     print_success "Docker images built successfully"
+
+    # Prune dangling images left by multi-stage builds
+    # Each rebuild leaves the previous image as <none>:<none>
+    # text-extractor alone leaves ~15GB per rebuild
+    local reclaimed
+    reclaimed=$(docker image prune -f 2>/dev/null | tail -1)
+    print_info "Image cleanup: $reclaimed"
 }
 
 start_services() {

@@ -149,9 +149,11 @@ log_info "Fazendo build das imagens Docker (pode demorar 10-15 min)..."
 if ! groups | grep -q docker; then
     log_warn "Executando com sudo pois usuario nao esta no grupo docker ainda"
     sudo docker compose build
+    sudo docker image prune -f 2>/dev/null
     sudo docker compose up -d
 else
     docker compose build
+    docker image prune -f 2>/dev/null
     docker compose up -d
 fi
 

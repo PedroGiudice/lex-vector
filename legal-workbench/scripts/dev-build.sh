@@ -24,6 +24,9 @@ fi
 echo "Rebuilding $SERVICE..."
 docker compose -f docker-compose.dev.yml build "$SERVICE"
 
+# Prune dangling images left by multi-stage builds
+docker image prune -f 2>/dev/null
+
 echo "Restarting $SERVICE..."
 docker compose -f docker-compose.dev.yml up -d "$SERVICE"
 
