@@ -35,6 +35,8 @@ class LineItem(BaseModel):
     """Represents a single line item in an invoice."""
     description: str = Field(..., max_length=500, description="Line item description")
     amount: float = Field(..., ge=0, description="Line item amount (must be non-negative)")
+    task_code: str = Field(default="", max_length=10, description="UTBMS task code")
+    activity_code: str = Field(default="", max_length=10, description="UTBMS activity code")
 
     @field_validator('description')
     @classmethod
@@ -79,3 +81,74 @@ class HealthResponse(BaseModel):
     """Health check response."""
     status: str = Field(default="ok", description="Service health status")
     service: str = Field(default="ledes-converter", description="Service name")
+
+
+class MatterRequest(BaseModel):
+    """Request body for creating/updating a Matter."""
+    matter_name: str = Field(..., min_length=1, max_length=200)
+    matter_id: str = Field(..., min_length=1, max_length=50)
+    client_matter_id: str = Field(default="", max_length=50)
+    client_id: str = Field(..., min_length=1, max_length=100)
+    client_name: str = Field(default="", max_length=100)
+    law_firm_id: str = Field(..., min_length=1, max_length=50)
+    law_firm_name: str = Field(default="", max_length=100)
+    timekeeper_id: str = Field(default="", max_length=20)
+    timekeeper_name: str = Field(default="", max_length=50)
+    timekeeper_classification: str = Field(default="", max_length=10)
+    unit_cost: float = Field(default=0.0, ge=0)
+    default_task_code: str = Field(default="", max_length=10)
+    default_activity_code: str = Field(default="", max_length=10)
+
+
+class MatterResponse(BaseModel):
+    """Response body for a Matter."""
+    matter_name: str
+    matter_id: str
+    client_matter_id: str
+    client_id: str
+    client_name: str
+    law_firm_id: str
+    law_firm_name: str
+    timekeeper_id: str
+    timekeeper_name: str
+    timekeeper_classification: str
+    unit_cost: float
+    default_task_code: str
+    default_activity_code: str
+    created_at: str
+    updated_at: str
+
+
+class ValidationIssueResponse(BaseModel):
+    """Single validation issue."""
+    line: int
+    field: int
+    field_name: str
+    severity: str
+    message: str
+
+
+class ValidationResponse(BaseModel):
+    """Response from LEDES validation."""
+    valid: bool
+    error_count: int
+    warning_count: int
+    issues: List[ValidationIssueResponse]
+
+
+class BatchResultItem(BaseModel):
+    """Result for a single file in batch conversion."""
+    filename: str
+    status: str
+    ledes_content: Optional[str] = None
+    extracted_data: Optional[LedesData] = None
+    error: Optional[str] = None
+    validation_issues: List[ValidationIssueResponse] = []
+
+
+class BatchConversionResponse(BaseModel):
+    """Response for batch conversion."""
+    total: int
+    successful: int
+    failed: int
+    results: List[BatchResultItem]

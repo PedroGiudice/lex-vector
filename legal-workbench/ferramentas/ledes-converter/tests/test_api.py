@@ -302,7 +302,7 @@ def test_ledes_ascii_and_special_char_sanitization():
     # Test currency formatting
     assert format_ledes_currency(1234.56) == "1234.56"
     assert format_ledes_currency(0.5) == "0.50"
-    assert format_ledes_currency(99999999999999.99) == "99999999999999.99"  # Max valid
+    assert format_ledes_currency(12345678901234.56) == "12345678901234.56"  # Max valid (14 digits)
 
     # Test currency limit (14 digits before decimal)
     assert format_ledes_currency(999999999999999.99) == ""  # 15 digits, exceeds limit

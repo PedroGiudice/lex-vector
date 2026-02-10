@@ -21,15 +21,25 @@ logger = setup_logging("ledes-converter", level=log_level)
 
 from fastapi import FastAPI, UploadFile, File, HTTPException, Request, Form
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from typing import Annotated, Optional
+from dataclasses import asdict
 import docx
 import tempfile
+import io
+import zipfile
 from collections import defaultdict
 import time
 import magic
 import json
 
-from .models import LedesData, ConversionResponse, HealthResponse, LineItem, LedesConfig
+from .models import (
+    LedesData, ConversionResponse, HealthResponse, LineItem, LedesConfig,
+    MatterRequest, MatterResponse, ValidationIssueResponse, ValidationResponse,
+    BatchResultItem, BatchConversionResponse,
+)
+from .matter_store import MatterStore, Matter
+from .ledes_validator import validate_ledes_1998b
 from .ledes_generator import (
     sanitize_string,
     sanitize_ledes_field,
@@ -51,13 +61,16 @@ app = FastAPI(
 # Request ID middleware for request tracing
 app.add_middleware(RequestIDMiddleware)
 
+# Initialize matter store
+matter_store = MatterStore()
+
 # CORS middleware - configured for production security
 allowed_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost,http://localhost:3000").split(",")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
     allow_credentials=True,
-    allow_methods=["GET", "POST"],
+    allow_methods=["GET", "POST", "PUT", "DELETE"],
     allow_headers=["Content-Type", "Authorization"],
 )
 
@@ -225,6 +238,27 @@ async def convert_docx_to_ledes(
         if config:
             try:
                 config_dict = json.loads(config)
+
+                # If matter_name is provided, load from store and merge
+                if "matter_name" in config_dict and not config_dict.get("law_firm_id"):
+                    matter = matter_store.get(config_dict["matter_name"])
+                    if not matter:
+                        raise HTTPException(
+                            status_code=404,
+                            detail=f"Matter not found: {config_dict['matter_name']}"
+                        )
+                    config_dict.setdefault("law_firm_id", matter.law_firm_id)
+                    config_dict.setdefault("law_firm_name", matter.law_firm_name)
+                    config_dict.setdefault("client_id", matter.client_id)
+                    config_dict.setdefault("client_name", matter.client_name)
+                    config_dict.setdefault("matter_id", matter.matter_id)
+                    config_dict.setdefault("client_matter_id", matter.client_matter_id)
+                    config_dict.setdefault("timekeeper_id", matter.timekeeper_id)
+                    config_dict.setdefault("timekeeper_name", matter.timekeeper_name)
+                    config_dict.setdefault("timekeeper_classification", matter.timekeeper_classification)
+                    config_dict.setdefault("unit_cost", matter.unit_cost)
+                    logger.info(f"Loaded matter config: {matter.matter_name}")
+
                 ledes_config = LedesConfig(**config_dict)
                 logger.info(f"Config provided: law_firm={ledes_config.law_firm_id}, client={ledes_config.client_id}, matter={ledes_config.matter_id}")
             except json.JSONDecodeError as e:
@@ -232,6 +266,8 @@ async def convert_docx_to_ledes(
                     status_code=400,
                     detail=f"Invalid JSON in config parameter: {str(e)}"
                 )
+            except HTTPException:
+                raise
             except Exception as e:
                 raise HTTPException(
                     status_code=400,
@@ -311,12 +347,243 @@ async def convert_docx_to_ledes(
                 logger.error(f"Failed to cleanup temp file: {cleanup_error}")
 
 
+# =============================================================================
+# MATTERS CRUD
+# =============================================================================
+
+@app.get("/matters", response_model=list[MatterResponse], tags=["Matters"])
+async def list_matters():
+    """List all saved matters."""
+    matters = matter_store.list_all()
+    return [MatterResponse(**asdict(m)) for m in matters]
+
+
+@app.get("/matters/{matter_name}", response_model=MatterResponse, tags=["Matters"])
+async def get_matter(matter_name: str):
+    """Get a specific matter by name."""
+    matter = matter_store.get(matter_name)
+    if not matter:
+        raise HTTPException(status_code=404, detail=f"Matter not found: {matter_name}")
+    return MatterResponse(**asdict(matter))
+
+
+@app.post("/matters", response_model=MatterResponse, status_code=201, tags=["Matters"])
+async def create_matter(req: MatterRequest):
+    """Create a new matter."""
+    existing = matter_store.get(req.matter_name)
+    if existing:
+        raise HTTPException(status_code=409, detail=f"Matter already exists: {req.matter_name}")
+    matter = Matter(
+        matter_name=req.matter_name, matter_id=req.matter_id,
+        client_matter_id=req.client_matter_id, client_id=req.client_id,
+        client_name=req.client_name, law_firm_id=req.law_firm_id,
+        law_firm_name=req.law_firm_name, timekeeper_id=req.timekeeper_id,
+        timekeeper_name=req.timekeeper_name,
+        timekeeper_classification=req.timekeeper_classification,
+        unit_cost=req.unit_cost, default_task_code=req.default_task_code,
+        default_activity_code=req.default_activity_code,
+    )
+    created = matter_store.create(matter)
+    return MatterResponse(**asdict(created))
+
+
+@app.put("/matters/{matter_name}", response_model=MatterResponse, tags=["Matters"])
+async def update_matter(matter_name: str, req: MatterRequest):
+    """Update an existing matter."""
+    updates = req.model_dump(exclude={"matter_name"})
+    updated = matter_store.update(matter_name, updates)
+    if not updated:
+        raise HTTPException(status_code=404, detail=f"Matter not found: {matter_name}")
+    return MatterResponse(**asdict(updated))
+
+
+@app.delete("/matters/{matter_name}", status_code=204, tags=["Matters"])
+async def delete_matter(matter_name: str):
+    """Delete a matter."""
+    if not matter_store.delete(matter_name):
+        raise HTTPException(status_code=404, detail=f"Matter not found: {matter_name}")
+
+
+# =============================================================================
+# VALIDATION
+# =============================================================================
+
+@app.post("/validate", response_model=ValidationResponse, tags=["Validation"])
+async def validate_ledes(ledes_content: str = Form(...)):
+    """Validate LEDES 1998B content and return issues."""
+    issues = validate_ledes_1998b(ledes_content)
+    errors = [i for i in issues if i.severity == "error"]
+    warnings = [i for i in issues if i.severity == "warning"]
+    return ValidationResponse(
+        valid=len(errors) == 0,
+        error_count=len(errors),
+        warning_count=len(warnings),
+        issues=[ValidationIssueResponse(
+            line=i.line, field=i.field, field_name=i.field_name,
+            severity=i.severity, message=i.message,
+        ) for i in issues],
+    )
+
+
+# =============================================================================
+# BATCH CONVERSION
+# =============================================================================
+
+def _process_single_docx(content: bytes, filename: str, config_dict: dict | None) -> BatchResultItem:
+    """Process a single DOCX file for batch conversion."""
+    try:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".docx", mode='wb') as tmp:
+            tmp.write(content)
+            tmp_path = tmp.name
+
+        os.chmod(tmp_path, 0o600)
+
+        try:
+            doc = docx.Document(tmp_path)
+        except Exception:
+            return BatchResultItem(filename=filename, status="error", error="Unable to parse DOCX file")
+
+        full_text = []
+        for para in doc.paragraphs:
+            if para.text:
+                full_text.append(para.text)
+        for table in doc.tables:
+            for row in table.rows:
+                for cell in row.cells:
+                    if cell.text:
+                        full_text.append(cell.text)
+
+        text_content = "\n".join(full_text)
+        if not text_content.strip():
+            return BatchResultItem(filename=filename, status="error", error="No text content found")
+
+        extracted_data = extract_ledes_data(text_content)
+
+        if not extracted_data.get("line_items"):
+            return BatchResultItem(filename=filename, status="error", error="No line items found")
+
+        # Apply config
+        if config_dict:
+            for key, value in config_dict.items():
+                if value is not None:
+                    extracted_data[key] = value
+
+        ledes_content = generate_ledes_1998b(extracted_data)
+
+        # Validate
+        issues = validate_ledes_1998b(ledes_content)
+        validation_issues = [ValidationIssueResponse(
+            line=i.line, field=i.field, field_name=i.field_name,
+            severity=i.severity, message=i.message,
+        ) for i in issues]
+
+        errors = [i for i in issues if i.severity == "error"]
+
+        line_items = [LineItem(**item) for item in extracted_data["line_items"]]
+        ledes_data = LedesData(
+            invoice_date=extracted_data["invoice_date"],
+            invoice_number=extracted_data["invoice_number"],
+            client_id=extracted_data["client_id"],
+            matter_id=extracted_data["matter_id"],
+            invoice_total=extracted_data["invoice_total"],
+            line_items=line_items,
+        )
+
+        return BatchResultItem(
+            filename=filename,
+            status="success" if not errors else "warning",
+            ledes_content=ledes_content,
+            extracted_data=ledes_data,
+            validation_issues=validation_issues,
+        )
+    except Exception as e:
+        logger.error(f"Batch processing failed for {filename}: {e}")
+        return BatchResultItem(filename=filename, status="error", error=str(e))
+    finally:
+        if 'tmp_path' in locals() and os.path.exists(tmp_path):
+            os.remove(tmp_path)
+
+
+@app.post("/convert/batch", response_model=BatchConversionResponse, tags=["Conversion"])
+async def convert_batch(
+    request: Request,
+    files: list[UploadFile] = File(..., description="Multiple DOCX files"),
+    matter_name: Annotated[Optional[str], Form(description="Matter name to load config from")] = None,
+    config: Annotated[Optional[str], Form(description="JSON config string")] = None,
+):
+    """Convert multiple DOCX files to LEDES 1998B format."""
+    client_ip = request.client.host if request.client else "unknown"
+    if not rate_limit_check(client_ip):
+        raise HTTPException(status_code=429, detail="Too many requests.")
+
+    # Build config dict from matter or JSON
+    config_dict = None
+    if matter_name:
+        matter = matter_store.get(matter_name)
+        if not matter:
+            raise HTTPException(status_code=404, detail=f"Matter not found: {matter_name}")
+        config_dict = {
+            "law_firm_id": matter.law_firm_id,
+            "law_firm_name": matter.law_firm_name,
+            "client_id": matter.client_id,
+            "client_name": matter.client_name,
+            "matter_id": matter.matter_id,
+            "client_matter_id": matter.client_matter_id,
+            "timekeeper_id": matter.timekeeper_id,
+            "timekeeper_name": matter.timekeeper_name,
+            "timekeeper_classification": matter.timekeeper_classification,
+            "unit_cost": matter.unit_cost,
+        }
+    elif config:
+        try:
+            config_dict = json.loads(config)
+        except json.JSONDecodeError as e:
+            raise HTTPException(status_code=400, detail=f"Invalid JSON: {e}")
+
+    results: list[BatchResultItem] = []
+    for file in files:
+        if not file.filename or not file.filename.lower().endswith('.docx'):
+            results.append(BatchResultItem(
+                filename=file.filename or "unknown",
+                status="error",
+                error="Invalid file type. Must be .docx",
+            ))
+            continue
+
+        content = await file.read()
+        if len(content) == 0:
+            results.append(BatchResultItem(
+                filename=file.filename, status="error", error="Empty file",
+            ))
+            continue
+
+        if len(content) > MAX_FILE_SIZE:
+            results.append(BatchResultItem(
+                filename=file.filename, status="error", error="File too large",
+            ))
+            continue
+
+        if not validate_file_type(content, file.filename):
+            results.append(BatchResultItem(
+                filename=file.filename, status="error", error="Invalid DOCX format",
+            ))
+            continue
+
+        result = _process_single_docx(content, file.filename, config_dict)
+        results.append(result)
+
+    successful = sum(1 for r in results if r.status == "success")
+    failed = sum(1 for r in results if r.status == "error")
+
+    return BatchConversionResponse(
+        total=len(results),
+        successful=successful,
+        failed=failed,
+        results=results,
+    )
+
+
 @app.get("/debug/sentry", tags=["Debug"])
 async def debug_sentry():
-    """
-    Test Sentry integration by triggering a test exception.
-
-    This endpoint is for debugging purposes only.
-    In production, this should be disabled or protected.
-    """
+    """Test Sentry integration."""
     raise Exception("Sentry test exception from ledes-converter")

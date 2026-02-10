@@ -9,6 +9,8 @@ import logging
 import re
 from datetime import datetime
 
+from .task_codes import classify_task_code, classify_activity_code
+
 logger = logging.getLogger(__name__)
 
 # Constants
@@ -109,13 +111,22 @@ def extract_ledes_data(text: str) -> dict:
         "line_items": []
     }
 
-    # Regex patterns (case-insensitive for robustness)
-    date_pattern = re.compile(r"Date\s*of\s*Issuance:\s*(.*)", re.IGNORECASE)
-    invoice_num_pattern = re.compile(r"Invoice\s*#\s*(\d+)", re.IGNORECASE)
-    total_pattern = re.compile(r"Total\s*Gross\s*Amount:\s*(?:US\s*)?\$?([\d,]+\.?\d*)", re.IGNORECASE)
+    # Regex patterns (case-insensitive, multiple variants for robustness)
+    date_pattern = re.compile(
+        r"(?:Date\s*(?:of\s*)?Issuance|Invoice\s*Date|Data\s*de\s*Emiss[aã]o)\s*:?\s*(.*)",
+        re.IGNORECASE,
+    )
+    invoice_num_pattern = re.compile(
+        r"(?:Invoice\s*(?:#|No\.?|Number)|Nota\s*Fiscal\s*(?:#|No\.?)?)\s*:?\s*(\d+)",
+        re.IGNORECASE,
+    )
+    total_pattern = re.compile(
+        r"(?:Total\s*(?:Gross\s*)?Amount|Valor\s*Total|Grand\s*Total)\s*:?\s*(?:US\s*)?\$?\s*([\d,]+\.?\d*)",
+        re.IGNORECASE,
+    )
 
-    # Line items pattern
-    line_item_pattern = re.compile(r"(.*?)\s*US\s*\$([\d,]+)(?:\s|$)")
+    # Line items pattern - matches "description US $amount" or "description R$ amount"
+    line_item_pattern = re.compile(r"(.*?)\s*(?:US\s*\$|R\$)\s*([\d,]+(?:\.\d{2})?)(?:\s|$)")
 
     lines = text.split('\n')
 
@@ -153,7 +164,9 @@ def extract_ledes_data(text: str) -> dict:
                 if desc and amount > 0:
                     data["line_items"].append({
                         "description": desc,
-                        "amount": amount
+                        "amount": amount,
+                        "task_code": classify_task_code(desc),
+                        "activity_code": classify_activity_code(desc),
                     })
 
     return data
