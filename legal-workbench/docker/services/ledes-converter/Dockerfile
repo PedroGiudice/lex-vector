@@ -12,7 +12,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     zlib1g-dev \
     && rm -rf /var/lib/apt/lists/*
 
-COPY docker/services/ledes-converter/requirements.txt .
+COPY ferramentas/ledes-converter/requirements.txt .
 RUN pip wheel --no-cache-dir --wheel-dir /wheels -r requirements.txt
 
 # Stage 2: Runtime
@@ -36,7 +36,7 @@ RUN pip install --no-cache-dir --no-index --find-links /wheels -r requirements.t
 RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
 
 # Copy application code
-COPY --chown=appuser:appuser docker/services/ledes-converter/api/ /app/api/
+COPY --chown=appuser:appuser ferramentas/ledes-converter/api/ /app/api/
 COPY --chown=appuser:appuser docker/services/ledes-converter/entrypoint.sh /app/
 
 # Copy shared logging/middleware module

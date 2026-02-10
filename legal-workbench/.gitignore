@@ -11,3 +11,6 @@ docker/traefik/letsencrypt/acme.json
 
 # Basic Auth credentials (sensitive)
 docker/traefik/.htpasswd
+
+# LEDES Converter data (SQLite runtime)
+ferramentas/ledes-converter/data/*.db
