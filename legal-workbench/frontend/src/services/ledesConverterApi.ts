@@ -1,5 +1,10 @@
 import axios, { AxiosProgressEvent } from 'axios';
-import type { ConvertLedesResponse, LedesFileValidation } from '@/types';
+import type {
+  ConvertLedesResponse,
+  LedesFileValidation,
+  LedesMatter,
+  LedesValidationResponse,
+} from '@/types';
 
 const API_BASE_URL = '/api/ledes';
 
@@ -80,37 +85,21 @@ export const ledesConverterApi = {
   /**
    * Convert a DOCX invoice file to LEDES 1998B format
    * @param file - DOCX file to convert (max 10MB)
-   * @param config - Optional LEDES configuration (law_firm_id, client_id, matter_id, etc.)
+   * @param matterName - Optional matter name to associate with the conversion
    * @param onProgress - Optional progress callback (0-100 percent)
    * @returns Promise resolving to conversion result with LEDES content and extracted data
    * @throws Error if conversion fails or file is invalid
    */
   convertDocxToLedes: async (
     file: File,
-    config?: {
-      lawFirmId: string;
-      lawFirmName: string;
-      clientId: string;
-      clientName?: string;
-      matterId: string;
-      matterName?: string;
-    },
+    matterName?: string,
     onProgress?: (progress: number) => void
   ): Promise<ConvertLedesResponse> => {
     const formData = new FormData();
     formData.append('file', file);
 
-    // Add config as JSON string if provided
-    if (config) {
-      const configPayload = {
-        law_firm_id: config.lawFirmId,
-        law_firm_name: config.lawFirmName,
-        client_id: config.clientId,
-        client_name: config.clientName || '',
-        matter_id: config.matterId,
-        matter_name: config.matterName || '',
-      };
-      formData.append('config', JSON.stringify(configPayload));
+    if (matterName) {
+      formData.append('config', JSON.stringify({ matter_name: matterName }));
     }
 
     const response = await axios.post<ConvertLedesResponse>(
@@ -122,9 +111,7 @@ export const ledesConverterApi = {
         },
         onUploadProgress: (progressEvent: AxiosProgressEvent) => {
           if (progressEvent.total && onProgress) {
-            const percentCompleted = Math.round(
-              (progressEvent.loaded * 100) / progressEvent.total
-            );
+            const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
             onProgress(percentCompleted);
           }
         },
@@ -132,6 +119,50 @@ export const ledesConverterApi = {
       }
     );
 
+    return response.data;
+  },
+
+  /**
+   * List all configured matters
+   * @returns Promise resolving to array of matters
+   */
+  listMatters: async (): Promise<LedesMatter[]> => {
+    const response = await axios.get<LedesMatter[]>(`${API_BASE_URL}/matters`);
+    return response.data;
+  },
+
+  /**
+   * Convert pasted text to LEDES 1998B format
+   * @param text - Raw text content to convert
+   * @param matterName - Optional matter name to associate with the conversion
+   * @returns Promise resolving to conversion result with LEDES content
+   */
+  convertTextToLedes: async (text: string, matterName?: string): Promise<ConvertLedesResponse> => {
+    const payload: { text: string; matter_name?: string } = { text };
+    if (matterName) {
+      payload.matter_name = matterName;
+    }
+    const response = await axios.post<ConvertLedesResponse>(
+      `${API_BASE_URL}/convert/text-to-ledes`,
+      payload,
+      { timeout: 30000 }
+    );
+    return response.data;
+  },
+
+  /**
+   * Validate LEDES 1998B content
+   * @param ledesContent - LEDES content string to validate
+   * @returns Promise resolving to validation result
+   */
+  validateLedes: async (ledesContent: string): Promise<LedesValidationResponse> => {
+    const formData = new FormData();
+    formData.append('ledes_content', ledesContent);
+    const response = await axios.post<LedesValidationResponse>(
+      `${API_BASE_URL}/validate`,
+      formData,
+      { timeout: 15000 }
+    );
     return response.data;
   },
 };
