@@ -37,8 +37,10 @@ from .models import (
     LedesData, ConversionResponse, HealthResponse, LineItem, LedesConfig,
     MatterRequest, MatterResponse, ValidationIssueResponse, ValidationResponse,
     BatchResultItem, BatchConversionResponse,
+    StructuredConversionRequest, StructuredLineItemInput, TextConversionRequest,
 )
 from .matter_store import MatterStore, Matter
+from .task_codes import classify_task_code, classify_activity_code
 from .ledes_validator import validate_ledes_1998b
 from .ledes_generator import (
     sanitize_string,
@@ -345,6 +347,129 @@ async def convert_docx_to_ledes(
                 os.remove(tmp_path)
             except Exception as cleanup_error:
                 logger.error(f"Failed to cleanup temp file: {cleanup_error}")
+
+
+@app.post("/convert/structured", response_model=ConversionResponse, tags=["Conversion"])
+async def convert_structured(req: StructuredConversionRequest):
+    """
+    Convert structured form data directly to LEDES 1998B.
+
+    Accepts pre-filled invoice data + line items from a form.
+    Task/activity codes are auto-classified from descriptions if not provided.
+    Matter config (firm, client, timekeeper) is loaded from the matter store.
+    """
+    matter = matter_store.get(req.matter_name)
+    if not matter:
+        raise HTTPException(status_code=404, detail=f"Matter not found: {req.matter_name}")
+
+    line_items = []
+    invoice_total = 0.0
+    for item in req.line_items:
+        task_code = item.task_code or classify_task_code(item.description)
+        activity_code = item.activity_code or classify_activity_code(item.description)
+        line_items.append({
+            "description": item.description,
+            "amount": item.amount,
+            "task_code": task_code,
+            "activity_code": activity_code,
+        })
+        invoice_total += item.amount
+
+    data = {
+        "invoice_date": req.invoice_date,
+        "invoice_number": req.invoice_number,
+        "invoice_total": invoice_total,
+        "invoice_description": req.invoice_description,
+        "billing_start_date": req.billing_start_date,
+        "billing_end_date": req.billing_end_date,
+        "client_id": matter.client_id,
+        "client_name": matter.client_name,
+        "matter_id": matter.matter_id,
+        "matter_name": matter.matter_name,
+        "client_matter_id": matter.client_matter_id,
+        "law_firm_id": matter.law_firm_id,
+        "law_firm_name": matter.law_firm_name,
+        "timekeeper_id": matter.timekeeper_id,
+        "timekeeper_name": matter.timekeeper_name,
+        "timekeeper_classification": matter.timekeeper_classification,
+        "unit_cost": matter.unit_cost,
+        "line_items": line_items,
+    }
+
+    ledes_content = generate_ledes_1998b(data)
+
+    ledes_data = LedesData(
+        invoice_date=req.invoice_date,
+        invoice_number=req.invoice_number,
+        client_id=matter.client_id,
+        matter_id=matter.matter_id,
+        invoice_total=invoice_total,
+        line_items=[LineItem(**li) for li in line_items],
+    )
+
+    logger.info(f"Structured conversion: {len(line_items)} items, total={invoice_total:.2f}")
+
+    return ConversionResponse(
+        filename="structured-input",
+        status="success",
+        extracted_data=ledes_data,
+        ledes_content=ledes_content,
+    )
+
+
+@app.post("/convert/text-to-ledes", response_model=ConversionResponse, tags=["Conversion"])
+async def convert_text_to_ledes(req: TextConversionRequest):
+    """
+    Convert pasted text to LEDES 1998B format.
+
+    Extracts invoice data from raw text using regex patterns.
+    Returns both extracted data (for form editing) and LEDES output.
+    Matter config is applied if matter_name is provided.
+    """
+    extracted_data = extract_ledes_data(req.text)
+
+    if not extracted_data.get("line_items"):
+        raise HTTPException(
+            status_code=400,
+            detail="No line items found in text. Expected format: 'description US $amount' or 'description R$ amount'.",
+        )
+
+    if req.matter_name:
+        matter = matter_store.get(req.matter_name)
+        if not matter:
+            raise HTTPException(status_code=404, detail=f"Matter not found: {req.matter_name}")
+        extracted_data["law_firm_id"] = matter.law_firm_id
+        extracted_data["law_firm_name"] = matter.law_firm_name
+        extracted_data["client_id"] = matter.client_id
+        extracted_data["client_name"] = matter.client_name
+        extracted_data["matter_id"] = matter.matter_id
+        extracted_data["matter_name"] = matter.matter_name
+        extracted_data["client_matter_id"] = matter.client_matter_id
+        extracted_data["timekeeper_id"] = matter.timekeeper_id
+        extracted_data["timekeeper_name"] = matter.timekeeper_name
+        extracted_data["timekeeper_classification"] = matter.timekeeper_classification
+        extracted_data["unit_cost"] = matter.unit_cost
+
+    ledes_content = generate_ledes_1998b(extracted_data)
+
+    line_items = [LineItem(**item) for item in extracted_data["line_items"]]
+    ledes_data = LedesData(
+        invoice_date=extracted_data["invoice_date"],
+        invoice_number=extracted_data["invoice_number"],
+        client_id=extracted_data["client_id"],
+        matter_id=extracted_data["matter_id"],
+        invoice_total=extracted_data["invoice_total"],
+        line_items=line_items,
+    )
+
+    logger.info(f"Text conversion: {len(line_items)} items extracted")
+
+    return ConversionResponse(
+        filename="text-input",
+        status="success",
+        extracted_data=ledes_data,
+        ledes_content=ledes_content,
+    )
 
 
 # =============================================================================

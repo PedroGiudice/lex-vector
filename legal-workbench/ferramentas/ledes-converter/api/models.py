@@ -152,3 +152,29 @@ class BatchConversionResponse(BaseModel):
     successful: int
     failed: int
     results: List[BatchResultItem]
+
+
+class StructuredLineItemInput(BaseModel):
+    """Line item input for structured (form-based) conversion."""
+    description: str = Field(..., min_length=1, max_length=500)
+    amount: float = Field(..., ge=0)
+    hours: Optional[float] = Field(None, ge=0, description="Hours worked")
+    task_code: Optional[str] = Field(None, max_length=10, description="UTBMS task code (auto-classified if empty)")
+    activity_code: Optional[str] = Field(None, max_length=10, description="UTBMS activity code (auto-classified if empty)")
+
+
+class StructuredConversionRequest(BaseModel):
+    """Request for form-based LEDES conversion (skips text extraction)."""
+    matter_name: str = Field(..., min_length=1, max_length=200)
+    invoice_number: str = Field(..., min_length=1, max_length=50)
+    invoice_date: str = Field(..., min_length=8, max_length=8, description="YYYYMMDD format")
+    billing_start_date: str = Field(default="", max_length=8)
+    billing_end_date: str = Field(default="", max_length=8)
+    invoice_description: str = Field(default="Legal Services", max_length=100)
+    line_items: List[StructuredLineItemInput] = Field(..., min_length=1)
+
+
+class TextConversionRequest(BaseModel):
+    """Request for text-to-LEDES conversion (paste text mode)."""
+    text: str = Field(..., min_length=1, description="Invoice text content to extract from")
+    matter_name: Optional[str] = Field(None, max_length=200, description="Matter name to load config")

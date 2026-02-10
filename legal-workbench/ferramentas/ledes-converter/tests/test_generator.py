@@ -402,3 +402,203 @@ class TestConvertWithMatterName:
 
         assert response.status_code == 404
         assert "Matter not found" in response.json()["detail"]
+
+
+# ---------------------------------------------------------------------------
+# 7. POST /convert/structured
+# ---------------------------------------------------------------------------
+
+
+class TestConvertStructured:
+    """Testa POST /convert/structured com dados de formulario."""
+
+    def test_basic_structured_conversion(self) -> None:
+        payload = {
+            "matter_name": "CMR General Litigation Matters",
+            "invoice_number": "INV-2026-001",
+            "invoice_date": "20260115",
+            "billing_start_date": "20260101",
+            "billing_end_date": "20260131",
+            "line_items": [
+                {"description": "Draft appeal brief", "amount": 1200.0},
+                {"description": "Settlement negotiation meeting", "amount": 800.0},
+            ],
+        }
+        response = client.post("/convert/structured", json=payload)
+
+        assert response.status_code == 200
+        body = response.json()
+        assert body["status"] == "success"
+        assert body["filename"] == "structured-input"
+        assert "LEDES1998B[]" in body["ledes_content"]
+        # Matter config applied
+        assert "SF004554" in body["ledes_content"]
+        # Total calculated from items
+        assert body["extracted_data"]["invoice_total"] == 2000.0
+        assert len(body["extracted_data"]["line_items"]) == 2
+
+    def test_auto_classifies_task_codes(self) -> None:
+        payload = {
+            "matter_name": "CMR General Litigation Matters",
+            "invoice_number": "INV-2026-002",
+            "invoice_date": "20260115",
+            "line_items": [
+                {"description": "Draft appeal brief", "amount": 500.0},
+            ],
+        }
+        response = client.post("/convert/structured", json=payload)
+
+        assert response.status_code == 200
+        items = response.json()["extracted_data"]["line_items"]
+        assert items[0]["task_code"] == "L510"
+        assert items[0]["activity_code"] == "A103"
+
+    def test_explicit_codes_override_auto(self) -> None:
+        payload = {
+            "matter_name": "CMR General Litigation Matters",
+            "invoice_number": "INV-2026-003",
+            "invoice_date": "20260115",
+            "line_items": [
+                {
+                    "description": "Draft appeal brief",
+                    "amount": 500.0,
+                    "task_code": "L100",
+                    "activity_code": "A101",
+                },
+            ],
+        }
+        response = client.post("/convert/structured", json=payload)
+
+        assert response.status_code == 200
+        items = response.json()["extracted_data"]["line_items"]
+        assert items[0]["task_code"] == "L100"
+        assert items[0]["activity_code"] == "A101"
+
+    def test_nonexistent_matter_returns_404(self) -> None:
+        payload = {
+            "matter_name": "MATTER-QUE-NAO-EXISTE",
+            "invoice_number": "INV-X",
+            "invoice_date": "20260115",
+            "line_items": [{"description": "Test", "amount": 100.0}],
+        }
+        response = client.post("/convert/structured", json=payload)
+        assert response.status_code == 404
+
+    def test_empty_line_items_rejected(self) -> None:
+        payload = {
+            "matter_name": "CMR General Litigation Matters",
+            "invoice_number": "INV-X",
+            "invoice_date": "20260115",
+            "line_items": [],
+        }
+        response = client.post("/convert/structured", json=payload)
+        assert response.status_code == 422
+
+    def test_ledes_output_has_24_fields(self) -> None:
+        payload = {
+            "matter_name": "CMR General Litigation Matters",
+            "invoice_number": "INV-2026-004",
+            "invoice_date": "20260115",
+            "line_items": [
+                {"description": "Legal research on precedents", "amount": 750.0},
+            ],
+        }
+        response = client.post("/convert/structured", json=payload)
+        assert response.status_code == 200
+
+        ledes = response.json()["ledes_content"]
+        lines = ledes.strip().split("\n")
+        assert lines[0] == "LEDES1998B[]"
+        data_row = lines[2]
+        fields = data_row.rstrip("[]").split("|")
+        assert len(fields) == 24
+
+
+# ---------------------------------------------------------------------------
+# 8. POST /convert/text-to-ledes
+# ---------------------------------------------------------------------------
+
+
+class TestConvertTextToLedes:
+    """Testa POST /convert/text-to-ledes com texto colado."""
+
+    def test_basic_text_conversion(self) -> None:
+        payload = {
+            "text": (
+                "Invoice # 5500\n"
+                "Date of Issuance: January 15, 2026\n"
+                "Draft appeal motion US $1200\n"
+                "Settlement conference US $800\n"
+                "Total Gross Amount: US $2000\n"
+            ),
+            "matter_name": "CMR General Litigation Matters",
+        }
+        response = client.post("/convert/text-to-ledes", json=payload)
+
+        assert response.status_code == 200
+        body = response.json()
+        assert body["status"] == "success"
+        assert body["filename"] == "text-input"
+        assert "LEDES1998B[]" in body["ledes_content"]
+        assert body["extracted_data"]["invoice_number"] == "5500"
+        assert len(body["extracted_data"]["line_items"]) == 2
+        # Matter config applied
+        assert "SF004554" in body["ledes_content"]
+
+    def test_text_without_matter(self) -> None:
+        payload = {
+            "text": (
+                "Invoice # 5501\n"
+                "Draft brief US $500\n"
+            ),
+        }
+        response = client.post("/convert/text-to-ledes", json=payload)
+
+        assert response.status_code == 200
+        body = response.json()
+        assert body["status"] == "success"
+        assert len(body["extracted_data"]["line_items"]) == 1
+
+    def test_text_no_line_items_returns_400(self) -> None:
+        payload = {
+            "text": "This text has no invoice items at all.",
+        }
+        response = client.post("/convert/text-to-ledes", json=payload)
+        assert response.status_code == 400
+        assert "No line items" in response.json()["detail"]
+
+    def test_nonexistent_matter_returns_404(self) -> None:
+        payload = {
+            "text": "Draft brief US $500\n",
+            "matter_name": "MATTER-QUE-NAO-EXISTE",
+        }
+        response = client.post("/convert/text-to-ledes", json=payload)
+        assert response.status_code == 404
+
+    def test_extracts_task_codes_from_text(self) -> None:
+        payload = {
+            "text": "Draft appeal brief US $1200\n",
+        }
+        response = client.post("/convert/text-to-ledes", json=payload)
+
+        assert response.status_code == 200
+        items = response.json()["extracted_data"]["line_items"]
+        assert items[0]["task_code"] == "L510"
+        assert items[0]["activity_code"] == "A103"
+
+    def test_returns_extracted_data_for_form(self) -> None:
+        payload = {
+            "text": (
+                "Invoice # 7700\n"
+                "Date of Issuance: March 10, 2026\n"
+                "Research jurisprudence US $600\n"
+                "Total Gross Amount: US $600\n"
+            ),
+        }
+        response = client.post("/convert/text-to-ledes", json=payload)
+
+        assert response.status_code == 200
+        data = response.json()["extracted_data"]
+        assert data["invoice_number"] == "7700"
+        assert data["invoice_date"] == "20260310"
+        assert data["invoice_total"] == 600.0
