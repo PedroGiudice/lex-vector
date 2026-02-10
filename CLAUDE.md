@@ -62,6 +62,20 @@ podman compose up -d       # subir serviços
 
 ---
 
+## Gestao de Issues e Roadmap (Linear)
+
+Issue tracking e roadmap via **Linear** (MCP: `mcp__linear__*`). Workspace: `cmr-auto`, Team: `Cmr-auto`, Project: `lex-vector`.
+
+- **Registrar proativamente**: bugs identificados, ideias de features, decisoes tecnicas, divida tecnica
+- **NAO registrar**: passos de execucao, tarefas mecanicas, coisas sendo feitas agora
+- **Roadmap**: planos futuros viram **milestones** no project relevante; issues so quando for executar
+- **Commits**: referenciar issue quando relevante: `fix(escopo): descricao (CMR-XX)`
+- **PRs**: `Fixes CMR-XX` no body fecha issue automaticamente
+
+Ver `~/.claude/rules/git-workflow.md` para detalhes completos.
+
+---
+
 ## Erros Aprendidos
 
 **INSTRUÇÃO PARA CLAUDE:** Adicione uma entrada aqui quando:
