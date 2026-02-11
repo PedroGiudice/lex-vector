@@ -1,0 +1,1561 @@
+manifest:
+  version: "0.1.3"
+  schema: https://a2as.org/cert/schema
+  subject:
+    name: pedrogiudice/lex-vector
+    source: https://github.com/pedrogiudice/lex-vector
+    branch: main
+    commit: "d67a3e00"
+    scope: [adk-agents/deep_research_sandbox/deep_research_agent.py, adk-agents/jurisprudence_agent/agent.py, adk-agents/jurisprudence_agent/config.py,
+      adk-agents/jurisprudence_agent/scrapers/stj_scraper.py, adk-agents/jurisprudence_agent/scrapers/tjsp_scraper.py, adk-agents/qa_agent/agent.py,
+      adk-agents/qa_agent/main.py, adk-agents/qa_agent/tools/api_runner.py, adk-agents/qa_agent/tools/e2e_runner.py, adk-agents/qa_agent/tools/repo_scanner.py,
+      adk-agents/visual_verifier/agent.py, adk-agents/visual_verifier/verify.py, legal-workbench/ferramentas/legal-doc-assembler/batch_cli.py,
+      legal-workbench/ferramentas/legal-doc-assembler/src/normalizers.py, legal-workbench/ferramentas/legal-text-extractor/main.py,
+      legal-workbench/ferramentas/legal-text-extractor/src/gemini/client.py, legal-workbench/ferramentas/legal-text-extractor/src/monitoring.py,
+      legal-workbench/ferramentas/legal-text-extractor/src/steps/step_04_classify.py]
+  issued:
+    by: A2AS.org
+    at: '2026-02-11T17:03:59Z'
+    url: https://a2as.org/certified/agents/pedrogiudice/lex-vector
+  signatures:
+    digest: sha256:hWCAVsUIZ26yIN_Dl3x8LfzOImQeIfIKj3fPkJhXsho
+    key: ed25519:d2ey_pWwTnFZbbz2OYTKYG77FnAwek2yA-1SreY--EI
+    sig: ed25519:_sEAF2IUT3ZT1QmbSJH1HaV7e0BAFzV0pRXLe76iSjJ5sOTyAFvLeQuNxcvA7VIjhC_jI5o2PKiM7HD3oEjuCg
+
+agents:
+  agent.0:
+    type: instance
+    models: [self.config.model_name]
+    tools: [google_search]
+    params:
+      name: technical_research_agent
+      description: Autonomous technical research agent with web search capability
+      instruction: [You are a Technical Research Analyst operating in STRICT OBJECTIVE MODE., 'PERSONA:', '- Role: Senior
+          Technical Analyst specializing in systematic information synthesis', '- Disposition: Dry, academic, precise', '-
+          Priority: Information density over narrative flow', 'OUTPUT CONSTRAINTS (MANDATORY):', '1. NO journalistic introductions
+          ("In today''s landscape...", "As we explore...")', 2. NO persuasive language or rhetorical flourishes, '3. NO marketing
+          terminology ("revolutionary", "game-changing", "cutting-edge")', 4. NO narrative weaving or storytelling structures,
+        '5. NO hedging phrases ("It''s worth noting that...", "Interestingly...")', 6. NO filler sentences or transitional
+          padding, 'REQUIRED OUTPUT STRUCTURE:', '- Lead with raw data, specifications, and cited facts', '- Use bullet points
+          for discrete data points', '- Use tables for comparative data where applicable', '- Include source attribution for
+          all factual claims', '- Quantify claims wherever possible (percentages, dates, figures)', 'SEARCH BEHAVIOR:', '-
+          You have access to Google Search for real-time information retrieval', '- Generate multiple specific search queries
+          autonomously to cover the topic comprehensively', '- Cross-reference sources when data conflicts', '- Prioritize
+          primary sources (official docs, papers, announcements) over secondary commentary', 'RESPONSE FORMAT:', '```', '##
+          [Topic Header]', '### Key Findings', '- [Fact 1] (Source: [URL/Reference])', '- [Fact 2] (Source: [URL/Reference])',
+        '### Technical Specifications', '| Parameter | Value | Source |', '|-----------|-------|--------|', '| ...       |
+          ...   | ...    |', '### Data Conflicts / Uncertainties', '- [Note any contradictory information found]', '### Source
+          Index', '1. [Full citation]', '2. [Full citation]', '```', 'CRITICAL: Your role is DATA EXTRACTION, not INTERPRETATION.
+          Present findings; do not editorialize.']
+      class: DeepResearchAgent
+      instance: agent
+  agent.1:
+    type: instance
+    models: [self.config.model_name]
+    tools: [google_search]
+    params:
+      name: jurisprudence_research_agent
+      description: Jurisprudence research agent for Brazilian courts
+      instruction: ['Voce eh um assistente de pesquisa juridica. Execute queries de busca e retorne os achados principais.
+          Foque em jurisprudencia, sumulas e teses de tribunais brasileiros.']
+      class: JurisprudenceAgent
+      instance: agent
+  qa_agent:
+    type: instance
+    models: [gemini-2.5-flash]
+    tools: [run_playwright_script, run_api_script, scan_repo_for_routes]
+    params:
+      name: qa_architect
+      instruction: ['# ROLE', You are the **Technical QA Architect**. Your mission is to autonomously verify the quality of
+          a React application through End-to-End (E2E) and Back-to-Back (API) testing., '# OBJECTIVES', '1.  **Analyze**:
+          Understand the application structure by scanning the repo or exploring the URL.', '2.  **Plan**: Decompose the testing
+          goal into specific scenarios (e.g., "User Login", "Dashboard Data Load").', '3.  **Generate**: Write precise, executable
+          Python scripts using Playwright (for E2E) or Requests (for API).', '4.  **Execute**: Run the scripts and analyze
+          the output.', '5.  **Report**: provide a strict Markdown report of the results.', '# GUIDELINES FOR SCRIPT GENERATION',
+        '*   **Playwright (E2E)**:', '*   Use `page.goto(url)` to start.', '*   Use `page.get_by_test_id(...)` or `page.get_by_role(...)`
+          or `page.locator(...)`.', '*   ALWAYS include `page.screenshot(path="...")` inside a `try/except` block or at the
+          end of failure.', '*   Scripts MUST be standalone (include necessary imports: `from playwright.sync_api import sync_playwright`).',
+        '*   Use `sync_playwright` for simplicity in scripts.', '*   **Requests (API)**:', '*   Use standard `requests.get/post`.',
+        '*   Validate status codes: `assert response.status_code == 200`.', '# EXECUTION LOOP', '1.  **Repo Scan** (Optional):
+          If a path is provided, use `scan_repo_for_routes` to map the app.', '2.  **Test Creation**: Call `run_playwright_script`
+          or `run_api_script`. Provide the full Python code as a string argument.', '3.  **Verification**: Check the output
+          returned by the tool.', '*   If "status": "success", mark as PASS.', '*   If "status": "error", analyze the error.
+          You may attempt to fix the script and re-run ONCE.', '4.  **Reporting**: Summarize all results in the final response.',
+        '# TONE', 'Clinical, precise, non-apologetic. Focus on facts (logs, exit codes).']
+      description: Autonomous QA agent for React E2E and Backend testing.
+  root_agent:
+    type: instance
+    models: [gemini-2.5-flash]
+    tools: [verify_page, update_baseline, list_baselines, quick_check]
+    params:
+      name: visual_verifier
+      instruction: [Voce e um agente de verificacao visual para aplicacoes web., 'Suas capacidades:', '1. verify_page: Verificacao
+          completa (visual + console + network)', '2. update_baseline: Atualiza screenshot de referencia', '3. list_baselines:
+          Lista baselines existentes', '4. quick_check: Verificacao rapida sem comparacao visual', 'Workflow tipico:', '1.
+          Primeiro, use list_baselines para ver o que ja existe', '2. Para nova pagina, use update_baseline para criar referencia',
+        '3. Para verificar, use verify_page e reporte o resultado', '4. Para check rapido, use quick_check', 'Sempre reporte
+          resultados de forma clara:', '- PASSOU: todas verificacoes OK', '- FALHOU: liste exatamente o que falhou e por que']
+
+models:
+  gemini-2.5-flash:
+    type: literal
+    agents: [qa_agent, root_agent]
+  self.config.model_name:
+    type: literal
+    agents: [agent.0, agent.1]
+
+tools:
+  google_search:
+    type: module
+    agents: [agent.0, agent.1]
+  list_baselines:
+    type: function
+    agents: [root_agent]
+    params:
+      description: |-
+        Lista todos os baselines existentes.
+
+        Returns:
+            Dict com lista de baselines e seus hashes
+  quick_check:
+    type: function
+    agents: [root_agent]
+    params:
+      description: |-
+        Verificacao rapida de uma URL (sem comparacao visual).
+
+        Apenas verifica console e network.
+
+        Args:
+            url: URL a verificar
+
+        Returns:
+            Dict com resultado
+  run_api_script:
+    type: function
+    agents: [qa_agent]
+    params:
+      description: "Saves and executes a Python API test script (using requests/pytest).\n\nArgs:\n    script_name: Name of\
+        \ the script (e.g., 'test_api_users').\n    script_code: The full Python code.\n    \nReturns:\n    dict: {\n    \
+        \    \"status\": \"success\" | \"error\",\n        \"output\": str,\n        \"error\": str,\n        \"script_path\"\
+        : str\n    }"
+  run_playwright_script:
+    type: function
+    agents: [qa_agent]
+    params:
+      description: "Saves and executes a Python Playwright script.\n\nArgs:\n    script_name: Name of the script (e.g., 'test_login').\n\
+        \    script_code: The full Python code using Playwright.\n    \nReturns:\n    dict: {\n        \"status\": \"success\"\
+        \ | \"error\",\n        \"output\": str,\n        \"error\": str,\n        \"script_path\": str\n    }"
+  scan_repo_for_routes:
+    type: function
+    agents: [qa_agent]
+    params:
+      description: "Scans a React repository for potential route definitions.\n\nArgs:\n    repo_path: Path to the root of\
+        \ the React project.\n    \nReturns:\n    list[str]: A list of potential route paths found (e.g., [\"/login\", \"\
+        /users/:id\"])"
+  update_baseline:
+    type: function
+    agents: [root_agent]
+    params:
+      description: |-
+        Atualiza o baseline de uma pagina.
+
+        Captura novo screenshot e salva como baseline de referencia.
+
+        Args:
+            url: URL da pagina
+            page_name: Nome identificador da pagina
+
+        Returns:
+            Dict com status da operacao
+  verify_page:
+    type: function
+    agents: [root_agent]
+    params:
+      description: |-
+        Verifica uma pagina web completamente.
+
+        Executa verificacao visual (screenshot comparison) e funcional
+        (console errors, network errors).
+
+        Args:
+            url: URL da pagina a verificar
+            page_name: Nome identificador da pagina (ex: "login", "dashboard")
+            threshold: Limiar de similaridade visual (0.0 a 1.0)
+            check_console: Se deve verificar erros no console
+            check_network: Se deve verificar erros de rede
+
+        Returns:
+            Dict com resultado completo da verificacao
+
+imports:
+  _Path: pathlib.Path
+  Agent: google.adk.agents.Agent
+  annotations: __future__.annotations
+  Any: typing.Any
+  app: main.app
+  argparse: argparse
+  as_completed: concurrent.futures.as_completed
+  async_playwright: playwright.async_api.async_playwright
+  asyncio: asyncio
+  AsyncIOScheduler: apscheduler.schedulers.asyncio.AsyncIOScheduler
+  BarColumn: rich.progress.BarColumn
+  base64: base64
+  BaseScraper: base.BaseScraper
+  batch_app: cli.commands.batch.batch_app
+  BATCH_SIZE: config.BATCH_SIZE
+  BatchProcessor: batch_engine.BatchProcessor
+  BeautifulSoup: bs4.BeautifulSoup
+  before_sleep_log: tenacity.before_sleep_log
+  BibliotecarioConfig: step_04_classify.BibliotecarioConfig
+  build_classification_prompt: src.gemini.prompts.build_classification_prompt
+  build_cleaning_prompt: src.gemini.prompts.build_cleaning_prompt
+  BytesIO: io.BytesIO
+  Callable: typing.Callable
+  capture_exception: src.monitoring.capture_exception
+  CKAN_API_VERSION: config.CKAN_API_VERSION
+  CKAN_BASE_URL: config.CKAN_BASE_URL
+  CKAN_DATASETS: config.CKAN_DATASETS
+  CKANClient: src.ckan_client.CKANClient
+  CKANResource: src.ckan_client.CKANResource
+  ClassificationResult: schemas.ClassificationResult
+  CleanedSection: schemas.CleanedSection
+  CleaningResult: schemas.CleaningResult
+  CleaningStats: src.core.cleaner.CleaningStats
+  ClientError: google.genai.errors.ClientError
+  CONCURRENT_DOWNLOADS: config.CONCURRENT_DOWNLOADS
+  ConfigParser: marker.config.parser.ConfigParser
+  Console: rich.console.Console
+  contextmanager: contextlib.contextmanager
+  ContextStatsDB: cli.context_stats.ContextStatsDB
+  COURT_DOMAINS: google_courts_scraper.COURT_DOMAINS
+  create_model_dict: marker.models.create_model_dict
+  CronTrigger: apscheduler.triggers.cron.CronTrigger
+  csv: csv
+  DATABASE_BACKUP_DIR: config.DATABASE_BACKUP_DIR
+  DATABASE_PATH: config.DATABASE_PATH
+  dataclass: dataclasses.dataclass
+  datetime: datetime.datetime
+  DebugUndefined: jinja2.DebugUndefined
+  DEFAULT_DOMAINS: agent.DEFAULT_DOMAINS
+  DEFAULT_RETRY_ATTEMPTS: config.DEFAULT_RETRY_ATTEMPTS
+  DEFAULT_RETRY_DELAY: config.DEFAULT_RETRY_DELAY
+  DEFAULT_TIMEOUT: config.DEFAULT_TIMEOUT
+  Dict: typing.Dict
+  DocumentCleaner: src.core.cleaner.DocumentCleaner
+  DocumentEngine: engine.DocumentEngine
+  DocxParser: docx_parser.DocxParser
+  DocxTemplate: docxtpl.DocxTemplate
+  duckdb: duckdb
+  DUCKDB_MEMORY_LIMIT: config.DUCKDB_MEMORY_LIMIT
+  DUCKDB_THREADS: config.DUCKDB_THREADS
+  estimate_batch_time: src.batch_utils.estimate_batch_time
+  EXTERNAL_DRIVE: config.EXTERNAL_DRIVE
+  ExtractionEngine: base.ExtractionEngine
+  ExtractionResult: base.ExtractionResult
+  field: dataclasses.field
+  Final: typing.Final
+  format_cep: normalizers.format_cep
+  format_cnpj: normalizers.format_cnpj
+  format_cpf: normalizers.format_cpf
+  format_duration: src.batch_utils.format_duration
+  format_oab: normalizers.format_oab
+  GeminiBibliotecario: step_04_classify.GeminiBibliotecario
+  GeminiClient: client.GeminiClient
+  GeminiConfig: client.GeminiConfig
+  GeminiResponse: client.GeminiResponse
+  Generator: typing.Generator
+  get_date_range_urls: config.get_date_range_urls
+  get_mvp_urls: config.get_mvp_urls
+  get_orgao_dataset_id: config.get_orgao_dataset_id
+  google_search: google.adk.tools.google_search
+  GoogleCourtsScraper: google_courts_scraper.GoogleCourtsScraper
+  hashlib: hashlib
+  httpx: httpx
+  Image: PIL.Image
+  ImageChops: PIL.ImageChops
+  init_monitoring: src.monitoring.init_monitoring
+  InMemorySessionService: google.adk.sessions.InMemorySessionService
+  invalidate_cache: api.dependencies.invalidate_cache
+  jinja2: jinja2
+  json: json
+  JSONExporter: src.exporters.json.JSONExporter
+  JurisprudenceAgent: agent.JurisprudenceAgent
+  JurisprudenceConfig: agent.JurisprudenceConfig
+  LayoutAnalyzer: step_01_layout.LayoutAnalyzer
+  LegalTextExtractor: main.LegalTextExtractor
+  List: typing.List
+  list_baselines: agent.list_baselines
+  Literal: typing.Literal
+  load_dotenv: dotenv.load_dotenv
+  Lock: threading.Lock
+  logging: logging
+  LoggingIntegration: sentry_sdk.integrations.logging.LoggingIntegration
+  lru_cache: functools.lru_cache
+  MarkdownExporter: src.exporters.markdown.MarkdownExporter
+  marker: marker
+  MarkerConfig: src.engines.marker_engine.MarkerConfig
+  MarkerEngine: src.engines.marker_engine.MarkerEngine
+  normalize_address: normalizers.normalize_address
+  normalize_all: normalizers.normalize_all
+  normalize_name: normalizers.normalize_name
+  normalize_punctuation: normalizers.normalize_punctuation
+  normalize_whitespace: normalizers.normalize_whitespace
+  Optional: typing.Optional
+  ORGAOS_JULGADORES: config.ORGAOS_JULGADORES
+  os: os
+  Panel: rich.panel.Panel
+  parse: urllib.parse
+  parse_date: cli.context_stats.parse_date
+  ParseError: base.ParseError
+  Path: pathlib.Path
+  PatternDetector: pattern_detector.PatternDetector
+  pd: pandas
+  PdfConverter: marker.converters.pdf.PdfConverter
+  pdfplumber: pdfplumber
+  PecaType: schemas.PecaType
+  PipelineOrchestrator: src.pipeline.orchestrator.PipelineOrchestrator
+  process_app: cli.commands.process.process_app
+  ProcessPoolExecutor: concurrent.futures.ProcessPoolExecutor
+  Progress: rich.progress.Progress
+  psutil: psutil
+  pytesseract: pytesseract
+  qa_agent: qa_agent.agent.qa_agent
+  quick_check: agent.quick_check
+  random: random
+  RateLimitError: base.RateLimitError
+  RAW_DATA_PATH: config.RAW_DATA_PATH
+  re: re
+  render_casos_table: cli.context_stats.render_casos_table
+  render_engine_table: cli.context_stats.render_engine_table
+  render_pattern_table: cli.context_stats.render_pattern_table
+  render_recent_table: cli.context_stats.render_recent_table
+  render_summary_panel: cli.context_stats.render_summary_panel
+  retry: tenacity.retry
+  retry_if_exception_type: tenacity.retry_if_exception_type
+  retry_if_not_exception_type: tenacity.retry_if_not_exception_type
+  rprint: rich.print
+  run_api_script: tools.api_runner.run_api_script
+  run_playwright_script: tools.e2e_runner.run_playwright_script
+  Runner: google.adk.runners.Runner
+  scan_repo_for_routes: tools.repo_scanner.scan_repo_for_routes
+  ScraperError: base.ScraperError
+  SearchResult: models.SearchResult
+  SectionClassification: schemas.SectionClassification
+  sentry_sdk: sentry_sdk
+  Set: typing.Set
+  set_extraction_context: src.monitoring.set_extraction_context
+  shutil: shutil
+  SpinnerColumn: rich.progress.SpinnerColumn
+  st: streamlit
+  STAGING_DIR: config.STAGING_DIR
+  start_span: src.monitoring.start_span
+  stats_app: cli.commands.stats.stats_app
+  STJDatabase: src.database.STJDatabase
+  STJDownloader: src.downloader.STJDownloader
+  STJProcessor: src.processor.STJProcessor
+  STJScraper: stj_scraper.STJScraper
+  stop_after_attempt: tenacity.stop_after_attempt
+  StringIO: io.StringIO
+  subprocess: subprocess
+  sys: sys
+  Table: rich.table.Table
+  Tag: bs4.Tag
+  TaskProgressColumn: rich.progress.TaskProgressColumn
+  TemplateBuilder: template_builder.TemplateBuilder
+  TemplateManager: template_manager.TemplateManager
+  Text: rich.text.Text
+  TextColumn: rich.progress.TextColumn
+  TextExporter: src.exporters.text.TextExporter
+  TextExtractor: step_03_extract.TextExtractor
+  threading: threading
+  ThreadPoolExecutor: concurrent.futures.ThreadPoolExecutor
+  time: time
+  timedelta: datetime.timedelta
+  TimeRemainingColumn: rich.progress.TimeRemainingColumn
+  TJSPScraper: tjsp_scraper.TJSPScraper
+  traceback: traceback
+  track_memory: src.monitoring.track_memory
+  track_progress: src.monitoring.track_progress
+  Tuple: typing.Tuple
+  TypedDict: typing.TypedDict
+  typer: typer
+  types: google.genai.types
+  unicodedata: unicodedata
+  update_baseline: agent.update_baseline
+  validate_batch_input: src.batch_utils.validate_batch_input
+  verify_page: agent.verify_page
+  VisionProcessor: step_02_vision.VisionProcessor
+  wait_exponential: tenacity.wait_exponential
+  wraps: functools.wraps
+
+functions:
+  __enter__:
+    type: sync
+    module: legal-workbench.ferramentas.stj-dados-abertos.src.ckan_client
+    args: [self]
+  __eq__:
+    type: sync
+    module: adk-agents.jurisprudence_agent.agent
+    args: [self, other]
+  __exit__:
+    type: sync
+    module: legal-workbench.ferramentas.stj-dados-abertos.src.ckan_client
+    args: [self, exc_type, exc_val, exc_tb]
+  __hash__:
+    type: sync
+    module: adk-agents.jurisprudence_agent.agent
+    args: [self]
+  __init__:
+    type: sync
+    module: legal-workbench.ferramentas.stj-dados-abertos.src.ckan_client
+    args: [self, base_url, timeout]
+  __post_init__:
+    type: sync
+    module: adk-agents.jurisprudence_agent.agent
+    args: [self]
+  _add_site_restriction:
+    type: sync
+    module: adk-agents.jurisprudence_agent.agent
+    args: [self, query]
+    params:
+      returns: str
+  _analyze_gaps:
+    type: async
+    module: adk-agents.jurisprudence_agent.agent
+    args: [self, topic]
+    params:
+      returns: Dict
+  _api_url:
+    type: sync
+    module: legal-workbench.ferramentas.stj-dados-abertos.src.ckan_client
+    args: [self, action]
+    params:
+      returns: str
+  _build_cleaned_markdown:
+    type: sync
+    module: legal-workbench.ferramentas.legal-text-extractor.src.steps.step_04_classify
+    args: [self, classification, cleaning]
+    params:
+      returns: str
+  _build_site_restriction:
+    type: sync
+    module: adk-agents.jurisprudence_agent.agent
+    args: [self]
+    params:
+      returns: str
+  _build_tagged_markdown:
+    type: sync
+    module: legal-workbench.ferramentas.legal-text-extractor.src.steps.step_04_classify
+    args: [self, original_content, classification]
+    params:
+      returns: str
+  _check_console:
+    type: sync
+    module: adk-agents.visual_verifier.agent
+    args: [url]
+    params:
+      returns: dict
+  _check_console_async:
+    type: async
+    module: adk-agents.visual_verifier.agent
+    args: [url]
+    params:
+      returns: dict
+  _check_network:
+    type: sync
+    module: adk-agents.visual_verifier.agent
+    args: [url]
+    params:
+      returns: dict
+  _check_network_async:
+    type: async
+    module: adk-agents.visual_verifier.agent
+    args: [url]
+    params:
+      returns: dict
+  _check_stopping_criteria:
+    type: sync
+    module: adk-agents.jurisprudence_agent.agent
+    args: [self, iter_result]
+    params:
+      returns: Optional[str]
+  _classify:
+    type: sync
+    module: legal-workbench.ferramentas.legal-text-extractor.src.steps.step_04_classify
+    args: [self, input_path, doc_id]
+    params:
+      returns: ClassificationResult
+  _clean:
+    type: sync
+    module: legal-workbench.ferramentas.legal-text-extractor.src.steps.step_04_classify
+    args: [self, input_path, classification]
+    params:
+      returns: CleaningResult
+  _compare_images:
+    type: sync
+    module: adk-agents.visual_verifier.agent
+    args: [current_path, baseline_path, threshold]
+    params:
+      returns: dict
+  _configure_verbose_logging:
+    type: sync
+    module: legal-workbench.ferramentas.legal-text-extractor.src.monitoring
+  _decompose_topic:
+    type: async
+    module: adk-agents.jurisprudence_agent.agent
+    args: [self, topic]
+    params:
+      returns: List[str]
+  _enrich_source:
+    type: sync
+    module: adk-agents.jurisprudence_agent.agent
+    args: [self, source, query, iteration]
+    params:
+      returns: None
+  _execute_prompt:
+    type: async
+    module: adk-agents.jurisprudence_agent.agent
+    args: [self, prompt]
+    params:
+      returns: str
+  _execute_search:
+    type: async
+    module: adk-agents.jurisprudence_agent.agent
+    args: [self, prompt]
+    params:
+      returns: tuple
+  _execute_with_recovery:
+    type: async
+    module: adk-agents.deep_research_sandbox.deep_research_agent
+    args: [self, content, result]
+    params:
+      returns: str
+  _extract_json:
+    type: sync
+    module: legal-workbench.ferramentas.legal-text-extractor.src.gemini.client
+    args: [text]
+    params:
+      returns: str
+  _format_valor:
+    type: sync
+    module: legal-workbench.ferramentas.legal-doc-assembler.src.engine
+    args: [value]
+    params:
+      returns: str
+  _generate_outputs:
+    type: sync
+    module: legal-workbench.ferramentas.legal-text-extractor.src.steps.step_04_classify
+    args: [self, output_path, classification, cleaning, input_path]
+    params:
+      returns: dict
+  _get_batch_app:
+    type: sync
+    module: legal-workbench.ferramentas.legal-text-extractor.cli.main
+  _get_image_hash:
+    type: sync
+    module: adk-agents.visual_verifier.agent
+    args: [image_path]
+    params:
+      returns: Optional[str]
+  _get_process_app:
+    type: sync
+    module: legal-workbench.ferramentas.legal-text-extractor.cli.main
+  _get_stats_app:
+    type: sync
+    module: legal-workbench.ferramentas.legal-text-extractor.cli.main
+  _init_converter:
+    type: sync
+    module: legal-workbench.ferramentas.legal-text-extractor.src.engines.marker_engine
+    args: [self]
+  _init_session:
+    type: async
+    module: adk-agents.jurisprudence_agent.scrapers.tjsp_scraper
+    args: [self]
+    params:
+      returns: None
+  _initialize_agent:
+    type: async
+    module: adk-agents.jurisprudence_agent.agent
+    args: [self]
+    params:
+      returns: None
+  _parse_results:
+    type: sync
+    module: adk-agents.jurisprudence_agent.scrapers.tjsp_scraper
+    args: [self, html, max_results]
+    params:
+      returns: list[SearchResult]
+  _parse_single_result:
+    type: sync
+    module: adk-agents.jurisprudence_agent.scrapers.tjsp_scraper
+    args: [self, element]
+    params:
+      returns: Optional[SearchResult]
+  _preprocess_data:
+    type: sync
+    module: legal-workbench.ferramentas.legal-doc-assembler.src.engine
+    args: [self, data, field_types]
+    params:
+      returns: Dict
+  _search_iteration:
+    type: async
+    module: adk-agents.jurisprudence_agent.agent
+    args: [self, queries, iteration, topic]
+    params:
+      returns: IterationResult
+  _search_via_post:
+    type: async
+    module: adk-agents.jurisprudence_agent.scrapers.stj_scraper
+    args: [self, query, max_results]
+    params:
+      returns: list[SearchResult]
+  _setup_jinja_env:
+    type: sync
+    module: legal-workbench.ferramentas.legal-doc-assembler.src.engine
+    args: [self]
+    params:
+      returns: jinja2.Environment
+  _size_category:
+    type: sync
+    module: legal-workbench.ferramentas.legal-text-extractor.src.monitoring
+    args: [size_mb]
+    params:
+      returns: str
+  _synthesize_final:
+    type: async
+    module: adk-agents.jurisprudence_agent.agent
+    args: [self, topic]
+    params:
+      returns: str
+  _take_screenshot:
+    type: sync
+    module: adk-agents.visual_verifier.agent
+    args: [url, output_path]
+    params:
+      returns: dict
+  _take_screenshot_async:
+    type: async
+    module: adk-agents.visual_verifier.agent
+    args: [url, output_path]
+    params:
+      returns: dict
+  _test_stj_scraper:
+    type: async
+    module: adk-agents.jurisprudence_agent.scrapers.stj_scraper
+  _test_tjsp_scraper:
+    type: async
+    module: adk-agents.jurisprudence_agent.scrapers.tjsp_scraper
+  _update_sync_status:
+    type: sync
+    module: legal-workbench.docker.services.stj-api.api.scheduler
+  _verify_cli_available:
+    type: sync
+    module: legal-workbench.ferramentas.legal-text-extractor.src.gemini.client
+    args: [self]
+    params:
+      returns: None
+  backup:
+    type: sync
+    module: legal-workbench.ferramentas.stj-dados-abertos.src.database
+    args: [self]
+    params:
+      returns: Path
+  base_url:
+    type: sync
+    module: adk-agents.jurisprudence_agent.scrapers.tjsp_scraper
+    args: [self]
+    params:
+      returns: str
+  batch:
+    type: sync
+    module: legal-workbench.ferramentas.legal-text-extractor.cli.main
+    args: [diretorio, engine, output, format, parallel, recursive, pattern, context_db, force_ocr, low_memory, verbose, dry_run]
+  buscar_acordao:
+    type: sync
+    module: legal-workbench.ferramentas.stj-dados-abertos.cli
+    args: [termo, orgao, dias, limit]
+  buscar_ementa:
+    type: sync
+    module: legal-workbench.ferramentas.stj-dados-abertos.cli
+    args: [termo, orgao, dias, limit]
+  capture_exception:
+    type: sync
+    module: legal-workbench.ferramentas.legal-text-extractor.src.monitoring
+    args: [error]
+    params:
+      returns: Optional[str]
+  classify:
+    type: sync
+    module: legal-workbench.ferramentas.legal-text-extractor.src.steps.step_04_classify
+    args: [input_md, output_dir, skip_cleaning, model]
+    params:
+      returns: None
+  cleanup_staging:
+    type: sync
+    module: legal-workbench.ferramentas.stj-dados-abertos.src.downloader
+    args: [self, days_old]
+  clear:
+    type: sync
+    module: legal-workbench.docker.services.stj-api.api.dependencies
+    args: [self]
+  close:
+    type: sync
+    module: legal-workbench.ferramentas.stj-dados-abertos.src.database
+    args: [self]
+  close_database:
+    type: sync
+    module: legal-workbench.docker.services.stj-api.api.dependencies
+  compute_sha256:
+    type: sync
+    module: legal-workbench.ferramentas.stj-dados-abertos.src.downloader
+    args: [file_path]
+    params:
+      returns: str
+  connect:
+    type: sync
+    module: legal-workbench.ferramentas.stj-dados-abertos.src.database
+    args: [self]
+  create_retry_decorator:
+    type: sync
+    module: adk-agents.deep_research_sandbox.deep_research_agent
+    args: [logger, config]
+  criar_schema:
+    type: sync
+    module: legal-workbench.ferramentas.stj-dados-abertos.src.database
+    args: [self]
+  cursor:
+    type: sync
+    module: legal-workbench.ferramentas.stj-dados-abertos.src.database
+    args: [self]
+  decorator:
+    type: sync
+    module: adk-agents.deep_research_sandbox.deep_research_agent
+    args: [func]
+  download_all_orgaos:
+    type: sync
+    module: legal-workbench.ferramentas.stj-dados-abertos.src.downloader
+    args: [self, start_date, end_date, orgaos, force]
+    params:
+      returns: dict
+  download_batch:
+    type: sync
+    module: legal-workbench.ferramentas.stj-dados-abertos.src.downloader
+    args: [self, url_configs, show_progress]
+    params:
+      returns: list[Path]
+  download_from_ckan:
+    type: sync
+    module: legal-workbench.ferramentas.stj-dados-abertos.src.downloader
+    args: [self, orgao, start_date, end_date, force, show_progress]
+    params:
+      returns: list[Path]
+  download_json:
+    type: sync
+    module: legal-workbench.ferramentas.stj-dados-abertos.src.downloader
+    args: [self, url, filename, force]
+    params:
+      returns: Optional[Path]
+  download_mvp:
+    type: sync
+    module: legal-workbench.ferramentas.stj-dados-abertos.cli
+  download_orgao:
+    type: sync
+    module: legal-workbench.ferramentas.stj-dados-abertos.cli
+    args: [orgao, meses, force]
+  download_periodo:
+    type: sync
+    module: legal-workbench.ferramentas.stj-dados-abertos.cli
+    args: [inicio, fim, orgao, force]
+  estatisticas:
+    type: sync
+    module: legal-workbench.ferramentas.stj-dados-abertos.cli
+  exportar:
+    type: sync
+    module: legal-workbench.ferramentas.stj-dados-abertos.cli
+    args: [query, output]
+  exportar_csv:
+    type: sync
+    module: legal-workbench.ferramentas.stj-dados-abertos.src.database
+    args: [self, query, output_path]
+  extract:
+    type: sync
+    module: legal-workbench.ferramentas.legal-text-extractor.src.engines.marker_engine
+    args: [self, pdf_path]
+    params:
+      returns: ExtractionResult
+  extract_date:
+    type: sync
+    module: legal-workbench.ferramentas.stj-dados-abertos.src.ckan_client
+    args: [self]
+    params:
+      returns: Optional[str]
+  extract_rendered_text:
+    type: sync
+    module: legal-workbench.ferramentas.legal-doc-assembler.src.engine
+    args: [self, template_path, data, field_types]
+    params:
+      returns: Dict
+  extract_with_options:
+    type: sync
+    module: legal-workbench.ferramentas.legal-text-extractor.src.engines.marker_engine
+    args: [self, pdf_path, force_ocr, keep_images, use_llm]
+    params:
+      returns: ExtractionResult
+  form_url:
+    type: sync
+    module: adk-agents.jurisprudence_agent.scrapers.tjsp_scraper
+    args: [self]
+    params:
+      returns: str
+  format_cep:
+    type: sync
+    module: legal-workbench.ferramentas.legal-doc-assembler.src.normalizers
+    args: [cep]
+    params:
+      returns: Optional[str]
+  format_cnpj:
+    type: sync
+    module: legal-workbench.ferramentas.legal-doc-assembler.src.normalizers
+    args: [cnpj]
+    params:
+      returns: Optional[str]
+  format_cpf:
+    type: sync
+    module: legal-workbench.ferramentas.legal-doc-assembler.src.normalizers
+    args: [cpf]
+    params:
+      returns: Optional[str]
+  format_oab:
+    type: sync
+    module: legal-workbench.ferramentas.legal-doc-assembler.src.normalizers
+    args: [oab]
+    params:
+      returns: Optional[str]
+  format_resultado_badge:
+    type: sync
+    module: legal-workbench.ferramentas.stj-dados-abertos.app
+    args: [resultado]
+    params:
+      returns: str
+  from_dict:
+    type: sync
+    module: legal-workbench.ferramentas.stj-dados-abertos.src.ckan_client
+    args: [cls, data]
+    params:
+      returns: CKANPackage
+  get:
+    type: sync
+    module: legal-workbench.docker.services.stj-api.api.dependencies
+    args: [self, key]
+    params:
+      returns: Optional[any]
+  get_cache:
+    type: sync
+    module: legal-workbench.docker.services.stj-api.api.dependencies
+    params:
+      returns: QueryCache
+  get_checksum:
+    type: sync
+    module: legal-workbench.ferramentas.stj-dados-abertos.src.downloader
+    args: [self, filename]
+    params:
+      returns: Optional[str]
+  get_database:
+    type: sync
+    module: legal-workbench.docker.services.stj-api.api.dependencies
+    params:
+      returns: Generator
+  get_dataframe:
+    type: sync
+    module: legal-workbench.ferramentas.stj-dados-abertos.src.database
+    args: [self, query, params]
+    params:
+      returns: pd.DataFrame
+  get_enabled_sites:
+    type: sync
+    module: adk-agents.jurisprudence_agent.config
+    params:
+      returns: dict
+  get_full_text:
+    type: async
+    module: adk-agents.jurisprudence_agent.scrapers.tjsp_scraper
+    args: [self, url]
+    params:
+      returns: Optional[str]
+  get_json_resources:
+    type: sync
+    module: legal-workbench.ferramentas.stj-dados-abertos.src.ckan_client
+    args: [self, orgao]
+    params:
+      returns: List[CKANResource]
+  get_package:
+    type: sync
+    module: legal-workbench.ferramentas.stj-dados-abertos.src.ckan_client
+    args: [self, orgao]
+    params:
+      returns: CKANPackage
+  get_resources_by_date_range:
+    type: sync
+    module: legal-workbench.ferramentas.stj-dados-abertos.src.ckan_client
+    args: [self, orgao, start_date, end_date]
+    params:
+      returns: List[CKANResource]
+  get_sites_by_specialization:
+    type: sync
+    module: adk-agents.jurisprudence_agent.config
+    args: [spec]
+    params:
+      returns: dict
+  get_staging_files:
+    type: sync
+    module: legal-workbench.ferramentas.stj-dados-abertos.src.downloader
+    args: [self, pattern]
+    params:
+      returns: list[Path]
+  get_sync_status:
+    type: sync
+    module: legal-workbench.docker.services.stj-api.api.scheduler
+    params:
+      returns: dict
+  get_template_variables:
+    type: sync
+    module: legal-workbench.ferramentas.legal-doc-assembler.src.engine
+    args: [self, template_path]
+    params:
+      returns: List[str]
+  info:
+    type: sync
+    module: legal-workbench.ferramentas.stj-dados-abertos.cli
+  init:
+    type: sync
+    module: legal-workbench.ferramentas.stj-dados-abertos.cli
+  init_monitoring:
+    type: sync
+    module: legal-workbench.ferramentas.legal-text-extractor.src.monitoring
+    args: [service_name]
+    params:
+      returns: bool
+  inserir_batch:
+    type: sync
+    module: legal-workbench.ferramentas.stj-dados-abertos.src.database
+    args: [self, registros, atualizar_duplicados]
+    params:
+      returns: Tuple
+  invalidate:
+    type: sync
+    module: legal-workbench.docker.services.stj-api.api.dependencies
+    args: [self, pattern]
+  invalidate_cache:
+    type: sync
+    module: legal-workbench.docker.services.stj-api.api.dependencies
+  is_available:
+    type: sync
+    module: legal-workbench.ferramentas.legal-text-extractor.src.engines.marker_engine
+    args: [self]
+    params:
+      returns: bool
+  is_json:
+    type: sync
+    module: legal-workbench.ferramentas.stj-dados-abertos.src.ckan_client
+    args: [self]
+    params:
+      returns: bool
+  is_roman_numeral:
+    type: sync
+    module: legal-workbench.ferramentas.legal-doc-assembler.src.normalizers
+    args: [word]
+    params:
+      returns: bool
+  is_zip:
+    type: sync
+    module: legal-workbench.ferramentas.stj-dados-abertos.src.ckan_client
+    args: [self]
+    params:
+      returns: bool
+  list_baselines:
+    type: sync
+    module: adk-agents.visual_verifier.agent
+    params:
+      returns: dict
+  list_packages:
+    type: sync
+    module: legal-workbench.ferramentas.stj-dados-abertos.src.ckan_client
+    args: [self]
+    params:
+      returns: List[str]
+  main:
+    type: sync
+    module: adk-agents.qa_agent.main
+  main_entry:
+    type: sync
+    module: legal-workbench.ferramentas.legal-text-extractor.cli.main
+  map_organ_name_to_key:
+    type: sync
+    module: legal-workbench.ferramentas.stj-dados-abertos.app
+    args: [ui_name]
+    params:
+      returns: str
+  normalize_address:
+    type: sync
+    module: legal-workbench.ferramentas.legal-doc-assembler.src.normalizers
+    args: [text]
+    params:
+      returns: Optional[str]
+  normalize_all:
+    type: sync
+    module: legal-workbench.ferramentas.legal-doc-assembler.src.normalizers
+    args: [data, field_types]
+    params:
+      returns: Dict
+  normalize_honorific:
+    type: sync
+    module: legal-workbench.ferramentas.legal-doc-assembler.src.normalizers
+    args: [text]
+    params:
+      returns: Optional[str]
+  normalize_name:
+    type: sync
+    module: legal-workbench.ferramentas.legal-doc-assembler.src.normalizers
+    args: [text]
+    params:
+      returns: Optional[str]
+  normalize_punctuation:
+    type: sync
+    module: legal-workbench.ferramentas.legal-doc-assembler.src.normalizers
+    args: [text]
+    params:
+      returns: Optional[str]
+  normalize_whitespace:
+    type: sync
+    module: legal-workbench.ferramentas.legal-doc-assembler.src.normalizers
+    args: [text]
+    params:
+      returns: Optional[str]
+  obter_estatisticas:
+    type: sync
+    module: legal-workbench.ferramentas.stj-dados-abertos.src.database
+    args: [self]
+    params:
+      returns: Dict
+  on_response:
+    type: sync
+    module: adk-agents.visual_verifier.agent
+    args: [response]
+  print_dry_run_results:
+    type: sync
+    module: legal-workbench.ferramentas.legal-doc-assembler.batch_cli
+    args: [results]
+    params:
+      returns: None
+  print_processing_results:
+    type: sync
+    module: legal-workbench.ferramentas.legal-doc-assembler.batch_cli
+    args: [results]
+    params:
+      returns: None
+  print_stats:
+    type: sync
+    module: legal-workbench.ferramentas.stj-dados-abertos.src.database
+    args: [self]
+  print_validation_report:
+    type: sync
+    module: legal-workbench.ferramentas.legal-doc-assembler.src.engine
+    args: [self, template_path, data]
+    params:
+      returns: None
+  print_validation_results:
+    type: sync
+    module: legal-workbench.ferramentas.legal-doc-assembler.batch_cli
+    args: [validation]
+    params:
+      returns: None
+  process:
+    type: sync
+    module: legal-workbench.ferramentas.legal-text-extractor.cli.main
+    args: [arquivo, engine, output, format, force_ocr, low_memory, context_db, cnj, sistema, verbose]
+  process_file:
+    type: sync
+    module: legal-workbench.ferramentas.legal-text-extractor.src.gemini.client
+    args: [self, file_path, prompt, output_format]
+    params:
+      returns: GeminiResponse
+  process_pdf:
+    type: sync
+    module: legal-workbench.ferramentas.legal-text-extractor.main
+    args: [self, pdf_path, system, blacklist, output_format, force_ocr]
+    params:
+      returns: ExtractionResult
+  process_single_file:
+    type: sync
+    module: legal-workbench.ferramentas.legal-text-extractor.cli.main
+    args: [pdf_path]
+    params:
+      returns: dict
+  process_text:
+    type: sync
+    module: legal-workbench.ferramentas.legal-text-extractor.src.gemini.client
+    args: [self, text, prompt]
+    params:
+      returns: GeminiResponse
+  processar_staging:
+    type: sync
+    module: legal-workbench.ferramentas.stj-dados-abertos.cli
+    args: [pattern, atualizar]
+  progress_callback:
+    type: sync
+    module: legal-workbench.ferramentas.legal-text-extractor.cli.main
+    args: [current, total, msg]
+  query_acordaos:
+    type: sync
+    module: legal-workbench.ferramentas.stj-dados-abertos.app
+    args: [keywords, only_acordao, limit]
+    params:
+      returns: pd.DataFrame
+  quick_check:
+    type: sync
+    module: adk-agents.visual_verifier.agent
+    args: [url]
+    params:
+      returns: dict
+  rebuild_fts_index:
+    type: sync
+    module: legal-workbench.ferramentas.stj-dados-abertos.src.database
+    args: [self]
+  render:
+    type: sync
+    module: legal-workbench.ferramentas.legal-doc-assembler.src.engine
+    args: [self, template_path, data, output_path, field_types]
+    params:
+      returns: Path
+  render_from_json:
+    type: sync
+    module: legal-workbench.ferramentas.legal-doc-assembler.src.engine
+    args: [self, template_path, json_path, output_path, field_types]
+    params:
+      returns: Path
+  render_preview:
+    type: sync
+    module: legal-workbench.ferramentas.legal-doc-assembler.src.engine
+    args: [self, template_path, data, field_types]
+    params:
+      returns: str
+  replace_header:
+    type: sync
+    module: legal-workbench.ferramentas.legal-text-extractor.src.steps.step_04_classify
+    args: [match]
+    params:
+      returns: str
+  research:
+    type: async
+    module: adk-agents.jurisprudence_agent.agent
+    args: [self, topic]
+    params:
+      returns: ResearchResult
+  retry:
+    type: sync
+    module: adk-agents.deep_research_sandbox.deep_research_agent
+  run_api_script:
+    type: sync
+    module: adk-agents.qa_agent.tools.api_runner
+    args: [script_name, script_code]
+    params:
+      returns: dict
+  run_playwright_script:
+    type: sync
+    module: adk-agents.qa_agent.tools.e2e_runner
+    args: [script_name, script_code]
+    params:
+      returns: dict
+  run_sync_task:
+    type: async
+    module: legal-workbench.docker.services.stj-api.api.scheduler
+    args: [orgaos, dias, force]
+    params:
+      returns: dict
+  save:
+    type: sync
+    module: legal-workbench.ferramentas.legal-text-extractor.main
+    args: [self, result, output_path, format]
+  save_results:
+    type: async
+    module: adk-agents.jurisprudence_agent.agent
+    args: [self, result, filename]
+    params:
+      returns: Path
+  scan_repo_for_routes:
+    type: sync
+    module: adk-agents.qa_agent.tools.repo_scanner
+    args: [repo_path]
+    params:
+      returns: list[str]
+  search:
+    type: async
+    module: adk-agents.jurisprudence_agent.scrapers.tjsp_scraper
+    args: [self, query, max_results]
+    params:
+      returns: list[SearchResult]
+  search_url:
+    type: sync
+    module: adk-agents.jurisprudence_agent.scrapers.tjsp_scraper
+    args: [self]
+    params:
+      returns: str
+  set:
+    type: sync
+    module: legal-workbench.docker.services.stj-api.api.dependencies
+    args: [self, key, value]
+  set_data:
+    type: sync
+    module: legal-workbench.ferramentas.legal-text-extractor.src.monitoring
+    args: [self, key, value]
+    params:
+      returns: None
+  set_extraction_context:
+    type: sync
+    module: legal-workbench.ferramentas.legal-text-extractor.src.monitoring
+    args: [pdf_path, file_size_mb, page_count]
+  setup_logging:
+    type: sync
+    module: adk-agents.jurisprudence_agent.agent
+    args: [config]
+    params:
+      returns: logging.Logger
+  start_scheduler:
+    type: sync
+    module: legal-workbench.docker.services.stj-api.api.scheduler
+  start_span:
+    type: sync
+    module: legal-workbench.ferramentas.legal-text-extractor.src.monitoring
+    args: [op, description]
+    params:
+      returns: Generator
+  stats:
+    type: sync
+    module: legal-workbench.ferramentas.legal-text-extractor.cli.main
+    args: [db, engine, since, limit, section, export_format, output]
+  stop_scheduler:
+    type: sync
+    module: legal-workbench.docker.services.stj-api.api.scheduler
+  test_database:
+    type: sync
+    module: legal-workbench.ferramentas.stj-dados-abertos.src.database
+  test_download_single:
+    type: sync
+    module: legal-workbench.ferramentas.stj-dados-abertos.src.downloader
+  timed:
+    type: sync
+    module: legal-workbench.ferramentas.legal-text-extractor.src.monitoring
+    args: [operation]
+  track_memory:
+    type: sync
+    module: legal-workbench.ferramentas.legal-text-extractor.src.monitoring
+    args: [context]
+  track_progress:
+    type: sync
+    module: legal-workbench.ferramentas.legal-text-extractor.src.monitoring
+    args: [current, total, operation]
+  tribunal_full_name:
+    type: sync
+    module: adk-agents.jurisprudence_agent.scrapers.tjsp_scraper
+    args: [self]
+    params:
+      returns: str
+  tribunal_name:
+    type: sync
+    module: adk-agents.jurisprudence_agent.scrapers.tjsp_scraper
+    args: [self]
+    params:
+      returns: str
+  update_baseline:
+    type: sync
+    module: adk-agents.visual_verifier.agent
+    args: [url, page_name]
+    params:
+      returns: dict
+  validate_data:
+    type: sync
+    module: legal-workbench.ferramentas.legal-doc-assembler.src.engine
+    args: [self, template_path, data]
+    params:
+      returns: Dict
+  validate_json_integrity:
+    type: sync
+    module: legal-workbench.ferramentas.stj-dados-abertos.src.downloader
+    args: [file_path]
+    params:
+      returns: bool
+  verify_page:
+    type: sync
+    module: adk-agents.visual_verifier.agent
+    args: [url, page_name, threshold, check_console, check_network]
+    params:
+      returns: dict
+  version:
+    type: sync
+    module: legal-workbench.ferramentas.legal-text-extractor.cli.main
+  version_callback:
+    type: sync
+    module: legal-workbench.ferramentas.legal-text-extractor.cli.main
+    args: [value]
+  wrapper:
+    type: sync
+    module: legal-workbench.ferramentas.legal-text-extractor.src.monitoring
+
+variables:
+  APP_VERSION:
+    type: env
+    params:
+      caller: [os.getenv]
+      path: [legal-workbench.ferramentas.legal-text-extractor.src.monitoring]
+  ENVIRONMENT:
+    type: env
+    params:
+      caller: [os.getenv]
+      path: [legal-workbench.ferramentas.legal-text-extractor.src.monitoring]
+  GOOGLE_API_KEY:
+    type: env
+    params:
+      caller: [os.getenv]
+      path: [adk-agents.deep_research_sandbox.deep_research_agent, adk-agents.jurisprudence_agent.agent, adk-agents.qa_agent.main]
+  GOOGLE_GENAI_API_KEY:
+    type: env
+    params:
+      caller: [os.getenv]
+      path: [adk-agents.deep_research_sandbox.deep_research_agent, adk-agents.jurisprudence_agent.agent]
+  LTE_DEBUG:
+    type: env
+    params:
+      caller: [os.getenv, os.environ]
+      path: [legal-workbench.ferramentas.legal-text-extractor.src.monitoring, legal-workbench.ferramentas.legal-text-extractor.main]
+  SENTRY_DSN:
+    type: env
+    params:
+      caller: [os.getenv]
+      path: [legal-workbench.ferramentas.legal-text-extractor.src.monitoring]
+
+files:
+  ./:
+    type: pattern
+    actions: [read]
+    params:
+      patterns: ['(DISPOSITIVO|DECIS[ÃA]O|AC[ÓO]RD[ÃA]O)\s*[:\-]?\s*(.*?)(?=EMENTA|RELAT[ÓO]RIO|$)', '*.json', '*_baseline.png']
+      links: [pattern]
+      caller: [get_staging_files, cleanup_staging, batch, list_baselines, processar_staging]
+  .json:
+    type: literal
+    actions: [read]
+    params:
+      caller: [save_results]
+      path: [self.config.output_dir]
+  .md:
+    type: literal
+    actions: [read]
+    params:
+      caller: [save_results]
+      path: [self.config.output_dir]
+  _baseline.png:
+    type: literal
+    actions: [read]
+    params:
+      caller: [verify_page, update_baseline]
+      path: [BASELINES_DIR]
+  _current.png:
+    type: literal
+    actions: [read]
+    params:
+      caller: [verify_page, update_baseline]
+      path: [SCREENSHOTS_DIR]
+  baseline_path:
+    type: variable
+    actions: [read, write]
+    params:
+      caller: [Image.open, baseline_path.parent.mkdir, baseline_path.write_bytes]
+  BASELINES_DIR:
+    type: variable
+    actions: [write, read]
+    params:
+      caller: [BASELINES_DIR.mkdir, BASELINES_DIR.glob]
+  cleaned_md_path:
+    type: variable
+    actions: [write]
+    params:
+      caller: [cleaned_md_path.write_text]
+  current_path:
+    type: variable
+    actions: [read]
+    params:
+      caller: [Image.open, current_path.read_bytes]
+  data/context.db:
+    type: literal
+    actions: [read]
+    params:
+      caller: [stats]
+  debug_tjsp_response.html:
+    type: literal
+    actions: [write]
+    params:
+      caller: [open]
+      alias: [f]
+  ferramentas/stj-dados-abertos:
+    type: literal
+    actions: [read]
+    params:
+      path: [Path.parent.parent.parent.parent]
+  file_path:
+    type: variable
+    actions: [delete]
+    params:
+      caller: [file_path.unlink]
+  final_cleaned.md:
+    type: literal
+    actions: [read]
+    params:
+      caller: [_generate_outputs]
+      path: [output_path]
+  final_tagged.md:
+    type: literal
+    actions: [read]
+    params:
+      caller: [_generate_outputs]
+      path: [output_path]
+  image_path:
+    type: variable
+    actions: [read]
+    params:
+      caller: [Path]
+  input_path:
+    type: literal
+    actions: [read]
+    params:
+      caller: [Path(input_md), input_path.read_text]
+  json_path:
+    type: literal
+    actions: [read]
+    params:
+      caller: [Path(json_path), Path, open, json.load]
+  latest_report.md:
+    type: pattern
+    actions: [read]
+    params:
+      caller: [os.path.join]
+      pattern: [os.path.dirname(), reports, latest_report.md]
+  output_dir:
+    type: variable
+    actions: [read]
+    params:
+      caller: [os.makedirs, Path]
+  OUTPUT_DIR:
+    type: variable
+    actions: [write]
+    params:
+      caller: [OUTPUT_DIR.mkdir]
+  output_file:
+    type: variable
+    actions: [write]
+    params:
+      caller: [open]
+      alias: [f]
+  output_path:
+    type: literal
+    actions: [read, write, delete]
+    params:
+      caller: [Path(output_dir), output_path.mkdir, open, output_path.unlink, json.load, Path, output_path.parent.mkdir, doc.save]
+  path:
+    type: literal
+    actions: [read]
+    params:
+      caller: [Path(image_path), path.read_bytes]
+  pdf_path:
+    type: variable
+    actions: [read]
+    params:
+      caller: [custom_engine.extract, os.path.basename, Path, self.marker_engine.extract]
+  raw_dir:
+    type: variable
+    actions: [write]
+    params:
+      caller: [raw_dir.mkdir]
+  repo_path:
+    type: variable
+    actions: [read]
+    params:
+      caller: [os.path.exists, os.walk]
+  report_path:
+    type: variable
+    actions: [read, write]
+    params:
+      caller: [os.path.dirname, open]
+  SCREENSHOTS_DIR:
+    type: variable
+    actions: [write]
+    params:
+      caller: [SCREENSHOTS_DIR.mkdir]
+  script_name:
+    type: pattern
+    actions: [read]
+    params:
+      caller: [os.path.join]
+      pattern: [output_dir, script_name]
+  script_path:
+    type: variable
+    actions: [write, read]
+    params:
+      caller: [open, json.load]
+      alias: [f]
+  semantic_structure.json:
+    type: literal
+    actions: [read]
+    params:
+      caller: [_generate_outputs]
+      path: [output_path]
+  STAGING_DIR:
+    type: variable
+    actions: [read]
+    params:
+      caller: [STAGING_DIR.glob]
+  stj-data/database:
+    type: literal
+    actions: [read]
+    params:
+      caller: [init, info]
+      path: [EXTERNAL_DRIVE]
+  stj-data/logs:
+    type: literal
+    actions: [read]
+    params:
+      caller: [init]
+      path: [EXTERNAL_DRIVE]
+  structure_path:
+    type: variable
+    actions: [write]
+    params:
+      caller: [open]
+      alias: [f]
+  tagged_md_path:
+    type: variable
+    actions: [write]
+    params:
+      caller: [tagged_md_path.write_text]
+  template_path:
+    type: literal
+    actions: [read]
+    params:
+      caller: ['Path(''{...}.docx'')']
+
+processes:
+  gemini:
+    type: shell
+    actions: [exec]
+    args: [[--version], [-m, self.config.model], [-m, self.config.model]]
+    params:
+      caller: [subprocess.run]
+      shell: ["False", "False", "False"]
+  python:
+    type: shell
+    actions: [exec]
+    args: [[script_path], [script_path]]
+    params:
+      caller: [subprocess.run]
+      shell: ["False", "False"]
+      ref: sys.executable
