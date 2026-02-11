@@ -6,7 +6,11 @@ import type {
   LedesValidationResponse,
 } from '@/types';
 
-const API_BASE_URL = '/api/ledes';
+const isTauri =
+  typeof window !== 'undefined' && !!(window as unknown as { __TAURI__?: unknown }).__TAURI__;
+const API_BASE_URL = isTauri
+  ? import.meta.env.VITE_LEDES_API_URL || 'http://localhost:8003'
+  : '/api/ledes';
 
 // Constants
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB

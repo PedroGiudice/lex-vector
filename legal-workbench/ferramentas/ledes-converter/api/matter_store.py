@@ -33,7 +33,7 @@ class MatterStore:
 
     def __init__(self, db_path: str | None = None):
         if db_path is None:
-            data_path = os.getenv("DATA_PATH", "")
+            data_path = os.getenv("LEDES_DATA_PATH", "")
             if data_path:
                 db_path = os.path.join(data_path, "matters.db")
             else:
@@ -124,6 +124,23 @@ class MatterStore:
                 timekeeper_name="RODRIGUES, CARLOS MAGNO",
                 timekeeper_classification="PARTNR",
                 unit_cost=300.00,
+                created_at=now,
+                updated_at=now,
+            ),
+            Matter(
+                matter_name="[WA-27] Brazil - Employment Advice",
+                matter_id="LS-2026-24216",
+                client_matter_id="",
+                client_id="Salesforce, Inc.",
+                client_name="Salesforce, Inc.",
+                law_firm_id="SF004554",
+                law_firm_name="C.M. Rodrigues Sociedade de Advogados",
+                timekeeper_id="CMR",
+                timekeeper_name="RODRIGUES, CARLOS MAGNO",
+                timekeeper_classification="PARTNR",
+                unit_cost=300.00,
+                default_task_code="L100",
+                default_activity_code="A103",
                 created_at=now,
                 updated_at=now,
             ),

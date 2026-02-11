@@ -67,7 +67,10 @@ app.add_middleware(RequestIDMiddleware)
 matter_store = MatterStore()
 
 # CORS middleware - configured for production security
-allowed_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost,http://localhost:3000").split(",")
+allowed_origins = os.getenv(
+    "ALLOWED_ORIGINS",
+    "http://localhost,http://localhost:3000,https://tauri.localhost,http://tauri.localhost"
+).split(",")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
@@ -483,7 +486,7 @@ async def list_matters():
     return [MatterResponse(**asdict(m)) for m in matters]
 
 
-@app.get("/matters/{matter_name}", response_model=MatterResponse, tags=["Matters"])
+@app.get("/matters/{matter_name:path}", response_model=MatterResponse, tags=["Matters"])
 async def get_matter(matter_name: str):
     """Get a specific matter by name."""
     matter = matter_store.get(matter_name)
@@ -512,7 +515,7 @@ async def create_matter(req: MatterRequest):
     return MatterResponse(**asdict(created))
 
 
-@app.put("/matters/{matter_name}", response_model=MatterResponse, tags=["Matters"])
+@app.put("/matters/{matter_name:path}", response_model=MatterResponse, tags=["Matters"])
 async def update_matter(matter_name: str, req: MatterRequest):
     """Update an existing matter."""
     updates = req.model_dump(exclude={"matter_name"})
@@ -522,7 +525,7 @@ async def update_matter(matter_name: str, req: MatterRequest):
     return MatterResponse(**asdict(updated))
 
 
-@app.delete("/matters/{matter_name}", status_code=204, tags=["Matters"])
+@app.delete("/matters/{matter_name:path}", status_code=204, tags=["Matters"])
 async def delete_matter(matter_name: str):
     """Delete a matter."""
     if not matter_store.delete(matter_name):
