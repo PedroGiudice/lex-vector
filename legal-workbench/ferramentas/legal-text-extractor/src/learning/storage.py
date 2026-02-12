@@ -1,16 +1,12 @@
 """Storage persistente para learning system (JSON-based)"""
+
 import json
 import logging
-from pathlib import Path
-from typing import Optional, Literal
 from datetime import datetime
+from pathlib import Path
+from typing import Literal
 
-from .schemas import (
-    ExtractionResult,
-    FewShotExample,
-    PerformanceMetrics,
-    ValidationStatus
-)
+from .schemas import ExtractionResult, FewShotExample, PerformanceMetrics, ValidationStatus
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +31,7 @@ class LearningStorage:
         └── metadata.json         # Metadados gerais (contadores, versões)
     """
 
-    def __init__(self, data_dir: Optional[Path] = None):
+    def __init__(self, data_dir: Path | None = None):
         """
         Inicializa storage.
 
@@ -57,7 +53,7 @@ class LearningStorage:
             self.data_dir / "extractions",
             self.data_dir / "few_shot_examples",
             self.data_dir / "metrics",
-            self.data_dir / "ground_truth"
+            self.data_dir / "ground_truth",
         ]
 
         for subdir in subdirs:
@@ -66,13 +62,18 @@ class LearningStorage:
         # Criar metadata.json se não existir
         metadata_file = self.data_dir / "metadata.json"
         if not metadata_file.exists():
-            metadata_file.write_text(json.dumps({
-                "created_at": datetime.utcnow().isoformat(),
-                "version": "1.0",
-                "total_extractions": 0,
-                "total_examples": 0,
-                "total_batches": 0
-            }, indent=2))
+            metadata_file.write_text(
+                json.dumps(
+                    {
+                        "created_at": datetime.utcnow().isoformat(),
+                        "version": "1.0",
+                        "total_extractions": 0,
+                        "total_examples": 0,
+                        "total_batches": 0,
+                    },
+                    indent=2,
+                )
+            )
 
     # ===== ExtractionResult Methods =====
 
@@ -89,7 +90,7 @@ class LearningStorage:
         logger.debug(f"Extraction saved: {result.document_id}")
         self._increment_metadata("total_extractions")
 
-    def load_extraction(self, document_id: str) -> Optional[ExtractionResult]:
+    def load_extraction(self, document_id: str) -> ExtractionResult | None:
         """
         Carrega resultado de extração.
 
@@ -109,9 +110,7 @@ class LearningStorage:
         return ExtractionResult(**data)
 
     def list_extractions(
-        self,
-        status: Optional[ValidationStatus] = None,
-        limit: Optional[int] = None
+        self, status: ValidationStatus | None = None, limit: int | None = None
     ) -> list[ExtractionResult]:
         """
         Lista extrações armazenadas.
@@ -124,7 +123,9 @@ class LearningStorage:
             Lista de ExtractionResult
         """
         extractions_dir = self.data_dir / "extractions"
-        files = sorted(extractions_dir.glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True)
+        files = sorted(
+            extractions_dir.glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True
+        )
 
         results = []
         for file_path in files:
@@ -161,10 +162,10 @@ class LearningStorage:
 
     def load_few_shot_examples(
         self,
-        section_type: Optional[str] = None,
+        section_type: str | None = None,
         min_quality: float = 0.0,
-        limit: Optional[int] = None,
-        sort_by: Literal["quality", "usage", "recent"] = "quality"
+        limit: int | None = None,
+        sort_by: Literal["quality", "usage", "recent"] = "quality",
     ) -> list[FewShotExample]:
         """
         Carrega exemplos few-shot.
@@ -253,7 +254,7 @@ class LearningStorage:
         logger.debug(f"Metrics saved: {metrics.batch_id} (F1={metrics.f1_score:.3f})")
         self._increment_metadata("total_batches")
 
-    def load_metrics(self, batch_id: str) -> Optional[PerformanceMetrics]:
+    def load_metrics(self, batch_id: str) -> PerformanceMetrics | None:
         """
         Carrega métricas de um batch.
 
@@ -273,9 +274,7 @@ class LearningStorage:
         return PerformanceMetrics(**data)
 
     def list_metrics(
-        self,
-        prompt_version: Optional[str] = None,
-        limit: Optional[int] = None
+        self, prompt_version: str | None = None, limit: int | None = None
     ) -> list[PerformanceMetrics]:
         """
         Lista métricas armazenadas.
@@ -304,7 +303,7 @@ class LearningStorage:
         logger.debug(f"Loaded {len(results)} metrics (version={prompt_version})")
         return results
 
-    def get_latest_metrics(self) -> Optional[PerformanceMetrics]:
+    def get_latest_metrics(self) -> PerformanceMetrics | None:
         """
         Retorna métricas mais recentes.
 

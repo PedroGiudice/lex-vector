@@ -25,14 +25,13 @@ project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 from src.core.image_cleaner import (
-    ImageCleaner,
-    CLAHEConfig,
-    CleaningOptions,
-    CleaningMode,
     PRESET_DARK_SCAN,
     PRESET_UNEVEN_LIGHTING,
+    CLAHEConfig,
+    CleaningMode,
+    CleaningOptions,
+    ImageCleaner,
 )
-
 
 # =============================================================================
 # Test Fixtures - Imagens Sinteticas
@@ -172,13 +171,9 @@ class TestAnalyzeDarkness:
         img = create_dark_image()
 
         # Com threshold muito baixo, nao deve detectar como escura
-        metrics_low = ImageCleaner.analyze_darkness(
-            img, dark_threshold=30, dark_percentile=0.9
-        )
+        metrics_low = ImageCleaner.analyze_darkness(img, dark_threshold=30, dark_percentile=0.9)
         # Com threshold alto, deve detectar como escura
-        metrics_high = ImageCleaner.analyze_darkness(
-            img, dark_threshold=150, dark_percentile=0.2
-        )
+        metrics_high = ImageCleaner.analyze_darkness(img, dark_threshold=150, dark_percentile=0.2)
 
         assert metrics_high["is_dark"] is True
 
@@ -320,9 +315,7 @@ class TestEnhanceDarkScanAdaptive:
         img = create_uneven_lighting_image()
         config = CLAHEConfig(clip_limit=2.0, tile_grid_size=(16, 16))
 
-        enhanced = ImageCleaner.enhance_dark_scan_adaptive(
-            img, config, block_size=31, c=10
-        )
+        enhanced = ImageCleaner.enhance_dark_scan_adaptive(img, config, block_size=31, c=10)
 
         # Resultado deve ser binarizado
         unique_values = np.unique(enhanced)
@@ -408,9 +401,7 @@ class TestImageCleanerIntegration:
 
     def test_from_options_preserves_clahe(self):
         """from_options deve preservar configuracao CLAHE."""
-        options = CleaningOptions(
-            clahe=CLAHEConfig(clip_limit=4.0, tile_grid_size=(16, 16))
-        )
+        options = CleaningOptions(clahe=CLAHEConfig(clip_limit=4.0, tile_grid_size=(16, 16)))
         cleaner = ImageCleaner.from_options(options)
 
         assert cleaner.clahe_config.clip_limit == 4.0
@@ -486,7 +477,7 @@ class TestImprovementMetrics:
         assert mean_after > mean_before, "Media deve aumentar"
         assert std_after > std_before, "Desvio padrao (contraste) deve aumentar"
 
-        print(f"\nMetricas de Melhoria:")
+        print("\nMetricas de Melhoria:")
         print(f"  Media: {mean_before:.1f} -> {mean_after:.1f} (+{mean_after - mean_before:.1f})")
         print(f"  Std:   {std_before:.1f} -> {std_after:.1f} (+{std_after - std_before:.1f})")
 
@@ -510,7 +501,7 @@ class TestImprovementMetrics:
         # Range deve aumentar
         assert range_after > range_before, "Range dinamico deve expandir"
 
-        print(f"\nExpansao de Range Dinamico:")
+        print("\nExpansao de Range Dinamico:")
         print(f"  Antes: [{min_before}, {max_before}] (range={range_before})")
         print(f"  Depois: [{min_after}, {max_after}] (range={range_after})")
 

@@ -1,22 +1,21 @@
 """Sistema de auto-melhoria de prompts usando Claude SDK"""
-import os
+
 import logging
-from typing import Optional
-from datetime import datetime
+import os
 from dataclasses import dataclass
 
-from anthropic import Anthropic, RateLimitError, APIError
+from anthropic import Anthropic, APIError, RateLimitError
 from tenacity import (
+    before_sleep_log,
     retry,
+    retry_if_exception_type,
     stop_after_attempt,
     wait_exponential,
-    retry_if_exception_type,
-    before_sleep_log
 )
 
-from .schemas import ExtractionResult, ValidationStatus
-from .prompt_versioner import PromptVersioner, PromptVersion
 from .metrics_tracker import MetricsTracker
+from .prompt_versioner import PromptVersion, PromptVersioner
+from .schemas import ExtractionResult
 from .storage import LearningStorage
 
 logger = logging.getLogger(__name__)
@@ -33,7 +32,7 @@ class ErrorAnalysis:
 
     # Padrões identificados
     missing_section_types: list[str]  # Tipos de seção frequentemente não detectados
-    over_detected_types: list[str]    # Tipos de seção detectados em excesso
+    over_detected_types: list[str]  # Tipos de seção detectados em excesso
 
     # Exemplos de erros
     error_examples: list[dict]  # Lista de exemplos específicos de erro
@@ -98,11 +97,11 @@ NOVO PROMPT MELHORADO:"""
 
     def __init__(
         self,
-        versioner: Optional[PromptVersioner] = None,
-        metrics_tracker: Optional[MetricsTracker] = None,
-        storage: Optional[LearningStorage] = None,
-        api_key: Optional[str] = None,
-        model: str = "claude-sonnet-4-20250514"
+        versioner: PromptVersioner | None = None,
+        metrics_tracker: MetricsTracker | None = None,
+        storage: LearningStorage | None = None,
+        api_key: str | None = None,
+        model: str = "claude-sonnet-4-20250514",
     ):
         """
         Inicializa SelfImprover.
@@ -129,10 +128,8 @@ NOVO PROMPT MELHORADO:"""
         logger.info(f"SelfImprover initialized: model={model}")
 
     def analyze_errors(
-        self,
-        extraction_results: list[ExtractionResult],
-        min_errors: int = 3
-    ) -> Optional[ErrorAnalysis]:
+        self, extraction_results: list[ExtractionResult], min_errors: int = 3
+    ) -> ErrorAnalysis | None:
         """
         Analisa erros de uma lista de extrações.
 
@@ -144,10 +141,7 @@ NOVO PROMPT MELHORADO:"""
             ErrorAnalysis ou None se erros insuficientes
         """
         # Filtrar apenas extrações com ground truth
-        validated = [
-            r for r in extraction_results
-            if r.ground_truth_sections is not None
-        ]
+        validated = [r for r in extraction_results if r.ground_truth_sections is not None]
 
         if not validated:
             logger.warning("Nenhuma extração validada para análise")
@@ -179,11 +173,13 @@ NOVO PROMPT MELHORADO:"""
                     false_negatives += 1
                     missing_types[gt_type] = missing_types.get(gt_type, 0) + 1
 
-                    error_examples.append({
-                        "type": "false_negative",
-                        "section_type": gt_type,
-                        "document_id": result.document_id
-                    })
+                    error_examples.append(
+                        {
+                            "type": "false_negative",
+                            "section_type": gt_type,
+                            "document_id": result.document_id,
+                        }
+                    )
 
             # FP: tipos em predicted mas não em ground truth
             for pred_type in pred_types:
@@ -191,11 +187,13 @@ NOVO PROMPT MELHORADO:"""
                     false_positives += 1
                     over_detected_types[pred_type] = over_detected_types.get(pred_type, 0) + 1
 
-                    error_examples.append({
-                        "type": "false_positive",
-                        "section_type": pred_type,
-                        "document_id": result.document_id
-                    })
+                    error_examples.append(
+                        {
+                            "type": "false_positive",
+                            "section_type": pred_type,
+                            "document_id": result.document_id,
+                        }
+                    )
 
         total_errors = false_positives + false_negatives
 
@@ -217,15 +215,11 @@ NOVO PROMPT MELHORADO:"""
 
         if top_missing:
             missing_str = ", ".join([f"{t} ({c}x)" for t, c in top_missing])
-            recommendations.append(
-                f"Melhorar detecção de: {missing_str}"
-            )
+            recommendations.append(f"Melhorar detecção de: {missing_str}")
 
         if top_over:
             over_str = ", ".join([f"{t} ({c}x)" for t, c in top_over])
-            recommendations.append(
-                f"Reduzir falsos positivos em: {over_str}"
-            )
+            recommendations.append(f"Reduzir falsos positivos em: {over_str}")
 
         if false_negatives > false_positives * 1.5:
             recommendations.append("Priorizar recall (muitas seções não detectadas)")
@@ -240,7 +234,7 @@ NOVO PROMPT MELHORADO:"""
             over_detected_types=[t for t, _ in top_over],
             error_examples=error_examples[:10],  # Limitar a 10 exemplos
             summary=summary,
-            recommendations=recommendations
+            recommendations=recommendations,
         )
 
         logger.info(f"Error analysis complete: {summary}")
@@ -250,13 +244,13 @@ NOVO PROMPT MELHORADO:"""
         retry=retry_if_exception_type((RateLimitError, APIError)),
         stop=stop_after_attempt(3),
         wait=wait_exponential(multiplier=1, min=2, max=10),
-        before_sleep=before_sleep_log(logger, logging.WARNING)
+        before_sleep=before_sleep_log(logger, logging.WARNING),
     )
     def generate_improved_prompt(
         self,
         current_prompt: str,
         error_analysis: ErrorAnalysis,
-        current_metrics: Optional[dict] = None
+        current_metrics: dict | None = None,
     ) -> str:
         """
         Gera prompt melhorado usando Claude (meta-prompting).
@@ -299,7 +293,7 @@ NOVO PROMPT MELHORADO:"""
             precision=metrics.get("precision", 0.0),
             recall=metrics.get("recall", 0.0),
             f1=metrics.get("f1", 0.0),
-            error_patterns=error_patterns_str
+            error_patterns=error_patterns_str,
         )
 
         logger.info("Generating improved prompt using Claude meta-prompting...")
@@ -310,7 +304,7 @@ NOVO PROMPT MELHORADO:"""
                 model=self.model,
                 max_tokens=8192,  # Prompt pode ser longo
                 temperature=0.3,  # Alguma criatividade, mas controlada
-                messages=[{"role": "user", "content": meta_prompt}]
+                messages=[{"role": "user", "content": meta_prompt}],
             )
 
             improved_prompt = message.content[0].text.strip()
@@ -323,9 +317,7 @@ NOVO PROMPT MELHORADO:"""
             raise
 
     def should_create_new_version(
-        self,
-        f1_threshold: float = 0.85,
-        min_batches: int = 3
+        self, f1_threshold: float = 0.85, min_batches: int = 3
     ) -> tuple[bool, str]:
         """
         Determina se deve criar nova versão do prompt.
@@ -338,16 +330,15 @@ NOVO PROMPT MELHORADO:"""
             Tupla (should_create: bool, reason: str)
         """
         return self.metrics_tracker.should_improve_prompt(
-            f1_threshold=f1_threshold,
-            min_batches=min_batches
+            f1_threshold=f1_threshold, min_batches=min_batches
         )
 
     def create_improved_version(
         self,
         parent_version: str,
         extraction_results: list[ExtractionResult],
-        description: str = "Auto-generated improved prompt"
-    ) -> Optional[PromptVersion]:
+        description: str = "Auto-generated improved prompt",
+    ) -> PromptVersion | None:
         """
         Cria nova versão melhorada do prompt.
 
@@ -382,15 +373,10 @@ NOVO PROMPT MELHORADO:"""
 
         # 3. Obter métricas atuais
         trend = self.metrics_tracker.get_performance_trend(
-            prompt_version=parent_version,
-            last_n_batches=5
+            prompt_version=parent_version, last_n_batches=5
         )
 
-        current_metrics = {
-            "precision": 0.0,
-            "recall": 0.0,
-            "f1": trend.get("avg_f1", 0.0)
-        }
+        current_metrics = {"precision": 0.0, "recall": 0.0, "f1": trend.get("avg_f1", 0.0)}
 
         # Tentar obter métricas mais detalhadas do último batch
         latest_metrics = self.storage.get_latest_metrics()
@@ -398,7 +384,7 @@ NOVO PROMPT MELHORADO:"""
             current_metrics = {
                 "precision": latest_metrics.precision,
                 "recall": latest_metrics.recall,
-                "f1": latest_metrics.f1_score
+                "f1": latest_metrics.f1_score,
             }
 
         # 4. Gerar prompt melhorado
@@ -406,7 +392,7 @@ NOVO PROMPT MELHORADO:"""
             improved_prompt = self.generate_improved_prompt(
                 current_prompt=current_version.content,
                 error_analysis=error_analysis,
-                current_metrics=current_metrics
+                current_metrics=current_metrics,
             )
         except Exception as e:
             logger.error(f"Failed to generate improved prompt: {e}")
@@ -418,7 +404,7 @@ NOVO PROMPT MELHORADO:"""
             description=description + f" | {error_analysis.summary}",
             created_by="auto",
             parent_version=parent_version,
-            tags=["auto-generated", "testing"] + error_analysis.missing_section_types[:2]
+            tags=["auto-generated", "testing"] + error_analysis.missing_section_types[:2],
         )
 
         logger.info(
@@ -432,8 +418,8 @@ NOVO PROMPT MELHORADO:"""
         self,
         extraction_results: list[ExtractionResult],
         f1_threshold: float = 0.85,
-        min_batches: int = 3
-    ) -> Optional[PromptVersion]:
+        min_batches: int = 3,
+    ) -> PromptVersion | None:
         """
         Automaticamente melhora prompt se necessário.
 
@@ -449,8 +435,7 @@ NOVO PROMPT MELHORADO:"""
         """
         # Verificar se deve melhorar
         should_improve, reason = self.should_create_new_version(
-            f1_threshold=f1_threshold,
-            min_batches=min_batches
+            f1_threshold=f1_threshold, min_batches=min_batches
         )
 
         if not should_improve:
@@ -466,7 +451,7 @@ NOVO PROMPT MELHORADO:"""
         new_version = self.create_improved_version(
             parent_version=current_version.version_id,
             extraction_results=extraction_results,
-            description=f"Auto-improvement triggered: {reason}"
+            description=f"Auto-improvement triggered: {reason}",
         )
 
         return new_version

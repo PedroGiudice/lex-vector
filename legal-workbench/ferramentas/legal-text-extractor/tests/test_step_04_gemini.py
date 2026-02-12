@@ -12,26 +12,28 @@ Para rodar todos os testes (requer Gemini):
 """
 
 import json
-import pytest
 from pathlib import Path
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import patch
+
+import pytest
 
 # Tenta importar os módulos - pode falhar se dependências não estão instaladas
 try:
     from src.gemini import GeminiClient, GeminiConfig, GeminiResponse
-    from src.gemini.schemas import (
-        ClassificationResult,
-        CleaningResult,
-        CleanedSection,
-        PecaType,
-        SectionClassification,
-    )
     from src.gemini.prompts import (
         CLASSIFICATION_PROMPT,
         TAXONOMY_DESCRIPTION,
         build_classification_prompt,
         build_cleaning_prompt,
     )
+    from src.gemini.schemas import (
+        ClassificationResult,
+        CleanedSection,
+        CleaningResult,
+        PecaType,
+        SectionClassification,
+    )
+
     IMPORTS_OK = True
 except ImportError as e:
     IMPORTS_OK = False
@@ -40,8 +42,7 @@ except ImportError as e:
 
 # Skip all tests if imports fail
 pytestmark = pytest.mark.skipif(
-    not IMPORTS_OK,
-    reason=f"Imports failed: {IMPORT_ERROR if not IMPORTS_OK else ''}"
+    not IMPORTS_OK, reason=f"Imports failed: {IMPORT_ERROR if not IMPORTS_OK else ''}"
 )
 
 
@@ -50,13 +51,13 @@ class TestGeminiClient:
 
     def test_extract_json_from_code_block(self):
         """Testa extração de JSON de code blocks markdown."""
-        text = '''
+        text = """
         Aqui está o resultado:
         ```json
         {"key": "value", "number": 42}
         ```
         Fim.
-        '''
+        """
         result = GeminiClient._extract_json(text)
         parsed = json.loads(result)
         assert parsed["key"] == "value"
@@ -71,7 +72,7 @@ class TestGeminiClient:
 
     def test_extract_json_with_array(self):
         """Testa extração de array JSON."""
-        text = 'Lista: [1, 2, 3] aqui.'
+        text = "Lista: [1, 2, 3] aqui."
         result = GeminiClient._extract_json(text)
         parsed = json.loads(result)
         assert parsed == [1, 2, 3]
@@ -120,9 +121,18 @@ class TestSchemas:
     def test_peca_type_values(self):
         """Verifica que todos os valores esperados existem."""
         expected = [
-            "PETICAO_INICIAL", "CONTESTACAO", "REPLICA", "DECISAO_JUDICIAL",
-            "DESPACHO", "RECURSO", "PARECER_MP", "ATA_TERMO", "CERTIDAO",
-            "ANEXOS", "CAPA_DADOS", "INDETERMINADO"
+            "PETICAO_INICIAL",
+            "CONTESTACAO",
+            "REPLICA",
+            "DECISAO_JUDICIAL",
+            "DESPACHO",
+            "RECURSO",
+            "PARECER_MP",
+            "ATA_TERMO",
+            "CERTIDAO",
+            "ANEXOS",
+            "CAPA_DADOS",
+            "INDETERMINADO",
         ]
         actual = [p.value for p in PecaType]
         assert sorted(actual) == sorted(expected)
@@ -306,11 +316,11 @@ class TestBibliotecarioConfig:
     @pytest.fixture(autouse=True)
     def setup_import(self):
         """Setup import direto do módulo para evitar import via __init__."""
-        import sys
         import importlib.util
+
         spec = importlib.util.spec_from_file_location(
             "step_04_classify",
-            Path(__file__).parent.parent / "src" / "steps" / "step_04_classify.py"
+            Path(__file__).parent.parent / "src" / "steps" / "step_04_classify.py",
         )
         self.step04_module = importlib.util.module_from_spec(spec)
         try:
@@ -347,9 +357,10 @@ class TestGeminiBibliotecario:
     def setup_import(self):
         """Setup import direto do módulo."""
         import importlib.util
+
         spec = importlib.util.spec_from_file_location(
             "step_04_classify",
-            Path(__file__).parent.parent / "src" / "steps" / "step_04_classify.py"
+            Path(__file__).parent.parent / "src" / "steps" / "step_04_classify.py",
         )
         self.step04_module = importlib.util.module_from_spec(spec)
         try:
@@ -363,7 +374,7 @@ class TestGeminiBibliotecario:
         """Testa erro quando arquivo não existe."""
         config = self.BibliotecarioConfig()
 
-        with patch.object(self.step04_module, 'GeminiClient'):
+        with patch.object(self.step04_module, "GeminiClient"):
             bibliotecario = self.GeminiBibliotecario(config=config)
 
             with pytest.raises(FileNotFoundError):
@@ -400,7 +411,7 @@ Conteúdo da página 2
 """
 
         config = self.BibliotecarioConfig()
-        with patch.object(self.step04_module, 'GeminiClient'):
+        with patch.object(self.step04_module, "GeminiClient"):
             bibliotecario = self.GeminiBibliotecario(config=config)
             result = bibliotecario._build_tagged_markdown(original, classification)
 
@@ -412,6 +423,7 @@ Conteúdo da página 2
 # =============================================================================
 # Testes de Integração (requerem Gemini CLI)
 # =============================================================================
+
 
 @pytest.mark.integration
 class TestIntegration:
@@ -467,7 +479,7 @@ OAB/SP 123.456
 
     def test_full_classification(self, sample_md):
         """Teste completo de classificação (requer Gemini)."""
-        from src.steps.step_04_classify import GeminiBibliotecario, BibliotecarioConfig
+        from src.steps.step_04_classify import BibliotecarioConfig, GeminiBibliotecario
 
         try:
             config = BibliotecarioConfig(skip_cleaning=True)
@@ -476,12 +488,12 @@ OAB/SP 123.456
             result = bibliotecario.process(sample_md)
 
             # Verificações básicas
-            assert result['classification'].total_sections >= 1
+            assert result["classification"].total_sections >= 1
             assert (sample_md.parent / "semantic_structure.json").exists()
             assert (sample_md.parent / "final_tagged.md").exists()
 
             # Verifica que classificou como petição inicial
-            types = [s.type for s in result['classification'].sections]
+            types = [s.type for s in result["classification"].sections]
             assert PecaType.PETICAO_INICIAL in types
 
         except RuntimeError as e:

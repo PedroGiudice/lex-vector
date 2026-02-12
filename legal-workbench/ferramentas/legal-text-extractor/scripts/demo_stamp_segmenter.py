@@ -24,18 +24,17 @@ import numpy as np
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
+from src.core.image_cleaner import (
+    detect_colored_stamps,
+    extract_stamp_images,
+    process_stamps_advanced,
+    remove_stamps_for_ocr,
+)
 from src.core.stamp_segmenter import (
+    HSVRange,
+    StampMode,
     StampSegmenter,
     StampSegmenterConfig,
-    StampMode,
-    StampColor,
-    HSVRange,
-)
-from src.core.image_cleaner import (
-    process_stamps_advanced,
-    detect_colored_stamps,
-    remove_stamps_for_ocr,
-    extract_stamp_images,
 )
 
 
@@ -46,8 +45,9 @@ def create_demo_document() -> np.ndarray:
 
     # Header text (black)
     cv2.rectangle(img, (50, 30), (550, 60), (0, 0, 0), -1)
-    cv2.putText(img, "PODER JUDICIARIO", (180, 55),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+    cv2.putText(
+        img, "PODER JUDICIARIO", (180, 55), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2
+    )
 
     # Body text (black lines simulating paragraphs)
     for y in range(100, 400, 30):
@@ -56,18 +56,15 @@ def create_demo_document() -> np.ndarray:
     # Blue circular stamp (official seal) - top right
     cv2.circle(img, (480, 150), 50, (255, 100, 50), -1)  # Blue in BGR
     cv2.circle(img, (480, 150), 40, (255, 150, 80), 2)
-    cv2.putText(img, "OFICIAL", (445, 155),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 255), 1)
+    cv2.putText(img, "OFICIAL", (445, 155), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 255), 1)
 
     # Red rectangular stamp ("URGENTE") - bottom
     cv2.rectangle(img, (200, 500), (400, 560), (50, 50, 255), -1)  # Red in BGR
-    cv2.putText(img, "URGENTE", (245, 540),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
+    cv2.putText(img, "URGENTE", (245, 540), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
 
     # Green elliptical stamp (environmental) - side
     cv2.ellipse(img, (100, 600), (60, 40), 0, 0, 360, (50, 200, 50), -1)  # Green
-    cv2.putText(img, "IBAMA", (70, 605),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
+    cv2.putText(img, "IBAMA", (70, 605), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
 
     # More text after stamps
     for y in range(650, 750, 30):
@@ -157,7 +154,7 @@ def demo_custom_config():
         h_max=130,
         s_min=40,  # Lower saturation threshold
         v_min=40,
-        name="custom_blue"
+        name="custom_blue",
     )
 
     config = StampSegmenterConfig(
@@ -169,7 +166,7 @@ def demo_custom_config():
     segmenter = StampSegmenter(config)
     result = segmenter.process(img)
 
-    print(f"\nUsing custom config for blue stamps only:")
+    print("\nUsing custom config for blue stamps only:")
     print(f"  Stamps found: {len(result.stamp_regions)}")
     for stamp in result.stamp_regions:
         print(f"    - {stamp['color']} at {stamp['bbox'][:2]}")
@@ -188,16 +185,16 @@ def demo_integration_with_cleaner():
         img,
         mode="remove",
         colors=["blue", "red"],  # Only blue and red
-        return_metadata=True
+        return_metadata=True,
     )
 
-    print(f"\nUsing process_stamps_advanced:")
+    print("\nUsing process_stamps_advanced:")
     print(f"  Cleaned image shape: {cleaned.shape if cleaned is not None else 'None'}")
     print(f"  Stamps found: {len(metadata)}")
 
     # Using detect_colored_stamps
     all_stamps = detect_colored_stamps(img)
-    print(f"\nUsing detect_colored_stamps:")
+    print("\nUsing detect_colored_stamps:")
     print(f"  Total stamps: {len(all_stamps)}")
 
 

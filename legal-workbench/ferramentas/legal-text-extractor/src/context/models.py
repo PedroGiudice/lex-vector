@@ -1,14 +1,15 @@
 """
 Data models for Context Store
 """
-from dataclasses import dataclass, field
-from typing import Optional, List
+
+from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
 
 
 class EngineType(str, Enum):
     """Tipos de engines disponíveis"""
+
     MARKER = "marker"
     PDFPLUMBER = "pdfplumber"
     TESSERACT = "tesseract"
@@ -16,6 +17,7 @@ class EngineType(str, Enum):
 
 class PatternType(str, Enum):
     """Tipos de padrões observáveis"""
+
     HEADER = "header"
     FOOTER = "footer"
     TABLE = "table"
@@ -29,17 +31,19 @@ class PatternType(str, Enum):
 @dataclass
 class Caso:
     """Representa um caso (processo judicial)"""
+
     numero_cnj: str
     sistema: str  # 'pje', 'eproc', 'tucujuris', etc
-    id: Optional[int] = None
-    created_at: Optional[datetime] = None
-    updated_at: Optional[datetime] = None
+    id: int | None = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
 
 
 @dataclass
 class SignatureVector:
     """Vetor de assinatura para um padrão"""
-    features: List[float]  # Features normalizadas
+
+    features: list[float]  # Features normalizadas
     hash: str  # MD5 hash do vetor
 
     def __post_init__(self):
@@ -53,25 +57,26 @@ class SignatureVector:
 @dataclass
 class ObservedPattern:
     """Padrão observado durante processamento"""
+
     caso_id: int
     pattern_type: PatternType
     signature_hash: str
-    signature_vector: List[float]
+    signature_vector: list[float]
     first_seen_page: int
     last_seen_page: int
     created_by_engine: EngineType
     engine_quality_score: float
 
     # Opcionais
-    id: Optional[int] = None
+    id: int | None = None
     occurrence_count: int = 1
-    avg_confidence: Optional[float] = None
+    avg_confidence: float | None = None
     divergence_count: int = 0
     deprecated: bool = False
-    suggested_bbox: Optional[List[float]] = None
-    suggested_engine: Optional[EngineType] = None
-    created_at: Optional[datetime] = None
-    updated_at: Optional[datetime] = None
+    suggested_bbox: list[float] | None = None
+    suggested_engine: EngineType | None = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
 
     def __post_init__(self):
         """Valida dados"""
@@ -86,15 +91,16 @@ class ObservedPattern:
 @dataclass
 class Divergence:
     """Divergência entre expectativa e realidade"""
+
     pattern_id: int
     page_num: int
     expected_confidence: float
     actual_confidence: float
     engine_used: EngineType
 
-    id: Optional[int] = None
-    reason: Optional[str] = None
-    recorded_at: Optional[datetime] = None
+    id: int | None = None
+    reason: str | None = None
+    recorded_at: datetime | None = None
 
     def __post_init__(self):
         """Valida dados"""
@@ -112,17 +118,18 @@ class Divergence:
 @dataclass
 class PatternHint:
     """Sugestão baseada em padrões similares"""
+
     pattern_id: int
     similarity: float  # 0.0 a 1.0
-    suggested_bbox: Optional[List[float]]
-    suggested_engine: Optional[EngineType]
+    suggested_bbox: list[float] | None
+    suggested_engine: EngineType | None
     confidence: float  # Confiança na sugestão
     created_by_engine: EngineType
 
     # Metadados do padrão
     pattern_type: PatternType = PatternType.UNKNOWN
     occurrence_count: int = 1
-    avg_confidence: Optional[float] = None
+    avg_confidence: float | None = None
 
     def __post_init__(self):
         """Valida dados"""
@@ -142,15 +149,16 @@ class PatternHint:
 @dataclass
 class ObservationResult:
     """Resultado de uma observação (processamento de página)"""
+
     page_num: int
     engine_used: EngineType
     confidence: float
     text_length: int
 
     # Opcionais
-    bbox: Optional[List[float]] = None
+    bbox: list[float] | None = None
     pattern_type: PatternType = PatternType.UNKNOWN
-    processing_time_ms: Optional[int] = None
+    processing_time_ms: int | None = None
     success: bool = True
 
     def __post_init__(self):
@@ -166,6 +174,7 @@ class ObservationResult:
 @dataclass
 class EngineQuality:
     """Métricas de qualidade por engine"""
+
     engine: EngineType
     total_patterns: int
     avg_confidence: float

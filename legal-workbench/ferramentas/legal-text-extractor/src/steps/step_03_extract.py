@@ -39,7 +39,7 @@ import pdfplumber
 import pytesseract
 from PIL import Image
 
-from src.config import EXTRACT_CONFIG, ExtractConfig, PageType, get_images_dir, get_output_dir
+from src.config import EXTRACT_CONFIG, ExtractConfig, PageType
 from src.core.cleaner import DocumentCleaner
 from src.engines.cleaning_engine import get_cleaner
 
@@ -91,11 +91,9 @@ class TextExtractor:
         logger.info(f"  Tesseract lang: {config.tesseract_lang}")
         logger.info(f"  Tesseract PSM: {config.tesseract_psm}")
         logger.info(f"  Limpeza semântica: {'ativada' if config.apply_cleaning else 'desativada'}")
-        logger.info(f"  Adaptive Cleaning Engine: ativado")
+        logger.info("  Adaptive Cleaning Engine: ativado")
 
-    def extract(
-        self, layout_path: Path, pdf_path: Path, images_dir: Path | None = None
-    ) -> str:
+    def extract(self, layout_path: Path, pdf_path: Path, images_dir: Path | None = None) -> str:
         """
         Extrai texto de todas as páginas e retorna markdown estruturado.
 
@@ -131,7 +129,7 @@ class TextExtractor:
 
         # Carrega metadados do layout
         logger.info(f"Carregando layout: {layout_path}")
-        with open(layout_path, "r", encoding="utf-8") as f:
+        with open(layout_path, encoding="utf-8") as f:
             layout = json.load(f)
 
         if "pages" not in layout:
@@ -215,11 +213,14 @@ class TextExtractor:
                 # This handles rotated text in tarjas where x0 may be inside bbox
                 # but the char visually belongs to the tarja zone
                 filtered_chars = [
-                    char for char in page.chars
-                    if (char["x0"] >= x0 and
-                        char["x1"] <= x1 and
-                        char["top"] >= y0 and
-                        char["bottom"] <= y1)
+                    char
+                    for char in page.chars
+                    if (
+                        char["x0"] >= x0
+                        and char["x1"] <= x1
+                        and char["top"] >= y0
+                        and char["bottom"] <= y1
+                    )
                 ]
 
                 if not filtered_chars:
@@ -232,8 +233,9 @@ class TextExtractor:
 
                 # Override chars with strictly filtered set
                 cropped_with_filter = cropped.filter(
-                    lambda obj: (obj["object_type"] != "char" or
-                                (obj["x0"] >= x0 and obj["x1"] <= x1))
+                    lambda obj: (
+                        obj["object_type"] != "char" or (obj["x0"] >= x0 and obj["x1"] <= x1)
+                    )
                 )
 
                 text = cropped_with_filter.extract_text()
@@ -323,7 +325,9 @@ class TextExtractor:
 
         try:
             # Detects system via fingerprints and applies weighted rules
-            force_system = self.config.cleaning_system if self.config.cleaning_system != "auto" else None
+            force_system = (
+                self.config.cleaning_system if self.config.cleaning_system != "auto" else None
+            )
 
             # Detect system first for logging
             detection = self.adaptive_cleaner.detect_system(text)
@@ -334,7 +338,9 @@ class TextExtractor:
             # Log statistics
             original_len = len(text)
             final_len = len(cleaned_text)
-            reduction_pct = ((original_len - final_len) / original_len) * 100 if original_len > 0 else 0.0
+            reduction_pct = (
+                ((original_len - final_len) / original_len) * 100 if original_len > 0 else 0.0
+            )
 
             logger.debug(
                 f"Adaptive Cleaning ({detection.system}, conf={detection.confidence:.2f}): "
@@ -451,9 +457,7 @@ def main(
     logger.info("STEP 03: EXTRACTION")
     logger.info("=" * 60)
 
-    markdown = extractor.extract(
-        layout_path=layout_json, pdf_path=pdf_path, images_dir=images_dir
-    )
+    markdown = extractor.extract(layout_path=layout_json, pdf_path=pdf_path, images_dir=images_dir)
 
     # Define output path se não fornecido
     if output_md is None:
@@ -488,9 +492,7 @@ if __name__ == "__main__":
         output_md: Path = typer.Option(
             None, "--output-md", "-o", help="Caminho para salvar final.md"
         ),
-        no_clean: bool = typer.Option(
-            False, "--no-clean", help="Desabilita limpeza semântica"
-        ),
+        no_clean: bool = typer.Option(False, "--no-clean", help="Desabilita limpeza semântica"),
         system: str = typer.Option(
             None, "--system", "-s", help="Sistema judicial (PJE, ESAJ, auto)"
         ),

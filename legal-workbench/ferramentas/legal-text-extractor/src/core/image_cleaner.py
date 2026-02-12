@@ -18,16 +18,17 @@ Updated: 2026-01-07 - Added StampSegmenter integration for HSV-based stamp detec
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Sequence, NamedTuple, TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, NamedTuple
 
 import cv2
 import numpy as np
 from PIL import Image
 
 if TYPE_CHECKING:
-    from .stamp_segmenter import StampSegmentationResult, StampRegion
+    pass
 
 
 # =============================================================================
@@ -37,20 +38,22 @@ if TYPE_CHECKING:
 
 class ColumnBoundary(NamedTuple):
     """Represents a detected column boundary (gap between columns)."""
+
     x_start: int  # Start X position of the gap
-    x_end: int    # End X position of the gap
-    width: int    # Width of the gap
+    x_end: int  # End X position of the gap
+    width: int  # Width of the gap
     confidence: float  # Detection confidence (0.0-1.0)
 
 
 @dataclass
 class ColumnRegion:
     """Represents a detected column in the document."""
-    index: int          # Column index (0-based, left to right)
-    x_start: int        # Start X position (left edge)
-    x_end: int          # End X position (right edge)
-    width: int          # Column width in pixels
-    text_density: float # Relative text density (0.0-1.0)
+
+    index: int  # Column index (0-based, left to right)
+    x_start: int  # Start X position (left edge)
+    x_end: int  # End X position (right edge)
+    width: int  # Column width in pixels
+    text_density: float  # Relative text density (0.0-1.0)
 
     @property
     def center(self) -> int:
@@ -83,6 +86,7 @@ class LayoutMetadata:
         ...     for col in layout.columns:
         ...         print(f"Column {col.index}: {col.x_start}-{col.x_end}")
     """
+
     num_columns: int
     columns: list[ColumnRegion]
     column_boundaries: list[ColumnBoundary]
@@ -167,6 +171,7 @@ class ColumnDetectionConfig:
             Prevents detecting page borders as columns (default: 0.05 = 5%).
         max_columns: Maximum number of columns to detect (default: 4).
     """
+
     min_column_width_ratio: float = 0.1
     min_gap_width_px: int = 30
     min_gap_width_ratio: float = 0.02
@@ -185,7 +190,7 @@ class ColumnDetectionConfig:
 # Default configuration for legal documents
 DEFAULT_COLUMN_CONFIG = ColumnDetectionConfig(
     min_column_width_ratio=0.15,  # Legal docs typically have wider columns
-    min_gap_width_px=40,          # Clear separation between columns
+    min_gap_width_px=40,  # Clear separation between columns
     projection_smoothing_kernel=21,
     valley_prominence=0.25,
     max_columns=3,  # Legal docs rarely have more than 3 columns
@@ -216,7 +221,7 @@ class ColumnLayoutDetector:
         >>> print(f"Detected {layout.num_columns} columns")
     """
 
-    def __init__(self, config: Optional[ColumnDetectionConfig] = None):
+    def __init__(self, config: ColumnDetectionConfig | None = None):
         """
         Initialize the column detector.
 
@@ -250,9 +255,7 @@ class ColumnLayoutDetector:
         height, width = gray.shape
 
         # Binarize image (text = dark = 0, background = light = 255)
-        _, binary = cv2.threshold(
-            gray, self.config.text_threshold, 255, cv2.THRESH_BINARY_INV
-        )
+        _, binary = cv2.threshold(gray, self.config.text_threshold, 255, cv2.THRESH_BINARY_INV)
 
         # Compute vertical projection profile
         projection = self._compute_vertical_projection(binary)
@@ -333,9 +336,7 @@ class ColumnLayoutDetector:
         smoothed_2d = cv2.GaussianBlur(projection_2d, (kernel_size, 1), sigma)
         return smoothed_2d.flatten()
 
-    def _find_column_boundaries(
-        self, normalized: np.ndarray, width: int
-    ) -> list[ColumnBoundary]:
+    def _find_column_boundaries(self, normalized: np.ndarray, width: int) -> list[ColumnBoundary]:
         """
         Find column boundaries by detecting valleys in the projection profile.
 
@@ -386,18 +387,22 @@ class ColumnLayoutDetector:
                     confidence = (1.0 - min_val) / self.config.valley_prominence
                     confidence = min(confidence, 1.0)
 
-                    boundaries.append(ColumnBoundary(
-                        x_start=valley_start,
-                        x_end=valley_end,
-                        width=gap_width,
-                        confidence=confidence,
-                    ))
+                    boundaries.append(
+                        ColumnBoundary(
+                            x_start=valley_start,
+                            x_end=valley_end,
+                            width=gap_width,
+                            confidence=confidence,
+                        )
+                    )
 
         # Limit to max_columns - 1 boundaries
         max_boundaries = self.config.max_columns - 1
         if len(boundaries) > max_boundaries:
             # Keep the most confident boundaries
-            boundaries = sorted(boundaries, key=lambda b: b.confidence, reverse=True)[:max_boundaries]
+            boundaries = sorted(boundaries, key=lambda b: b.confidence, reverse=True)[
+                :max_boundaries
+            ]
             boundaries = sorted(boundaries, key=lambda b: b.x_start)
 
         return boundaries
@@ -422,13 +427,15 @@ class ColumnLayoutDetector:
         if not boundaries:
             # Single column layout
             total_density = np.sum(binary) / (binary.size * 255) if binary.size > 0 else 0.0
-            return [ColumnRegion(
-                index=0,
-                x_start=0,
-                x_end=width,
-                width=width,
-                text_density=total_density,
-            )]
+            return [
+                ColumnRegion(
+                    index=0,
+                    x_start=0,
+                    x_end=width,
+                    width=width,
+                    text_density=total_density,
+                )
+            ]
 
         columns = []
 
@@ -462,7 +469,9 @@ class ColumnLayoutDetector:
         """Create a ColumnRegion with calculated text density."""
         width = x_end - x_start
         if width <= 0:
-            return ColumnRegion(index=index, x_start=x_start, x_end=x_end, width=0, text_density=0.0)
+            return ColumnRegion(
+                index=index, x_start=x_start, x_end=x_end, width=0, text_density=0.0
+            )
 
         # Calculate text density in this column region
         column_slice = binary[:, x_start:x_end]
@@ -528,11 +537,7 @@ class ColumnLayoutDetector:
             density_consistency = 1.0
 
         # Combine factors
-        confidence = (
-            0.4 * boundary_conf +
-            0.3 * width_consistency +
-            0.3 * density_consistency
-        )
+        confidence = 0.4 * boundary_conf + 0.3 * width_consistency + 0.3 * density_consistency
 
         return float(np.clip(confidence, 0.0, 1.0))
 
@@ -540,13 +545,15 @@ class ColumnLayoutDetector:
         """Create a single-column layout for pages with no detected columns."""
         return LayoutMetadata(
             num_columns=1,
-            columns=[ColumnRegion(
-                index=0,
-                x_start=0,
-                x_end=width,
-                width=width,
-                text_density=0.0,
-            )],
+            columns=[
+                ColumnRegion(
+                    index=0,
+                    x_start=0,
+                    x_end=width,
+                    width=width,
+                    text_density=0.0,
+                )
+            ],
             column_boundaries=[],
             page_width=width,
             page_height=height,
@@ -827,7 +834,7 @@ class ImageCleaner:
         self.clahe_config = clahe_config or CLAHEConfig()
 
     @classmethod
-    def from_options(cls, options: CleaningOptions) -> "ImageCleaner":
+    def from_options(cls, options: CleaningOptions) -> ImageCleaner:
         """
         Cria ImageCleaner a partir de CleaningOptions.
 
@@ -851,9 +858,7 @@ class ImageCleaner:
         )
 
     @staticmethod
-    def remove_gray_watermarks(
-        image: np.ndarray, threshold: int = 200
-    ) -> np.ndarray:
+    def remove_gray_watermarks(image: np.ndarray, threshold: int = 200) -> np.ndarray:
         """
         Remove marcas d'água cinza claro de documentos digitais.
 
@@ -882,9 +887,7 @@ class ImageCleaner:
         return result
 
     @staticmethod
-    def clean_dirty_scan(
-        image: np.ndarray, block_size: int = 31, c: int = 15
-    ) -> np.ndarray:
+    def clean_dirty_scan(image: np.ndarray, block_size: int = 31, c: int = 15) -> np.ndarray:
         """
         Limpa scans com iluminação irregular usando adaptive threshold.
 
@@ -981,9 +984,7 @@ class ImageCleaner:
         return result_gray
 
     @staticmethod
-    def remove_speckles(
-        image: np.ndarray, kernel_size: int = 3
-    ) -> np.ndarray:
+    def remove_speckles(image: np.ndarray, kernel_size: int = 3) -> np.ndarray:
         """
         Remove ruído pontual (speckles) usando median filter.
 
@@ -1075,9 +1076,7 @@ class ImageCleaner:
         darkness_score = (intensity_score * 0.6) + (dark_pixel_ratio * 0.4)
 
         # Determina se e escura
-        is_dark = (
-            mean_intensity < dark_threshold or dark_pixel_ratio > dark_percentile
-        )
+        is_dark = mean_intensity < dark_threshold or dark_pixel_ratio > dark_percentile
 
         return {
             "mean_intensity": mean_intensity,
@@ -1434,9 +1433,7 @@ class ImageCleaner:
             result = self.remove_color_stamps(img_bgr, self.stamp_colors)
 
             # Adaptive threshold (Gaussian)
-            result = self.clean_dirty_scan(
-                result, self.adaptive_block_size, self.adaptive_c
-            )
+            result = self.clean_dirty_scan(result, self.adaptive_block_size, self.adaptive_c)
 
             # Despeckle
             result = self.remove_speckles(result, self.despeckle_kernel_size)
@@ -1451,7 +1448,7 @@ class ImageCleaner:
         image_pil: Image.Image,
         mode: str | CleaningMode = "auto",
         force_clahe: bool = False,
-        column_config: Optional[ColumnDetectionConfig] = None,
+        column_config: ColumnDetectionConfig | None = None,
     ) -> tuple[Image.Image, LayoutMetadata]:
         """
         Process image with cleaning and multi-column layout detection.
@@ -1500,7 +1497,7 @@ class ImageCleaner:
     def detect_layout(
         self,
         image_pil: Image.Image,
-        config: Optional[ColumnDetectionConfig] = None,
+        config: ColumnDetectionConfig | None = None,
     ) -> LayoutMetadata:
         """
         Detect column layout without cleaning the image.
@@ -1588,10 +1585,10 @@ def process_stamps_advanced(
         ...     print(f"  {s['color']} stamp at {s['bbox']}")
     """
     from .stamp_segmenter import (
+        StampColor,
+        StampMode,
         StampSegmenter,
         StampSegmenterConfig,
-        StampMode,
-        StampColor,
     )
 
     # Map string mode to enum

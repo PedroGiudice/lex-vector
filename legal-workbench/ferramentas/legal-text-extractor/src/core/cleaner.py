@@ -10,7 +10,7 @@ from dataclasses import dataclass
 
 from .detector import JudicialSystemDetector
 from .normalizer import TextNormalizer
-from .patterns import CleaningPattern, SystemPatterns
+from .patterns import SystemPatterns
 
 
 @dataclass
@@ -140,12 +140,12 @@ class DocumentCleaner:
                     regex = re.compile(escaped, re.IGNORECASE)
 
                     before = cleaned
-                    cleaned = regex.sub('', cleaned)
+                    cleaned = regex.sub("", cleaned)
 
                     if before != cleaned:
                         removed_patterns.append(f'Blacklist: "{term}"')
 
-                except Exception as e:
+                except Exception:
                     # Ignora erros em termos da blacklist
                     pass
 

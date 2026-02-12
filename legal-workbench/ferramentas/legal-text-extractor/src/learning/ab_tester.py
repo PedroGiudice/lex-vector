@@ -1,15 +1,16 @@
 """Sistema de A/B testing para comparar versões de prompts"""
+
 import json
 import logging
 import random
-from pathlib import Path
-from typing import Optional, Literal
+from dataclasses import asdict, dataclass
 from datetime import datetime
-from dataclasses import dataclass, asdict
+from pathlib import Path
+from typing import Literal
 
-from .schemas import ExtractionResult, PerformanceMetrics
-from .prompt_versioner import PromptVersioner, PromptVersion
 from .metrics_tracker import MetricsTracker
+from .prompt_versioner import PromptVersioner
+from .schemas import ExtractionResult, PerformanceMetrics
 from .storage import LearningStorage
 
 logger = logging.getLogger(__name__)
@@ -18,10 +19,11 @@ logger = logging.getLogger(__name__)
 @dataclass
 class ABTestResult:
     """Resultado de teste A/B individual"""
+
     document_id: str
     version_used: str  # "A" ou "B"
     extraction_result: ExtractionResult
-    metrics: Optional[PerformanceMetrics] = None
+    metrics: PerformanceMetrics | None = None
 
 
 @dataclass
@@ -46,12 +48,12 @@ class ABTest:
 
     # Status
     status: Literal["running", "completed", "cancelled"] = "running"
-    completed_at: Optional[datetime] = None
+    completed_at: datetime | None = None
 
     # Análise (preenchido após conclusão)
-    winner: Optional[str] = None  # "A", "B", ou "tie"
-    improvement_margin: Optional[float] = None  # Diferença de F1
-    statistical_significance: Optional[bool] = None
+    winner: str | None = None  # "A", "B", ou "tie"
+    improvement_margin: float | None = None  # Diferença de F1
+    statistical_significance: bool | None = None
 
     # Metadados
     notes: str = ""
@@ -78,7 +80,7 @@ class ABTest:
             {
                 "document_id": r.document_id,
                 "version_used": r.version_used,
-                "f1": r.metrics.f1_score if r.metrics else None
+                "f1": r.metrics.f1_score if r.metrics else None,
             }
             for r in self.results_a
         ]
@@ -86,7 +88,7 @@ class ABTest:
             {
                 "document_id": r.document_id,
                 "version_used": r.version_used,
-                "f1": r.metrics.f1_score if r.metrics else None
+                "f1": r.metrics.f1_score if r.metrics else None,
             }
             for r in self.results_b
         ]
@@ -123,10 +125,10 @@ class ABTester:
 
     def __init__(
         self,
-        versioner: Optional[PromptVersioner] = None,
-        metrics_tracker: Optional[MetricsTracker] = None,
-        storage: Optional[LearningStorage] = None,
-        tests_dir: Optional[Path] = None
+        versioner: PromptVersioner | None = None,
+        metrics_tracker: MetricsTracker | None = None,
+        storage: LearningStorage | None = None,
+        tests_dir: Path | None = None,
     ):
         """
         Inicializa ABTester.
@@ -155,7 +157,7 @@ class ABTester:
         version_b: str,
         sample_size: int = 10,
         split_ratio: float = 0.5,
-        notes: str = ""
+        notes: str = "",
     ) -> ABTest:
         """
         Cria novo teste A/B.
@@ -193,22 +195,20 @@ class ABTester:
             version_b_id=version_b,
             sample_size=sample_size,
             split_ratio=split_ratio,
-            notes=notes
+            notes=notes,
         )
 
         # Salvar
         self._save_test(test)
 
-        logger.info(
-            f"A/B test created: {test_id} ({version_a} vs {version_b}, n={sample_size})"
-        )
+        logger.info(f"A/B test created: {test_id} ({version_a} vs {version_b}, n={sample_size})")
 
         return test
 
     def run_test(
         self,
         test_id: str,
-        documents: list[tuple[str, str]]  # List of (doc_id, doc_text)
+        documents: list[tuple[str, str]],  # List of (doc_id, doc_text)
     ) -> ABTest:
         """
         Executa teste A/B em documentos fornecidos.
@@ -238,7 +238,7 @@ class ABTester:
             raise ValueError(f"Test {test_id} is not running (status={test.status})")
 
         # Limitar ao sample_size
-        sample = documents[:test.sample_size]
+        sample = documents[: test.sample_size]
 
         # Shuffle para randomizar
         random.shuffle(sample)
@@ -258,7 +258,7 @@ class ABTester:
             ABTestResult(
                 document_id=doc_id,
                 version_used="A",
-                extraction_result=None  # Será preenchido após extração
+                extraction_result=None,  # Será preenchido após extração
             )
             for doc_id, _ in docs_a
         ]
@@ -267,7 +267,7 @@ class ABTester:
             ABTestResult(
                 document_id=doc_id,
                 version_used="B",
-                extraction_result=None  # Será preenchido após extração
+                extraction_result=None,  # Será preenchido após extração
             )
             for doc_id, _ in docs_b
         ]
@@ -282,7 +282,7 @@ class ABTester:
 
         return test
 
-    def get_version_for_document(self, test_id: str, document_id: str) -> Optional[str]:
+    def get_version_for_document(self, test_id: str, document_id: str) -> str | None:
         """
         Retorna qual versão deve ser usada para um documento no teste A/B.
 
@@ -311,10 +311,7 @@ class ABTester:
         return None
 
     def record_result(
-        self,
-        test_id: str,
-        document_id: str,
-        extraction_result: ExtractionResult
+        self, test_id: str, document_id: str, extraction_result: ExtractionResult
     ) -> None:
         """
         Registra resultado de extração no teste A/B.
@@ -332,9 +329,7 @@ class ABTester:
         # Calcular métricas se houver ground truth
         metrics = None
         if extraction_result.ground_truth_sections:
-            metrics = self.metrics_tracker.calculate_metrics_for_extraction(
-                extraction_result
-            )
+            metrics = self.metrics_tracker.calculate_metrics_for_extraction(extraction_result)
 
         # Atualizar result apropriado
         updated = False
@@ -355,9 +350,7 @@ class ABTester:
                     break
 
         if not updated:
-            logger.warning(
-                f"Document {document_id} not found in test {test_id}"
-            )
+            logger.warning(f"Document {document_id} not found in test {test_id}")
             return
 
         # Salvar
@@ -365,11 +358,7 @@ class ABTester:
 
         logger.debug(f"Result recorded for {document_id} in test {test_id}")
 
-    def analyze_results(
-        self,
-        test_id: str,
-        min_results: int = 5
-    ) -> Optional[dict]:
+    def analyze_results(self, test_id: str, min_results: int = 5) -> dict | None:
         """
         Analisa resultados do teste A/B.
 
@@ -407,6 +396,7 @@ class ABTester:
 
         # Calcular std dev (simplified)
         import statistics
+
         std_f1_a = statistics.stdev([r.metrics.f1_score for r in results_a_valid])
         std_f1_b = statistics.stdev([r.metrics.f1_score for r in results_b_valid])
 
@@ -434,7 +424,7 @@ class ABTester:
                 "f1": round(avg_f1_a, 3),
                 "precision": round(avg_precision_a, 3),
                 "recall": round(avg_recall_a, 3),
-                "std_f1": round(std_f1_a, 3)
+                "std_f1": round(std_f1_a, 3),
             },
             "version_b": {
                 "id": test.version_b_id,
@@ -442,12 +432,12 @@ class ABTester:
                 "f1": round(avg_f1_b, 3),
                 "precision": round(avg_precision_b, 3),
                 "recall": round(avg_recall_b, 3),
-                "std_f1": round(std_f1_b, 3)
+                "std_f1": round(std_f1_b, 3),
             },
             "winner": winner,
             "improvement": round(improvement, 3),
             "improvement_pct": round(improvement * 100, 1),
-            "statistically_significant": is_significant
+            "statistically_significant": is_significant,
         }
 
         # Atualizar teste
@@ -487,11 +477,7 @@ class ABTester:
         logger.info(f"A/B test {test_id} marked as completed")
         return test
 
-    def promote_winner(
-        self,
-        test_id: str,
-        min_improvement: float = 0.02
-    ) -> Optional[str]:
+    def promote_winner(self, test_id: str, min_improvement: float = 0.02) -> str | None:
         """
         Promove versão vencedora do teste A/B para ativa.
 
@@ -552,11 +538,7 @@ class ABTester:
 
         return promoted_version
 
-    def rollback_if_worse(
-        self,
-        test_id: str,
-        max_degradation: float = -0.02
-    ) -> Optional[str]:
+    def rollback_if_worse(self, test_id: str, max_degradation: float = -0.02) -> str | None:
         """
         Faz rollback para versão A se B for pior.
 
@@ -601,7 +583,7 @@ class ABTester:
 
         return None
 
-    def load_test(self, test_id: str) -> Optional[ABTest]:
+    def load_test(self, test_id: str) -> ABTest | None:
         """Carrega teste do storage"""
         test_file = self.tests_dir / f"{test_id}.json"
 
@@ -611,10 +593,7 @@ class ABTester:
         data = json.loads(test_file.read_text())
         return ABTest.from_dict(data)
 
-    def list_tests(
-        self,
-        status: Optional[str] = None
-    ) -> list[ABTest]:
+    def list_tests(self, status: str | None = None) -> list[ABTest]:
         """
         Lista testes armazenados.
 

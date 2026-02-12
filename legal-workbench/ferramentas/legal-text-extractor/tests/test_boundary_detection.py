@@ -21,17 +21,16 @@ from src.core.intelligence.boundary_config import (
     BoundaryConfig,
     BoundaryPattern,
     DocumentClass,
+    get_compact_document_config,
     get_conservative_config,
     get_disabled_config,
     get_formal_document_config,
-    get_compact_document_config,
 )
 from src.core.intelligence.boundary_detector import (
     BoundaryDetector,
     detect_boundaries_conservative,
     has_boundary_markers,
 )
-
 
 # =============================================================================
 # FIXTURES DE TESTE
@@ -306,9 +305,7 @@ class TestPreservacao:
 
         # Todas as linhas de 1 a total_lines devem estar cobertas
         expected_lines = set(range(1, total_lines + 1))
-        assert covered_lines == expected_lines, (
-            f"Linhas faltando: {expected_lines - covered_lines}"
-        )
+        assert covered_lines == expected_lines, f"Linhas faltando: {expected_lines - covered_lines}"
 
     def test_nenhuma_linha_em_multiplos_segmentos(self):
         """Nenhuma linha pode pertencer a mais de um segmento."""
@@ -320,9 +317,7 @@ class TestPreservacao:
         for seg_idx, seg in enumerate(result["segments"]):
             for line in range(seg["start_line"], seg["end_line"] + 1):
                 if line in line_to_segment:
-                    pytest.fail(
-                        f"Linha {line} em segmentos {line_to_segment[line]} e {seg_idx}"
-                    )
+                    pytest.fail(f"Linha {line} em segmentos {line_to_segment[line]} e {seg_idx}")
                 line_to_segment[line] = seg_idx
 
     def test_texto_reconstruido_igual_original(self):

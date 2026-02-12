@@ -21,44 +21,44 @@ Features:
 """
 
 import logging
-from pathlib import Path
-from typing import Optional, Callable, Generator, Iterator
+from collections.abc import Callable, Generator
 from dataclasses import dataclass, field
 from datetime import datetime
+from pathlib import Path
 
 # Per-page extraction imports
 try:
     import pdfplumber
+
     PDFPLUMBER_AVAILABLE = True
 except ImportError:
     PDFPLUMBER_AVAILABLE = False
 
 try:
     import pytesseract
-    from PIL import Image
     from pdf2image import convert_from_path
+    from PIL import Image
+
     TESSERACT_AVAILABLE = True
 except ImportError:
     TESSERACT_AVAILABLE = False
 
+from src.config import COMPLEXITY_ENGINE_MAP, PageComplexity
 from src.context import (
-    ContextStore,
-    PatternHint,
-    ObservationResult,
-    SignatureVector,
-    EngineType,
-    PatternType,
     Caso,
+    ContextStore,
+    EngineType,
+    ObservationResult,
+    PatternHint,
+    SignatureVector,
 )
 from src.context.signature import (
-    compute_signature_from_layout,
     PageSignatureInput,
+    compute_signature_from_layout,
     infer_pattern_type,
 )
 from src.engines import EngineSelector, get_selector
-from src.engines.base import ExtractionResult
 from src.steps.step_01_layout import LayoutAnalyzer
-from src.config import PageType, PageComplexity, COMPLEXITY_ENGINE_MAP
 
 logger = logging.getLogger(__name__)
 
@@ -78,14 +78,15 @@ class PipelineResult:
         warnings: List of warnings during processing
         layout: Layout analysis result (optional)
     """
+
     text: str
     total_pages: int
     success: bool
     metadata: dict = field(default_factory=dict)
     patterns_learned: int = 0
-    processing_time_ms: Optional[int] = None
+    processing_time_ms: int | None = None
     warnings: list[str] = field(default_factory=list)
-    layout: Optional[dict] = None
+    layout: dict | None = None
 
 
 class PipelineOrchestrator:
@@ -111,8 +112,8 @@ class PipelineOrchestrator:
 
     def __init__(
         self,
-        context_db_path: Optional[Path] = None,
-        caso_info: Optional[dict] = None,
+        context_db_path: Path | None = None,
+        caso_info: dict | None = None,
     ):
         """
         Initialize pipeline orchestrator.
@@ -124,8 +125,8 @@ class PipelineOrchestrator:
                 - sistema: System name ('pje', 'eproc', etc)
         """
         # Initialize ContextStore if db_path provided
-        self.context_store: Optional[ContextStore] = None
-        self.caso: Optional[Caso] = None
+        self.context_store: ContextStore | None = None
+        self.caso: Caso | None = None
 
         if context_db_path is not None:
             self.context_store = ContextStore(db_path=context_db_path)
@@ -151,7 +152,7 @@ class PipelineOrchestrator:
         # Key: pdf_path.resolve(), Value: dict with 'pages' list of text per page
         self._marker_cache: dict[Path, dict] = {}
 
-    def clear_marker_cache(self, pdf_path: Optional[Path] = None) -> None:
+    def clear_marker_cache(self, pdf_path: Path | None = None) -> None:
         """
         Clear the Marker cache to free memory.
 
@@ -175,7 +176,7 @@ class PipelineOrchestrator:
     def process(
         self,
         pdf_path: Path,
-        progress_callback: Optional[Callable[[int, int, str], None]] = None,
+        progress_callback: Callable[[int, int, str], None] | None = None,
     ) -> PipelineResult:
         """
         Process a PDF through the complete pipeline.
@@ -215,9 +216,7 @@ class PipelineOrchestrator:
                 # Notify progress callback
                 if progress_callback:
                     progress_callback(
-                        page_num,
-                        total_pages,
-                        f"Extracting page {page_num}/{total_pages}..."
+                        page_num, total_pages, f"Extracting page {page_num}/{total_pages}..."
                     )
 
                 try:
@@ -275,7 +274,7 @@ class PipelineOrchestrator:
     def process_generator(
         self,
         pdf_path: Path,
-        progress_callback: Optional[Callable[[int, int, str], None]] = None,
+        progress_callback: Callable[[int, int, str], None] | None = None,
     ) -> Generator[dict, None, PipelineResult]:
         """
         Process a PDF yielding results page-by-page for streaming consumption.
@@ -332,9 +331,7 @@ class PipelineOrchestrator:
                 # Notify progress callback
                 if progress_callback:
                     progress_callback(
-                        page_num,
-                        total_pages,
-                        f"Extracting page {page_num}/{total_pages}..."
+                        page_num, total_pages, f"Extracting page {page_num}/{total_pages}..."
                     )
 
                 try:
@@ -461,9 +458,7 @@ class PipelineOrchestrator:
         text = self._extract_page_text(pdf_path, page_num, engine_name, page_data)
 
         # Create ObservationResult
-        observation = self._create_observation(
-            page_data, engine_name, text, signature
-        )
+        observation = self._create_observation(page_data, engine_name, text, signature)
 
         # Learn from result (if ContextStore enabled)
         if self.context_store and self.caso and observation:
@@ -499,7 +494,7 @@ class PipelineOrchestrator:
     def _select_engine_for_page(
         self,
         page_data: dict,
-        hint: Optional[PatternHint] = None,
+        hint: PatternHint | None = None,
     ) -> str:
         """
         Select best engine for a page.
@@ -539,8 +534,7 @@ class PipelineOrchestrator:
             best_engine = self.context_store.get_best_engine_for_pattern_type(pattern_type)
             if best_engine:
                 logger.debug(
-                    f"Using historical best engine for {pattern_type.value}: "
-                    f"{best_engine.value}"
+                    f"Using historical best engine for {pattern_type.value}: {best_engine.value}"
                 )
                 return best_engine.value
 
@@ -555,7 +549,7 @@ class PipelineOrchestrator:
         pdf_path: Path,
         page_num: int,
         engine_name: str,
-        page_data: Optional[dict] = None,
+        page_data: dict | None = None,
     ) -> str:
         """
         Extract text from a single page using the specified engine.
@@ -593,7 +587,7 @@ class PipelineOrchestrator:
         self,
         pdf_path: Path,
         page_num: int,
-        page_data: Optional[dict] = None,
+        page_data: dict | None = None,
     ) -> str:
         """
         Extract text from a single page using pdfplumber.
@@ -626,8 +620,7 @@ class PipelineOrchestrator:
                 cropped = page.crop(safe_bbox)
                 cropped_with_filter = cropped.filter(
                     lambda obj: (
-                        obj["object_type"] != "char"
-                        or (obj["x0"] >= x0 and obj["x1"] <= x1)
+                        obj["object_type"] != "char" or (obj["x0"] >= x0 and obj["x1"] <= x1)
                     )
                 )
                 text = cropped_with_filter.extract_text()
@@ -641,7 +634,7 @@ class PipelineOrchestrator:
         self,
         pdf_path: Path,
         page_num: int,
-        page_data: Optional[dict] = None,
+        page_data: dict | None = None,
     ) -> str:
         """
         Extract text from a single page using Tesseract OCR.
@@ -715,13 +708,13 @@ class PipelineOrchestrator:
                 full_text = rendered.markdown
 
                 # Try to extract per-page text if Marker provides page info
-                if hasattr(rendered, 'pages') and rendered.pages:
+                if hasattr(rendered, "pages") and rendered.pages:
                     # rendered.pages is a list of page objects
                     page_texts = []
                     for page_obj in rendered.pages:
-                        if hasattr(page_obj, 'text'):
+                        if hasattr(page_obj, "text"):
                             page_texts.append(page_obj.text)
-                        elif hasattr(page_obj, 'markdown'):
+                        elif hasattr(page_obj, "markdown"):
                             page_texts.append(page_obj.markdown)
                         else:
                             # Fallback: empty string for this page
@@ -771,7 +764,7 @@ class PipelineOrchestrator:
         engine_name: str,
         text: str,
         signature: SignatureVector,
-    ) -> Optional[ObservationResult]:
+    ) -> ObservationResult | None:
         """
         Create ObservationResult from extraction.
 

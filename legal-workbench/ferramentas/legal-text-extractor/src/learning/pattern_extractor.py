@@ -1,11 +1,11 @@
 """Extração de padrões de documentos validados"""
-import re
+
 import logging
+import re
 from collections import Counter
-from typing import Optional
 from dataclasses import dataclass
 
-from .schemas import ExtractionResult, ExtractedSection, ValidationStatus, SectionType
+from .schemas import ExtractedSection, SectionType, ValidationStatus
 from .storage import LearningStorage
 
 logger = logging.getLogger(__name__)
@@ -14,12 +14,13 @@ logger = logging.getLogger(__name__)
 @dataclass
 class SectionPattern:
     """Padrão identificado em um tipo de seção"""
+
     section_type: SectionType
     start_keywords: list[str]  # Palavras/frases que marcam início
-    end_keywords: list[str]    # Palavras/frases que marcam fim
+    end_keywords: list[str]  # Palavras/frases que marcam fim
     common_markers: list[str]  # Marcadores comuns encontrados
-    avg_length: int            # Comprimento médio (chars)
-    confidence: float          # Confiança no padrão (baseado em frequency)
+    avg_length: int  # Comprimento médio (chars)
+    confidence: float  # Confiança no padrão (baseado em frequency)
 
 
 class PatternExtractor:
@@ -32,7 +33,7 @@ class PatternExtractor:
     - Comprimento médio de cada tipo de seção
     """
 
-    def __init__(self, storage: Optional[LearningStorage] = None):
+    def __init__(self, storage: LearningStorage | None = None):
         """
         Inicializa extractor.
 
@@ -43,9 +44,7 @@ class PatternExtractor:
         logger.info("PatternExtractor initialized")
 
     def extract_patterns(
-        self,
-        min_samples: int = 3,
-        min_confidence: float = 0.6
+        self, min_samples: int = 3, min_confidence: float = 0.6
     ) -> list[SectionPattern]:
         """
         Extrai padrões de todas as extrações aprovadas.
@@ -98,9 +97,7 @@ class PatternExtractor:
         return patterns
 
     def _extract_pattern_for_type(
-        self,
-        section_type: SectionType,
-        sections: list[ExtractedSection]
+        self, section_type: SectionType, sections: list[ExtractedSection]
     ) -> SectionPattern:
         """
         Extrai padrão para um tipo específico de seção.
@@ -135,7 +132,7 @@ class PatternExtractor:
             end_keywords=end_keywords,
             common_markers=markers,
             avg_length=int(avg_length),
-            confidence=confidence
+            confidence=confidence,
         )
 
     def _get_start_text(self, content: str, n_chars: int = 200) -> str:
@@ -161,13 +158,28 @@ class PatternExtractor:
         word_counter = Counter()
 
         stopwords = {
-            'que', 'para', 'com', 'por', 'uma', 'dos', 'das', 'pela', 'pelo',
-            'são', 'foi', 'ser', 'está', 'como', 'mais', 'aos', 'pelo', 'sua'
+            "que",
+            "para",
+            "com",
+            "por",
+            "uma",
+            "dos",
+            "das",
+            "pela",
+            "pelo",
+            "são",
+            "foi",
+            "ser",
+            "está",
+            "como",
+            "mais",
+            "aos",
+            "sua",
         }
 
         for text in texts:
             # Normalizar e tokenizar
-            words = re.findall(r'\b[A-ZÀ-Ú][A-ZÀ-Ú]+\b|\b\w{4,}\b', text.lower())
+            words = re.findall(r"\b[A-ZÀ-Ú][A-ZÀ-Ú]+\b|\b\w{4,}\b", text.lower())
 
             for word in words:
                 if word not in stopwords and len(word) > 3:
@@ -189,18 +201,18 @@ class PatternExtractor:
         markers = []
 
         # Procurar por padrões comuns
-        all_text = '\n'.join(s.content for s in sections)
+        all_text = "\n".join(s.content for s in sections)
 
         # Marcadores jurídicos comuns
         common_patterns = [
-            r'EXCELENTÍSSIMO',
-            r'Vistos.*relatados.*discutidos',
-            r'Nestes termos.*pede deferimento',
-            r'PROCURAÇÃO',
-            r'OUTORGANTE:',
-            r'I\s*-\s*DOS FATOS',
-            r'DISPOSITIVO',
-            r'SENTENÇA'
+            r"EXCELENTÍSSIMO",
+            r"Vistos.*relatados.*discutidos",
+            r"Nestes termos.*pede deferimento",
+            r"PROCURAÇÃO",
+            r"OUTORGANTE:",
+            r"I\s*-\s*DOS FATOS",
+            r"DISPOSITIVO",
+            r"SENTENÇA",
         ]
 
         for pattern in common_patterns:
@@ -210,10 +222,7 @@ class PatternExtractor:
         return markers[:10]  # Limitar a 10 marcadores
 
     def _calculate_pattern_confidence(
-        self,
-        sections: list[ExtractedSection],
-        start_keywords: list[str],
-        end_keywords: list[str]
+        self, sections: list[ExtractedSection], start_keywords: list[str], end_keywords: list[str]
     ) -> float:
         """
         Calcula confiança no padrão baseado em consistência.
@@ -240,10 +249,6 @@ class PatternExtractor:
         keyword_score = (len(start_keywords) + len(end_keywords)) / 10.0  # Max 10 keywords
 
         # Média ponderada
-        confidence = (
-            0.4 * sample_score +
-            0.4 * avg_confidence +
-            0.2 * min(1.0, keyword_score)
-        )
+        confidence = 0.4 * sample_score + 0.4 * avg_confidence + 0.2 * min(1.0, keyword_score)
 
         return round(confidence, 2)

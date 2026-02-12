@@ -1,5 +1,7 @@
 """Testes para limpeza de documentos"""
+
 import pytest
+
 from src.core.cleaner import DocumentCleaner
 
 

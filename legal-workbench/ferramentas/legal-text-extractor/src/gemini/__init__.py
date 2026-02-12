@@ -2,11 +2,11 @@
 
 from .client import GeminiClient, GeminiConfig, GeminiResponse
 from .schemas import (
-    PecaType,
-    SectionClassification,
     ClassificationResult,
     CleanedSection,
     CleaningResult,
+    PecaType,
+    SectionClassification,
 )
 
 __all__ = [

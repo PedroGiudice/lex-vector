@@ -116,7 +116,8 @@ class GeminiClient:
         # Conteúdo do arquivo vai via stdin
         cmd = [
             "gemini",
-            "-m", self.config.model,
+            "-m",
+            self.config.model,
             prompt,
         ]
 
@@ -126,7 +127,7 @@ class GeminiClient:
         for attempt in range(self.config.max_retries + 1):
             try:
                 # Lê arquivo e passa via stdin
-                with open(file_path, "r", encoding="utf-8") as f:
+                with open(file_path, encoding="utf-8") as f:
                     file_content = f.read()
 
                 # Combina prompt + conteúdo
@@ -234,11 +235,11 @@ class GeminiClient:
             return match.group(1).strip()
 
         # Tenta encontrar { ... } ou [ ... ]
-        for start, end in [('{', '}'), ('[', ']')]:
+        for start, end in [("{", "}"), ("[", "]")]:
             first = text.find(start)
             last = text.rfind(end)
             if first != -1 and last > first:
-                candidate = text[first:last + 1]
+                candidate = text[first : last + 1]
                 try:
                     json.loads(candidate)
                     return candidate

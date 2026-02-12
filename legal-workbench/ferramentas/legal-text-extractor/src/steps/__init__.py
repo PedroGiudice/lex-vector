@@ -9,7 +9,7 @@ Estagio 4: step_04_classify.py (Bibliotecario) - Classificacao semantica
 
 from .step_01_layout import LayoutAnalyzer
 from .step_03_extract import TextExtractor
-from .step_04_classify import GeminiBibliotecario, BibliotecarioConfig
+from .step_04_classify import BibliotecarioConfig, GeminiBibliotecario
 
 # VisionProcessor requer cv2 - import condicional
 try:

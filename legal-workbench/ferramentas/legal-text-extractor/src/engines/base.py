@@ -10,7 +10,7 @@ This module provides:
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
+
 import psutil
 
 
@@ -30,6 +30,7 @@ class ExtractionResult:
         metadata: Additional engine-specific metadata
         warnings: List of warnings during extraction
     """
+
     text: str
     pages: int
     engine_used: str
@@ -114,12 +115,12 @@ class ExtractionEngine(ABC):
         # Check RAM requirement (can be bypassed for low-memory systems)
         should_check_ram = self.min_ram_gb > 0 and not skip_ram_check and not self._skip_ram_check
         if should_check_ram:
-            available_gb = psutil.virtual_memory().available / (1024 ** 3)
+            available_gb = psutil.virtual_memory().available / (1024**3)
             if available_gb < self.min_ram_gb:
                 return (
                     False,
                     f"{self.name} requires {self.min_ram_gb}GB RAM, "
-                    f"only {available_gb:.1f}GB available"
+                    f"only {available_gb:.1f}GB available",
                 )
 
         # Check dependencies
@@ -131,16 +132,9 @@ class ExtractionEngine(ABC):
                 missing.append(dep)
 
         if missing:
-            return (
-                False,
-                f"{self.name} missing dependencies: {', '.join(missing)}"
-            )
+            return (False, f"{self.name} missing dependencies: {', '.join(missing)}")
 
         return (True, "")
 
     def __repr__(self) -> str:
-        return (
-            f"<{self.__class__.__name__} "
-            f"name={self.name!r} "
-            f"min_ram={self.min_ram_gb}GB>"
-        )
+        return f"<{self.__class__.__name__} name={self.name!r} min_ram={self.min_ram_gb}GB>"

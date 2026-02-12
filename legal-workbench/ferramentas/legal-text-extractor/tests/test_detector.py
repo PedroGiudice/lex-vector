@@ -1,5 +1,7 @@
 """Testes para detector de sistema judicial"""
+
 import pytest
+
 from src.core.detector import JudicialSystemDetector
 
 

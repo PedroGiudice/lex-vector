@@ -1,6 +1,8 @@
 """Exportador para JSON com metadados"""
+
 import json
 from pathlib import Path
+
 from ..analyzers.section_analyzer import Section
 
 
@@ -25,15 +27,12 @@ class JSONExporter:
                     "start_pos": s.start_pos,
                     "end_pos": s.end_pos,
                     "confidence": s.confidence,
-                    "word_count": len(s.content.split())
+                    "word_count": len(s.content.split()),
                 }
                 for s in sections
             ],
             "total_sections": len(sections),
-            "total_words": sum(len(s.content.split()) for s in sections)
+            "total_words": sum(len(s.content.split()) for s in sections),
         }
 
-        output_path.write_text(
-            json.dumps(data, indent=2, ensure_ascii=False),
-            encoding="utf-8"
-        )
+        output_path.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")

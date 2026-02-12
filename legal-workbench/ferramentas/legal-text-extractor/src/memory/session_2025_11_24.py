@@ -60,9 +60,9 @@ PIPELINE_3_ESTAGIOS = {
 # =============================================================================
 
 CORE_PRESERVADO = [
-    "src/core/patterns.py",    # 75+ regex de limpeza
-    "src/core/cleaner.py",     # Orquestrador de limpeza
-    "src/core/detector.py",    # Auto-detecção de sistemas
+    "src/core/patterns.py",  # 75+ regex de limpeza
+    "src/core/cleaner.py",  # Orquestrador de limpeza
+    "src/core/detector.py",  # Auto-detecção de sistemas
     "src/core/normalizer.py",  # Normalização pós-limpeza
 ]
 
@@ -71,9 +71,9 @@ CORE_PRESERVADO = [
 # =============================================================================
 
 CODIGO_LEGADO_NAO_USAR = [
-    "src/analyzers/",   # Claude API (não usar)
-    "src/learning/",    # Claude API (não usar)
-    "src/prompts/",     # Claude prompts (não usar)
+    "src/analyzers/",  # Claude API (não usar)
+    "src/learning/",  # Claude API (não usar)
+    "src/prompts/",  # Claude prompts (não usar)
 ]
 
 # =============================================================================
@@ -120,9 +120,9 @@ DEPENDENCIAS_PYTHON = [
 ]
 
 DEPENDENCIAS_SISTEMA = [
-    "poppler-utils",           # sudo apt install poppler-utils
-    "tesseract-ocr",           # sudo apt install tesseract-ocr
-    "tesseract-ocr-por",       # sudo apt install tesseract-ocr-por
+    "poppler-utils",  # sudo apt install poppler-utils
+    "tesseract-ocr",  # sudo apt install tesseract-ocr
+    "tesseract-ocr-por",  # sudo apt install tesseract-ocr-por
 ]
 
 # =============================================================================

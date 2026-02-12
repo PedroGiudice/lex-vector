@@ -22,18 +22,18 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Pattern
+from re import Pattern
 
 
 class SecaoType(Enum):
     """Tipos de secao para organizacao de autos (simplificado)."""
 
-    PETICAO = "peticao"          # Manifestacoes das partes
-    DOCUMENTOS = "documentos"    # Anexos e comprovantes
-    DECISAO = "decisao"          # Pronunciamentos judiciais
-    PARECER = "parecer"          # MP, peritos, terceiros
-    ATA = "ata"                  # Audiencias
-    OUTRO = "outro"              # Nao identificado
+    PETICAO = "peticao"  # Manifestacoes das partes
+    DOCUMENTOS = "documentos"  # Anexos e comprovantes
+    DECISAO = "decisao"  # Pronunciamentos judiciais
+    PARECER = "parecer"  # MP, peritos, terceiros
+    ATA = "ata"  # Audiencias
+    OUTRO = "outro"  # Nao identificado
 
 
 @dataclass(frozen=True)

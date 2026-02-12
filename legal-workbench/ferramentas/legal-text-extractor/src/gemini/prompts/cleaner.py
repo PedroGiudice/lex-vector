@@ -9,8 +9,7 @@ REGRA CRÍTICA: O Gemini NÃO deve resumir ou condensar. Apenas remover ruído.
 
 from __future__ import annotations
 
-
-CLEANING_PROMPT = '''
+CLEANING_PROMPT = """
 # TAREFA: Limpeza Contextual de Documento Jurídico
 
 Você é um assistente especializado em limpeza de documentos jurídicos. Sua tarefa é **LIMPAR** o texto, removendo ruído técnico, mas **PRESERVANDO 100%** do conteúdo jurídico substantivo.
@@ -127,7 +126,7 @@ Retorne APENAS JSON válido. NÃO inclua markdown code blocks.
 
 O documento foi classificado nas seguintes seções:
 
-'''
+"""
 
 
 def build_cleaning_prompt(classification_summary: str) -> str:
@@ -146,7 +145,10 @@ def build_cleaning_prompt(classification_summary: str) -> str:
         >>> prompt = build_cleaning_prompt(summary)
         >>> response = gemini_client.process_file(path, prompt)
     """
-    return CLEANING_PROMPT + classification_summary + """
+    return (
+        CLEANING_PROMPT
+        + classification_summary
+        + """
 
 ---
 
@@ -155,3 +157,4 @@ def build_cleaning_prompt(classification_summary: str) -> str:
 Limpe o documento abaixo, preservando todo conteúdo jurídico:
 
 """
+    )

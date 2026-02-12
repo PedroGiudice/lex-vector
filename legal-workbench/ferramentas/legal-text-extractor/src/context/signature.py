@@ -17,14 +17,14 @@ Feature vector components (normalized to 0.0-1.0):
 9. Page type (NATIVE=0.0, RASTER=1.0)
 10. Cleaning reasons count (normalized)
 """
+
 import hashlib
 import json
-from typing import Optional
 from dataclasses import dataclass
 
-from .models import SignatureVector, PatternType
-from src.config import PageType, PageComplexity
+from src.config import PageComplexity, PageType
 
+from .models import PatternType, SignatureVector
 
 # Complexity to score mapping
 COMPLEXITY_SCORES = {
@@ -56,6 +56,7 @@ PATTERN_INFERENCE_RULES = [
 @dataclass
 class PageSignatureInput:
     """Input data for signature computation."""
+
     page_num: int
     page_type: str  # "NATIVE" or "RASTER_NEEDED"
     safe_bbox: list[float]  # [x0, y0, x1, y1]
@@ -65,14 +66,16 @@ class PageSignatureInput:
     # Optional fields (may not be present in all layouts)
     page_width: float = 612.0  # Default letter width in points
     page_height: float = 792.0  # Default letter height in points
-    tarja_x_cut: Optional[float] = None
-    complexity: Optional[str] = None
-    recommended_engine: Optional[str] = None
+    tarja_x_cut: float | None = None
+    complexity: str | None = None
+    recommended_engine: str | None = None
     needs_cleaning: bool = False
-    cleaning_reason: Optional[list[str]] = None
+    cleaning_reason: list[str] | None = None
 
     @classmethod
-    def from_layout_page(cls, page_data: dict, page_width: float = 612.0, page_height: float = 792.0) -> "PageSignatureInput":
+    def from_layout_page(
+        cls, page_data: dict, page_width: float = 612.0, page_height: float = 792.0
+    ) -> "PageSignatureInput":
         """Create from layout.json page data."""
         return cls(
             page_num=page_data["page_num"],
@@ -159,7 +162,9 @@ def compute_signature(page_input: PageSignatureInput) -> SignatureVector:
 
     # 6. Complexity score
     complexity = page_input.complexity or (
-        PageComplexity.NATIVE_CLEAN if page_input.page_type == "NATIVE" else PageComplexity.RASTER_DIRTY
+        PageComplexity.NATIVE_CLEAN
+        if page_input.page_type == "NATIVE"
+        else PageComplexity.RASTER_DIRTY
     )
     complexity_score = COMPLEXITY_SCORES.get(complexity, 0.5)
     features.append(complexity_score)
@@ -217,7 +222,9 @@ def infer_pattern_type(page_input: PageSignatureInput) -> tuple[PatternType, flo
     return PatternType.TEXT_BLOCK, 0.5
 
 
-def compute_signature_from_layout(layout_page: dict, page_width: float = 612.0, page_height: float = 792.0) -> SignatureVector:
+def compute_signature_from_layout(
+    layout_page: dict, page_width: float = 612.0, page_height: float = 792.0
+) -> SignatureVector:
     """
     Convenience function to compute signature directly from layout.json page.
 

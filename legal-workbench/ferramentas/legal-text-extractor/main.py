@@ -24,28 +24,29 @@ Environment Variables:
 - LTE_DEBUG: Set to "1" for verbose logging
 - ENVIRONMENT: development/staging/production
 """
+
 import logging
-import time
 import os
+import time
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from dataclasses import dataclass
+
+from src.core.cleaner import DocumentCleaner
+from src.engines.marker_engine import MarkerConfig, MarkerEngine
+from src.exporters.json import JSONExporter
+from src.exporters.markdown import MarkdownExporter
+from src.exporters.text import TextExporter
 
 # Initialize monitoring FIRST (before other imports that might fail)
 from src.monitoring import (
+    capture_exception,
     init_monitoring,
+    set_extraction_context,
     start_span,
     track_memory,
     track_progress,
-    set_extraction_context,
-    capture_exception,
 )
-
-from src.engines.marker_engine import MarkerEngine, MarkerConfig
-from src.core.cleaner import DocumentCleaner
-from src.exporters.text import TextExporter
-from src.exporters.markdown import MarkdownExporter
-from src.exporters.json import JSONExporter
 
 # Configurar logging
 logger = logging.getLogger(__name__)
@@ -54,6 +55,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class Section:
     """Seção de documento (estrutura simples sem dependência de SDK)"""
+
     type: str
     content: str
     start_pos: int
@@ -64,6 +66,7 @@ class Section:
 @dataclass
 class ExtractionResult:
     """Resultado completo da extração"""
+
     text: str
     sections: list[Section]
     system: str
@@ -161,9 +164,8 @@ class LegalTextExtractor:
             "lte.process_pdf",
             f"Process PDF: {pdf_path.name}",
             file_size_mb=round(file_size_mb, 2),
-            force_ocr=force_ocr
+            force_ocr=force_ocr,
         ) as process_span:
-
             try:
                 # 1. Verifica disponibilidade do Marker
                 with start_span("lte.check_marker", "Check Marker availability"):
@@ -175,9 +177,7 @@ class LegalTextExtractor:
 
                 # 2. Extrai texto usando Marker
                 with start_span(
-                    "lte.extract_text",
-                    "Extract text with Marker",
-                    force_ocr=force_ocr
+                    "lte.extract_text", "Extract text with Marker", force_ocr=force_ocr
                 ) as extract_span:
                     track_progress(2, 4, "extracao")
                     logger.info("[2/4] Extraindo texto com Marker...")
@@ -196,8 +196,8 @@ class LegalTextExtractor:
                     extract_time = time.time() - extract_start
 
                     # Get extraction stats
-                    native_pages = engine_result.metadata.get('native_pages', 0)
-                    ocr_pages = engine_result.metadata.get('ocr_pages', 0)
+                    native_pages = engine_result.metadata.get("native_pages", 0)
+                    ocr_pages = engine_result.metadata.get("ocr_pages", 0)
 
                     extract_span.set_data("extract_time_seconds", round(extract_time, 2))
                     extract_span.set_data("text_length", len(raw_text))
@@ -216,35 +216,41 @@ class LegalTextExtractor:
 
                     clean_start = time.time()
                     cleaning_result = self.cleaner.clean(
-                        text=raw_text,
-                        system=system,
-                        custom_blacklist=blacklist
+                        text=raw_text, system=system, custom_blacklist=blacklist
                     )
                     clean_time = time.time() - clean_start
 
                     clean_span.set_data("clean_time_seconds", round(clean_time, 2))
                     clean_span.set_data("system_detected", cleaning_result.stats.system_name)
                     clean_span.set_data("reduction_pct", cleaning_result.stats.reduction_pct)
-                    clean_span.set_data("patterns_removed", len(cleaning_result.stats.patterns_removed))
+                    clean_span.set_data(
+                        "patterns_removed", len(cleaning_result.stats.patterns_removed)
+                    )
 
-                    logger.info(f"  Sistema: {cleaning_result.stats.system_name} "
-                               f"({cleaning_result.stats.confidence}% confianca)")
-                    logger.info(f"  Reducao: {cleaning_result.stats.reduction_pct:.1f}% "
-                               f"({cleaning_result.stats.original_length:,} -> "
-                               f"{cleaning_result.stats.final_length:,} chars)")
+                    logger.info(
+                        f"  Sistema: {cleaning_result.stats.system_name} "
+                        f"({cleaning_result.stats.confidence}% confianca)"
+                    )
+                    logger.info(
+                        f"  Reducao: {cleaning_result.stats.reduction_pct:.1f}% "
+                        f"({cleaning_result.stats.original_length:,} -> "
+                        f"{cleaning_result.stats.final_length:,} chars)"
+                    )
 
                 # 4. Cria resultado final
                 with start_span("lte.finalize", "Finalize extraction result"):
                     track_progress(4, 4, "extracao")
                     logger.info("[4/4] Finalizando resultado...")
 
-                    sections = [Section(
-                        type="documento_completo",
-                        content=cleaning_result.text,
-                        start_pos=0,
-                        end_pos=len(cleaning_result.text),
-                        confidence=1.0
-                    )]
+                    sections = [
+                        Section(
+                            type="documento_completo",
+                            content=cleaning_result.text,
+                            start_pos=0,
+                            end_pos=len(cleaning_result.text),
+                            confidence=1.0,
+                        )
+                    ]
 
                 total_time = time.time() - start_time
                 process_span.set_data("total_time_seconds", round(total_time, 2))
@@ -256,7 +262,11 @@ class LegalTextExtractor:
                 logger.info(f"EXTRACAO CONCLUIDA: {pdf_path.name}")
                 logger.info(f"  Tempo total: {total_time:.1f}s")
                 logger.info(f"  Texto final: {cleaning_result.stats.final_length:,} chars")
-                logger.info(f"  Velocidade: {(native_pages + ocr_pages) / total_time:.1f} pags/s" if total_time > 0 else "")
+                logger.info(
+                    f"  Velocidade: {(native_pages + ocr_pages) / total_time:.1f} pags/s"
+                    if total_time > 0
+                    else ""
+                )
                 logger.info("=" * 70)
 
                 return ExtractionResult(
@@ -306,6 +316,7 @@ class LegalTextExtractor:
         if format == "text":
             # Cria CleaningResult temporário para compatibilidade com TextExporter
             from src.core.cleaner import CleaningResult, CleaningStats
+
             cleaning_result = CleaningResult(
                 text=result.text,
                 stats=CleaningStats(
@@ -315,8 +326,8 @@ class LegalTextExtractor:
                     original_length=result.original_length,
                     final_length=result.final_length,
                     reduction_pct=result.reduction_pct,
-                    patterns_removed=result.patterns_removed
-                )
+                    patterns_removed=result.patterns_removed,
+                ),
             )
             self.txt_exporter.export(cleaning_result, output_path)
         elif format == "markdown":
@@ -367,9 +378,9 @@ if __name__ == "__main__":
 
     # Add file handler for persistent logging
     file_handler = logging.FileHandler(log_file)
-    file_handler.setFormatter(logging.Formatter(
-        '%(asctime)s | %(levelname)-8s | %(name)s | %(message)s'
-    ))
+    file_handler.setFormatter(
+        logging.Formatter("%(asctime)s | %(levelname)-8s | %(name)s | %(message)s")
+    )
     logging.getLogger().addHandler(file_handler)
 
     logger.info(f"Log salvo em: {log_file}")
@@ -380,9 +391,9 @@ if __name__ == "__main__":
             extractor = LegalTextExtractor()
             result = extractor.process_pdf(pdf_file, force_ocr=force_ocr)
 
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print(f"RESULTADO - {pdf_file.name}")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
         print(f"Engine: {result.engine_used}")
         print(f"Paginas: {result.native_pages} nativas + {result.ocr_pages} OCR")
         print(f"Sistema: {result.system_name} ({result.confidence}%)")
@@ -390,9 +401,9 @@ if __name__ == "__main__":
         print(f"Secoes: {len(result.sections)}")
         print(f"\nTexto limpo ({result.final_length:,} caracteres):")
         print(result.text[:500] + "..." if len(result.text) > 500 else result.text)
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print(f"Log completo salvo em: {log_file}")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
 
     except Exception as e:
         logger.exception(f"Erro fatal: {e}")

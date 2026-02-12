@@ -1,15 +1,14 @@
 """Gerenciamento de exemplos few-shot para prompts"""
-import logging
+
 import hashlib
-from typing import Optional
-from datetime import datetime
+import logging
 
 from .schemas import (
+    ExtractedSection,
     ExtractionResult,
     FewShotExample,
-    ExtractedSection,
     SectionType,
-    ValidationStatus
+    ValidationStatus,
 )
 from .storage import LearningStorage
 
@@ -27,7 +26,7 @@ class FewShotManager:
     - Rastrear uso e atualizar quality scores
     """
 
-    def __init__(self, storage: Optional[LearningStorage] = None):
+    def __init__(self, storage: LearningStorage | None = None):
         """
         Inicializa manager.
 
@@ -38,9 +37,7 @@ class FewShotManager:
         logger.info("FewShotManager initialized")
 
     def create_example_from_extraction(
-        self,
-        extraction: ExtractionResult,
-        section: ExtractedSection
+        self, extraction: ExtractionResult, section: ExtractedSection
     ) -> FewShotExample:
         """
         Cria FewShotExample a partir de uma seção extraída e aprovada.
@@ -67,7 +64,7 @@ class FewShotManager:
             "start_marker": section.start_marker or input_text[:50],
             "end_marker": section.end_marker or input_text[-50:],
             "confidence": section.confidence,
-            "summary": section.summary or f"Seção do tipo {section.type.value}"
+            "summary": section.summary or f"Seção do tipo {section.type.value}",
         }
 
         # Quality score inicial baseado em confidence da extração
@@ -81,16 +78,14 @@ class FewShotManager:
             expected_output=expected_output,
             quality_score=quality_score,
             usage_count=0,
-            tags=self._generate_tags(section)
+            tags=self._generate_tags(section),
         )
 
         logger.debug(f"Example created: {example_id} (quality={quality_score:.2f})")
         return example
 
     def add_approved_extraction_as_examples(
-        self,
-        extraction: ExtractionResult,
-        max_examples_per_section: int = 3
+        self, extraction: ExtractionResult, max_examples_per_section: int = 3
     ) -> list[FewShotExample]:
         """
         Adiciona todas as seções de uma extração aprovada como exemplos.
@@ -114,9 +109,7 @@ class FewShotManager:
         # Contar exemplos existentes por tipo
         existing_counts = {}
         for section_type in SectionType:
-            existing = self.storage.load_few_shot_examples(
-                section_type=section_type.value
-            )
+            existing = self.storage.load_few_shot_examples(section_type=section_type.value)
             existing_counts[section_type] = len(existing)
 
         # Criar exemplos para cada seção
@@ -141,10 +134,7 @@ class FewShotManager:
         return created_examples
 
     def get_best_examples(
-        self,
-        section_type: Optional[SectionType] = None,
-        n: int = 3,
-        strategy: str = "quality"
+        self, section_type: SectionType | None = None, n: int = 3, strategy: str = "quality"
     ) -> list[FewShotExample]:
         """
         Retorna N melhores exemplos para um tipo de seção.
@@ -162,18 +152,13 @@ class FewShotManager:
         if strategy == "quality":
             # Ordenar por quality_score
             examples = self.storage.load_few_shot_examples(
-                section_type=section_type_str,
-                min_quality=0.7,
-                limit=n * 2,
-                sort_by="quality"
+                section_type=section_type_str, min_quality=0.7, limit=n * 2, sort_by="quality"
             )
 
         elif strategy == "balanced":
             # Balance entre quality e usage (evitar overfitting)
             examples = self.storage.load_few_shot_examples(
-                section_type=section_type_str,
-                min_quality=0.5,
-                sort_by="quality"
+                section_type=section_type_str, min_quality=0.5, sort_by="quality"
             )
 
             # Penalizar exemplos muito usados
@@ -186,9 +171,7 @@ class FewShotManager:
         elif strategy == "recent":
             # Priorizar exemplos recentes
             examples = self.storage.load_few_shot_examples(
-                section_type=section_type_str,
-                min_quality=0.5,
-                sort_by="recent"
+                section_type=section_type_str, min_quality=0.5, sort_by="recent"
             )
 
         else:
@@ -197,17 +180,12 @@ class FewShotManager:
         selected = examples[:n]
 
         logger.debug(
-            f"Selected {len(selected)} examples "
-            f"(type={section_type_str}, strategy={strategy})"
+            f"Selected {len(selected)} examples (type={section_type_str}, strategy={strategy})"
         )
 
         return selected
 
-    def format_for_prompt(
-        self,
-        examples: list[FewShotExample],
-        format_style: str = "xml"
-    ) -> str:
+    def format_for_prompt(self, examples: list[FewShotExample], format_style: str = "xml") -> str:
         """
         Formata exemplos para injeção em prompt.
 
@@ -234,14 +212,14 @@ class FewShotManager:
 
         for i, example in enumerate(examples, 1):
             formatted.append(f"<example_{i}>")
-            formatted.append(f"<input>")
+            formatted.append("<input>")
             formatted.append(example.input_text[:500])  # Truncar para economia
             if len(example.input_text) > 500:
                 formatted.append("...")
-            formatted.append(f"</input>")
-            formatted.append(f"<output>")
+            formatted.append("</input>")
+            formatted.append("<output>")
             formatted.append(str(example.expected_output))
-            formatted.append(f"</output>")
+            formatted.append("</output>")
             formatted.append(f"</example_{i}>")
             formatted.append("")
 
@@ -254,13 +232,13 @@ class FewShotManager:
         for i, example in enumerate(examples, 1):
             formatted.append(f"### Exemplo {i}")
             formatted.append(f"**Tipo:** {example.section_type.value}")
-            formatted.append(f"**Entrada:**")
+            formatted.append("**Entrada:**")
             formatted.append("```")
             formatted.append(example.input_text[:500])
             if len(example.input_text) > 500:
                 formatted.append("...")
             formatted.append("```")
-            formatted.append(f"**Saída esperada:**")
+            formatted.append("**Saída esperada:**")
             formatted.append("```json")
             formatted.append(str(example.expected_output))
             formatted.append("```")
@@ -278,7 +256,7 @@ class FewShotManager:
         for example_id in example_ids:
             # Descobrir section_type do exemplo para encontrar arquivo
             # (formato: {section_type}_{doc_id}_{hash})
-            section_type_str = example_id.split('_')[0]
+            section_type_str = example_id.split("_")[0]
 
             try:
                 self.storage.update_example_usage(example_id, section_type_str)
@@ -313,7 +291,7 @@ class FewShotManager:
             tags.append("low-confidence")
 
         # Tag por complexidade (heurística simples)
-        if '\n\n' in section.content and section.content.count('\n') > 10:
+        if "\n\n" in section.content and section.content.count("\n") > 10:
             tags.append("complex")
 
         return tags

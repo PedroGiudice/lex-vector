@@ -23,20 +23,22 @@ Environment Variables:
     LTE_DEBUG: Set to "1" for verbose logging
 """
 
+import logging
 import os
 import sys
 import time
-import logging
-import psutil
-from typing import Any, Optional, Generator
+from collections.abc import Generator
 from contextlib import contextmanager
 from functools import wraps
+from typing import Any
+
+import psutil
 
 logger = logging.getLogger(__name__)
 
 # Global state
 _sentry_initialized = False
-_start_time: Optional[float] = None
+_start_time: float | None = None
 
 
 def init_monitoring(service_name: str = "legal-text-extractor") -> bool:
@@ -85,7 +87,7 @@ def init_monitoring(service_name: str = "legal-text-extractor") -> bool:
     # Configure logging integration
     logging_integration = LoggingIntegration(
         level=logging.DEBUG,  # Capture DEBUG and above as breadcrumbs
-        event_level=logging.ERROR  # Send ERROR and above as events
+        event_level=logging.ERROR,  # Send ERROR and above as events
     )
 
     sentry_sdk.init(
@@ -107,11 +109,14 @@ def init_monitoring(service_name: str = "legal-text-extractor") -> bool:
 
     # Set initial memory context
     mem = psutil.virtual_memory()
-    sentry_sdk.set_context("system", {
-        "total_ram_gb": round(mem.total / (1024**3), 2),
-        "available_ram_gb": round(mem.available / (1024**3), 2),
-        "cpu_count": psutil.cpu_count(),
-    })
+    sentry_sdk.set_context(
+        "system",
+        {
+            "total_ram_gb": round(mem.total / (1024**3), 2),
+            "available_ram_gb": round(mem.available / (1024**3), 2),
+            "cpu_count": psutil.cpu_count(),
+        },
+    )
 
     _sentry_initialized = True
     logger.info(f"[{service_name}] Sentry initialized (env={environment}, release={release})")
@@ -125,8 +130,7 @@ def _configure_verbose_logging():
 
     # Create detailed formatter
     formatter = logging.Formatter(
-        '%(asctime)s | %(levelname)-8s | %(name)s:%(lineno)d | %(message)s',
-        datefmt='%H:%M:%S'
+        "%(asctime)s | %(levelname)-8s | %(name)s:%(lineno)d | %(message)s", datefmt="%H:%M:%S"
     )
 
     # Configure root logger
@@ -144,11 +148,7 @@ def _configure_verbose_logging():
 
 
 @contextmanager
-def start_span(
-    op: str,
-    description: Optional[str] = None,
-    **data: Any
-) -> Generator[Any, None, None]:
+def start_span(op: str, description: str | None = None, **data: Any) -> Generator[Any, None, None]:
     """
     Start a performance span for tracking operations.
 
@@ -248,11 +248,12 @@ def track_progress(current: int, total: int, operation: str = "processing"):
     if _sentry_initialized:
         try:
             import sentry_sdk
+
             sentry_sdk.add_breadcrumb(
                 message=f"{operation}: {current}/{total}",
                 category="progress",
                 level="info",
-                data={"current": current, "total": total, "percent": pct}
+                data={"current": current, "total": total, "percent": pct},
             )
         except Exception:
             pass
@@ -283,24 +284,27 @@ def track_memory(context: str = "checkpoint"):
     if _sentry_initialized:
         try:
             import sentry_sdk
-            sentry_sdk.set_context("memory", {
-                "process_rss_mb": round(rss_mb, 2),
-                "system_percent": percent_used,
-                "system_available_mb": round(available_mb, 2),
-                "checkpoint": context,
-            })
+
+            sentry_sdk.set_context(
+                "memory",
+                {
+                    "process_rss_mb": round(rss_mb, 2),
+                    "system_percent": percent_used,
+                    "system_available_mb": round(available_mb, 2),
+                    "checkpoint": context,
+                },
+            )
         except Exception:
             pass
 
     # Warning if memory is getting low
     if available_mb < 2000:  # Less than 2GB available
         logger.warning(
-            f"[MEMORY WARNING] Low memory at {context}: "
-            f"only {available_mb:.0f}MB available!"
+            f"[MEMORY WARNING] Low memory at {context}: only {available_mb:.0f}MB available!"
         )
 
 
-def capture_exception(error: Exception, **extra: Any) -> Optional[str]:
+def capture_exception(error: Exception, **extra: Any) -> str | None:
     """
     Capture an exception with additional context.
 
@@ -317,6 +321,7 @@ def capture_exception(error: Exception, **extra: Any) -> Optional[str]:
     if _sentry_initialized:
         try:
             import sentry_sdk
+
             with sentry_sdk.push_scope() as scope:
                 for key, value in extra.items():
                     scope.set_extra(key, value)
@@ -327,11 +332,7 @@ def capture_exception(error: Exception, **extra: Any) -> Optional[str]:
     return None
 
 
-def set_extraction_context(
-    pdf_path: str,
-    file_size_mb: float,
-    page_count: Optional[int] = None
-):
+def set_extraction_context(pdf_path: str, file_size_mb: float, page_count: int | None = None):
     """
     Set context for the current extraction operation.
 
@@ -352,6 +353,7 @@ def set_extraction_context(
     if _sentry_initialized:
         try:
             import sentry_sdk
+
             sentry_sdk.set_context("extraction", context)
             sentry_sdk.set_tag("pdf_size_category", _size_category(file_size_mb))
         except Exception:
@@ -382,10 +384,13 @@ def timed(operation: str):
         def load_models():
             ...
     """
+
     def decorator(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
             with start_span(f"lte.{operation}", description=func.__name__):
                 return func(*args, **kwargs)
+
         return wrapper
+
     return decorator

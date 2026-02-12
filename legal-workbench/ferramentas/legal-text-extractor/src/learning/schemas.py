@@ -1,12 +1,14 @@
 """Pydantic schemas para o sistema de aprendizado"""
+
 from datetime import datetime
-from typing import Optional, Literal
-from pydantic import BaseModel, Field, field_validator
 from enum import Enum
+
+from pydantic import BaseModel, Field, field_validator
 
 
 class ValidationStatus(str, Enum):
     """Status de validação humana"""
+
     PENDING = "pending"
     APPROVED = "approved"
     REJECTED = "rejected"
@@ -15,6 +17,7 @@ class ValidationStatus(str, Enum):
 
 class SectionType(str, Enum):
     """Tipos de seções jurídicas"""
+
     PETICAO_INICIAL = "petição_inicial"
     CONTESTACAO = "contestação"
     REPLICA = "réplica"
@@ -35,6 +38,7 @@ class SectionType(str, Enum):
 
 class ExtractedSection(BaseModel):
     """Seção extraída pelo sistema"""
+
     type: SectionType
     content: str = Field(..., min_length=1)
     start_pos: int = Field(..., ge=0)
@@ -42,25 +46,26 @@ class ExtractedSection(BaseModel):
     confidence: float = Field(..., ge=0.0, le=1.0)
 
     # Metadados adicionais do Claude
-    start_marker: Optional[str] = None
-    end_marker: Optional[str] = None
-    summary: Optional[str] = None
+    start_marker: str | None = None
+    end_marker: str | None = None
+    summary: str | None = None
 
-    @field_validator('end_pos')
+    @field_validator("end_pos")
     @classmethod
     def validate_positions(cls, v: int, info) -> int:
         """Valida que end_pos >= start_pos"""
-        if 'start_pos' in info.data and v < info.data['start_pos']:
+        if "start_pos" in info.data and v < info.data["start_pos"]:
             raise ValueError(f"end_pos ({v}) deve ser >= start_pos ({info.data['start_pos']})")
         return v
 
 
 class GroundTruthSection(BaseModel):
     """Seção ground truth (validada por humano)"""
+
     type: SectionType
     start_pos: int = Field(..., ge=0)
     end_pos: int = Field(..., ge=0)
-    notes: Optional[str] = Field(None, description="Notas do validador humano")
+    notes: str | None = Field(None, description="Notas do validador humano")
 
 
 class ExtractionResult(BaseModel):
@@ -74,10 +79,10 @@ class ExtractionResult(BaseModel):
     predicted_sections: list[ExtractedSection] = Field(default_factory=list)
 
     # Ground truth (preenchido após validação humana)
-    ground_truth_sections: Optional[list[GroundTruthSection]] = None
+    ground_truth_sections: list[GroundTruthSection] | None = None
     validation_status: ValidationStatus = ValidationStatus.PENDING
-    validated_at: Optional[datetime] = None
-    validator_notes: Optional[str] = None
+    validated_at: datetime | None = None
+    validator_notes: str | None = None
 
     # Metadados do documento
     document_length: int = Field(..., ge=0, description="Tamanho do documento em chars")
@@ -95,11 +100,11 @@ class ExtractionResult(BaseModel):
                         "content": "EXCELENTÍSSIMO SENHOR...",
                         "start_pos": 0,
                         "end_pos": 1500,
-                        "confidence": 0.95
+                        "confidence": 0.95,
                     }
                 ],
                 "validation_status": "approved",
-                "document_length": 2500
+                "document_length": 2500,
             }
         }
 
@@ -114,23 +119,26 @@ class FewShotExample(BaseModel):
 
     # Conteúdo do exemplo
     section_type: SectionType
-    input_text: str = Field(..., min_length=50, max_length=5000,
-                           description="Texto exemplo (truncado se necessário)")
+    input_text: str = Field(
+        ..., min_length=50, max_length=5000, description="Texto exemplo (truncado se necessário)"
+    )
     expected_output: dict = Field(..., description="Output esperado (JSON)")
 
     # Qualidade
-    quality_score: float = Field(..., ge=0.0, le=1.0,
-                                 description="Score de qualidade (baseado em confidence e validação)")
-    usage_count: int = Field(default=0, ge=0,
-                            description="Quantas vezes foi usado em prompts")
-    success_rate: Optional[float] = Field(None, ge=0.0, le=1.0,
-                                         description="Taxa de sucesso quando usado")
+    quality_score: float = Field(
+        ..., ge=0.0, le=1.0, description="Score de qualidade (baseado em confidence e validação)"
+    )
+    usage_count: int = Field(default=0, ge=0, description="Quantas vezes foi usado em prompts")
+    success_rate: float | None = Field(
+        None, ge=0.0, le=1.0, description="Taxa de sucesso quando usado"
+    )
 
     # Metadados
-    tags: list[str] = Field(default_factory=list,
-                           description="Tags para filtragem (ex: 'complex', 'multi-page')")
+    tags: list[str] = Field(
+        default_factory=list, description="Tags para filtragem (ex: 'complex', 'multi-page')"
+    )
 
-    @field_validator('input_text')
+    @field_validator("input_text")
     @classmethod
     def truncate_if_needed(cls, v: str) -> str:
         """Trunca texto se muito longo"""
@@ -163,14 +171,13 @@ class PerformanceMetrics(BaseModel):
     f1_score: float = Field(..., ge=0.0, le=1.0)
 
     # Breakdown por tipo de seção
-    per_type_metrics: Optional[dict[str, dict]] = Field(
-        None,
-        description="Métricas detalhadas por tipo de seção"
+    per_type_metrics: dict[str, dict] | None = Field(
+        None, description="Métricas detalhadas por tipo de seção"
     )
 
     # Metadados
     prompt_version: str = Field(default="v1")
-    average_confidence: Optional[float] = Field(None, ge=0.0, le=1.0)
+    average_confidence: float | None = Field(None, ge=0.0, le=1.0)
 
     @classmethod
     def calculate(
@@ -178,7 +185,7 @@ class PerformanceMetrics(BaseModel):
         batch_id: str,
         predicted: list[ExtractedSection],
         ground_truth: list[GroundTruthSection],
-        prompt_version: str = "v1"
+        prompt_version: str = "v1",
     ) -> "PerformanceMetrics":
         """
         Calcula métricas a partir de predicted vs ground truth.
@@ -233,5 +240,5 @@ class PerformanceMetrics(BaseModel):
             recall=recall,
             f1_score=f1,
             prompt_version=prompt_version,
-            average_confidence=avg_confidence
+            average_confidence=avg_confidence,
         )

@@ -13,18 +13,18 @@ project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 from src.engines import (
+    EngineSelector,
+    MarkerEngine,
     PDFPlumberEngine,
     TesseractEngine,
-    MarkerEngine,
-    EngineSelector,
 )
 
 
 def demo_pdfplumber(pdf_path: Path):
     """Demonstra uso do PDFPlumber."""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("DEMO: PDFPlumber Engine")
-    print("="*60)
+    print("=" * 60)
 
     engine = PDFPlumberEngine()
 
@@ -37,12 +37,12 @@ def demo_pdfplumber(pdf_path: Path):
 
     try:
         result = engine.extract(pdf_path)
-        print(f"\n✓ Extração bem-sucedida:")
+        print("\n✓ Extração bem-sucedida:")
         print(f"  Páginas: {result.pages}")
         print(f"  Caracteres: {len(result.text)}")
         print(f"  Confiança: {result.confidence:.2f}")
         print(f"  Engine: {result.engine_used}")
-        print(f"\nPrimeiros 200 caracteres:")
+        print("\nPrimeiros 200 caracteres:")
         print(result.text[:200])
     except Exception as e:
         print(f"✗ Erro: {e}")
@@ -50,9 +50,9 @@ def demo_pdfplumber(pdf_path: Path):
 
 def demo_tesseract(pdf_path: Path):
     """Demonstra uso do Tesseract OCR."""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("DEMO: Tesseract Engine")
-    print("="*60)
+    print("=" * 60)
 
     engine = TesseractEngine(lang="por", psm=3, dpi=300)
 
@@ -70,12 +70,12 @@ def demo_tesseract(pdf_path: Path):
     try:
         print("\n⏳ Processando (pode demorar alguns segundos)...")
         result = engine.extract(pdf_path)
-        print(f"\n✓ OCR bem-sucedido:")
+        print("\n✓ OCR bem-sucedido:")
         print(f"  Páginas: {result.pages}")
         print(f"  Caracteres: {len(result.text)}")
         print(f"  Confiança média: {result.confidence:.2f}")
         print(f"  Confiança OCR: {result.metadata.get('avg_confidence_pct', 0):.1f}%")
-        print(f"\nPrimeiros 200 caracteres:")
+        print("\nPrimeiros 200 caracteres:")
         print(result.text[:200])
     except Exception as e:
         print(f"✗ Erro: {e}")
@@ -83,9 +83,9 @@ def demo_tesseract(pdf_path: Path):
 
 def demo_marker(pdf_path: Path):
     """Demonstra uso do Marker (se disponível)."""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("DEMO: Marker Engine")
-    print("="*60)
+    print("=" * 60)
 
     engine = MarkerEngine()
 
@@ -102,7 +102,7 @@ def demo_marker(pdf_path: Path):
 
     try:
         result = engine.extract(pdf_path)
-        print(f"\n✓ Extração ML bem-sucedida:")
+        print("\n✓ Extração ML bem-sucedida:")
         print(f"  Páginas: {result.pages}")
         print(f"  Caracteres: {len(result.text)}")
         print(f"  Confiança: {result.confidence:.2f}")
@@ -114,13 +114,13 @@ def demo_marker(pdf_path: Path):
 
 def demo_selector(pdf_path: Path):
     """Demonstra uso do EngineSelector automático."""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("DEMO: EngineSelector (Automático)")
-    print("="*60)
+    print("=" * 60)
 
     selector = EngineSelector()
 
-    print(f"✓ Selector criado")
+    print("✓ Selector criado")
     print(f"  Engines registradas: {list(selector.engines.keys())}")
 
     # Engines disponíveis
@@ -128,7 +128,7 @@ def demo_selector(pdf_path: Path):
     print(f"  Engines disponíveis: {[e.name for e in available]}")
 
     # Análise do PDF
-    print(f"\n📄 Analisando PDF...")
+    print("\n📄 Analisando PDF...")
     analysis = selector.analyze_pdf(pdf_path)
     print(f"  Páginas: {analysis['pages']}")
     print(f"  Texto nativo: {analysis['native_text_ratio']:.0%}")
@@ -139,19 +139,19 @@ def demo_selector(pdf_path: Path):
     if selected:
         print(f"\n🎯 Engine selecionada: {selected.name}")
     else:
-        print(f"\n✗ Nenhuma engine disponível")
+        print("\n✗ Nenhuma engine disponível")
         return
 
     # Extração com fallback
     try:
-        print(f"\n⏳ Extraindo com fallback automático...")
+        print("\n⏳ Extraindo com fallback automático...")
         result = selector.extract_with_fallback(pdf_path, max_retries=3)
-        print(f"\n✓ Extração bem-sucedida:")
+        print("\n✓ Extração bem-sucedida:")
         print(f"  Engine usada: {result.engine_used}")
         print(f"  Páginas: {result.pages}")
         print(f"  Caracteres: {len(result.text)}")
         print(f"  Confiança: {result.confidence:.2f}")
-        print(f"\nPrimeiros 200 caracteres:")
+        print("\nPrimeiros 200 caracteres:")
         print(result.text[:200])
     except Exception as e:
         print(f"✗ Todas as engines falharam: {e}")
@@ -163,17 +163,17 @@ def main():
     pdf_path = Path("inputs/exemplo.pdf")
 
     if not pdf_path.exists():
-        print("="*60)
+        print("=" * 60)
         print("ERRO: PDF de exemplo não encontrado")
-        print("="*60)
+        print("=" * 60)
         print(f"Esperado em: {pdf_path.absolute()}")
         print("\nPara testar, coloque um PDF em 'inputs/exemplo.pdf'")
         print("ou modifique a variável 'pdf_path' neste script.")
         return 1
 
-    print("="*60)
+    print("=" * 60)
     print("EXTRACTION ENGINES - DEMONSTRAÇÃO")
-    print("="*60)
+    print("=" * 60)
     print(f"PDF: {pdf_path.name}")
 
     # Demos individuais
@@ -184,9 +184,9 @@ def main():
     # Demo selector (recomendado)
     demo_selector(pdf_path)
 
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("DEMONSTRAÇÃO CONCLUÍDA")
-    print("="*60)
+    print("=" * 60)
     print("\nRecomendação: Use EngineSelector para seleção automática")
     print("com fallback inteligente entre engines.")
 

@@ -16,6 +16,6 @@ Usage after installation:
     lte stats --db data/context.db
 """
 
-from cli.main import app, main_entry, __version__
+from cli.main import __version__, app, main_entry
 
 __all__ = ["app", "main_entry", "__version__"]

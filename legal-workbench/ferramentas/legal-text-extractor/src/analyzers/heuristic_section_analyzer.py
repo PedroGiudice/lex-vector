@@ -12,7 +12,6 @@ from __future__ import annotations
 import hashlib
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Optional
 
 from ..core.intelligence.peca_patterns import SecaoPatternConfig, SecaoType, get_default_config
 from ..core.intelligence.secao_detector import SecaoDetector
@@ -50,8 +49,8 @@ class HeuristicSectionAnalyzer:
     def analyze(
         self,
         text: str,
-        document_id: Optional[str] = None,
-        sistema: Optional[str] = None,
+        document_id: str | None = None,
+        sistema: str | None = None,
     ) -> DocumentoEstruturado:
         """
         Analisa texto e retorna documento estruturado.
@@ -81,7 +80,9 @@ class HeuristicSectionAnalyzer:
             titulo = first_line if first_line else f"Secao {seg['secao_type']}"
 
             secao = Secao(
-                tipo=SecaoType(seg["secao_type"]) if seg["secao_type"] in [t.value for t in SecaoType] else SecaoType.OUTRO,
+                tipo=SecaoType(seg["secao_type"])
+                if seg["secao_type"] in [t.value for t in SecaoType]
+                else SecaoType.OUTRO,
                 titulo=titulo,
                 conteudo=seg["content"],
                 paginas=None,  # TODO: calcular se tiver info de pagina
@@ -106,8 +107,8 @@ class HeuristicSectionAnalyzer:
         self,
         text: str,
         output_format: OutputFormat = OutputFormat.MARKDOWN_XML,
-        document_id: Optional[str] = None,
-        sistema: Optional[str] = None,
+        document_id: str | None = None,
+        sistema: str | None = None,
     ) -> str:
         """
         Analisa e exporta diretamente para formato desejado.
@@ -127,6 +128,7 @@ class HeuristicSectionAnalyzer:
             return doc.to_markdown_xml()
         elif output_format == OutputFormat.JSON:
             import json
+
             return json.dumps(doc.to_json_structured(), ensure_ascii=False, indent=2)
         elif output_format == OutputFormat.TEXT:
             # Formato legado - texto puro
@@ -148,7 +150,7 @@ class HeuristicSectionAnalyzer:
     def analyze_legacy(
         self,
         text: str,
-        document_id: Optional[str] = None,
+        document_id: str | None = None,
     ) -> list[Section]:
         """
         Analisa e retorna list[Section] para compatibilidade com exporters legados.

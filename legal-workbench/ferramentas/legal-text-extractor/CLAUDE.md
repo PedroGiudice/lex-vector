@@ -11,6 +11,27 @@ Pipeline de extracao de texto de documentos juridicos.
 O LTE evoluiu de um pipeline de 4 etapas (Cartografo -> Saneador -> Extrator -> Bibliotecario)
 para usar o **Marker** como engine principal de extracao.
 
+### Estrategia de GPU (Modal)
+
+A configuracao **ideal** para extracao e **chunking do PDF + multiplas GPUs pequenas**.
+O PDF e dividido em blocos de ~100 paginas e cada bloco vai para uma GPU independente.
+GPUs pequenas (T4 16GB, L4 24GB) conseguem devorar o PDF inteiro como piranhas --
+cada uma ataca um pedaco em paralelo.
+
+| Config | GPUs | Custo/h | Quando usar |
+|--------|------|---------|-------------|
+| Multi-T4 (2-8x) | T4 16GB | ~$0.59/GPU | PDFs > 300 paginas (padrao `--smart`) |
+| Bi/Quad-L4 | L4 24GB | ~$0.80/GPU | PDFs pesados com muito OCR |
+| A100 unica | A100 80GB | ~$3.50 | PDFs < 300 paginas ou debug |
+
+**Por que chunking + GPUs pequenas vence:**
+- Escala horizontal: 4x T4 processam 4 blocos simultaneamente
+- Custo menor: T4/L4 sao fracao do preco de A100
+- Sem gargalo de VRAM: cada GPU carrega apenas ~100 paginas
+- Resiliencia: se um chunk falha, so re-processa aquele bloco
+
+Implementacao: `modal_worker.py` (`extract_pdf_parallel`, `T4Extractor`)
+
 ### Engines Ativos
 | Engine | Uso | Localizacao |
 |--------|-----|-------------|

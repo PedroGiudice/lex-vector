@@ -1,5 +1,7 @@
 """Exportador para Markdown estruturado"""
+
 from pathlib import Path
+
 from ..analyzers.section_analyzer import Section
 
 

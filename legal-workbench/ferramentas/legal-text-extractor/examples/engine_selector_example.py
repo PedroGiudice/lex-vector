@@ -9,19 +9,17 @@ Demonstrates:
 """
 
 import logging
-from pathlib import Path
 import sys
+from pathlib import Path
 
 # Add src to path (for standalone execution)
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from engines import get_selector, ExtractionResult
-
+from engines import ExtractionResult, get_selector
 
 # Setup logging
 logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 
 
@@ -57,13 +55,13 @@ def main():
             print(f"\nSkipping {pdf_path.name} (not found)")
             continue
 
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print(f"Processing: {pdf_path.name}")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
 
         # Analyze PDF first
         analysis = selector.analyze_pdf(pdf_path)
-        print(f"\nPDF Analysis:")
+        print("\nPDF Analysis:")
         print(f"  Pages: {analysis['pages']}")
         print(f"  Native text ratio: {analysis['native_text_ratio']:.0%}")
         print(f"  Avg chars/page: {analysis['avg_chars_per_page']:.0f}")
@@ -81,17 +79,17 @@ def main():
         try:
             result: ExtractionResult = selector.extract_with_fallback(
                 pdf_path,
-                max_retries=3  # Try up to 3 engines
+                max_retries=3,  # Try up to 3 engines
             )
 
-            print(f"\n✓ Extraction successful!")
+            print("\n✓ Extraction successful!")
             print(f"  Engine used: {result.engine_used}")
             print(f"  Pages: {result.pages}")
             print(f"  Characters: {len(result.text)}")
             print(f"  Confidence: {result.confidence:.2f}")
 
             if result.warnings:
-                print(f"  Warnings:")
+                print("  Warnings:")
                 for warning in result.warnings:
                     print(f"    - {warning}")
 
@@ -120,7 +118,7 @@ def demo_force_engine():
         result = selector.extract_with_fallback(
             test_pdf,
             force_engine="tesseract",
-            max_retries=1  # Don't fallback if forced engine fails
+            max_retries=1,  # Don't fallback if forced engine fails
         )
         print(f"✓ Forced engine succeeded: {result.engine_used}")
         print(f"  Confidence: {result.confidence:.2f}")

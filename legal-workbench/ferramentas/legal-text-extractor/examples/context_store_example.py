@@ -4,6 +4,7 @@ Example: Context Store Usage
 Demonstra como usar o ContextStore para aprender padrões
 durante processamento de documentos.
 """
+
 import sys
 from pathlib import Path
 
@@ -12,10 +13,10 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from src.context import (
     ContextStore,
-    SignatureVector,
-    ObservationResult,
     EngineType,
+    ObservationResult,
     PatternType,
+    SignatureVector,
 )
 
 
@@ -27,19 +28,13 @@ def main():
     print(f"✓ ContextStore initialized at {db_path}")
 
     # Cria caso
-    caso = store.get_or_create_caso(
-        numero_cnj="0000001-12.2024.5.01.0001",
-        sistema="pje"
-    )
+    caso = store.get_or_create_caso(numero_cnj="0000001-12.2024.5.01.0001", sistema="pje")
     print(f"✓ Caso created: {caso.numero_cnj} (id={caso.id})")
 
     # Simula processamento de primeira página
     print("\n--- Processing Page 1 (first time) ---")
 
-    signature1 = SignatureVector(
-        features=[0.1, 0.2, 0.3, 0.8, 0.9],
-        hash="abc123"
-    )
+    signature1 = SignatureVector(features=[0.1, 0.2, 0.3, 0.8, 0.9], hash="abc123")
 
     result1 = ObservationResult(
         page_num=1,
@@ -75,7 +70,7 @@ def main():
 
     signature2 = SignatureVector(
         features=[0.11, 0.21, 0.29, 0.81, 0.89],  # Muito similar ao anterior
-        hash="def456"
+        hash="def456",
     )
 
     # Agora deve encontrar padrão similar
@@ -117,7 +112,7 @@ def main():
 
     signature3 = SignatureVector(
         features=[0.12, 0.22, 0.28, 0.79, 0.91],  # Similar
-        hash="ghi789"
+        hash="ghi789",
     )
 
     hint3 = store.find_similar_pattern(

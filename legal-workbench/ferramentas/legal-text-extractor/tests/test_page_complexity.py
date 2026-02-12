@@ -5,20 +5,20 @@ Testa a detecção de complexidade granular (NATIVE_CLEAN, NATIVE_WITH_ARTIFACTS
 RASTER_CLEAN, RASTER_DIRTY, RASTER_DEGRADED) e recomendação de engines.
 """
 
-import pytest
-from pathlib import Path
 import sys
-import json
+from pathlib import Path
+
+import pytest
 
 # Setup path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 from src.config import (
-    PageComplexity,
-    PageType,
     COMPLEXITY_ENGINE_MAP,
     RASTER_QUALITY_THRESHOLDS,
+    PageComplexity,
+    PageType,
 )
 
 
@@ -153,20 +153,11 @@ class TestPageComplexityClassification:
     def test_recommended_engine_based_on_complexity(self):
         """Cada complexity tem engine recomendado."""
         # Testa mapeamento completo
-        assert (
-            COMPLEXITY_ENGINE_MAP[PageComplexity.NATIVE_CLEAN] == "pdfplumber"
-        )
-        assert (
-            COMPLEXITY_ENGINE_MAP[PageComplexity.NATIVE_WITH_ARTIFACTS]
-            == "pdfplumber"
-        )
-        assert (
-            COMPLEXITY_ENGINE_MAP[PageComplexity.RASTER_CLEAN] == "tesseract"
-        )
+        assert COMPLEXITY_ENGINE_MAP[PageComplexity.NATIVE_CLEAN] == "pdfplumber"
+        assert COMPLEXITY_ENGINE_MAP[PageComplexity.NATIVE_WITH_ARTIFACTS] == "pdfplumber"
+        assert COMPLEXITY_ENGINE_MAP[PageComplexity.RASTER_CLEAN] == "tesseract"
         assert COMPLEXITY_ENGINE_MAP[PageComplexity.RASTER_DIRTY] == "marker"
-        assert (
-            COMPLEXITY_ENGINE_MAP[PageComplexity.RASTER_DEGRADED] == "marker"
-        )
+        assert COMPLEXITY_ENGINE_MAP[PageComplexity.RASTER_DEGRADED] == "marker"
 
     def test_edge_case_no_quality_metrics(self):
         """Página raster sem quality_metrics = fallback RASTER_CLEAN."""
@@ -198,9 +189,7 @@ class TestPageComplexityClassification:
                 "char_density": 0.5,
             },
         }
-        assert (
-            self._classify_page(page_high) == PageComplexity.RASTER_CLEAN
-        )
+        assert self._classify_page(page_high) == PageComplexity.RASTER_CLEAN
 
         # Contraste no limite baixo (0.4)
         page_low = {
@@ -215,9 +204,7 @@ class TestPageComplexityClassification:
             },
         }
         # 0.4 <= score < 0.8 = DIRTY
-        assert (
-            self._classify_page(page_low) == PageComplexity.RASTER_DIRTY
-        )
+        assert self._classify_page(page_low) == PageComplexity.RASTER_DIRTY
 
     def test_edge_case_high_noise_degrades_quality(self):
         """Alto ruído sempre resulta em RASTER_DEGRADED."""
@@ -313,10 +300,7 @@ class TestQualityThresholds:
         # Contraste entre 0.0 e 1.0
         assert 0.0 <= thresholds.high_contrast_threshold <= 1.0
         assert 0.0 <= thresholds.low_contrast_threshold <= 1.0
-        assert (
-            thresholds.low_contrast_threshold
-            < thresholds.high_contrast_threshold
-        )
+        assert thresholds.low_contrast_threshold < thresholds.high_contrast_threshold
 
         # Ruído entre 0.0 e 1.0
         assert 0.0 <= thresholds.high_noise_threshold <= 1.0
@@ -362,19 +346,12 @@ class TestComplexityEngineMapping:
 
     def test_native_always_uses_pdfplumber(self):
         """Páginas NATIVE sempre usam pdfplumber."""
-        assert (
-            COMPLEXITY_ENGINE_MAP[PageComplexity.NATIVE_CLEAN] == "pdfplumber"
-        )
-        assert (
-            COMPLEXITY_ENGINE_MAP[PageComplexity.NATIVE_WITH_ARTIFACTS]
-            == "pdfplumber"
-        )
+        assert COMPLEXITY_ENGINE_MAP[PageComplexity.NATIVE_CLEAN] == "pdfplumber"
+        assert COMPLEXITY_ENGINE_MAP[PageComplexity.NATIVE_WITH_ARTIFACTS] == "pdfplumber"
 
     def test_degraded_always_uses_marker(self):
         """Páginas degradadas usam Marker (engine mais robusto)."""
-        assert (
-            COMPLEXITY_ENGINE_MAP[PageComplexity.RASTER_DEGRADED] == "marker"
-        )
+        assert COMPLEXITY_ENGINE_MAP[PageComplexity.RASTER_DEGRADED] == "marker"
 
 
 if __name__ == "__main__":

@@ -4,8 +4,6 @@ Tests for modal_worker chunking logic.
 These tests verify the chunking algorithm without requiring Modal or GPU.
 """
 
-import pytest
-
 
 class TestChunkingLogic:
     """Test the chunking algorithm used in extract_pdf_chunked."""
@@ -89,11 +87,13 @@ class TestChunkingLogic:
             pages_so_far = sum(len(c) for c in chunks[:chunk_idx])
             percent = int((pages_so_far / total_pages) * 90) + 5  # 5-95% range
 
-            percentages.append({
-                "chunk": chunk_idx + 1,
-                "pages_so_far": pages_so_far,
-                "percent": percent,
-            })
+            percentages.append(
+                {
+                    "chunk": chunk_idx + 1,
+                    "pages_so_far": pages_so_far,
+                    "percent": percent,
+                }
+            )
 
         # First chunk starts at 5%
         assert percentages[0]["percent"] == 5
@@ -128,13 +128,21 @@ class TestProgressMessages:
         total_chunks = 7
         page_range = list(range(200, 300))
 
-        message = f"Processing chunk {chunk_num}/{total_chunks} (pages {page_range[0]+1}-{page_range[-1]+1})..."
+        message = f"Processing chunk {chunk_num}/{total_chunks} (pages {page_range[0] + 1}-{page_range[-1] + 1})..."
 
         assert message == "Processing chunk 3/7 (pages 201-300)..."
 
     def test_progress_dict_keys(self):
         """Progress dict should have all required keys."""
-        required_keys = ["type", "chunk", "total_chunks", "percent", "pages_processed", "total_pages", "message"]
+        required_keys = [
+            "type",
+            "chunk",
+            "total_chunks",
+            "percent",
+            "pages_processed",
+            "total_pages",
+            "message",
+        ]
 
         progress = {
             "type": "progress",
@@ -151,7 +159,16 @@ class TestProgressMessages:
 
     def test_result_dict_keys(self):
         """Result dict should have all required keys."""
-        required_keys = ["text", "pages", "native_pages", "ocr_pages", "chars", "processing_time", "chunked", "total_chunks"]
+        required_keys = [
+            "text",
+            "pages",
+            "native_pages",
+            "ocr_pages",
+            "chars",
+            "processing_time",
+            "chunked",
+            "total_chunks",
+        ]
 
         result = {
             "text": "Sample text",

@@ -45,6 +45,7 @@ except ImportError:
     # Fallback para imports absolutos quando rodando como script
     import sys
     from pathlib import Path as _Path
+
     sys.path.insert(0, str(_Path(__file__).parent.parent.parent))
     from src.gemini import GeminiClient, GeminiConfig
     from src.gemini.prompts import build_classification_prompt, build_cleaning_prompt
@@ -162,9 +163,7 @@ class GeminiBibliotecario:
             cleaning = self._clean(input_path, classification)
 
         # Step 3: Gerar outputs
-        output_files = self._generate_outputs(
-            output_path, classification, cleaning, input_path
-        )
+        output_files = self._generate_outputs(output_path, classification, cleaning, input_path)
 
         logger.info(f"[Step 04] Concluído! {len(output_files)} arquivos gerados")
 
@@ -218,15 +217,17 @@ class GeminiBibliotecario:
         try:
             sections = []
             for s in data.get("sections", []):
-                sections.append(SectionClassification(
-                    section_id=s["section_id"],
-                    type=PecaType(s["type"]),
-                    title=s.get("title", "Sem título")[:200],
-                    start_page=s["start_page"],
-                    end_page=s["end_page"],
-                    confidence=s.get("confidence", 0.5),
-                    reasoning=s.get("reasoning", "Sem justificativa")[:500],
-                ))
+                sections.append(
+                    SectionClassification(
+                        section_id=s["section_id"],
+                        type=PecaType(s["type"]),
+                        title=s.get("title", "Sem título")[:200],
+                        start_page=s["start_page"],
+                        end_page=s["end_page"],
+                        confidence=s.get("confidence", 0.5),
+                        reasoning=s.get("reasoning", "Sem justificativa")[:500],
+                    )
+                )
 
             result = ClassificationResult(
                 doc_id=data.get("doc_id", doc_id),
@@ -250,9 +251,7 @@ class GeminiBibliotecario:
             logger.error(f"Data: {json.dumps(data, indent=2)[:1000]}")
             raise
 
-    def _clean(
-        self, input_path: Path, classification: ClassificationResult
-    ) -> CleaningResult:
+    def _clean(self, input_path: Path, classification: ClassificationResult) -> CleaningResult:
         """
         Executa limpeza contextual via Gemini.
 
@@ -266,10 +265,12 @@ class GeminiBibliotecario:
         logger.info("[Step 04] Fase 2: Limpeza contextual via Gemini...")
 
         # Prepara resumo da classificação para contexto
-        classification_summary = "\n".join([
-            f"Seção {s.section_id}: {s.type.value} (páginas {s.start_page}-{s.end_page})"
-            for s in classification.sections
-        ])
+        classification_summary = "\n".join(
+            [
+                f"Seção {s.section_id}: {s.type.value} (páginas {s.start_page}-{s.end_page})"
+                for s in classification.sections
+            ]
+        )
 
         prompt = build_cleaning_prompt(classification_summary)
 
@@ -295,12 +296,14 @@ class GeminiBibliotecario:
 
             sections = []
             for s in data.get("sections", []):
-                sections.append(CleanedSection(
-                    section_id=s["section_id"],
-                    type=PecaType(s["type"]),
-                    content=s.get("content", ""),
-                    noise_removed=s.get("noise_removed", [])[:5],
-                ))
+                sections.append(
+                    CleanedSection(
+                        section_id=s["section_id"],
+                        type=PecaType(s["type"]),
+                        content=s.get("content", ""),
+                        noise_removed=s.get("noise_removed", [])[:5],
+                    )
+                )
 
             result = CleaningResult(
                 doc_id=classification.doc_id,
@@ -428,7 +431,9 @@ class GeminiBibliotecario:
 
             if page_num in page_to_section:
                 section = page_to_section[page_num]
-                tagged = f"{original} [SEMANTIC: {section.type.value}] [CONF: {section.confidence:.2f}]"
+                tagged = (
+                    f"{original} [SEMANTIC: {section.type.value}] [CONF: {section.confidence:.2f}]"
+                )
 
                 # Marca início de seção
                 if page_num == section.start_page:
@@ -449,7 +454,7 @@ class GeminiBibliotecario:
         lines = [
             f"# {classification.doc_id}",
             "",
-            f"> Processado por Gemini Bibliotecário v2.0.0",
+            "> Processado por Gemini Bibliotecário v2.0.0",
             f"> {classification.total_sections} seções | "
             f"{cleaning.reduction_percent:.1f}% redução de ruído",
             "",
@@ -460,14 +465,16 @@ class GeminiBibliotecario:
         ]
 
         for section in cleaning.sections:
-            lines.extend([
-                f"## [{section.section_id}] {section.type.value}",
-                "",
-                section.content,
-                "",
-                "---",
-                "",
-            ])
+            lines.extend(
+                [
+                    f"## [{section.section_id}] {section.type.value}",
+                    "",
+                    section.content,
+                    "",
+                    "---",
+                    "",
+                ]
+            )
 
         return "\n".join(lines)
 
@@ -530,7 +537,7 @@ def classify(
 
     bibliotecario = GeminiBibliotecario(config=config)
 
-    typer.echo(f"[Step 04] Bibliotecário Semântico v2.0.0 (Gemini)")
+    typer.echo("[Step 04] Bibliotecário Semântico v2.0.0 (Gemini)")
     typer.echo(f"[Step 04] Input: {input_md}")
     typer.echo(f"[Step 04] Modelo: {model}")
     typer.echo(f"[Step 04] Limpeza: {'DESABILITADA' if skip_cleaning else 'HABILITADA'}")
@@ -540,17 +547,17 @@ def classify(
         result = bibliotecario.process(input_md, output_dir)
 
         typer.echo("")
-        typer.echo(f"[Step 04] ✓ Processamento concluído!")
+        typer.echo("[Step 04] ✓ Processamento concluído!")
         typer.echo(f"  Doc ID: {result['doc_id']}")
         typer.echo(f"  Seções: {result['classification'].total_sections}")
         typer.echo(f"  Resumo: {result['classification'].summary[:100]}...")
 
-        if result['cleaning'] and result['cleaning'].sections:
+        if result["cleaning"] and result["cleaning"].sections:
             typer.echo(f"  Redução: {result['cleaning'].reduction_percent:.1f}%")
 
         typer.echo("")
         typer.echo("[Step 04] Arquivos gerados:")
-        for name, path in result['output_files'].items():
+        for name, path in result["output_files"].items():
             typer.echo(f"  - {name}")
 
     except FileNotFoundError as e:

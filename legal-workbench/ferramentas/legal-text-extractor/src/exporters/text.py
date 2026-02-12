@@ -51,7 +51,7 @@ class TextExporter(BaseExporter):
         try:
             output_path.write_text(content, encoding="utf-8")
         except Exception as e:
-            raise IOError(f"Erro ao escrever arquivo {output_path}: {e}")
+            raise OSError(f"Erro ao escrever arquivo {output_path}: {e}")
 
     def _generate_header(self, result: CleaningResult) -> str:
         """Gera cabeçalho com metadados"""

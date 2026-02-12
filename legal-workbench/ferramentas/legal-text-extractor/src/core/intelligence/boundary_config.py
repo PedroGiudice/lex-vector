@@ -17,7 +17,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Pattern
+from re import Pattern
 
 
 class DocumentClass(Enum):
