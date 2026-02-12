@@ -4,19 +4,19 @@ Script de teste para SectionAnalyzer - Milestone 1.5
 
 Testa a implementação completa do analisador de seções com documento exemplo.
 """
-import sys
+
 import logging
+import sys
 from pathlib import Path
 
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from analyzers.section_analyzer import SectionAnalyzer, Section
+from analyzers.section_analyzer import SectionAnalyzer
 
 # Configure logging
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
@@ -125,27 +125,40 @@ def test_section_analyzer():
 
         # Seções devem estar ordenadas
         for i in range(len(sections) - 1):
-            assert sections[i].start_pos < sections[i + 1].start_pos, \
+            assert sections[i].start_pos < sections[i + 1].start_pos, (
                 "Seções não estão ordenadas por posição"
+            )
         logger.info("✓ Seções ordenadas corretamente")
 
         # Confidence deve estar entre 0 e 1
         for section in sections:
-            assert 0.0 <= section.confidence <= 1.0, \
+            assert 0.0 <= section.confidence <= 1.0, (
                 f"Confidence fora do range: {section.confidence}"
+            )
         logger.info("✓ Confidence scores válidos")
 
         # Tipos devem ser válidos
         valid_types = {
-            "petição_inicial", "contestação", "réplica", "sentença", "acórdão",
-            "despacho", "decisão_interlocutória", "parecer_mp", "laudo_pericial",
-            "ata_audiência", "procuração", "substabelecimento", "contrato",
-            "documento_fiscal", "correspondência", "outro"
+            "petição_inicial",
+            "contestação",
+            "réplica",
+            "sentença",
+            "acórdão",
+            "despacho",
+            "decisão_interlocutória",
+            "parecer_mp",
+            "laudo_pericial",
+            "ata_audiência",
+            "procuração",
+            "substabelecimento",
+            "contrato",
+            "documento_fiscal",
+            "correspondência",
+            "outro",
         }
 
         for section in sections:
-            assert section.type in valid_types, \
-                f"Tipo inválido: {section.type}"
+            assert section.type in valid_types, f"Tipo inválido: {section.type}"
         logger.info("✓ Tipos de seção válidos")
 
         logger.info("\n" + "=" * 70)
@@ -159,6 +172,7 @@ def test_section_analyzer():
         logger.error(f"TESTE FALHOU: {e}")
         logger.error("=" * 70)
         import traceback
+
         traceback.print_exc()
         return False
 

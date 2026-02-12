@@ -1,4 +1,5 @@
 """Test Marker on T4 GPU (16GB VRAM)"""
+
 import modal
 
 app = modal.App("test-t4-marker")
@@ -21,8 +22,9 @@ model_cache = modal.Volume.from_name("marker-model-cache", create_if_missing=Tru
 def test_marker_t4():
     """Test if Marker loads and runs on T4"""
     import os
-    import torch
     import time
+
+    import torch
 
     os.environ["HF_HOME"] = "/cache/huggingface"
     os.environ["TORCH_HOME"] = "/cache/torch"
@@ -39,6 +41,7 @@ def test_marker_t4():
     # Try loading Marker models
     print("Loading Marker models...")
     from marker.models import create_model_dict
+
     models = create_model_dict()
 
     load_time = time.time() - start
@@ -49,7 +52,7 @@ def test_marker_t4():
         "vram_gb": round(vram, 1),
         "models_loaded": len(models),
         "load_time_s": round(load_time, 1),
-        "status": "OK"
+        "status": "OK",
     }
 
 

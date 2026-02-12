@@ -20,9 +20,9 @@ Execution:
 import sys
 from pathlib import Path
 
+import cv2
 import numpy as np
 import pytest
-import cv2
 from PIL import Image
 
 # Adiciona o diretório raiz ao PYTHONPATH
@@ -35,13 +35,10 @@ from src.core.stamp_segmenter import (
     StampMode,
     StampSegmenter,
     StampSegmenterConfig,
-    StampSegmentationResult,
-    DEFAULT_STAMP_RANGES,
-    remove_stamps_for_ocr,
-    extract_stamps,
     detect_stamps,
+    extract_stamps,
+    remove_stamps_for_ocr,
 )
-
 
 # =============================================================================
 # Test Fixtures - Synthetic Images
@@ -70,10 +67,7 @@ def create_blue_stamp_image() -> np.ndarray:
     cv2.circle(img, center, 50, (255, 180, 80), -1)  # Lighter blue center
 
     # Add text in stamp
-    cv2.putText(
-        img, "RECEBIDO", (240, 210),
-        cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2
-    )
+    cv2.putText(img, "RECEBIDO", (240, 210), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
 
     return img
 
@@ -314,7 +308,7 @@ class TestStampSegmenter:
         # The stamp region should be mostly white now
         stamp = result.stamp_regions[0]
         x, y, w, h = stamp["bbox"]
-        region = result.cleaned_image[y:y+h, x:x+w]
+        region = result.cleaned_image[y : y + h, x : x + w]
         mean_intensity = np.mean(region)
 
         # Should be bright (stamp removed)
@@ -576,9 +570,7 @@ class TestImageCleanerIntegration:
         from src.core.image_cleaner import process_stamps_advanced
 
         img = create_multi_stamp_image()
-        _, metadata = process_stamps_advanced(
-            img, mode="detect", colors=["blue", "red"]
-        )
+        _, metadata = process_stamps_advanced(img, mode="detect", colors=["blue", "red"])
 
         colors = [m["color"] for m in metadata]
         # Should only have blue and red

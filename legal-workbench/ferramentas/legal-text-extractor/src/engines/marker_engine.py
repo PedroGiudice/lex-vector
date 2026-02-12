@@ -27,15 +27,15 @@ REQUIREMENTS:
 
 import logging
 import time
-from pathlib import Path
 from dataclasses import dataclass
-from typing import Optional
+from pathlib import Path
 
 try:
     import marker
+    from marker.config.parser import ConfigParser
     from marker.converters.pdf import PdfConverter
     from marker.models import create_model_dict
-    from marker.config.parser import ConfigParser
+
     MARKER_AVAILABLE = True
 except ImportError:
     MARKER_AVAILABLE = False
@@ -45,6 +45,7 @@ from .base import ExtractionEngine, ExtractionResult
 # Import monitoring (graceful fallback if not available)
 try:
     from ..monitoring import start_span, track_memory, track_progress
+
     MONITORING_AVAILABLE = True
 except ImportError:
     MONITORING_AVAILABLE = False
@@ -54,7 +55,7 @@ except ImportError:
 
     @contextmanager
     def start_span(op, description=None, **data):
-        yield type('MockSpan', (), {'set_data': lambda s, k, v: None})()
+        yield type("MockSpan", (), {"set_data": lambda s, k, v: None})()
 
     def track_memory(context=""):
         pass
@@ -123,7 +124,7 @@ class MarkerEngine(ExtractionEngine):
 
     def __init__(
         self,
-        config: Optional[MarkerConfig] = None,
+        config: MarkerConfig | None = None,
         use_gpu: bool = False,
         low_memory_mode: bool = False,
     ):
@@ -220,8 +221,7 @@ class MarkerEngine(ExtractionEngine):
         # CRITICAL: This is where the "10% hang" typically occurs
         # Models are downloaded/loaded from disk here
         with start_span(
-            "marker.create_model_dict",
-            "Loading ML models (Surya, Texify) - THIS IS THE SLOW PART"
+            "marker.create_model_dict", "Loading ML models (Surya, Texify) - THIS IS THE SLOW PART"
         ) as span:
             logger.info("[2/4] Carregando modelos ML (Surya, Texify)...")
             logger.info("  ATENCAO: Este passo pode demorar 1-5 minutos na primeira vez")
@@ -285,11 +285,8 @@ class MarkerEngine(ExtractionEngine):
         extract_start = time.time()
 
         with start_span(
-            "marker.extract",
-            f"Extract PDF: {pdf_path.name}",
-            pdf_name=pdf_path.name
+            "marker.extract", f"Extract PDF: {pdf_path.name}", pdf_name=pdf_path.name
         ) as extract_span:
-
             # Check availability
             with start_span("marker.check_available", "Checking Marker availability"):
                 if not self.is_available():
@@ -312,7 +309,7 @@ class MarkerEngine(ExtractionEngine):
             with start_span(
                 "marker.convert",
                 "PDF conversion (layout + text extraction)",
-                file_size_mb=round(file_size_mb, 2)
+                file_size_mb=round(file_size_mb, 2),
             ) as convert_span:
                 logger.info("  Convertendo PDF (layout detection + text extraction)...")
                 convert_start = time.time()
@@ -331,13 +328,15 @@ class MarkerEngine(ExtractionEngine):
 
                 # Get page stats for debugging/monitoring
                 page_stats = []
-                if hasattr(rendered, 'metadata') and rendered.metadata:
-                    page_stats = rendered.metadata.get('page_stats', [])
+                if hasattr(rendered, "metadata") and rendered.metadata:
+                    page_stats = rendered.metadata.get("page_stats", [])
 
                 # Count pages and extraction methods
                 pages = len(page_stats) if page_stats else 0
-                native_pages = sum(1 for p in page_stats if p.get('text_extraction_method') == 'pdftext')
-                ocr_pages = sum(1 for p in page_stats if p.get('text_extraction_method') == 'surya')
+                native_pages = sum(
+                    1 for p in page_stats if p.get("text_extraction_method") == "pdftext"
+                )
+                ocr_pages = sum(1 for p in page_stats if p.get("text_extraction_method") == "surya")
 
                 meta_span.set_data("page_count", pages)
                 meta_span.set_data("native_pages", native_pages)
@@ -352,7 +351,9 @@ class MarkerEngine(ExtractionEngine):
             logger.info(f"  - Arquivo: {pdf_path.name} ({file_size_mb:.2f} MB)")
             logger.info(f"  - Texto: {len(full_text):,} caracteres")
             logger.info(f"  - Paginas: {pages} total ({native_pages} nativas, {ocr_pages} OCR)")
-            logger.info(f"  - Velocidade: {pages / total_time:.1f} pags/s" if total_time > 0 else "")
+            logger.info(
+                f"  - Velocidade: {pages / total_time:.1f} pags/s" if total_time > 0 else ""
+            )
             logger.info("=" * 50)
 
             track_memory("marker.extract_complete")
@@ -373,7 +374,7 @@ class MarkerEngine(ExtractionEngine):
                         "disable_image_extraction": self.config.disable_image_extraction,
                         "paginate_output": self.config.paginate_output,
                         "drop_repeated_text": self.config.drop_repeated_text,
-                    }
+                    },
                 },
             )
 

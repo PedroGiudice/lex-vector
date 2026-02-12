@@ -21,7 +21,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Sequence, TypedDict
+from typing import TypedDict
 
 import cv2
 import numpy as np
@@ -103,9 +103,7 @@ class HSVRange:
 DEFAULT_STAMP_RANGES: dict[StampColor, list[HSVRange]] = {
     # Blue stamps - most common in official documents
     # H: 100-130 covers navy blue to sky blue
-    StampColor.BLUE: [
-        HSVRange(h_min=100, h_max=130, s_min=50, v_min=50, name="blue")
-    ],
+    StampColor.BLUE: [HSVRange(h_min=100, h_max=130, s_min=50, v_min=50, name="blue")],
     # Red stamps - "URGENTE", date stamps
     # Red wraps around 0 in HSV, so we need two ranges
     StampColor.RED: [
@@ -114,13 +112,9 @@ DEFAULT_STAMP_RANGES: dict[StampColor, list[HSVRange]] = {
     ],
     # Green stamps - less common but used by environmental agencies
     # Broader range to catch various green shades
-    StampColor.GREEN: [
-        HSVRange(h_min=35, h_max=85, s_min=40, v_min=40, name="green")
-    ],
+    StampColor.GREEN: [HSVRange(h_min=35, h_max=85, s_min=40, v_min=40, name="green")],
     # Purple stamps - rare but sometimes used
-    StampColor.PURPLE: [
-        HSVRange(h_min=130, h_max=160, s_min=40, v_min=40, name="purple")
-    ],
+    StampColor.PURPLE: [HSVRange(h_min=130, h_max=160, s_min=40, v_min=40, name="purple")],
 }
 
 
@@ -231,7 +225,7 @@ class StampSegmenter:
         self.config = config or StampSegmenterConfig()
 
     @classmethod
-    def for_ocr(cls) -> "StampSegmenter":
+    def for_ocr(cls) -> StampSegmenter:
         """
         Create segmenter optimized for OCR pre-processing.
 
@@ -246,7 +240,7 @@ class StampSegmenter:
         return cls(config)
 
     @classmethod
-    def for_extraction(cls) -> "StampSegmenter":
+    def for_extraction(cls) -> StampSegmenter:
         """
         Create segmenter optimized for stamp extraction.
 
@@ -261,9 +255,7 @@ class StampSegmenter:
         )
         return cls(config)
 
-    def _create_color_mask(
-        self, hsv_image: np.ndarray, ranges: list[HSVRange]
-    ) -> np.ndarray:
+    def _create_color_mask(self, hsv_image: np.ndarray, ranges: list[HSVRange]) -> np.ndarray:
         """
         Create binary mask for specified HSV ranges.
 
@@ -335,9 +327,7 @@ class StampSegmenter:
         extracted: list[np.ndarray] = []
 
         # Find contours in mask
-        contours, _ = cv2.findContours(
-            mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
-        )
+        contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
         image_area = mask.shape[0] * mask.shape[1]
         max_area = int(image_area * self.config.max_area_ratio)
@@ -414,9 +404,7 @@ class StampSegmenter:
 
         return regions, extracted
 
-    def _remove_stamps(
-        self, image: np.ndarray, mask: np.ndarray
-    ) -> np.ndarray:
+    def _remove_stamps(self, image: np.ndarray, mask: np.ndarray) -> np.ndarray:
         """
         Remove stamps from image by replacing masked regions with white.
 
@@ -437,9 +425,7 @@ class StampSegmenter:
 
         return result_gray
 
-    def process(
-        self, image: np.ndarray | Image.Image
-    ) -> StampSegmentationResult:
+    def process(self, image: np.ndarray | Image.Image) -> StampSegmentationResult:
         """
         Process image to detect, extract, or remove colored stamps.
 
@@ -492,9 +478,7 @@ class StampSegmenter:
         refined_mask = self._refine_mask(raw_mask)
 
         # Extract regions and metadata
-        regions, extracted_stamps = self._extract_stamp_regions(
-            refined_mask, image, hsv_image
-        )
+        regions, extracted_stamps = self._extract_stamp_regions(refined_mask, image, hsv_image)
 
         # Remove stamps if mode requires it
         cleaned_image = None
@@ -511,9 +495,7 @@ class StampSegmenter:
             processing_time_ms=round(elapsed_ms, 2),
         )
 
-    def process_pil(
-        self, image: Image.Image
-    ) -> tuple[Image.Image | None, list[StampRegion]]:
+    def process_pil(self, image: Image.Image) -> tuple[Image.Image | None, list[StampRegion]]:
         """
         Convenience method for PIL Image processing.
 

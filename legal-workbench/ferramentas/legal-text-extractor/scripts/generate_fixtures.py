@@ -17,14 +17,15 @@ Dependências:
     - Pillow>=10.0.0
 """
 
-from pathlib import Path
-from reportlab.lib.pagesizes import A4
-from reportlab.pdfgen import canvas
-from reportlab.lib.units import cm
-from reportlab.lib.colors import HexColor, black, lightgrey
-from reportlab.lib.utils import ImageReader
-from PIL import Image, ImageDraw, ImageFont
 import io
+from pathlib import Path
+
+from PIL import Image, ImageDraw, ImageFont
+from reportlab.lib.colors import HexColor, black
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.units import cm
+from reportlab.lib.utils import ImageReader
+from reportlab.pdfgen import canvas
 
 
 def create_page_1_text(c: canvas.Canvas):
@@ -37,11 +38,13 @@ def create_page_1_text(c: canvas.Canvas):
 
     # Título
     c.setFont("Helvetica-Bold", 14)
-    c.drawString(3*cm, height - 3*cm, "EXCELENTÍSSIMO SENHOR DOUTOR JUIZ DE DIREITO DA 1ª VARA CÍVEL")
+    c.drawString(
+        3 * cm, height - 3 * cm, "EXCELENTÍSSIMO SENHOR DOUTOR JUIZ DE DIREITO DA 1ª VARA CÍVEL"
+    )
 
     # Texto da petição
     c.setFont("Helvetica", 11)
-    y = height - 5*cm
+    y = height - 5 * cm
 
     texto_peticao = [
         "JOSÉ DA SILVA, brasileiro, casado, advogado, inscrito na OAB/SP sob o nº 123.456,",
@@ -87,21 +90,21 @@ def create_page_1_text(c: canvas.Canvas):
         "",
         "_________________________________",
         "Dr. José da Silva",
-        "OAB/SP 123.456"
+        "OAB/SP 123.456",
     ]
 
     for linha in texto_peticao:
         if linha.startswith("AÇÃO DE COBRANÇA"):
             c.setFont("Helvetica-Bold", 12)
-            c.drawCentredString(width/2, y, linha)
+            c.drawCentredString(width / 2, y, linha)
             c.setFont("Helvetica", 11)
         elif linha.startswith("I -") or linha.startswith("II -") or linha.startswith("III -"):
             c.setFont("Helvetica-Bold", 11)
-            c.drawString(3*cm, y, linha)
+            c.drawString(3 * cm, y, linha)
             c.setFont("Helvetica", 11)
         else:
-            c.drawString(3*cm, y, linha)
-        y -= 0.5*cm
+            c.drawString(3 * cm, y, linha)
+        y -= 0.5 * cm
 
 
 def create_page_2_image(c: canvas.Canvas):
@@ -117,7 +120,7 @@ def create_page_2_image(c: canvas.Canvas):
     img_width = int(width * 2)  # 2x resolution para qualidade
     img_height = int(height * 2)
 
-    img = Image.new('RGB', (img_width, img_height), color='white')
+    img = Image.new("RGB", (img_width, img_height), color="white")
     draw = ImageDraw.Draw(img)
 
     # Tentar usar fonte do sistema, fallback para default
@@ -130,7 +133,7 @@ def create_page_2_image(c: canvas.Canvas):
 
     # Título
     y_pos = 150
-    draw.text((200, y_pos), "CONTRATO DE PRESTAÇÃO DE SERVIÇOS", fill='black', font=font_title)
+    draw.text((200, y_pos), "CONTRATO DE PRESTAÇÃO DE SERVIÇOS", fill="black", font=font_title)
 
     # Texto do contrato (como imagem - não selecionável)
     y_pos = 300
@@ -177,14 +180,14 @@ def create_page_2_image(c: canvas.Canvas):
     line_height = 50
     for linha in texto_contrato:
         if "CLÁUSULA" in linha:
-            draw.text((150, y_pos), linha, fill='black', font=font_title)
+            draw.text((150, y_pos), linha, fill="black", font=font_title)
         else:
-            draw.text((150, y_pos), linha, fill='black', font=font_text)
+            draw.text((150, y_pos), linha, fill="black", font=font_text)
         y_pos += line_height
 
     # Salvar imagem em buffer e inserir no PDF
     img_buffer = io.BytesIO()
-    img.save(img_buffer, format='PNG')
+    img.save(img_buffer, format="PNG")
     img_buffer.seek(0)
 
     # Usar ImageReader para ler o buffer
@@ -207,10 +210,10 @@ def create_page_3_with_tarja(c: canvas.Canvas):
 
     # ÁREA PRINCIPAL (80% esquerda) - Texto do documento
     c.setFont("Helvetica-Bold", 14)
-    c.drawString(3*cm, height - 3*cm, "CONTRATO SOCIAL")
+    c.drawString(3 * cm, height - 3 * cm, "CONTRATO SOCIAL")
 
     c.setFont("Helvetica", 11)
-    y = height - 5*cm
+    y = height - 5 * cm
 
     texto_documento = [
         "Pelo presente instrumento particular de contrato social, os sócios abaixo",
@@ -249,19 +252,19 @@ def create_page_3_with_tarja(c: canvas.Canvas):
     ]
 
     # Desenhar texto principal (limitado aos 80% da esquerda)
-    max_x = tarja_x - 1*cm  # Margem de segurança
+    max_x = tarja_x - 1 * cm  # Margem de segurança
     for linha in texto_documento:
         if "CLÁUSULA" in linha:
             c.setFont("Helvetica-Bold", 11)
-            c.drawString(3*cm, y, linha)
+            c.drawString(3 * cm, y, linha)
             c.setFont("Helvetica", 11)
         else:
-            c.drawString(3*cm, y, linha)
-        y -= 0.5*cm
+            c.drawString(3 * cm, y, linha)
+        y -= 0.5 * cm
 
     # TARJA LATERAL (20% direita)
     # Fundo cinza claro
-    c.setFillColor(HexColor('#F0F0F0'))
+    c.setFillColor(HexColor("#F0F0F0"))
     c.rect(tarja_x, 0, tarja_width, height, fill=1, stroke=0)
 
     # Texto da tarja (rotacionado 90 graus, lendo de baixo para cima)
@@ -270,15 +273,15 @@ def create_page_3_with_tarja(c: canvas.Canvas):
 
     # Título da tarja (vertical)
     c.saveState()
-    c.translate(tarja_x + tarja_width/2 + 0.3*cm, height/2)
+    c.translate(tarja_x + tarja_width / 2 + 0.3 * cm, height / 2)
     c.rotate(90)
     c.drawCentredString(0, 0, "DOCUMENTO ASSINADO DIGITALMENTE")
     c.restoreState()
 
     # Informações da assinatura (horizontal, texto pequeno)
     c.setFont("Helvetica", 6)
-    y_tarja = height - 4*cm
-    x_tarja = tarja_x + 0.2*cm
+    y_tarja = height - 4 * cm
+    x_tarja = tarja_x + 0.2 * cm
 
     info_tarja = [
         "Código de verificação:",
@@ -306,7 +309,7 @@ def create_page_3_with_tarja(c: canvas.Canvas):
 
     for linha in info_tarja:
         c.drawString(x_tarja, y_tarja, linha)
-        y_tarja -= 0.35*cm
+        y_tarja -= 0.35 * cm
 
 
 def generate_fixture_pdf(output_path: Path):
@@ -334,9 +337,9 @@ def generate_fixture_pdf(output_path: Path):
 
     c.save()
     print(f"✅ PDF gerado com sucesso: {output_path}")
-    print(f"   - Página 1: Texto normal (NATIVE)")
-    print(f"   - Página 2: Imagem de texto (RASTER_NEEDED)")
-    print(f"   - Página 3: Texto com tarja lateral (TARJA_DETECTED)")
+    print("   - Página 1: Texto normal (NATIVE)")
+    print("   - Página 2: Imagem de texto (RASTER_NEEDED)")
+    print("   - Página 3: Texto com tarja lateral (TARJA_DETECTED)")
 
 
 if __name__ == "__main__":

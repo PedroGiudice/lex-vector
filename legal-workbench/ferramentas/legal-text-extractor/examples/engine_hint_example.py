@@ -18,27 +18,26 @@ Usage:
 """
 
 import logging
+import sys
 import tempfile
 from pathlib import Path
-import sys
 
 # Add src to path (for standalone execution)
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from src.context import (
     ContextStore,
-    SignatureVector,
-    ObservationResult,
     EngineType,
-    PatternType,
-    compute_signature,
+    ObservationResult,
     PageSignatureInput,
+    PatternType,
+    SignatureVector,
+    compute_signature,
 )
 
 # Setup logging
 logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
@@ -120,6 +119,7 @@ def demo_global_engine_hints():
 
         # Add more occurrences to build confidence
         import sqlite3
+
         with sqlite3.connect(db_path) as conn:
             conn.execute("UPDATE observed_patterns SET occurrence_count = 10")
             conn.commit()
@@ -150,7 +150,7 @@ def demo_global_engine_hints():
         )
 
         if hint:
-            print(f"   HINT FOUND!")
+            print("   HINT FOUND!")
             print(f"   - Suggested engine: {hint.suggested_engine.value}")
             print(f"   - Confidence: {hint.confidence:.2f}")
             print(f"   - Similarity: {hint.similarity:.3f}")
@@ -180,7 +180,7 @@ def demo_global_engine_hints():
         )
 
         if hint2:
-            print(f"   HINT FOUND!")
+            print("   HINT FOUND!")
             print(f"   - Suggested engine: {hint2.suggested_engine.value}")
             print(f"   - Confidence: {hint2.confidence:.2f}")
             print(f"   - Similarity: {hint2.similarity:.3f}")
@@ -288,7 +288,7 @@ def demo_case_specific_priority():
             pattern_type=PatternType.TABLE,
         )
         store.learn_from_page(caso1.id, sig1, result1)
-        print(f"1. Case 1 learned: MARKER with conf=0.90")
+        print("1. Case 1 learned: MARKER with conf=0.90")
 
         # Case 2: Uses PDFPLUMBER for similar tables (different context)
         caso2 = store.get_or_create_caso("caso2", "eproc")
@@ -301,7 +301,7 @@ def demo_case_specific_priority():
             pattern_type=PatternType.TABLE,
         )
         store.learn_from_page(caso2.id, sig2, result2)
-        print(f"2. Case 2 learned: PDFPLUMBER with conf=0.95 (higher)")
+        print("2. Case 2 learned: PDFPLUMBER with conf=0.95 (higher)")
 
         # When searching for Case 1, Case 1's pattern should be preferred
         print("\n3. Searching with Case 1 context...")
@@ -313,7 +313,7 @@ def demo_case_specific_priority():
 
         if hint:
             print(f"   Result: {hint.suggested_engine.value}")
-            print(f"   (Case-specific pattern has priority)")
+            print("   (Case-specific pattern has priority)")
             assert hint.suggested_engine == EngineType.MARKER
             print("   PASS: Correctly returned MARKER (case-specific)")
         else:

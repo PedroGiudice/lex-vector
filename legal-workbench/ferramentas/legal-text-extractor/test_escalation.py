@@ -8,24 +8,22 @@ Usage:
 
 import logging
 from pathlib import Path
+
 from PIL import Image
 
 from src.engines import EngineSelector
 
 # Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(levelname)s: %(message)s'
-)
+logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
 logger = logging.getLogger(__name__)
 
 
 def test_initialization():
     """Test 1: Engine initialization."""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("TEST 1: Engine Initialization")
-    print("="*60)
+    print("=" * 60)
 
     selector = EngineSelector()
 
@@ -39,9 +37,9 @@ def test_initialization():
 
 def test_engine_selection():
     """Test 2: Engine selection logic."""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("TEST 2: Engine Selection Logic")
-    print("="*60)
+    print("=" * 60)
 
     selector = EngineSelector()
 
@@ -60,7 +58,7 @@ def test_engine_selection():
 
         # Marker might not be available, fallback to tesseract is OK
         if expected == "marker" and actual == "tesseract":
-            logger.warning(f"Marker not available, using tesseract instead")
+            logger.warning("Marker not available, using tesseract instead")
             continue
 
         print(f"  Complexity={complexity:15s} Recommended={str(recommended):10s} → {actual}")
@@ -71,9 +69,9 @@ def test_engine_selection():
 
 def test_thresholds():
     """Test 3: Confidence thresholds."""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("TEST 3: Thresholds Configuration")
-    print("="*60)
+    print("=" * 60)
 
     selector = EngineSelector(confidence_threshold=0.90)
 
@@ -90,12 +88,12 @@ def test_thresholds():
 
 def test_simple_extraction():
     """Test 4: Simple extraction (no escalation)."""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("TEST 4: Simple Extraction (No Escalation)")
-    print("="*60)
+    print("=" * 60)
 
     # Create simple test image
-    img = Image.new('RGB', (800, 100), color='white')
+    img = Image.new("RGB", (800, 100), color="white")
 
     selector = EngineSelector()
 
@@ -104,7 +102,7 @@ def test_simple_extraction():
         image=img,
         complexity="SIMPLE",
         allow_escalation=True,
-        pdf_path=None  # No PDF = cannot escalate to Marker
+        pdf_path=None,  # No PDF = cannot escalate to Marker
     )
 
     print(f"  Engine used: {result.engine_used}")
@@ -121,11 +119,11 @@ def test_simple_extraction():
 
 def test_no_escalation_without_pdf():
     """Test 5: Cannot escalate to Marker without PDF."""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("TEST 5: No Escalation Without PDF Path")
-    print("="*60)
+    print("=" * 60)
 
-    img = Image.new('RGB', (800, 100), color='white')
+    img = Image.new("RGB", (800, 100), color="white")
 
     # Force low confidence to trigger escalation attempt
     selector = EngineSelector(force_low_confidence=True)
@@ -134,7 +132,7 @@ def test_no_escalation_without_pdf():
         image=img,
         complexity="SIMPLE",
         allow_escalation=True,
-        pdf_path=None  # No PDF path provided
+        pdf_path=None,  # No PDF path provided
     )
 
     print(f"  Engine used: {result.engine_used}")
@@ -150,11 +148,11 @@ def test_no_escalation_without_pdf():
 
 def test_escalation_disabled():
     """Test 6: Disable escalation."""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("TEST 6: Escalation Disabled")
-    print("="*60)
+    print("=" * 60)
 
-    img = Image.new('RGB', (800, 100), color='white')
+    img = Image.new("RGB", (800, 100), color="white")
 
     selector = EngineSelector(force_low_confidence=True)
 
@@ -165,7 +163,7 @@ def test_escalation_disabled():
         image=img,
         complexity="SIMPLE",
         allow_escalation=False,  # Disabled
-        pdf_path=pdf_path
+        pdf_path=pdf_path,
     )
 
     print(f"  Engine used: {result.engine_used}")
@@ -180,9 +178,9 @@ def test_escalation_disabled():
 
 def test_pdf_escalation():
     """Test 7: PDF escalation (if PDF exists)."""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("TEST 7: PDF Escalation (with real PDF)")
-    print("="*60)
+    print("=" * 60)
 
     selector = EngineSelector(force_low_confidence=True)
 
@@ -197,13 +195,13 @@ def test_pdf_escalation():
         return
 
     # Create dummy image (won't be used by Marker)
-    img = Image.new('RGB', (800, 100), color='white')
+    img = Image.new("RGB", (800, 100), color="white")
 
     result = selector.extract_with_escalation(
         image=img,
         complexity="SIMPLE",
         allow_escalation=True,
-        pdf_path=test_pdf  # Real PDF path
+        pdf_path=test_pdf,  # Real PDF path
     )
 
     print(f"  Engine used: {result.engine_used}")
@@ -220,9 +218,9 @@ def test_pdf_escalation():
 
 def main():
     """Run all tests."""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("OCR ENGINE ESCALATION SYSTEM - TEST SUITE")
-    print("="*60)
+    print("=" * 60)
 
     try:
         test_initialization()
@@ -233,9 +231,9 @@ def main():
         test_escalation_disabled()
         test_pdf_escalation()
 
-        print("\n" + "="*60)
+        print("\n" + "=" * 60)
         print("ALL TESTS PASSED ✓")
-        print("="*60)
+        print("=" * 60)
 
     except AssertionError as e:
         print(f"\n✗ TEST FAILED: {e}")
@@ -243,6 +241,7 @@ def main():
     except Exception as e:
         print(f"\n✗ ERROR: {e}")
         import traceback
+
         traceback.print_exc()
         return 1
 

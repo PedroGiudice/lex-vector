@@ -18,9 +18,9 @@ import unicodedata
 from dataclasses import dataclass, field
 from typing import TypedDict
 
-from .definitions import LegalTaxonomy, get_taxonomy
 from .boundary_config import BoundaryConfig, get_conservative_config
 from .boundary_detector import BoundaryDetector, has_boundary_markers
+from .definitions import LegalTaxonomy, get_taxonomy
 
 
 class PageClassification(TypedDict):
@@ -101,14 +101,10 @@ class DocumentSegmenter:
     def __post_init__(self) -> None:
         """Compila padroes regex apos inicializacao."""
         # Compila triggers de anexo
-        self._anexo_pattern = re.compile(
-            "|".join(self.ANEXO_TRIGGERS), re.IGNORECASE
-        )
+        self._anexo_pattern = re.compile("|".join(self.ANEXO_TRIGGERS), re.IGNORECASE)
 
         # Compila triggers de footer
-        self._footer_pattern = re.compile(
-            "|".join(self.FOOTER_TRIGGERS), re.IGNORECASE
-        )
+        self._footer_pattern = re.compile("|".join(self.FOOTER_TRIGGERS), re.IGNORECASE)
 
     @staticmethod
     def normalize_text(text: str) -> str:
@@ -152,11 +148,13 @@ class DocumentSegmenter:
             if match:
                 # Salva pagina anterior se existir
                 if current_page is not None:
-                    pages.append({
-                        "page_num": current_page["page_num"],
-                        "page_type": current_page["page_type"],
-                        "content": "\n".join(current_content_lines).strip(),
-                    })
+                    pages.append(
+                        {
+                            "page_num": current_page["page_num"],
+                            "page_type": current_page["page_type"],
+                            "content": "\n".join(current_content_lines).strip(),
+                        }
+                    )
                     current_content_lines = []
 
                 # Inicia nova pagina
@@ -169,11 +167,13 @@ class DocumentSegmenter:
 
         # Salva ultima pagina
         if current_page is not None:
-            pages.append({
-                "page_num": current_page["page_num"],
-                "page_type": current_page["page_type"],
-                "content": "\n".join(current_content_lines).strip(),
-            })
+            pages.append(
+                {
+                    "page_num": current_page["page_num"],
+                    "page_type": current_page["page_type"],
+                    "content": "\n".join(current_content_lines).strip(),
+                }
+            )
 
         return pages
 
@@ -381,9 +381,7 @@ class DocumentSegmenter:
             sections=sections,
         )
 
-    def _build_sections(
-        self, classifications: list[PageClassification]
-    ) -> list[SectionInfo]:
+    def _build_sections(self, classifications: list[PageClassification]) -> list[SectionInfo]:
         """
         Agrupa paginas em secoes baseado em transicoes.
 
@@ -609,9 +607,7 @@ class DocumentSegmenter:
         refined_sections: list[SectionInfo] = []
         for section in base_result["sections"]:
             if section["type"] == "ANEXOS":
-                refined = self.refine_anexos_section(
-                    section, pages_data, boundary_config
-                )
+                refined = self.refine_anexos_section(section, pages_data, boundary_config)
                 refined_sections.extend(refined)
             else:
                 refined_sections.append(section)

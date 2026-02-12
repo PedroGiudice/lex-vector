@@ -71,7 +71,9 @@ class SecaoDetector:
             line_stripped = line.strip()
 
             for pattern in self.config.patterns:
-                match = pattern.regex.search(line if not pattern.requires_line_start else line_stripped)
+                match = pattern.regex.search(
+                    line if not pattern.requires_line_start else line_stripped
+                )
 
                 if match and pattern.confidence_base >= self.config.min_confidence:
                     boundary: SecaoBoundary = {
@@ -149,27 +151,31 @@ class SecaoDetector:
         # Primeiro segmento (antes do primeiro boundary) - so se tiver conteudo
         first_content = text[: boundaries[0]["char_position"]].strip()
         if first_content and len(first_content) > 10:  # Ignora preambulos vazios
-            segments.append({
-                "start_pos": 0,
-                "end_pos": boundaries[0]["char_position"],
-                "secao_type": SecaoType.OUTRO.value,
-                "confidence": 0.5,
-                "content": first_content,
-            })
+            segments.append(
+                {
+                    "start_pos": 0,
+                    "end_pos": boundaries[0]["char_position"],
+                    "secao_type": SecaoType.OUTRO.value,
+                    "confidence": 0.5,
+                    "content": first_content,
+                }
+            )
 
         # Segmentos entre boundaries
         for i, boundary in enumerate(boundaries):
             start = boundary["char_position"]
             end = boundaries[i + 1]["char_position"] if i + 1 < len(boundaries) else len(text)
 
-            segments.append({
-                "start_pos": start,
-                "end_pos": end,
-                "secao_type": boundary["secao_type"],
-                "confidence": boundary["confidence"],
-                "content": text[start:end].strip(),
-                "pattern_matched": boundary["pattern_id"],
-                "matched_text": boundary["matched_text"],
-            })
+            segments.append(
+                {
+                    "start_pos": start,
+                    "end_pos": end,
+                    "secao_type": boundary["secao_type"],
+                    "confidence": boundary["confidence"],
+                    "content": text[start:end].strip(),
+                    "pattern_matched": boundary["pattern_id"],
+                    "matched_text": boundary["matched_text"],
+                }
+            )
 
         return result, segments

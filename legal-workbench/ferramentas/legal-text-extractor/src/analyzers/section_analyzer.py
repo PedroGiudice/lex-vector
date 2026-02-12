@@ -1,28 +1,29 @@
 """Análise de seções usando Claude SDK com rate limiting e retry logic"""
+
+import json
+import logging
 import os
 import re
-import json
 import time
-import logging
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
-from dataclasses import dataclass
 
-from anthropic import Anthropic, RateLimitError, APIError
+from anthropic import Anthropic, APIError, RateLimitError
 from pydantic import ValidationError
 from tenacity import (
+    before_sleep_log,
     retry,
+    retry_if_exception_type,
     stop_after_attempt,
     wait_exponential,
-    retry_if_exception_type,
-    before_sleep_log
 )
 
-from .schemas import ClaudeAnalysisResponse, SectionMetadata
-from ..learning.prompt_versioner import PromptVersioner
 from ..learning.ab_tester import ABTester
+from ..learning.prompt_versioner import PromptVersioner
+from ..learning.schemas import ExtractedSection, ExtractionResult, SectionType
 from ..learning.storage import LearningStorage
-from ..learning.schemas import ExtractionResult, ExtractedSection, SectionType
+from .schemas import ClaudeAnalysisResponse, SectionMetadata
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -31,6 +32,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class Section:
     """Seção identificada em documento jurídico"""
+
     type: str  # "petição inicial", "contestação", "sentença", etc
     content: str
     start_pos: int
@@ -61,13 +63,13 @@ class SectionAnalyzer:
 
     def __init__(
         self,
-        api_key: Optional[str] = None,
+        api_key: str | None = None,
         max_retries: int = 3,
         retry_delay: float = 2.0,
         model: str = "claude-sonnet-4-20250514",
         enable_learning: bool = True,
         enable_ab_testing: bool = False,
-        ab_test_id: Optional[str] = None
+        ab_test_id: str | None = None,
     ):
         """
         Inicializa o analisador de seções.
@@ -84,8 +86,7 @@ class SectionAnalyzer:
         self.api_key = api_key or os.environ.get("ANTHROPIC_API_KEY")
         if not self.api_key:
             raise ValueError(
-                "ANTHROPIC_API_KEY não encontrada. "
-                "Configure via env ou passe como parâmetro."
+                "ANTHROPIC_API_KEY não encontrada. Configure via env ou passe como parâmetro."
             )
 
         self.client = Anthropic(api_key=self.api_key)
@@ -94,7 +95,7 @@ class SectionAnalyzer:
         self.model = model
 
         # Rate limiting state
-        self._last_request_time: Optional[float] = None
+        self._last_request_time: float | None = None
         self._min_request_interval = 60.0 / self.RATE_LIMIT_RPM  # 3 seconds
 
         # Learning system integration
@@ -151,7 +152,7 @@ class SectionAnalyzer:
                 f"Prompt template não encontrado: {self.SECTION_SEPARATOR_TEMPLATE}"
             )
 
-        template = self.SECTION_SEPARATOR_TEMPLATE.read_text(encoding='utf-8')
+        template = self.SECTION_SEPARATOR_TEMPLATE.read_text(encoding="utf-8")
         logger.debug(f"Prompt template carregado de arquivo: {len(template)} chars")
         return template
 
@@ -168,10 +169,9 @@ class SectionAnalyzer:
         # Se A/B testing habilitado e há documento atual, usar versão do teste
         if self.enable_ab_testing and self.ab_test_id:
             # Nota: document_id deve ser definido antes de chamar analyze()
-            if hasattr(self, '_current_document_id') and self._current_document_id:
+            if hasattr(self, "_current_document_id") and self._current_document_id:
                 version_id = self.ab_tester.get_version_for_document(
-                    self.ab_test_id,
-                    self._current_document_id
+                    self.ab_test_id, self._current_document_id
                 )
                 if version_id:
                     return self.versioner.load_version(version_id)
@@ -197,7 +197,7 @@ class SectionAnalyzer:
         retry=retry_if_exception_type((RateLimitError, APIError)),
         stop=stop_after_attempt(3),
         wait=wait_exponential(multiplier=1, min=2, max=10),
-        before_sleep=before_sleep_log(logger, logging.WARNING)
+        before_sleep=before_sleep_log(logger, logging.WARNING),
     )
     def _call_claude_with_retry(self, prompt: str) -> str:
         """
@@ -251,7 +251,7 @@ class SectionAnalyzer:
             ValueError: Se JSON inválido ou validação falhar
         """
         # Extrair JSON da resposta (Claude pode adicionar texto ao redor)
-        json_match = re.search(r'\{.*\}', response, re.DOTALL)
+        json_match = re.search(r"\{.*\}", response, re.DOTALL)
         if not json_match:
             raise ValueError(f"Nenhum JSON encontrado na resposta do Claude: {response[:200]}...")
 
@@ -281,8 +281,8 @@ class SectionAnalyzer:
             Posição do marker no texto (-1 se não encontrado)
         """
         # Normalizar: remover espaços extras, quebras de linha múltiplas
-        marker_clean = re.sub(r'\s+', ' ', marker.strip())
-        text_clean = re.sub(r'\s+', ' ', full_text)
+        marker_clean = re.sub(r"\s+", " ", marker.strip())
+        text_clean = re.sub(r"\s+", " ", full_text)
 
         # Tentar match exato primeiro
         pos = text_clean.find(marker_clean)
@@ -291,7 +291,7 @@ class SectionAnalyzer:
 
         # Se não encontrar, tentar match fuzzy (primeiras palavras)
         words = marker_clean.split()[:5]  # Usar primeiras 5 palavras
-        partial_marker = ' '.join(words)
+        partial_marker = " ".join(words)
 
         pos = text_clean.find(partial_marker)
         if pos != -1:
@@ -302,9 +302,7 @@ class SectionAnalyzer:
         return -1
 
     def _extract_section_text(
-        self,
-        full_text: str,
-        section_meta: SectionMetadata
+        self, full_text: str, section_meta: SectionMetadata
     ) -> tuple[str, int, int]:
         """
         Extrai texto de uma seção baseado nos markers.
@@ -334,11 +332,7 @@ class SectionAnalyzer:
         content = full_text[start_pos:end_pos]
         return content, start_pos, end_pos
 
-    def analyze(
-        self,
-        text: str,
-        document_id: Optional[str] = None
-    ) -> list[Section]:
+    def analyze(self, text: str, document_id: str | None = None) -> list[Section]:
         """
         Analisa texto e identifica seções de peças processuais.
 
@@ -360,6 +354,7 @@ class SectionAnalyzer:
         if document_id is None:
             import hashlib
             from datetime import datetime
+
             timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
             text_hash = hashlib.md5(text.encode()).hexdigest()[:8]
             document_id = f"doc_{timestamp}_{text_hash}"
@@ -398,7 +393,7 @@ class SectionAnalyzer:
                 content=content,
                 start_pos=start_pos,
                 end_pos=end_pos,
-                confidence=section_meta.confidence
+                confidence=section_meta.confidence,
             )
             sections.append(section)
 
@@ -411,18 +406,14 @@ class SectionAnalyzer:
                 document_id=document_id,
                 text=text,
                 sections=sections,
-                prompt_version=prompt_version_id
+                prompt_version=prompt_version_id,
             )
 
         logger.info(f"Analysis complete: {len(sections)} sections identified")
         return sections
 
     def _log_extraction_result(
-        self,
-        document_id: str,
-        text: str,
-        sections: list[Section],
-        prompt_version: str
+        self, document_id: str, text: str, sections: list[Section], prompt_version: str
     ) -> None:
         """
         Salva resultado da extração para learning system.
@@ -441,7 +432,7 @@ class SectionAnalyzer:
                     content=s.content,
                     start_pos=s.start_pos,
                     end_pos=s.end_pos,
-                    confidence=s.confidence
+                    confidence=s.confidence,
                 )
                 for s in sections
             ]
@@ -452,7 +443,7 @@ class SectionAnalyzer:
                 predicted_sections=extracted_sections,
                 document_length=len(text),
                 prompt_version=prompt_version,
-                model=self.model
+                model=self.model,
             )
 
             # Salvar
@@ -463,7 +454,7 @@ class SectionAnalyzer:
                 self.ab_tester.record_result(
                     test_id=self.ab_test_id,
                     document_id=document_id,
-                    extraction_result=extraction_result
+                    extraction_result=extraction_result,
                 )
 
             logger.debug(f"Extraction result logged: {document_id}")
@@ -483,9 +474,10 @@ class SectionAnalyzer:
         """
         # Normalizar: remover acentos, lowercase, substituir espaços por _
         import unicodedata
-        normalized = unicodedata.normalize('NFKD', type_str)
-        normalized = normalized.encode('ASCII', 'ignore').decode('ASCII')
-        normalized = normalized.lower().replace(' ', '_')
+
+        normalized = unicodedata.normalize("NFKD", type_str)
+        normalized = normalized.encode("ASCII", "ignore").decode("ASCII")
+        normalized = normalized.lower().replace(" ", "_")
 
         # Tentar mapear para enum
         try:

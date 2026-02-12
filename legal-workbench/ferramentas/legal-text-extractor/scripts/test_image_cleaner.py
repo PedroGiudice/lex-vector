@@ -23,7 +23,7 @@ import numpy as np
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from src.core.image_cleaner import ImageCleaner, CleaningMode
+from src.core.image_cleaner import CleaningMode, ImageCleaner
 
 
 def create_test_image_with_watermark() -> np.ndarray:

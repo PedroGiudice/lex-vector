@@ -161,9 +161,9 @@ services:
              pip install -q -r /app/requirements.txt &&
              uvicorn api.main:app --host 0.0.0.0 --port 8003 --reload"
     volumes:
-      - ./docker/services/ledes-converter/api:/app/api
-      - ./docker/services/ledes-converter/templates:/app/templates
-      - ./docker/services/ledes-converter/requirements.txt:/app/requirements.txt:ro
+      - ./ferramentas/ledes-converter/api:/app/api
+      - ./ferramentas/ledes-converter/templates:/app/templates
+      - ./ferramentas/ledes-converter/requirements.txt:/app/requirements.txt:ro
       - shared-data:/data
     ports:
       - "8003:8003"

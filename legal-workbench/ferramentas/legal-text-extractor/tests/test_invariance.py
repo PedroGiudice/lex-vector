@@ -15,7 +15,6 @@ from pathlib import Path
 
 import pytest
 
-
 # =============================================================================
 # UTILIDADES DE NORMALIZACAO
 # =============================================================================
@@ -189,9 +188,7 @@ class TestInvariancePeticaoInicial:
     def test_limpeza_remove_artefatos(self):
         """Limpeza deve remover artefatos especificos do sistema."""
         for system in self.SYSTEMS:
-            texto_com_artefatos = load_fixture(
-                self.CATEGORY, f"com_artefatos_{system}.txt"
-            )
+            texto_com_artefatos = load_fixture(self.CATEGORY, f"com_artefatos_{system}.txt")
             texto_limpo = ArtifactCleaner.clean(texto_com_artefatos, system)
 
             # Nao deve conter artefatos apos limpeza
@@ -211,9 +208,7 @@ class TestInvariancePeticaoInicial:
         texto_base_normalizado = semantic_normalize(texto_base)
 
         for system in self.SYSTEMS:
-            texto_com_artefatos = load_fixture(
-                self.CATEGORY, f"com_artefatos_{system}.txt"
-            )
+            texto_com_artefatos = load_fixture(self.CATEGORY, f"com_artefatos_{system}.txt")
             texto_limpo = ArtifactCleaner.clean(texto_com_artefatos, system)
 
             # Compara semanticamente
@@ -228,9 +223,7 @@ class TestInvariancePeticaoInicial:
         textos_limpos = {}
 
         for system in self.SYSTEMS:
-            texto_com_artefatos = load_fixture(
-                self.CATEGORY, f"com_artefatos_{system}.txt"
-            )
+            texto_com_artefatos = load_fixture(self.CATEGORY, f"com_artefatos_{system}.txt")
             textos_limpos[system] = ArtifactCleaner.clean(texto_com_artefatos, system)
 
         # Compara todos os pares
@@ -255,9 +248,7 @@ class TestInvariancePeticaoInicial:
         ]
 
         for system in self.SYSTEMS:
-            texto_com_artefatos = load_fixture(
-                self.CATEGORY, f"com_artefatos_{system}.txt"
-            )
+            texto_com_artefatos = load_fixture(self.CATEGORY, f"com_artefatos_{system}.txt")
             texto_limpo = ArtifactCleaner.clean(texto_com_artefatos, system)
 
             for termo in termos_essenciais:

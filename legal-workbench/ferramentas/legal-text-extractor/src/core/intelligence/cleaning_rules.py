@@ -14,9 +14,8 @@ Responsabilidades:
 from __future__ import annotations
 
 import re
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Callable
-
 
 # =============================================================================
 # PADROES DE LIMPEZA
@@ -48,7 +47,6 @@ CLEANING_PATTERNS: dict[str, dict[str, str | Callable[[re.Match], str]]] = {
         "description": "Remove rodapes de paginacao",
         "flags": re.MULTILINE | re.IGNORECASE,
     },
-
     # -------------------------------------------------------------------------
     # CORRECAO DE QUEBRAS
     # -------------------------------------------------------------------------
@@ -62,7 +60,6 @@ CLEANING_PATTERNS: dict[str, dict[str, str | Callable[[re.Match], str]]] = {
         "replacement": r"\1 \2",
         "description": "Junta sentencas quebradas incorretamente",
     },
-
     # -------------------------------------------------------------------------
     # NORMALIZACAO DE FORMATOS JURIDICOS
     # -------------------------------------------------------------------------
@@ -77,7 +74,6 @@ CLEANING_PATTERNS: dict[str, dict[str, str | Callable[[re.Match], str]]] = {
         "description": "Normaliza numero OAB",
         "flags": re.IGNORECASE,
     },
-
     # -------------------------------------------------------------------------
     # MASCARAMENTO (PRIVACIDADE)
     # -------------------------------------------------------------------------
@@ -101,7 +97,6 @@ CLEANING_PATTERNS: dict[str, dict[str, str | Callable[[re.Match], str]]] = {
         "replacement": "[TELEFONE]",
         "description": "Mascara telefone",
     },
-
     # -------------------------------------------------------------------------
     # NORMALIZACAO DE ESPACAMENTO
     # -------------------------------------------------------------------------
@@ -116,7 +111,6 @@ CLEANING_PATTERNS: dict[str, dict[str, str | Callable[[re.Match], str]]] = {
         "description": "Remove espacos no inicio/fim de linhas",
         "flags": re.MULTILINE,
     },
-
     # -------------------------------------------------------------------------
     # LIMPEZA DE CARACTERES ESPECIAIS
     # -------------------------------------------------------------------------
@@ -126,7 +120,7 @@ CLEANING_PATTERNS: dict[str, dict[str, str | Callable[[re.Match], str]]] = {
         "description": "Remove caracteres de controle",
     },
     "normalize_quotes": {
-        "pattern": r"[""„‟]",
+        "pattern": r"[" "„‟]",
         "replacement": '"',
         "description": "Normaliza aspas para ASCII",
     },

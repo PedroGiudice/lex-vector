@@ -1,5 +1,5 @@
 """Tests for adaptive cleaning engine."""
-import pytest
+
 from src.engines.cleaning_engine import CleanerEngine, DetectionResult, get_cleaner
 
 

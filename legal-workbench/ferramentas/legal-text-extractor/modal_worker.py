@@ -4,32 +4,38 @@ Modal Worker - GPU-accelerated PDF extraction using Marker.
 This module provides serverless GPU processing for PDF extraction.
 Deploy to Modal and call via API or CLI.
 
+Estrategia ideal: chunking do PDF + multiplas GPUs pequenas (T4/L4).
+O PDF e dividido em blocos de ~100 paginas e cada bloco vai para uma GPU
+independente. GPUs pequenas devoram o PDF em paralelo como piranhas.
+
+Configs recomendadas:
+    - PDFs > 300 pags: --smart (auto-seleciona multi-T4 paralelo)
+    - PDFs pesados OCR: multi-L4 (bi ou quad)
+    - PDFs < 300 pags: A100 unica (simples, rapido)
+
 Setup:
     pip install modal
     modal token new
     modal deploy modal_worker.py
 
 Usage (CLI):
-    modal run modal_worker.py --pdf-path /path/to/document.pdf
+    modal run modal_worker.py --pdf-path doc.pdf --smart          # auto-selecao
+    modal run modal_worker.py --pdf-path doc.pdf --parallel       # multi-T4
+    modal run modal_worker.py --pdf-path doc.pdf                  # A100 unica
 
-Usage (API - simple):
-    from modal_worker import extract_pdf
-    result = extract_pdf.remote(pdf_bytes)
+Usage (API):
+    from modal_worker import extract_smart
+    result = extract_smart.remote(pdf_bytes, mode="auto")
 
-Usage (API - chunked with progress):
-    from modal_worker import extract_pdf_chunked
-    for progress in extract_pdf_chunked.remote_gen(pdf_bytes, chunk_size=100):
-        if progress["type"] == "progress":
-            print(f"Chunk {progress['chunk']}/{progress['total_chunks']} ({progress['percent']}%)")
-        elif progress["type"] == "result":
-            final_result = progress["data"]
-
-Cost: ~$3.50/hour (A100 80GB GPU), billed per second
-Performance: 3-5x faster than A10G for Marker extraction
+Custo aproximado:
+    T4 16GB: ~$0.59/hora/GPU (recomendado para volume)
+    L4 24GB: ~$0.80/hora/GPU (melhor custo-beneficio para OCR pesado)
+    A100 80GB: ~$3.50/hora (overkill para a maioria dos casos)
 """
 
+from collections.abc import Generator
+
 import modal
-from typing import Generator
 
 # Define the Modal app
 app = modal.App("lw-marker-extractor")
@@ -85,8 +91,8 @@ def extract_pdf(pdf_bytes: bytes, force_ocr: bool = False, page_range: list = No
             - processing_time: Time in seconds
     """
     import os
-    import time
     import tempfile
+    import time
 
     # Set cache directories
     os.environ["HF_HOME"] = "/cache/huggingface"
@@ -140,7 +146,7 @@ def extract_pdf(pdf_bytes: bytes, force_ocr: bool = False, page_range: list = No
         )
 
         # Process PDF
-        print(f"Processing PDF...")
+        print("Processing PDF...")
         convert_start = time.time()
         rendered = converter(pdf_path)
         text, images, metadata = text_from_rendered(rendered)
@@ -186,6 +192,7 @@ def get_pdf_page_count(pdf_bytes: bytes) -> int:
         Total number of pages
     """
     import tempfile
+
     import pdfplumber
 
     with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as f:
@@ -197,6 +204,7 @@ def get_pdf_page_count(pdf_bytes: bytes) -> int:
             return len(pdf.pages)
     finally:
         import os
+
         os.unlink(pdf_path)
 
 
@@ -236,8 +244,8 @@ def extract_pdf_chunked(
                 text = update["data"]["text"]
     """
     import os
-    import time
     import tempfile
+    import time
 
     # Set cache directories
     os.environ["HF_HOME"] = "/cache/huggingface"
@@ -367,10 +375,12 @@ def extract_pdf_chunked(
                 "percent": percent,
                 "pages_processed": pages_so_far,
                 "total_pages": total_pages,
-                "message": f"Processing chunk {chunk_num}/{total_chunks} (pages {page_range[0]+1}-{page_range[-1]+1})...",
+                "message": f"Processing chunk {chunk_num}/{total_chunks} (pages {page_range[0] + 1}-{page_range[-1] + 1})...",
             }
 
-            print(f"Processing chunk {chunk_num}/{total_chunks}: pages {page_range[0]+1}-{page_range[-1]+1}")
+            print(
+                f"Processing chunk {chunk_num}/{total_chunks}: pages {page_range[0] + 1}-{page_range[-1] + 1}"
+            )
 
             config = {
                 "output_format": "markdown",
@@ -442,6 +452,7 @@ class T4Extractor:
     def warmup(self):
         """Load models and capture in snapshot."""
         import os
+
         os.environ["HF_HOME"] = "/cache/huggingface"
         os.environ["TORCH_HOME"] = "/cache/torch"
         os.environ["MARKER_CACHE_DIR"] = "/cache/marker"
@@ -454,11 +465,7 @@ class T4Extractor:
 
     @modal.method()
     def extract_chunk(
-        self,
-        pdf_bytes: bytes,
-        page_range: list[int],
-        chunk_id: int,
-        force_ocr: bool = False
+        self, pdf_bytes: bytes, page_range: list[int], chunk_id: int, force_ocr: bool = False
     ) -> dict:
         """
         Extract text from a specific page range using T4 GPU.
@@ -466,8 +473,8 @@ class T4Extractor:
         Models are pre-loaded via snapshot, eliminating cold start.
         """
         import os
-        import time
         import tempfile
+        import time
 
         from marker.converters.pdf import PdfConverter
         from marker.output import text_from_rendered
@@ -480,7 +487,9 @@ class T4Extractor:
             pdf_path = f.name
 
         try:
-            print(f"[Chunk {chunk_id}] Processing pages {page_range[0]+1}-{page_range[-1]+1}...")
+            print(
+                f"[Chunk {chunk_id}] Processing pages {page_range[0] + 1}-{page_range[-1] + 1}..."
+            )
 
             # Configure converter (models already loaded via snapshot)
             config = {
@@ -528,7 +537,9 @@ class T4Extractor:
     timeout=1800,  # 30 min per chunk
     volumes={"/cache": model_cache},
 )
-def extract_chunk_t4(pdf_bytes: bytes, page_range: list[int], chunk_id: int, force_ocr: bool = False) -> dict:
+def extract_chunk_t4(
+    pdf_bytes: bytes, page_range: list[int], chunk_id: int, force_ocr: bool = False
+) -> dict:
     """
     Extract text from a specific page range using T4 GPU.
 
@@ -545,8 +556,8 @@ def extract_chunk_t4(pdf_bytes: bytes, page_range: list[int], chunk_id: int, for
         dict with chunk_id, text, pages processed, and timing info
     """
     import os
-    import time
     import tempfile
+    import time
 
     os.environ["HF_HOME"] = "/cache/huggingface"
     os.environ["TORCH_HOME"] = "/cache/torch"
@@ -565,7 +576,9 @@ def extract_chunk_t4(pdf_bytes: bytes, page_range: list[int], chunk_id: int, for
 
     try:
         # Load models
-        print(f"[Chunk {chunk_id}] Loading models for pages {page_range[0]+1}-{page_range[-1]+1}...")
+        print(
+            f"[Chunk {chunk_id}] Loading models for pages {page_range[0] + 1}-{page_range[-1] + 1}..."
+        )
         models = create_model_dict()
         model_time = time.time() - start_time
         print(f"[Chunk {chunk_id}] Models loaded in {model_time:.1f}s")
@@ -629,8 +642,9 @@ def extract_pdf_parallel(
     Uses T4Extractor with GPU Memory Snapshot for fast cold starts.
     Each T4 container restores from snapshot in ~10s instead of ~2min.
     """
-    import time
     import tempfile
+    import time
+
     import pdfplumber
 
     start_time = time.time()
@@ -645,6 +659,7 @@ def extract_pdf_parallel(
             total_pages = len(pdf.pages)
     finally:
         import os
+
         os.unlink(pdf_path)
 
     print(f"PDF has {total_pages} pages")
@@ -657,7 +672,9 @@ def extract_pdf_parallel(
 
     # Limit workers
     actual_workers = min(len(chunks), max_workers)
-    print(f"Processing {total_pages} pages in {len(chunks)} chunks using {actual_workers} parallel T4 GPUs (snapshot-enabled)")
+    print(
+        f"Processing {total_pages} pages in {len(chunks)} chunks using {actual_workers} parallel T4 GPUs (snapshot-enabled)"
+    )
 
     # Use T4Extractor with GPU snapshot
     extractor = T4Extractor()
@@ -667,12 +684,14 @@ def extract_pdf_parallel(
     parallel_start = time.time()
 
     # Use map with the class method
-    results = list(extractor.extract_chunk.map(
-        [pdf_bytes] * len(chunks),
-        chunks,
-        list(range(len(chunks))),
-        [force_ocr] * len(chunks),
-    ))
+    results = list(
+        extractor.extract_chunk.map(
+            [pdf_bytes] * len(chunks),
+            chunks,
+            list(range(len(chunks))),
+            [force_ocr] * len(chunks),
+        )
+    )
 
     parallel_time = time.time() - parallel_start
     print(f"All {len(chunks)} chunks completed in {parallel_time:.1f}s")
@@ -801,8 +820,9 @@ def extract_smart(
     Returns:
         dict with extracted text and processing details
     """
-    import time
     import tempfile
+    import time
+
     import pdfplumber
 
     start_time = time.time()
@@ -817,6 +837,7 @@ def extract_smart(
             total_pages = len(pdf.pages)
     finally:
         import os
+
         os.unlink(pdf_path)
 
     # Decide method
@@ -825,14 +846,14 @@ def extract_smart(
 
     # Execute with chosen method
     if decision["method"] == "parallel":
-        print(f"Using multi-T4 parallel extraction...")
+        print("Using multi-T4 parallel extraction...")
         result = extract_pdf_parallel.local(
             pdf_bytes,
             force_ocr=force_ocr,
             chunk_size=chunk_size,
         )
     else:
-        print(f"Using A100 sequential extraction...")
+        print("Using A100 sequential extraction...")
         result = extract_pdf.remote(pdf_bytes, force_ocr=force_ocr)
         result["mode"] = "a100-sequential"
 
@@ -857,6 +878,7 @@ def warmup_models():
         modal run modal_worker.py::warmup_models
     """
     import os
+
     os.environ["HF_HOME"] = "/cache/huggingface"
     os.environ["TORCH_HOME"] = "/cache/torch"
     os.environ["MARKER_CACHE_DIR"] = "/cache/marker"
@@ -976,7 +998,9 @@ def main(
             print("\n" + "=" * 60)
             print(f"RESULT ({result.get('mode', 'unknown')})")
             print("=" * 60)
-            print(f"Pages: {result['pages']} ({result.get('native_pages', '?')} native, {result.get('ocr_pages', '?')} OCR)")
+            print(
+                f"Pages: {result['pages']} ({result.get('native_pages', '?')} native, {result.get('ocr_pages', '?')} OCR)"
+            )
             print(f"Chars: {result['chars']:,}")
             print(f"Time: {result.get('total_time', result.get('processing_time', '?'))}s")
             if "estimated_cost_usd" in result:
@@ -992,9 +1016,13 @@ def main(
             print("\n" + "=" * 60)
             print("RESULT (multi-T4 parallel)")
             print("=" * 60)
-            print(f"Pages: {result['pages']} ({result['native_pages']} native, {result['ocr_pages']} OCR)")
+            print(
+                f"Pages: {result['pages']} ({result['native_pages']} native, {result['ocr_pages']} OCR)"
+            )
             print(f"Chars: {result['chars']:,}")
-            print(f"Total time: {result['processing_time']}s (parallel: {result['parallel_time']}s)")
+            print(
+                f"Total time: {result['processing_time']}s (parallel: {result['parallel_time']}s)"
+            )
             print(f"Workers: {result['workers_used']} T4 GPUs")
             print(f"Chunks: {result['chunks']}")
             print(f"Estimated cost: ${result['estimated_cost_usd']:.3f}")
@@ -1004,9 +1032,7 @@ def main(
             print(f"Using chunked extraction (chunk_size={chunk_size})")
             final_result = None
 
-            for update in extract_pdf_chunked.remote_gen(
-                pdf_bytes, chunk_size=chunk_size
-            ):
+            for update in extract_pdf_chunked.remote_gen(pdf_bytes, chunk_size=chunk_size):
                 if update["type"] == "progress":
                     print(
                         f"[{update['percent']:3d}%] {update['message']} "
@@ -1019,7 +1045,9 @@ def main(
             print("\n" + "=" * 60)
             print("RESULT (chunked A100)")
             print("=" * 60)
-            print(f"Pages: {result['pages']} ({result['native_pages']} native, {result['ocr_pages']} OCR)")
+            print(
+                f"Pages: {result['pages']} ({result['native_pages']} native, {result['ocr_pages']} OCR)"
+            )
             print(f"Chars: {result['chars']:,}")
             print(f"Time: {result['processing_time']}s")
             print(f"Chunks: {result['total_chunks']}")
@@ -1030,20 +1058,28 @@ def main(
             print("\n" + "=" * 60)
             print("RESULT (A100)")
             print("=" * 60)
-            print(f"Pages: {result['pages']} ({result['native_pages']} native, {result['ocr_pages']} OCR)")
+            print(
+                f"Pages: {result['pages']} ({result['native_pages']} native, {result['ocr_pages']} OCR)"
+            )
             print(f"Chars: {result['chars']:,}")
             print(f"Time: {result['processing_time']}s (convert: {result['convert_time']}s)")
 
         print("\nText preview:")
-        print(result['text'][:500] + "..." if len(result['text']) > 500 else result['text'])
+        print(result["text"][:500] + "..." if len(result["text"]) > 500 else result["text"])
     else:
         print("Usage:")
         print("  modal run modal_worker.py --health")
         print("  modal run modal_worker.py --warmup")
         print("  modal run modal_worker.py --pdf-path /path/to/document.pdf")
-        print("  modal run modal_worker.py --pdf-path /path/to/document.pdf --chunked     # A100 com progress")
-        print("  modal run modal_worker.py --pdf-path /path/to/document.pdf --parallel    # Multi-T4 paralelo")
-        print("  modal run modal_worker.py --pdf-path /path/to/document.pdf --smart       # Auto-selecao")
+        print(
+            "  modal run modal_worker.py --pdf-path /path/to/document.pdf --chunked     # A100 com progress"
+        )
+        print(
+            "  modal run modal_worker.py --pdf-path /path/to/document.pdf --parallel    # Multi-T4 paralelo"
+        )
+        print(
+            "  modal run modal_worker.py --pdf-path /path/to/document.pdf --smart       # Auto-selecao"
+        )
         print("  modal run modal_worker.py --pdf-path /path/to/document.pdf --smart --mode economy")
         print("  modal run modal_worker.py --pdf-path /path/to/document.pdf --count-pages")
         print("")

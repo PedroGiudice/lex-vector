@@ -46,29 +46,27 @@ Usage:
 
 from .models import (
     Caso,
-    ObservedPattern,
     Divergence,
-    PatternHint,
-    ObservationResult,
+    EngineQuality,
     EngineType,
+    ObservationResult,
+    ObservedPattern,
+    PatternHint,
     PatternType,
     SignatureVector,
-    EngineQuality,
 )
-
-from .store import ContextStore, ENGINE_QUALITY
 from .signature import (
+    PageSignatureInput,
     compute_signature,
     compute_signature_from_layout,
     infer_pattern_type,
-    PageSignatureInput,
 )
+from .store import ENGINE_QUALITY, ContextStore
 
 __all__ = [
     # Main store
     "ContextStore",
     "ENGINE_QUALITY",
-
     # Data models
     "Caso",
     "ObservedPattern",
@@ -77,11 +75,9 @@ __all__ = [
     "ObservationResult",
     "SignatureVector",
     "EngineQuality",
-
     # Enums
     "EngineType",
     "PatternType",
-
     # Signature computation
     "compute_signature",
     "compute_signature_from_layout",

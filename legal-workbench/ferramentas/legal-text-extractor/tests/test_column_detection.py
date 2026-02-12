@@ -21,17 +21,16 @@ import pytest
 from PIL import Image
 
 from src.core.image_cleaner import (
-    ColumnLayoutDetector,
-    ColumnDetectionConfig,
-    LayoutMetadata,
-    ColumnRegion,
-    ColumnBoundary,
     DEFAULT_COLUMN_CONFIG,
+    ColumnBoundary,
+    ColumnDetectionConfig,
+    ColumnLayoutDetector,
+    ColumnRegion,
+    ImageCleaner,
+    LayoutMetadata,
     detect_columns,
     get_column_detector,
-    ImageCleaner,
 )
-
 
 # =============================================================================
 # Test Fixtures - Synthetic Images
@@ -59,9 +58,7 @@ def create_single_column_image(width: int = 600, height: int = 800) -> np.ndarra
     return image
 
 
-def create_two_column_image(
-    width: int = 600, height: int = 800, gap_width: int = 60
-) -> np.ndarray:
+def create_two_column_image(width: int = 600, height: int = 800, gap_width: int = 60) -> np.ndarray:
     """
     Creates a synthetic two-column document image.
 
@@ -280,9 +277,7 @@ class TestLayoutMetadata:
         """Creates a single-column layout metadata."""
         return LayoutMetadata(
             num_columns=1,
-            columns=[
-                ColumnRegion(index=0, x_start=0, x_end=600, width=600, text_density=0.1)
-            ],
+            columns=[ColumnRegion(index=0, x_start=0, x_end=600, width=600, text_density=0.1)],
             column_boundaries=[],
             page_width=600,
             page_height=800,
@@ -297,13 +292,9 @@ class TestLayoutMetadata:
             num_columns=2,
             columns=[
                 ColumnRegion(index=0, x_start=0, x_end=270, width=270, text_density=0.1),
-                ColumnRegion(
-                    index=1, x_start=330, x_end=600, width=270, text_density=0.12
-                ),
+                ColumnRegion(index=1, x_start=330, x_end=600, width=270, text_density=0.12),
             ],
-            column_boundaries=[
-                ColumnBoundary(x_start=270, x_end=330, width=60, confidence=0.85)
-            ],
+            column_boundaries=[ColumnBoundary(x_start=270, x_end=330, width=60, confidence=0.85)],
             page_width=600,
             page_height=800,
             detection_method="vertical_projection",
@@ -464,9 +455,7 @@ class TestImageCleanerIntegration:
         pil_image = Image.fromarray(np_image)
 
         config = ColumnDetectionConfig(max_columns=4, valley_prominence=0.2)
-        cleaned, layout = cleaner.process_image_with_layout(
-            pil_image, column_config=config
-        )
+        cleaned, layout = cleaner.process_image_with_layout(pil_image, column_config=config)
 
         assert isinstance(layout, LayoutMetadata)
 
@@ -528,9 +517,7 @@ class TestEdgeCases:
 
     def test_max_columns_limit(self):
         """Test that max_columns configuration is respected."""
-        config = ColumnDetectionConfig(
-            max_columns=2, valley_prominence=0.15, min_gap_width_px=20
-        )
+        config = ColumnDetectionConfig(max_columns=2, valley_prominence=0.15, min_gap_width_px=20)
         detector = ColumnLayoutDetector(config=config)
 
         # Create 4-column image

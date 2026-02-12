@@ -1,14 +1,13 @@
 """Tracking de métricas de performance do sistema de extração"""
+
 import logging
-from typing import Optional, Literal
-from datetime import datetime, timedelta
+from typing import Literal
 
 from .schemas import (
-    ExtractionResult,
-    PerformanceMetrics,
     ExtractedSection,
+    ExtractionResult,
     GroundTruthSection,
-    ValidationStatus
+    PerformanceMetrics,
 )
 from .storage import LearningStorage
 
@@ -27,7 +26,7 @@ class MetricsTracker:
     - Trends: evolução ao longo do tempo
     """
 
-    def __init__(self, storage: Optional[LearningStorage] = None):
+    def __init__(self, storage: LearningStorage | None = None):
         """
         Inicializa tracker.
 
@@ -38,9 +37,8 @@ class MetricsTracker:
         logger.info("MetricsTracker initialized")
 
     def calculate_metrics_for_extraction(
-        self,
-        extraction: ExtractionResult
-    ) -> Optional[PerformanceMetrics]:
+        self, extraction: ExtractionResult
+    ) -> PerformanceMetrics | None:
         """
         Calcula métricas para uma única extração.
 
@@ -62,13 +60,12 @@ class MetricsTracker:
             batch_id=batch_id,
             predicted=extraction.predicted_sections,
             ground_truth=extraction.ground_truth_sections,
-            prompt_version=extraction.prompt_version
+            prompt_version=extraction.prompt_version,
         )
 
         # Calcular per-type metrics
         metrics.per_type_metrics = self._calculate_per_type_metrics(
-            extraction.predicted_sections,
-            extraction.ground_truth_sections
+            extraction.predicted_sections, extraction.ground_truth_sections
         )
 
         # Salvar
@@ -82,9 +79,7 @@ class MetricsTracker:
         return metrics
 
     def calculate_batch_metrics(
-        self,
-        batch_id: str,
-        extractions: list[ExtractionResult]
+        self, batch_id: str, extractions: list[ExtractionResult]
     ) -> PerformanceMetrics:
         """
         Calcula métricas agregadas para um batch de extrações.
@@ -97,10 +92,7 @@ class MetricsTracker:
             PerformanceMetrics agregado
         """
         # Filtrar apenas extrações com ground truth
-        valid_extractions = [
-            e for e in extractions
-            if e.ground_truth_sections is not None
-        ]
+        valid_extractions = [e for e in extractions if e.ground_truth_sections is not None]
 
         if not valid_extractions:
             raise ValueError("No extractions with ground truth in batch")
@@ -118,17 +110,14 @@ class MetricsTracker:
             batch_id=batch_id,
             predicted=all_predicted,
             ground_truth=all_ground_truth,
-            prompt_version=valid_extractions[0].prompt_version
+            prompt_version=valid_extractions[0].prompt_version,
         )
 
         # Atualizar total_documents
         metrics.total_documents = len(valid_extractions)
 
         # Calcular per-type metrics
-        metrics.per_type_metrics = self._calculate_per_type_metrics(
-            all_predicted,
-            all_ground_truth
-        )
+        metrics.per_type_metrics = self._calculate_per_type_metrics(all_predicted, all_ground_truth)
 
         # Salvar
         self.storage.save_metrics(metrics)
@@ -141,9 +130,7 @@ class MetricsTracker:
         return metrics
 
     def _calculate_per_type_metrics(
-        self,
-        predicted: list[ExtractedSection],
-        ground_truth: list[GroundTruthSection]
+        self, predicted: list[ExtractedSection], ground_truth: list[GroundTruthSection]
     ) -> dict[str, dict]:
         """
         Calcula métricas detalhadas por tipo de seção.
@@ -187,22 +174,22 @@ class MetricsTracker:
 
             precision = tp / (tp + fp) if (tp + fp) > 0 else 0.0
             recall = tp / (tp + fn) if (tp + fn) > 0 else 0.0
-            f1 = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0.0
+            f1 = (
+                2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0.0
+            )
 
             per_type[section_type] = {
                 "predicted": len(pred_sections),
                 "ground_truth": len(gt_sections),
                 "precision": round(precision, 3),
                 "recall": round(recall, 3),
-                "f1": round(f1, 3)
+                "f1": round(f1, 3),
             }
 
         return per_type
 
     def get_performance_trend(
-        self,
-        prompt_version: Optional[str] = None,
-        last_n_batches: int = 10
+        self, prompt_version: str | None = None, last_n_batches: int = 10
     ) -> dict:
         """
         Retorna tendência de performance ao longo do tempo.
@@ -215,24 +202,23 @@ class MetricsTracker:
             Dict com dados de tendência
         """
         metrics_list = self.storage.list_metrics(
-            prompt_version=prompt_version,
-            limit=last_n_batches
+            prompt_version=prompt_version, limit=last_n_batches
         )
 
         if not metrics_list:
-            return {
-                "trend": "no_data",
-                "batches": 0,
-                "avg_f1": 0.0
-            }
+            return {"trend": "no_data", "batches": 0, "avg_f1": 0.0}
 
         # Calcular média de F1
         avg_f1 = sum(m.f1_score for m in metrics_list) / len(metrics_list)
 
         # Determinar tendência (comparar primeiros vs últimos)
         if len(metrics_list) >= 3:
-            first_half_f1 = sum(m.f1_score for m in metrics_list[len(metrics_list)//2:]) / (len(metrics_list) - len(metrics_list)//2)
-            second_half_f1 = sum(m.f1_score for m in metrics_list[:len(metrics_list)//2]) / (len(metrics_list)//2)
+            first_half_f1 = sum(m.f1_score for m in metrics_list[len(metrics_list) // 2 :]) / (
+                len(metrics_list) - len(metrics_list) // 2
+            )
+            second_half_f1 = sum(m.f1_score for m in metrics_list[: len(metrics_list) // 2]) / (
+                len(metrics_list) // 2
+            )
 
             if second_half_f1 > first_half_f1 + 0.05:
                 trend = "improving"
@@ -252,16 +238,14 @@ class MetricsTracker:
                 {
                     "batch_id": m.batch_id,
                     "f1": round(m.f1_score, 3),
-                    "computed_at": m.computed_at.isoformat()
+                    "computed_at": m.computed_at.isoformat(),
                 }
                 for m in metrics_list
-            ]
+            ],
         }
 
     def should_improve_prompt(
-        self,
-        f1_threshold: float = 0.85,
-        min_batches: int = 3
+        self, f1_threshold: float = 0.85, min_batches: int = 3
     ) -> tuple[bool, str]:
         """
         Determina se prompt deve ser atualizado baseado em performance.
@@ -291,6 +275,7 @@ class MetricsTracker:
         f1_scores = [dp["f1"] for dp in trend["data_points"]]
         if len(f1_scores) >= 3:
             import statistics
+
             std_dev = statistics.stdev(f1_scores)
             if std_dev > 0.15:
                 return True, f"High variance (std={std_dev:.2f})"
@@ -298,9 +283,7 @@ class MetricsTracker:
         return False, f"Performance acceptable (F1={trend['avg_f1']:.2f}, trend={trend['trend']})"
 
     def generate_report(
-        self,
-        batch_id: Optional[str] = None,
-        format: Literal["text", "json"] = "text"
+        self, batch_id: str | None = None, format: Literal["text", "json"] = "text"
     ) -> str:
         """
         Gera relatório de métricas.
@@ -336,7 +319,9 @@ class MetricsTracker:
             f"  Precision:  {metrics.precision:.3f}",
             f"  Recall:     {metrics.recall:.3f}",
             f"  F1 Score:   {metrics.f1_score:.3f}",
-            f"  Avg Confidence: {metrics.average_confidence:.3f}" if metrics.average_confidence else "",
+            f"  Avg Confidence: {metrics.average_confidence:.3f}"
+            if metrics.average_confidence
+            else "",
             "",
             "CONFUSION MATRIX:",
             f"  True Positives:  {metrics.true_positives}",
@@ -349,8 +334,12 @@ class MetricsTracker:
             lines.append("PER-TYPE METRICS:")
             for section_type, type_metrics in metrics.per_type_metrics.items():
                 lines.append(f"  {section_type}:")
-                lines.append(f"    Predicted: {type_metrics['predicted']}, Ground Truth: {type_metrics['ground_truth']}")
-                lines.append(f"    P={type_metrics['precision']:.2f}, R={type_metrics['recall']:.2f}, F1={type_metrics['f1']:.2f}")
+                lines.append(
+                    f"    Predicted: {type_metrics['predicted']}, Ground Truth: {type_metrics['ground_truth']}"
+                )
+                lines.append(
+                    f"    P={type_metrics['precision']:.2f}, R={type_metrics['recall']:.2f}, F1={type_metrics['f1']:.2f}"
+                )
 
         lines.append("=" * 70)
 

@@ -1,21 +1,8 @@
 """Learning system for continuous improvement of section extraction"""
 
 # Core schemas
-from .schemas import (
-    ValidationStatus,
-    SectionType,
-    ExtractedSection,
-    GroundTruthSection,
-    ExtractionResult,
-    FewShotExample,
-    PerformanceMetrics
-)
-
-# Storage
-from .storage import LearningStorage
-
-# Pattern extraction
-from .pattern_extractor import PatternExtractor
+# A/B testing (M3.3)
+from .ab_tester import ABTest, ABTester, ABTestResult
 
 # Few-shot management
 from .few_shot_manager import FewShotManager
@@ -23,14 +10,26 @@ from .few_shot_manager import FewShotManager
 # Metrics tracking
 from .metrics_tracker import MetricsTracker
 
+# Pattern extraction
+from .pattern_extractor import PatternExtractor
+
 # Prompt versioning
-from .prompt_versioner import PromptVersioner, PromptVersion
+from .prompt_versioner import PromptVersion, PromptVersioner
+from .schemas import (
+    ExtractedSection,
+    ExtractionResult,
+    FewShotExample,
+    GroundTruthSection,
+    PerformanceMetrics,
+    SectionType,
+    ValidationStatus,
+)
 
 # Self-improvement (M3.2)
-from .self_improver import SelfImprover, ErrorAnalysis
+from .self_improver import ErrorAnalysis, SelfImprover
 
-# A/B testing (M3.3)
-from .ab_tester import ABTester, ABTest, ABTestResult
+# Storage
+from .storage import LearningStorage
 
 __all__ = [
     # Schemas

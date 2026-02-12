@@ -14,9 +14,9 @@ sys.path.insert(0, str(project_root))
 
 # Importa diretamente do módulo (evita __init__.py que pode ter dependências não instaladas)
 import importlib.util
+
 spec = importlib.util.spec_from_file_location(
-    "step_01_layout",
-    project_root / "src" / "steps" / "step_01_layout.py"
+    "step_01_layout", project_root / "src" / "steps" / "step_01_layout.py"
 )
 step_01_module = importlib.util.module_from_spec(spec)
 
@@ -86,9 +86,13 @@ def test_pje_pdf():
                 pages_with_reduced_bbox += 1
 
     # Maioria deveria ter bbox reduzido
-    assert pages_with_reduced_bbox > 250, f"Maioria deveria ter bbox reduzido, obteve {pages_with_reduced_bbox}/291"
+    assert pages_with_reduced_bbox > 250, (
+        f"Maioria deveria ter bbox reduzido, obteve {pages_with_reduced_bbox}/291"
+    )
 
-    print(f"✅ PJe PDF: {native_count} NATIVE, {raster_count} RASTER_NEEDED, {tarja_count}/291 com tarja")
+    print(
+        f"✅ PJe PDF: {native_count} NATIVE, {raster_count} RASTER_NEEDED, {tarja_count}/291 com tarja"
+    )
 
 
 def test_histogram_algorithm():
@@ -132,5 +136,6 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"\n❌ Erro: {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)

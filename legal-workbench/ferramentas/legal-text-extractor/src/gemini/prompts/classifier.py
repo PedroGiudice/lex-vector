@@ -13,7 +13,7 @@ a qualidade da classificação. Teste extensivamente antes de alterar.
 
 from __future__ import annotations
 
-TAXONOMY_DESCRIPTION = '''
+TAXONOMY_DESCRIPTION = """
 ## TAXONOMIA DE PEÇAS PROCESSUAIS BRASILEIRAS
 
 Você DEVE classificar cada seção em EXATAMENTE UMA das seguintes 12 categorias:
@@ -144,9 +144,9 @@ Você DEVE classificar cada seção em EXATAMENTE UMA das seguintes 12 categoria
 - Documentos em idioma estrangeiro não traduzidos
 - Fragmentos sem contexto suficiente
 **ATENÇÃO:** Use com parcimônia. A maioria dos documentos DEVE ter classificação específica.
-'''
+"""
 
-CLASSIFICATION_PROMPT = f'''
+CLASSIFICATION_PROMPT = f"""
 # TAREFA: Classificação Semântica de Documento Jurídico Brasileiro
 
 Você é um especialista em direito processual brasileiro com profundo conhecimento da estrutura de processos judiciais. Sua tarefa é analisar o documento abaixo e identificar as diferentes peças processuais, classificando cada uma de forma precisa.
@@ -219,7 +219,7 @@ Siga EXATAMENTE este schema:
 
 Analise o documento abaixo e retorne a classificação JSON:
 
-'''
+"""
 
 
 def build_classification_prompt(doc_id: str = "documento") -> str:
@@ -237,6 +237,5 @@ def build_classification_prompt(doc_id: str = "documento") -> str:
         >>> response = gemini_client.process_file(path, prompt)
     """
     return CLASSIFICATION_PROMPT.replace(
-        '"doc_id": "identificador_do_documento"',
-        f'"doc_id": "{doc_id}"'
+        '"doc_id": "identificador_do_documento"', f'"doc_id": "{doc_id}"'
     )

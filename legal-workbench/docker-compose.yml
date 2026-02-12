@@ -257,7 +257,7 @@ services:
     volumes:
       - shared-data:/data
     environment:
-      - DATA_PATH=/data
+      - LEDES_DATA_PATH=/data
       - LOG_LEVEL=INFO
       - SENTRY_DSN=${SENTRY_DSN:-}
       - ENVIRONMENT=${ENVIRONMENT:-development}

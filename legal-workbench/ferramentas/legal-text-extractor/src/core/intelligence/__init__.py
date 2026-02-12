@@ -10,24 +10,24 @@ Componentes:
 - boundary_detector: Deteccao de boundaries entre documentos genericos
 """
 
-from .definitions import TaxonomyLoader, LegalTaxonomy, get_taxonomy, reload_taxonomy
-from .cleaning_rules import CLEANING_PATTERNS, CleaningRules
-from .cleaner_advanced import AdvancedCleaner
-from .segmenter import DocumentSegmenter
 from .boundary_config import (
     BoundaryConfig,
     BoundaryPattern,
     DocumentClass,
-    get_conservative_config,
-    get_formal_document_config,
     get_compact_document_config,
+    get_conservative_config,
     get_disabled_config,
+    get_formal_document_config,
 )
 from .boundary_detector import (
     BoundaryDetector,
     detect_boundaries_conservative,
     has_boundary_markers,
 )
+from .cleaner_advanced import AdvancedCleaner
+from .cleaning_rules import CLEANING_PATTERNS, CleaningRules
+from .definitions import LegalTaxonomy, TaxonomyLoader, get_taxonomy, reload_taxonomy
+from .segmenter import DocumentSegmenter
 
 __all__ = [
     # Taxonomia

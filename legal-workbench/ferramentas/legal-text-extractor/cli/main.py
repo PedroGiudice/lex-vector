@@ -15,6 +15,7 @@ Exemplos:
     lte stats --since 2025-01-01 --engine marker
     lte batch ./documentos --parallel 4 --engine auto
 """
+
 import sys
 from pathlib import Path
 
@@ -68,22 +69,26 @@ def main(
 # Import subcommands - lazy loading para evitar imports pesados
 def _get_process_app():
     from cli.commands.process import process_app
+
     return process_app
 
 
 def _get_stats_app():
     from cli.commands.stats import stats_app
+
     return stats_app
 
 
 def _get_batch_app():
     from cli.commands.batch import batch_app
+
     return batch_app
 
 
 # Register subcommands
 # Note: We use add_typer for subcommands that are themselves Typer apps
 # and app.command for simple commands
+
 
 @app.command()
 def version():
@@ -95,17 +100,18 @@ def version():
 
     text = Text()
     text.append("Legal Text Extractor\n", style="bold cyan")
-    text.append(f"Versao: ", style="bold")
+    text.append("Versao: ", style="bold")
     text.append(f"{__version__}\n")
-    text.append(f"Author: ", style="bold")
+    text.append("Author: ", style="bold")
     text.append(f"{__author__}\n")
-    text.append(f"Python: ", style="bold")
+    text.append("Python: ", style="bold")
     text.append(f"{sys.version.split()[0]}\n")
 
     # Check available engines
     engines = []
     try:
         from src.engines.marker_engine import MarkerEngine
+
         marker = MarkerEngine()
         if marker.is_available():
             engines.append("marker (OK)")
@@ -116,17 +122,19 @@ def version():
 
     try:
         import pdfplumber
+
         engines.append("pdfplumber (OK)")
     except ImportError:
         engines.append("pdfplumber (NOT INSTALLED)")
 
     try:
         import pytesseract
+
         engines.append("tesseract (OK)")
     except ImportError:
         engines.append("tesseract (NOT INSTALLED)")
 
-    text.append(f"\nEngines disponiveis:\n", style="bold")
+    text.append("\nEngines disponiveis:\n", style="bold")
     for e in engines:
         status_style = "green" if "OK" in e else "red"
         text.append(f"  - [{status_style}]{e}[/{status_style}]\n")
@@ -214,16 +222,15 @@ def process(
         lte process processo.pdf --context-db data/context.db --cnj "0000000-00.0000.0.00.0000"
     """
     import logging
-    from datetime import datetime
-    from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn
-    from rich.panel import Panel
+
+    from rich.progress import BarColumn, Progress, SpinnerColumn, TaskProgressColumn, TextColumn
     from rich.table import Table
 
     # Configure logging
     if verbose:
         logging.basicConfig(
             level=logging.DEBUG,
-            format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+            format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
         )
     else:
         logging.basicConfig(level=logging.WARNING)
@@ -318,6 +325,7 @@ def process(
                 with open(output_file, "w", encoding="utf-8") as f:
                     if format.lower() == "json":
                         import json
+
                         data = {
                             "text": result.text,
                             "total_pages": result.total_pages,
@@ -341,7 +349,7 @@ def process(
         table.add_row("Arquivo", arquivo.name)
         table.add_row("Tamanho", f"{arquivo.stat().st_size / 1024:.1f} KB")
 
-        if engine.lower() == "auto" and 'result' in dir():
+        if engine.lower() == "auto" and "result" in dir():
             table.add_row("Engine", result.engine_used)
             table.add_row("Sistema Detectado", f"{result.system_name} ({result.confidence}%)")
             table.add_row("Texto Original", f"{result.original_length:,} chars")
@@ -360,7 +368,7 @@ def process(
 
         console.print()
         console.print(table)
-        console.print(f"\n[green]Processamento concluido com sucesso![/green]")
+        console.print("\n[green]Processamento concluido com sucesso![/green]")
 
     except FileNotFoundError as e:
         console.print(f"[red]Erro:[/red] Arquivo nao encontrado: {e}")
@@ -372,6 +380,7 @@ def process(
         console.print(f"[red]Erro inesperado:[/red] {e}")
         if verbose:
             import traceback
+
             console.print(traceback.format_exc())
         raise typer.Exit(1)
 
@@ -440,23 +449,27 @@ def stats(
         lte stats --export json --output stats.json
     """
     # Delegate to the existing context_stats module
+    from datetime import datetime
+
+    from rich.progress import Progress, SpinnerColumn, TextColumn
+
     from cli.context_stats import (
         ContextStatsDB,
-        render_summary_panel,
+        parse_date,
+        render_casos_table,
         render_engine_table,
         render_pattern_table,
         render_recent_table,
-        render_casos_table,
-        parse_date,
+        render_summary_panel,
     )
-    from rich.progress import Progress, SpinnerColumn, TextColumn
-    from datetime import datetime
 
     # Validate database exists
     if not db.exists():
         console.print(f"[red]Erro:[/red] Database nao encontrado: {db}")
         console.print("\n[dim]Dica: Verifique o caminho ou execute processamentos primeiro.[/dim]")
-        console.print("[dim]Para gerar dados de teste: python -m cli.generate_sample_data --db {db}[/dim]")
+        console.print(
+            "[dim]Para gerar dados de teste: python -m cli.generate_sample_data --db {db}[/dim]"
+        )
         raise typer.Exit(1)
 
     # Parse date filter
@@ -485,8 +498,8 @@ def stats(
 
     # Handle export mode
     if export_format:
-        import json
         import csv
+        import json
         from io import StringIO
 
         summary = store.get_summary()
@@ -524,9 +537,29 @@ def stats(
             buffer = StringIO()
             writer = csv.writer(buffer)
             writer.writerow(["# Engine Statistics"])
-            writer.writerow(["engine", "total_patterns", "avg_confidence", "total_occurrences", "deprecated", "active", "success_rate"])
+            writer.writerow(
+                [
+                    "engine",
+                    "total_patterns",
+                    "avg_confidence",
+                    "total_occurrences",
+                    "deprecated",
+                    "active",
+                    "success_rate",
+                ]
+            )
             for s in engine_stats:
-                writer.writerow([s.engine, s.total_patterns, f"{s.avg_confidence:.4f}", s.total_occurrences, s.deprecated_count, s.active_count, f"{s.success_rate:.2f}"])
+                writer.writerow(
+                    [
+                        s.engine,
+                        s.total_patterns,
+                        f"{s.avg_confidence:.4f}",
+                        s.total_occurrences,
+                        s.deprecated_count,
+                        s.active_count,
+                        f"{s.success_rate:.2f}",
+                    ]
+                )
             writer.writerow([])
             writer.writerow(["# Pattern Distribution"])
             writer.writerow(["pattern_type", "count", "avg_confidence", "top_engine"])
@@ -555,7 +588,9 @@ def stats(
         console.print(f"[dim]Filtros ativos: {', '.join(filters)}[/dim]\n")
 
     # Render sections based on --section flag
-    sections_to_show = [section] if section else ["summary", "engines", "patterns", "recent", "casos"]
+    sections_to_show = (
+        [section] if section else ["summary", "engines", "patterns", "recent", "casos"]
+    )
 
     with Progress(
         SpinnerColumn(),
@@ -698,16 +733,16 @@ def batch(
         lte batch ./documentos --dry-run
     """
     import logging
-    from concurrent.futures import ProcessPoolExecutor, as_completed
-    from datetime import datetime
-    from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn
+    from concurrent.futures import as_completed
+
+    from rich.progress import BarColumn, Progress, SpinnerColumn, TaskProgressColumn, TextColumn
     from rich.table import Table
 
     # Configure logging
     if verbose:
         logging.basicConfig(
             level=logging.DEBUG,
-            format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+            format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
         )
     else:
         logging.basicConfig(level=logging.WARNING)
@@ -735,10 +770,12 @@ def batch(
     pdf_files = [f for f in pdf_files if f.is_file()]
 
     if not pdf_files:
-        console.print(f"[yellow]Nenhum arquivo encontrado com padrao '{pattern}' em {diretorio}[/yellow]")
+        console.print(
+            f"[yellow]Nenhum arquivo encontrado com padrao '{pattern}' em {diretorio}[/yellow]"
+        )
         raise typer.Exit(0)
 
-    console.print(f"\n[bold cyan]Legal Text Extractor[/bold cyan] - Processamento em Lote")
+    console.print("\n[bold cyan]Legal Text Extractor[/bold cyan] - Processamento em Lote")
     console.print(f"[dim]Diretorio: {diretorio}[/dim]")
     console.print(f"[dim]Arquivos encontrados: {len(pdf_files)}[/dim]\n")
 
@@ -810,7 +847,9 @@ def batch(
             from concurrent.futures import ThreadPoolExecutor
 
             with ThreadPoolExecutor(max_workers=parallel) as executor:
-                future_to_pdf = {executor.submit(process_single_file, pdf): pdf for pdf in pdf_files}
+                future_to_pdf = {
+                    executor.submit(process_single_file, pdf): pdf for pdf in pdf_files
+                }
 
                 for future in as_completed(future_to_pdf):
                     result = future.result()

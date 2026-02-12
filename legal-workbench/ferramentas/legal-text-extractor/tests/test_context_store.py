@@ -4,22 +4,24 @@ Unit tests for Context Store
 Testa o sistema de aprendizado que armazena padrões bem-sucedidos de extração
 e usa similaridade para aplicá-los em novos documentos.
 """
-import pytest
+
+import sys
 import tempfile
 from pathlib import Path
-import sys
+
+import pytest
 
 # Setup path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 from src.context import (
-    ContextStore,
-    SignatureVector,
-    ObservationResult,
-    EngineType,
-    PatternType,
     ENGINE_QUALITY,
+    ContextStore,
+    EngineType,
+    ObservationResult,
+    PatternType,
+    SignatureVector,
 )
 
 
@@ -51,19 +53,13 @@ class TestContextStore:
     def test_get_or_create_caso(self, store):
         """Test caso creation and retrieval"""
         # Create new caso
-        caso1 = store.get_or_create_caso(
-            numero_cnj="0000001-12.2024.5.01.0001",
-            sistema="pje"
-        )
+        caso1 = store.get_or_create_caso(numero_cnj="0000001-12.2024.5.01.0001", sistema="pje")
         assert caso1.id is not None
         assert caso1.numero_cnj == "0000001-12.2024.5.01.0001"
         assert caso1.sistema == "pje"
 
         # Retrieve existing caso
-        caso2 = store.get_or_create_caso(
-            numero_cnj="0000001-12.2024.5.01.0001",
-            sistema="pje"
-        )
+        caso2 = store.get_or_create_caso(numero_cnj="0000001-12.2024.5.01.0001", sistema="pje")
         assert caso2.id == caso1.id
 
     def test_find_similar_pattern_empty(self, store):
@@ -82,10 +78,7 @@ class TestContextStore:
         caso = store.get_or_create_caso("0000001", "pje")
 
         # Learn from first page
-        signature1 = SignatureVector(
-            features=[0.1, 0.2, 0.3, 0.4, 0.5],
-            hash="abc123"
-        )
+        signature1 = SignatureVector(features=[0.1, 0.2, 0.3, 0.4, 0.5], hash="abc123")
 
         result1 = ObservationResult(
             page_num=1,
@@ -107,7 +100,7 @@ class TestContextStore:
         # Find similar pattern
         signature2 = SignatureVector(
             features=[0.11, 0.21, 0.29, 0.41, 0.51],  # Very similar
-            hash="def456"
+            hash="def456",
         )
 
         hint = store.find_similar_pattern(
@@ -226,6 +219,7 @@ class TestContextStore:
 
         # Record 3 divergences manually
         import sqlite3
+
         with sqlite3.connect(store.db_path) as conn:
             cursor = conn.cursor()
             for i in range(3):
@@ -235,7 +229,7 @@ class TestContextStore:
                     (pattern_id, page_num, expected_confidence, actual_confidence, engine_used)
                     VALUES (?, ?, ?, ?, ?)
                     """,
-                    (pattern_id, i+2, 0.9, 0.4, EngineType.MARKER.value)
+                    (pattern_id, i + 2, 0.9, 0.4, EngineType.MARKER.value),
                 )
             conn.commit()
 
@@ -249,10 +243,7 @@ class TestContextStore:
 
         # Create patterns with different engines
         for engine in [EngineType.MARKER, EngineType.PDFPLUMBER, EngineType.TESSERACT]:
-            signature = SignatureVector(
-                features=[0.1, 0.2],
-                hash=f"hash_{engine.value}"
-            )
+            signature = SignatureVector(features=[0.1, 0.2], hash=f"hash_{engine.value}")
             result = ObservationResult(
                 page_num=1,
                 engine_used=engine,
@@ -501,6 +492,7 @@ class TestGlobalEngineHints:
 
         # Incrementa occurrence_count para passar threshold
         import sqlite3
+
         with sqlite3.connect(store.db_path) as conn:
             conn.execute("UPDATE observed_patterns SET occurrence_count = 3")
             conn.commit()
@@ -547,6 +539,7 @@ class TestGlobalEngineHints:
 
         # Atualiza occurrence_count
         import sqlite3
+
         with sqlite3.connect(store.db_path) as conn:
             conn.execute("UPDATE observed_patterns SET occurrence_count = 5")
             conn.commit()

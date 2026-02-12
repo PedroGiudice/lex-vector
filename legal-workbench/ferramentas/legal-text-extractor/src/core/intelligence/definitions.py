@@ -19,6 +19,7 @@ from typing import TypedDict
 
 class CategoryDefinition(TypedDict):
     """Estrutura de uma categoria na taxonomia."""
+
     synonyms: list[str]
     header_patterns: list[str]
     footer_patterns: list[str]
@@ -84,14 +85,10 @@ class LegalTaxonomy:
                     self._compiled_patterns[category] = re.compile(r"(?!.)")
                 else:
                     # Normaliza todos os sinonimos e escapa caracteres especiais
-                    normalized_synonyms = [
-                        re.escape(self.normalize_text(s)) for s in synonyms
-                    ]
+                    normalized_synonyms = [re.escape(self.normalize_text(s)) for s in synonyms]
                     # Cria alternativa: (TERMO1|TERMO2|TERMO3)
                     pattern_str = r"\b(" + "|".join(normalized_synonyms) + r")\b"
-                    self._compiled_patterns[category] = re.compile(
-                        pattern_str, re.IGNORECASE
-                    )
+                    self._compiled_patterns[category] = re.compile(pattern_str, re.IGNORECASE)
 
         return self._compiled_patterns[category]
 
@@ -114,13 +111,9 @@ class LegalTaxonomy:
                 if not patterns:
                     self._compiled_patterns[cache_key] = re.compile(r"(?!.)")
                 else:
-                    normalized = [
-                        re.escape(self.normalize_text(p)) for p in patterns
-                    ]
+                    normalized = [re.escape(self.normalize_text(p)) for p in patterns]
                     pattern_str = r"\b(" + "|".join(normalized) + r")\b"
-                    self._compiled_patterns[cache_key] = re.compile(
-                        pattern_str, re.IGNORECASE
-                    )
+                    self._compiled_patterns[cache_key] = re.compile(pattern_str, re.IGNORECASE)
 
         return self._compiled_patterns[cache_key]
 
@@ -143,13 +136,9 @@ class LegalTaxonomy:
                 if not patterns:
                     self._compiled_patterns[cache_key] = re.compile(r"(?!.)")
                 else:
-                    normalized = [
-                        re.escape(self.normalize_text(p)) for p in patterns
-                    ]
+                    normalized = [re.escape(self.normalize_text(p)) for p in patterns]
                     pattern_str = r"\b(" + "|".join(normalized) + r")\b"
-                    self._compiled_patterns[cache_key] = re.compile(
-                        pattern_str, re.IGNORECASE
-                    )
+                    self._compiled_patterns[cache_key] = re.compile(pattern_str, re.IGNORECASE)
 
         return self._compiled_patterns[cache_key]
 
@@ -200,7 +189,7 @@ class TaxonomyLoader:
         if not path.exists():
             raise FileNotFoundError(f"Arquivo de taxonomia nao encontrado: {path}")
 
-        with open(path, "r", encoding="utf-8") as f:
+        with open(path, encoding="utf-8") as f:
             data = json.load(f)
 
         return LegalTaxonomy(

@@ -17,7 +17,6 @@ Output: outputs/{doc_id}/layout.json
 import json
 import sys
 from pathlib import Path
-from typing import Literal
 
 import pdfplumber
 
@@ -27,12 +26,12 @@ if __name__ == "__main__":
     sys.path.insert(0, str(project_root))
 
 from src.config import (
-    LAYOUT_CONFIG,
-    LayoutConfig,
-    PageType,
-    PageComplexity,
     COMPLEXITY_ENGINE_MAP,
+    LAYOUT_CONFIG,
     RASTER_QUALITY_THRESHOLDS,
+    LayoutConfig,
+    PageComplexity,
+    PageType,
     RasterQualityThresholds,
     get_output_dir,
 )
@@ -49,7 +48,7 @@ class LayoutAnalyzer:
     def __init__(
         self,
         config: LayoutConfig = LAYOUT_CONFIG,
-        quality_thresholds: RasterQualityThresholds = RASTER_QUALITY_THRESHOLDS
+        quality_thresholds: RasterQualityThresholds = RASTER_QUALITY_THRESHOLDS,
     ):
         """
         Inicializa o analisador.
@@ -185,9 +184,7 @@ class LayoutAnalyzer:
         # Estimar qualidade para páginas RASTER
         quality_metrics = None
         if page_type == PageType.RASTER_NEEDED:
-            quality_metrics = self._estimate_raster_quality(
-                page, safe_bbox, char_count
-            )
+            quality_metrics = self._estimate_raster_quality(page, safe_bbox, char_count)
 
         # Classificar complexidade
         complexity = self._classify_complexity(page_data, quality_metrics)
@@ -210,11 +207,17 @@ class LayoutAnalyzer:
                 cleaning_reasons.append("watermark_detected")
                 needs_cleaning = True
 
-            if quality_metrics.get("contrast_score", 1.0) < self.quality_thresholds.low_contrast_threshold:
+            if (
+                quality_metrics.get("contrast_score", 1.0)
+                < self.quality_thresholds.low_contrast_threshold
+            ):
                 cleaning_reasons.append("low_contrast")
                 needs_cleaning = True
 
-            if quality_metrics.get("noise_level", 0.0) > self.quality_thresholds.high_noise_threshold:
+            if (
+                quality_metrics.get("noise_level", 0.0)
+                > self.quality_thresholds.high_noise_threshold
+            ):
                 cleaning_reasons.append("high_noise")
                 needs_cleaning = True
 
@@ -224,9 +227,7 @@ class LayoutAnalyzer:
 
         return page_data
 
-    def _detect_tarja(
-        self, chars: list, page_width: float
-    ) -> tuple[bool, float | None]:
+    def _detect_tarja(self, chars: list, page_width: float) -> tuple[bool, float | None]:
         """
         Detecta tarja lateral via histograma de densidade no eixo X.
 
@@ -249,9 +250,7 @@ class LayoutAnalyzer:
             return False, None
 
         # Constrói histograma de densidade
-        histogram = self._build_histogram(
-            chars, page_width, self.config.histogram_bins
-        )
+        histogram = self._build_histogram(chars, page_width, self.config.histogram_bins)
 
         # Calcula zona de tarja (últimos X% da largura)
         tarja_zone_start_bin = int(
@@ -281,9 +280,7 @@ class LayoutAnalyzer:
         else:
             return False, None
 
-    def _build_histogram(
-        self, chars: list, page_width: float, bins: int
-    ) -> list[int]:
+    def _build_histogram(self, chars: list, page_width: float, bins: int) -> list[int]:
         """
         Constrói histograma de densidade de caracteres no eixo X.
 
@@ -316,9 +313,7 @@ class LayoutAnalyzer:
 
         return histogram
 
-    def _find_content_boundary(
-        self, chars: list, page_width: float
-    ) -> float:
+    def _find_content_boundary(self, chars: list, page_width: float) -> float:
         """
         Encontra onde o texto LEGÍTIMO termina (não incluindo tarja).
 
@@ -359,10 +354,7 @@ class LayoutAnalyzer:
             gap = next_x - current_x
 
             # Se encontramos um gap significativo na zona de busca
-            if (
-                gap >= self.config.content_gap_threshold
-                and current_x >= gap_search_start
-            ):
+            if gap >= self.config.content_gap_threshold and current_x >= gap_search_start:
                 # Este é provavelmente o fim do conteúdo legítimo
                 best_boundary = current_x
                 break
@@ -383,9 +375,7 @@ class LayoutAnalyzer:
         # TODO: Expandir para detectar carimbos e marcas d'água via análise de imagem
         return page_data.get("has_tarja", False)
 
-    def _estimate_raster_quality(
-        self, page, safe_bbox: list, char_count: int
-    ) -> dict:
+    def _estimate_raster_quality(self, page, safe_bbox: list, char_count: int) -> dict:
         """
         Estima qualidade de uma página rasterizada.
 
@@ -418,21 +408,19 @@ class LayoutAnalyzer:
         if char_density < 0.0001:  # Muito poucos chars
             return {
                 "contrast_score": 0.3,  # Baixo contraste presumido
-                "noise_level": 0.7,     # Alto ruído presumido
+                "noise_level": 0.7,  # Alto ruído presumido
                 "char_density": char_density,
-                "has_watermark": False  # Não detectável sem análise de imagem
+                "has_watermark": False,  # Não detectável sem análise de imagem
             }
         else:
             return {
                 "contrast_score": 0.85,  # Contraste razoável presumido
-                "noise_level": 0.3,      # Baixo ruído presumido
+                "noise_level": 0.3,  # Baixo ruído presumido
                 "char_density": char_density,
-                "has_watermark": False
+                "has_watermark": False,
             }
 
-    def _classify_complexity(
-        self, page_data: dict, quality_metrics: dict | None = None
-    ) -> str:
+    def _classify_complexity(self, page_data: dict, quality_metrics: dict | None = None) -> str:
         """
         Classifica complexidade da página com granularidade.
 
@@ -461,10 +449,7 @@ class LayoutAnalyzer:
         has_watermark = quality_metrics.get("has_watermark", False)
 
         # RASTER_CLEAN: alto contraste e sem artefatos
-        if (
-            contrast > self.quality_thresholds.high_contrast_threshold
-            and not has_watermark
-        ):
+        if contrast > self.quality_thresholds.high_contrast_threshold and not has_watermark:
             return PageComplexity.RASTER_CLEAN
 
         # RASTER_DEGRADED: baixo contraste ou muito ruído
@@ -498,15 +483,11 @@ class LayoutAnalyzer:
 if __name__ == "__main__":
     import typer
 
-    app = typer.Typer(
-        help="ESTÁGIO 1: Análise de layout de PDFs (O Cartógrafo)"
-    )
+    app = typer.Typer(help="ESTÁGIO 1: Análise de layout de PDFs (O Cartógrafo)")
 
     @app.command()
     def main(
-        pdf_path: Path = typer.Argument(
-            ..., help="Caminho para o arquivo PDF", exists=True
-        ),
+        pdf_path: Path = typer.Argument(..., help="Caminho para o arquivo PDF", exists=True),
         output_dir: Path = typer.Option(
             None,
             "--output-dir",
@@ -545,12 +526,8 @@ if __name__ == "__main__":
         typer.echo(f"📄 Total de páginas: {layout['total_pages']}")
 
         # Estatísticas
-        native_count = sum(
-            1 for p in layout["pages"] if p["type"] == PageType.NATIVE
-        )
-        raster_count = sum(
-            1 for p in layout["pages"] if p["type"] == PageType.RASTER_NEEDED
-        )
+        native_count = sum(1 for p in layout["pages"] if p["type"] == PageType.NATIVE)
+        raster_count = sum(1 for p in layout["pages"] if p["type"] == PageType.RASTER_NEEDED)
         tarja_count = sum(1 for p in layout["pages"] if p["has_tarja"])
 
         typer.echo(f"  • NATIVE: {native_count} páginas")
@@ -578,9 +555,7 @@ if __name__ == "__main__":
             typer.echo(f"  • {engine}: {count} páginas")
 
         # Páginas que precisam limpeza
-        needs_cleaning_count = sum(
-            1 for p in layout["pages"] if p.get("needs_cleaning", False)
-        )
+        needs_cleaning_count = sum(1 for p in layout["pages"] if p.get("needs_cleaning", False))
         typer.echo(f"\n🧹 Páginas que precisam limpeza: {needs_cleaning_count}")
 
     app()

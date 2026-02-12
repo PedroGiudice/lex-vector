@@ -4,10 +4,10 @@ Testes para SecaoDetector e HeuristicSectionAnalyzer.
 
 import pytest
 
-from src.core.intelligence.peca_patterns import SecaoPatternConfig, SecaoType, get_default_config
-from src.core.intelligence.secao_detector import SecaoDetector
 from src.analyzers.heuristic_section_analyzer import HeuristicSectionAnalyzer
 from src.analyzers.output_schemas import OutputFormat
+from src.core.intelligence.peca_patterns import get_default_config
+from src.core.intelligence.secao_detector import SecaoDetector
 
 
 class TestSecaoDetector:
@@ -203,9 +203,7 @@ JULGO PROCEDENTE.
         """analyze_to_format com MARKDOWN_XML deve funcionar."""
         text = "SENTENCA\n\nJULGO PROCEDENTE."
         output = analyzer.analyze_to_format(
-            text,
-            output_format=OutputFormat.MARKDOWN_XML,
-            document_id="test_005"
+            text, output_format=OutputFormat.MARKDOWN_XML, document_id="test_005"
         )
         assert "---" in output
         assert "<secao" in output
@@ -214,11 +212,10 @@ JULGO PROCEDENTE.
         """analyze_to_format com JSON deve funcionar."""
         text = "SENTENCA\n\nJULGO PROCEDENTE."
         output = analyzer.analyze_to_format(
-            text,
-            output_format=OutputFormat.JSON,
-            document_id="test_006"
+            text, output_format=OutputFormat.JSON, document_id="test_006"
         )
         import json
+
         parsed = json.loads(output)
         assert "metadata" in parsed
         assert "secoes" in parsed

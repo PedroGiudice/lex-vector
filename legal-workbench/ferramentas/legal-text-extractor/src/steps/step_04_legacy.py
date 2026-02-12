@@ -33,7 +33,7 @@ import typer
 # Adiciona src ao path para imports relativos
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from src.core.intelligence.cleaner_advanced import AdvancedCleaner, CleaningStats
+from src.core.intelligence.cleaner_advanced import AdvancedCleaner
 from src.core.intelligence.definitions import get_taxonomy, reload_taxonomy
 from src.core.intelligence.segmenter import (
     DocumentSegmenter,
@@ -299,7 +299,7 @@ def classify(
     try:
         result = classifier.classify(input_md, output_dir)
 
-        typer.echo(f"\n[Step 04] Concluido!")
+        typer.echo("\n[Step 04] Concluido!")
         typer.echo(f"  - Doc ID: {result['doc_id']}")
         typer.echo(f"  - Total paginas: {result['total_pages']}")
         typer.echo(f"  - Total secoes: {result['total_sections']}")
@@ -317,9 +317,9 @@ def classify(
         # Outputs gerados
         out_dir = output_dir or input_md.parent
         typer.echo(f"\n[Step 04] Outputs gerados em: {out_dir}")
-        typer.echo(f"  - semantic_structure.json")
+        typer.echo("  - semantic_structure.json")
         if config.generate_tagged_md:
-            typer.echo(f"  - final_tagged.md")
+            typer.echo("  - final_tagged.md")
 
     except Exception as e:
         typer.echo(f"Erro: {e}", err=True)
@@ -342,7 +342,7 @@ def validate_taxonomy(
         else:
             taxonomy = get_taxonomy()
 
-        typer.echo(f"Taxonomia valida!")
+        typer.echo("Taxonomia valida!")
         typer.echo(f"  - Versao: {taxonomy.version}")
         typer.echo(f"  - Descricao: {taxonomy.description}")
         typer.echo(f"  - Categorias: {len(taxonomy.categories)}")
@@ -350,8 +350,7 @@ def validate_taxonomy(
         for cat_name in taxonomy.all_categories():
             cat = taxonomy.categories[cat_name]
             typer.echo(
-                f"    - {cat_name}: {len(cat['synonyms'])} sinonimos, "
-                f"prioridade={cat['priority']}"
+                f"    - {cat_name}: {len(cat['synonyms'])} sinonimos, prioridade={cat['priority']}"
             )
 
     except Exception as e:

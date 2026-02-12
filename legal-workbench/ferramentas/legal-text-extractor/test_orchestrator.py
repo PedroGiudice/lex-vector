@@ -36,14 +36,8 @@ def test_orchestrator_initialization():
 
     # Test 3: With ContextStore AND caso_info
     print("\n3. Testing with ContextStore and case info:")
-    caso_info = {
-        "numero_cnj": "1234567-89.2024.8.26.0100",
-        "sistema": "pje"
-    }
-    orchestrator = PipelineOrchestrator(
-        context_db_path=db_path,
-        caso_info=caso_info
-    )
+    caso_info = {"numero_cnj": "1234567-89.2024.8.26.0100", "sistema": "pje"}
+    orchestrator = PipelineOrchestrator(context_db_path=db_path, caso_info=caso_info)
     assert orchestrator.context_store is not None
     assert orchestrator.caso is not None
     assert orchestrator.caso.numero_cnj == caso_info["numero_cnj"]
@@ -108,6 +102,7 @@ def main():
     except Exception as e:
         print(f"\n❌ Unexpected error: {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)
 

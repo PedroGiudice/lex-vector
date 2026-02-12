@@ -29,8 +29,7 @@ import cv2
 import numpy as np
 from pdf2image import convert_from_path
 
-from src.config import VISION_CONFIG, VisionConfig, get_images_dir, PageType
-
+from src.config import VISION_CONFIG, PageType, VisionConfig, get_images_dir
 
 # =============================================================================
 # LOGGING
@@ -43,8 +42,10 @@ logger = logging.getLogger(__name__)
 # DATA STRUCTURES
 # =============================================================================
 
+
 class PageLayout(NamedTuple):
     """Layout de uma página extraído do layout.json."""
+
     page_num: int
     type: str  # "NATIVE" ou "RASTER_NEEDED"
     safe_bbox: tuple[float, float, float, float]  # (x0, y0, x1, y1)
@@ -54,6 +55,7 @@ class PageLayout(NamedTuple):
 
 class ProcessedImage(NamedTuple):
     """Resultado do processamento de uma imagem."""
+
     page_num: int
     output_path: Path
     width: int
@@ -63,6 +65,7 @@ class ProcessedImage(NamedTuple):
 # =============================================================================
 # VISION PROCESSOR
 # =============================================================================
+
 
 class VisionProcessor:
     """
@@ -121,9 +124,7 @@ class VisionProcessor:
         for page_layout in pages_to_process:
             try:
                 processed = self._process_page(
-                    pdf_path=pdf_path,
-                    page_layout=page_layout,
-                    doc_id=doc_id
+                    pdf_path=pdf_path, page_layout=page_layout, doc_id=doc_id
                 )
                 results.append(processed)
                 logger.info(
@@ -151,22 +152,19 @@ class VisionProcessor:
 
         for page_data in layout_data.get("pages", []):
             if page_data.get("type") == PageType.RASTER_NEEDED:
-                pages.append(PageLayout(
-                    page_num=page_data["page_num"],
-                    type=page_data["type"],
-                    safe_bbox=tuple(page_data["safe_bbox"]),
-                    has_tarja=page_data.get("has_tarja", False),
-                    text_chars=page_data.get("text_chars", 0)
-                ))
+                pages.append(
+                    PageLayout(
+                        page_num=page_data["page_num"],
+                        type=page_data["type"],
+                        safe_bbox=tuple(page_data["safe_bbox"]),
+                        has_tarja=page_data.get("has_tarja", False),
+                        text_chars=page_data.get("text_chars", 0),
+                    )
+                )
 
         return pages
 
-    def _process_page(
-        self,
-        pdf_path: Path,
-        page_layout: PageLayout,
-        doc_id: str
-    ) -> ProcessedImage:
+    def _process_page(self, pdf_path: Path, page_layout: PageLayout, doc_id: str) -> ProcessedImage:
         """
         Processa uma única página: renderiza, crop, pipeline OpenCV, salva.
 
@@ -183,7 +181,7 @@ class VisionProcessor:
         image = self._render_page(pdf_path, page_layout.page_num, page_layout.safe_bbox)
 
         # 2. Aplica pipeline OpenCV
-        logger.debug(f"Aplicando pipeline OpenCV")
+        logger.debug("Aplicando pipeline OpenCV")
         processed = self._apply_pipeline(image)
 
         # 3. Salva imagem
@@ -194,14 +192,11 @@ class VisionProcessor:
             page_num=page_layout.page_num,
             output_path=output_path,
             width=processed.shape[1],
-            height=processed.shape[0]
+            height=processed.shape[0],
         )
 
     def _render_page(
-        self,
-        pdf_path: Path,
-        page_num: int,
-        safe_bbox: tuple[float, float, float, float]
+        self, pdf_path: Path, page_num: int, safe_bbox: tuple[float, float, float, float]
     ) -> np.ndarray:
         """
         Renderiza uma página do PDF como imagem numpy e aplica crop.
@@ -220,10 +215,7 @@ class VisionProcessor:
         """
         # Renderiza página inteira
         images = convert_from_path(
-            pdf_path,
-            dpi=self.config.render_dpi,
-            first_page=page_num,
-            last_page=page_num
+            pdf_path, dpi=self.config.render_dpi, first_page=page_num, last_page=page_num
         )
 
         if not images:
@@ -283,16 +275,13 @@ class VisionProcessor:
             gray,
             self.config.otsu_threshold,  # Ignorado quando usando OTSU
             255,  # Valor máximo (branco)
-            cv2.THRESH_BINARY + cv2.THRESH_OTSU
+            cv2.THRESH_BINARY + cv2.THRESH_OTSU,
         )
 
         # 3. Denoise (se configurado)
         if self.config.denoise_strength > 0:
             denoised = cv2.fastNlMeansDenoising(
-                binary,
-                h=self.config.denoise_strength,
-                templateWindowSize=7,
-                searchWindowSize=21
+                binary, h=self.config.denoise_strength, templateWindowSize=7, searchWindowSize=21
             )
             return denoised
 
@@ -310,9 +299,7 @@ class VisionProcessor:
 
         if self.config.output_format == "jpg":
             cv2.imwrite(
-                str(output_path),
-                image,
-                [cv2.IMWRITE_JPEG_QUALITY, self.config.jpeg_quality]
+                str(output_path), image, [cv2.IMWRITE_JPEG_QUALITY, self.config.jpeg_quality]
             )
         else:  # png (default)
             cv2.imwrite(str(output_path), image)
@@ -340,12 +327,8 @@ class VisionProcessor:
 # CLI
 # =============================================================================
 
-def main(
-    layout_json: Path,
-    pdf_path: Path,
-    doc_id: str | None = None,
-    verbose: bool = False
-):
+
+def main(layout_json: Path, pdf_path: Path, doc_id: str | None = None, verbose: bool = False):
     """
     CLI para processar páginas RASTER_NEEDED.
 
@@ -364,7 +347,7 @@ def main(
     # Setup logging
     logging.basicConfig(
         level=logging.DEBUG if verbose else logging.INFO,
-        format="%(asctime)s [%(levelname)s] %(message)s"
+        format="%(asctime)s [%(levelname)s] %(message)s",
     )
 
     # Deriva doc_id se não fornecido
@@ -376,9 +359,9 @@ def main(
     results = processor.process(layout_json, pdf_path, doc_id)
 
     # Summary
-    print(f"\n{'='*60}")
-    print(f"PROCESSAMENTO CONCLUÍDO")
-    print(f"{'='*60}")
+    print(f"\n{'=' * 60}")
+    print("PROCESSAMENTO CONCLUÍDO")
+    print(f"{'=' * 60}")
     print(f"Documento:       {doc_id}")
     print(f"Imagens geradas: {len(results)}")
 
@@ -386,7 +369,7 @@ def main(
         total_pixels = sum(r.width * r.height for r in results)
         avg_size = total_pixels / len(results)
         print(f"Tamanho médio:   {avg_size / 1_000_000:.1f} MP")
-        print(f"\nImagens:")
+        print("\nImagens:")
         for r in results:
             print(f"  - Página {r.page_num:3d}: {r.width}x{r.height}px")
 

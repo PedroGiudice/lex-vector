@@ -5,11 +5,13 @@ Gera dados de exemplo para testar o CLI de estatisticas.
 Usage:
     python cli/generate_sample_data.py --db data/sample_context.db
 """
-import sqlite3
+
 import json
 import random
+import sqlite3
 from datetime import datetime, timedelta
 from pathlib import Path
+
 import typer
 
 app = typer.Typer()
@@ -141,7 +143,7 @@ def generate(
 
         cursor.execute(
             "INSERT INTO caso (numero_cnj, sistema, created_at) VALUES (?, ?, ?)",
-            (cnj, sistema, created.isoformat())
+            (cnj, sistema, created.isoformat()),
         )
         caso_ids.append(cursor.lastrowid)
 
@@ -151,16 +153,13 @@ def generate(
     pattern_ids = []
     total_patterns = 0
     for caso_id in caso_ids:
-        n_patterns = random.randint(
-            max(1, patterns_per_caso - 5),
-            patterns_per_caso + 5
-        )
+        n_patterns = random.randint(max(1, patterns_per_caso - 5), patterns_per_caso + 5)
 
         for _ in range(n_patterns):
             engine = random.choices(
                 engines,
                 weights=[0.5, 0.35, 0.15],  # Marker mais comum
-                k=1
+                k=1,
             )[0]
 
             pattern_type = random.choice(pattern_types)
@@ -185,19 +184,30 @@ def generate(
                 hours=random.randint(0, 23),
             )
 
-            cursor.execute("""
+            cursor.execute(
+                """
                 INSERT INTO observed_patterns (
                     caso_id, pattern_type, signature_hash, signature_vector,
                     first_seen_page, last_seen_page, created_by_engine,
                     engine_quality_score, avg_confidence, occurrence_count,
                     deprecated, created_at
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (
-                caso_id, pattern_type, sig_hash, json.dumps(features),
-                page, page + random.randint(0, 10), engine,
-                engine_quality[engine], confidence, occurrences,
-                deprecated, created.isoformat()
-            ))
+            """,
+                (
+                    caso_id,
+                    pattern_type,
+                    sig_hash,
+                    json.dumps(features),
+                    page,
+                    page + random.randint(0, 10),
+                    engine,
+                    engine_quality[engine],
+                    confidence,
+                    occurrences,
+                    deprecated,
+                    created.isoformat(),
+                ),
+            )
             pattern_ids.append(cursor.lastrowid)
             total_patterns += 1
 
@@ -212,15 +222,15 @@ def generate(
         expected = random.uniform(0.7, 0.95)
         actual = expected - random.uniform(0.2, 0.4)  # Always lower
 
-        cursor.execute("""
+        cursor.execute(
+            """
             INSERT INTO divergences (
                 pattern_id, page_num, expected_confidence,
                 actual_confidence, engine_used
             ) VALUES (?, ?, ?, ?, ?)
-        """, (
-            pattern_id, random.randint(1, 50),
-            expected, max(0.1, actual), engine
-        ))
+        """,
+            (pattern_id, random.randint(1, 50), expected, max(0.1, actual), engine),
+        )
 
     print(f"  {len(divergence_patterns)} divergencias criadas")
 

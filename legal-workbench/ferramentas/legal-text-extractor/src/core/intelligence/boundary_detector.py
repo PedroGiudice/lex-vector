@@ -87,22 +87,21 @@ class BoundaryDetector:
             return BoundaryResult(
                 total_boundaries=0,
                 boundaries=[],
-                segments=[{
-                    "start_line": 1,
-                    "end_line": len(lines),
-                    "document_type": "UNKNOWN",
-                    "confidence": 1.0,
-                }],
+                segments=[
+                    {
+                        "start_line": 1,
+                        "end_line": len(lines),
+                        "document_type": "UNKNOWN",
+                        "confidence": 1.0,
+                    }
+                ],
             )
 
         # Encontra todos os matches
         matches = self._find_all_matches(text)
 
         # Filtra por confidence minima
-        filtered_matches = [
-            m for m in matches
-            if m["confidence"] >= self.config.min_confidence
-        ]
+        filtered_matches = [m for m in matches if m["confidence"] >= self.config.min_confidence]
 
         # Remove duplicatas proximas (mesmo documento detectado multiplas vezes)
         deduplicated = self._deduplicate_matches(filtered_matches)
@@ -242,12 +241,14 @@ class BoundaryDetector:
 
         if not boundaries:
             # Sem boundaries - documento unico
-            return [{
-                "start_line": 1,
-                "end_line": total_lines,
-                "document_type": "UNKNOWN",
-                "confidence": 1.0,
-            }]
+            return [
+                {
+                    "start_line": 1,
+                    "end_line": total_lines,
+                    "document_type": "UNKNOWN",
+                    "confidence": 1.0,
+                }
+            ]
 
         segments: list[dict] = []
 
@@ -255,12 +256,14 @@ class BoundaryDetector:
         first_boundary = boundaries[0]
         if first_boundary["context_start"] > 1:
             # Ha conteudo antes do primeiro boundary detectado
-            segments.append({
-                "start_line": 1,
-                "end_line": first_boundary["context_start"] - 1,
-                "document_type": "UNKNOWN",  # Nao sabemos o tipo
-                "confidence": 0.5,  # Baixa confidence
-            })
+            segments.append(
+                {
+                    "start_line": 1,
+                    "end_line": first_boundary["context_start"] - 1,
+                    "document_type": "UNKNOWN",  # Nao sabemos o tipo
+                    "confidence": 0.5,  # Baixa confidence
+                }
+            )
 
         # Segmentos intermediarios
         for i, boundary in enumerate(boundaries):
@@ -275,12 +278,14 @@ class BoundaryDetector:
 
             # Valida que segmento tem pelo menos 1 linha
             if end >= start:
-                segments.append({
-                    "start_line": start,
-                    "end_line": end,
-                    "document_type": boundary["document_type"],
-                    "confidence": boundary["confidence"],
-                })
+                segments.append(
+                    {
+                        "start_line": start,
+                        "end_line": end,
+                        "document_type": boundary["document_type"],
+                        "confidence": boundary["confidence"],
+                    }
+                )
 
         return segments
 

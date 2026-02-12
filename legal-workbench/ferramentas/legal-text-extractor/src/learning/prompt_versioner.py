@@ -1,11 +1,12 @@
 """Sistema de versionamento de prompts"""
-import logging
-import hashlib
-from pathlib import Path
-from typing import Optional, Literal
-from datetime import datetime
-from dataclasses import dataclass, asdict
+
 import json
+import logging
+from dataclasses import asdict, dataclass
+from datetime import datetime
+from pathlib import Path
+from typing import Literal
+
 import yaml
 
 logger = logging.getLogger(__name__)
@@ -14,11 +15,12 @@ logger = logging.getLogger(__name__)
 @dataclass
 class PromptVersion:
     """Versão de um prompt"""
+
     version_id: str  # v1, v2, v3, etc
-    content: str     # Conteúdo do prompt
+    content: str  # Conteúdo do prompt
     created_at: datetime
     created_by: Literal["human", "auto"] = "human"
-    parent_version: Optional[str] = None  # Versão que originou esta (se auto)
+    parent_version: str | None = None  # Versão que originou esta (se auto)
 
     # Metadata
     description: str = ""
@@ -26,9 +28,9 @@ class PromptVersion:
 
     # Performance (preenchido após testes)
     tests_count: int = 0
-    avg_f1_score: Optional[float] = None
-    avg_precision: Optional[float] = None
-    avg_recall: Optional[float] = None
+    avg_f1_score: float | None = None
+    avg_precision: float | None = None
+    avg_recall: float | None = None
 
     # Status
     status: Literal["active", "testing", "deprecated", "promoted"] = "testing"
@@ -42,7 +44,7 @@ class PromptVersion:
     def to_dict(self) -> dict:
         """Converte para dict (JSON-serializable)"""
         data = asdict(self)
-        data['created_at'] = self.created_at.isoformat()
+        data["created_at"] = self.created_at.isoformat()
         return data
 
     @classmethod
@@ -66,7 +68,7 @@ class PromptVersioner:
         └── metadata.json
     """
 
-    def __init__(self, prompts_dir: Optional[Path] = None):
+    def __init__(self, prompts_dir: Path | None = None):
         """
         Inicializa versioner.
 
@@ -97,20 +99,25 @@ class PromptVersioner:
             self.active_file.write_text("v1")
 
         if not self.metadata_file.exists():
-            self.metadata_file.write_text(json.dumps({
-                "created_at": datetime.utcnow().isoformat(),
-                "total_versions": 0,
-                "latest_version": "v1"
-            }, indent=2))
+            self.metadata_file.write_text(
+                json.dumps(
+                    {
+                        "created_at": datetime.utcnow().isoformat(),
+                        "total_versions": 0,
+                        "latest_version": "v1",
+                    },
+                    indent=2,
+                )
+            )
 
     def create_version(
         self,
         content: str,
-        version_id: Optional[str] = None,
+        version_id: str | None = None,
         description: str = "",
         created_by: Literal["human", "auto"] = "human",
-        parent_version: Optional[str] = None,
-        tags: Optional[list[str]] = None
+        parent_version: str | None = None,
+        tags: list[str] | None = None,
     ) -> PromptVersion:
         """
         Cria nova versão de prompt.
@@ -138,7 +145,7 @@ class PromptVersioner:
             created_by=created_by,
             parent_version=parent_version,
             description=description,
-            tags=tags or []
+            tags=tags or [],
         )
 
         # Salvar em YAML
@@ -154,7 +161,7 @@ class PromptVersioner:
         logger.info(f"Prompt version created: {version_id} (by {created_by})")
         return version
 
-    def load_version(self, version_id: str) -> Optional[PromptVersion]:
+    def load_version(self, version_id: str) -> PromptVersion | None:
         """
         Carrega versão específica.
 
@@ -174,9 +181,7 @@ class PromptVersioner:
         return PromptVersion.from_dict(data)
 
     def list_versions(
-        self,
-        status: Optional[str] = None,
-        created_by: Optional[str] = None
+        self, status: str | None = None, created_by: str | None = None
     ) -> list[PromptVersion]:
         """
         Lista versões armazenadas.
@@ -244,11 +249,7 @@ class PromptVersioner:
         logger.info(f"Active version set to: {version_id}")
 
     def update_version_metrics(
-        self,
-        version_id: str,
-        f1_score: float,
-        precision: float,
-        recall: float
+        self, version_id: str, f1_score: float, precision: float, recall: float
     ) -> None:
         """
         Atualiza métricas de uma versão após testes.
@@ -285,11 +286,7 @@ class PromptVersioner:
             f"F1={version.avg_f1_score:.3f} (n={version.tests_count})"
         )
 
-    def compare_versions(
-        self,
-        version_a: str,
-        version_b: str
-    ) -> dict:
+    def compare_versions(self, version_a: str, version_b: str) -> dict:
         """
         Compara duas versões.
 
@@ -313,7 +310,7 @@ class PromptVersioner:
                 "precision": v_a.avg_precision,
                 "recall": v_a.avg_recall,
                 "tests": v_a.tests_count,
-                "status": v_a.status
+                "status": v_a.status,
             },
             "version_b": {
                 "id": v_b.version_id,
@@ -321,8 +318,8 @@ class PromptVersioner:
                 "precision": v_b.avg_precision,
                 "recall": v_b.avg_recall,
                 "tests": v_b.tests_count,
-                "status": v_b.status
-            }
+                "status": v_b.status,
+            },
         }
 
         # Determinar vencedor (se ambos tiverem métricas)
@@ -348,7 +345,7 @@ class PromptVersioner:
         # Extrair números de versão (v1 -> 1, v2 -> 2, etc)
         version_numbers = []
         for vid in existing_versions:
-            if vid.startswith('v') and vid[1:].isdigit():
+            if vid.startswith("v") and vid[1:].isdigit():
                 version_numbers.append(int(vid[1:]))
 
         next_number = max(version_numbers, default=0) + 1
@@ -376,14 +373,14 @@ class PromptVersioner:
 
         entry.append("")
 
-        with open(self.changelog_file, 'a') as f:
-            f.write('\n'.join(entry))
+        with open(self.changelog_file, "a") as f:
+            f.write("\n".join(entry))
 
     def _update_metadata(self, latest_version: str) -> None:
         """Atualiza metadata.json"""
         metadata = json.loads(self.metadata_file.read_text())
-        metadata['total_versions'] = len(list(self.versions_dir.glob("*.yaml")))
-        metadata['latest_version'] = latest_version
-        metadata['last_updated'] = datetime.utcnow().isoformat()
+        metadata["total_versions"] = len(list(self.versions_dir.glob("*.yaml")))
+        metadata["latest_version"] = latest_version
+        metadata["last_updated"] = datetime.utcnow().isoformat()
 
         self.metadata_file.write_text(json.dumps(metadata, indent=2))

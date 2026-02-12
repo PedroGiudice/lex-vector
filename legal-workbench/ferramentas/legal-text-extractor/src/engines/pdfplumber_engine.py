@@ -10,6 +10,7 @@ from pathlib import Path
 
 try:
     import pdfplumber
+
     PDFPLUMBER_AVAILABLE = True
 except ImportError:
     PDFPLUMBER_AVAILABLE = False
@@ -66,8 +67,7 @@ class PDFPlumberEngine(ExtractionEngine):
         """
         if not self.is_available():
             raise RuntimeError(
-                "pdfplumber não está disponível. "
-                "Instale com: pip install pdfplumber"
+                "pdfplumber não está disponível. Instale com: pip install pdfplumber"
             )
 
         if not pdf_path.exists():
@@ -89,8 +89,7 @@ class PDFPlumberEngine(ExtractionEngine):
                         total_chars += len(page_text)
                     else:
                         logger.warning(
-                            f"Página {page_num} retornou texto vazio "
-                            "(pode ser escaneada)"
+                            f"Página {page_num} retornou texto vazio (pode ser escaneada)"
                         )
 
                 # Junta todas as páginas com separador

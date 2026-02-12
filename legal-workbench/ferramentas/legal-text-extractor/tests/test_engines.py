@@ -13,17 +13,15 @@ Architecture to be implemented:
 - EngineSelector - Smart engine selection based on document characteristics
 """
 
-import pytest
 from pathlib import Path
-from unittest.mock import patch, MagicMock, mock_open
-from dataclasses import dataclass
-from typing import Protocol
-import io
+from unittest.mock import MagicMock, patch
 
+import pytest
 
 # ============================================================================
 # PHASE 1: Interface Tests (Ready for implementation)
 # ============================================================================
+
 
 class TestExtractionEngineInterface:
     """Tests for the ExtractionEngine ABC interface."""
@@ -58,6 +56,7 @@ class TestExtractionEngineInterface:
 # PHASE 2: Engine Availability Tests
 # ============================================================================
 
+
 class TestEngineAvailability:
     """Tests for engine availability detection."""
 
@@ -65,6 +64,7 @@ class TestEngineAvailability:
         """PDFPlumber engine should always be available (core dependency)."""
         # PDFPlumber is in requirements.txt, so always available
         from src.extractors.text_extractor import TextExtractor
+
         extractor = TextExtractor()
         # TextExtractor doesn't have is_available() yet
         # This test validates the extractor can be instantiated
@@ -116,6 +116,7 @@ class TestEngineAvailability:
 # ============================================================================
 # PHASE 3: Engine Selection Tests
 # ============================================================================
+
 
 class TestEngineSelector:
     """Tests for EngineSelector logic."""
@@ -177,6 +178,7 @@ class TestEngineSelector:
 # PHASE 4: Resource Detection Tests
 # ============================================================================
 
+
 class TestResourceDetection:
     """Tests for system resource detection utilities."""
 
@@ -220,6 +222,7 @@ class TestResourceDetection:
 # PHASE 5: Extraction Tests (Integration)
 # ============================================================================
 
+
 class TestExtraction:
     """Integration tests for text extraction."""
 
@@ -241,10 +244,11 @@ class TestExtraction:
     def test_pdfplumber_extracts_native_text(self, sample_pdf_with_text):
         """PDFPlumberEngine should extract text from PDF with text layer."""
         from src.extractors.text_extractor import TextExtractor
+
         extractor = TextExtractor()
 
         # Mock pdfplumber.open to return controlled text
-        with patch('pdfplumber.open') as mock_open:
+        with patch("pdfplumber.open") as mock_open:
             mock_pdf = MagicMock()
             mock_page = MagicMock()
             mock_page.extract_text.return_value = "Sample legal text"
@@ -257,10 +261,11 @@ class TestExtraction:
     def test_pdfplumber_detects_scanned_pdf(self, sample_scanned_pdf):
         """TextExtractor.is_scanned() should return True for scanned PDFs."""
         from src.extractors.text_extractor import TextExtractor
+
         extractor = TextExtractor()
 
         # Mock pdfplumber to return no text
-        with patch('pdfplumber.open') as mock_open:
+        with patch("pdfplumber.open") as mock_open:
             mock_pdf = MagicMock()
             mock_page = MagicMock()
             mock_page.extract_text.return_value = ""  # Scanned PDF
@@ -306,6 +311,7 @@ class TestExtraction:
 # PHASE 6: Error Handling Tests
 # ============================================================================
 
+
 class TestErrorHandling:
     """Tests for error handling and edge cases."""
 
@@ -322,6 +328,7 @@ class TestErrorHandling:
     def test_engine_handles_missing_file(self):
         """Engines should raise FileNotFoundError for missing PDFs."""
         from src.extractors.text_extractor import TextExtractor
+
         extractor = TextExtractor()
 
         with pytest.raises(FileNotFoundError):
@@ -341,6 +348,7 @@ class TestErrorHandling:
 # ============================================================================
 # PHASE 7: Performance Tests
 # ============================================================================
+
 
 class TestPerformance:
     """Tests for performance characteristics."""
@@ -365,11 +373,11 @@ class TestPerformance:
 # Mark all tests that require GPU
 pytestmark_gpu = pytest.mark.skipif(
     "not config.getoption('--run-gpu-tests')",
-    reason="GPU tests disabled (use --run-gpu-tests to enable)"
+    reason="GPU tests disabled (use --run-gpu-tests to enable)",
 )
 
 # Mark all tests that are slow
 pytestmark_slow = pytest.mark.skipif(
     "not config.getoption('--run-slow-tests')",
-    reason="Slow tests disabled (use --run-slow-tests to enable)"
+    reason="Slow tests disabled (use --run-slow-tests to enable)",
 )

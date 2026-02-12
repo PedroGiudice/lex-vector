@@ -14,21 +14,21 @@ Usage:
     python -m cli.context_stats --db data/context.db --engine marker
     python -m cli.context_stats --db data/context.db --since 2024-01-01
 """
+
 import sqlite3
-from datetime import datetime, timedelta
-from pathlib import Path
-from typing import Optional, List, Tuple, Any
 from dataclasses import dataclass
+from datetime import datetime
 from enum import Enum
+from pathlib import Path
+from typing import Any
 
 import typer
-from rich.console import Console
-from rich.table import Table
-from rich.panel import Panel
-from rich.columns import Columns
-from rich.text import Text
-from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich import box
+from rich.console import Console
+from rich.panel import Panel
+from rich.progress import Progress, SpinnerColumn, TextColumn
+from rich.table import Table
+from rich.text import Text
 
 # Initialize Typer app
 app = typer.Typer(
@@ -42,6 +42,7 @@ console = Console()
 
 class OutputFormat(str, Enum):
     """Formatos de output disponiveis"""
+
     TABLE = "table"
     JSON = "json"
     CSV = "csv"
@@ -50,6 +51,7 @@ class OutputFormat(str, Enum):
 @dataclass
 class EngineStats:
     """Estatisticas por engine"""
+
     engine: str
     total_patterns: int
     avg_confidence: float
@@ -62,6 +64,7 @@ class EngineStats:
 @dataclass
 class PatternStats:
     """Estatisticas de padroes"""
+
     pattern_type: str
     count: int
     avg_confidence: float
@@ -71,6 +74,7 @@ class PatternStats:
 @dataclass
 class RecentProcessing:
     """Processamento recente"""
+
     caso_cnj: str
     pattern_type: str
     engine: str
@@ -106,9 +110,7 @@ class ContextStatsDB:
             total_patterns = cursor.fetchone()[0]
 
             # Padroes ativos vs deprecados
-            cursor.execute(
-                "SELECT deprecated, COUNT(*) FROM observed_patterns GROUP BY deprecated"
-            )
+            cursor.execute("SELECT deprecated, COUNT(*) FROM observed_patterns GROUP BY deprecated")
             rows = cursor.fetchall()
             active = sum(r[1] for r in rows if r[0] == 0 or r[0] is False)
             deprecated = sum(r[1] for r in rows if r[0] == 1 or r[0] is True)
@@ -122,7 +124,9 @@ class ContextStatsDB:
             total_occurrences = cursor.fetchone()[0]
 
             # Confianca media global
-            cursor.execute("SELECT AVG(avg_confidence) FROM observed_patterns WHERE avg_confidence IS NOT NULL")
+            cursor.execute(
+                "SELECT AVG(avg_confidence) FROM observed_patterns WHERE avg_confidence IS NOT NULL"
+            )
             avg_confidence = cursor.fetchone()[0] or 0.0
 
             return {
@@ -137,9 +141,9 @@ class ContextStatsDB:
 
     def get_engine_stats(
         self,
-        engine_filter: Optional[str] = None,
-        since: Optional[datetime] = None,
-    ) -> List[EngineStats]:
+        engine_filter: str | None = None,
+        since: datetime | None = None,
+    ) -> list[EngineStats]:
         """Retorna estatisticas por engine"""
         with self._get_connection() as conn:
             cursor = conn.cursor()
@@ -155,7 +159,7 @@ class ContextStatsDB:
                 FROM observed_patterns
                 WHERE 1=1
             """
-            params: List[Any] = []
+            params: list[Any] = []
 
             if engine_filter:
                 query += " AND created_by_engine = ?"
@@ -175,22 +179,24 @@ class ContextStatsDB:
                 deprecated = row["deprecated_count"]
                 success_rate = ((total - deprecated) / total * 100) if total > 0 else 0.0
 
-                stats.append(EngineStats(
-                    engine=row["engine"],
-                    total_patterns=total,
-                    avg_confidence=row["avg_confidence"] or 0.0,
-                    total_occurrences=row["total_occurrences"],
-                    deprecated_count=deprecated,
-                    active_count=row["active_count"],
-                    success_rate=success_rate,
-                ))
+                stats.append(
+                    EngineStats(
+                        engine=row["engine"],
+                        total_patterns=total,
+                        avg_confidence=row["avg_confidence"] or 0.0,
+                        total_occurrences=row["total_occurrences"],
+                        deprecated_count=deprecated,
+                        active_count=row["active_count"],
+                        success_rate=success_rate,
+                    )
+                )
 
             return stats
 
     def get_pattern_distribution(
         self,
-        since: Optional[datetime] = None,
-    ) -> List[PatternStats]:
+        since: datetime | None = None,
+    ) -> list[PatternStats]:
         """Retorna distribuicao de tipos de padroes"""
         with self._get_connection() as conn:
             cursor = conn.cursor()
@@ -211,7 +217,7 @@ class ContextStatsDB:
                 FROM observed_patterns op
                 WHERE 1=1
             """
-            params: List[Any] = []
+            params: list[Any] = []
 
             if since:
                 query += " AND created_at >= ?"
@@ -223,21 +229,23 @@ class ContextStatsDB:
 
             stats = []
             for row in cursor.fetchall():
-                stats.append(PatternStats(
-                    pattern_type=row["pattern_type"],
-                    count=row["count"],
-                    avg_confidence=row["avg_confidence"] or 0.0,
-                    top_engine=row["top_engine"] or "N/A",
-                ))
+                stats.append(
+                    PatternStats(
+                        pattern_type=row["pattern_type"],
+                        count=row["count"],
+                        avg_confidence=row["avg_confidence"] or 0.0,
+                        top_engine=row["top_engine"] or "N/A",
+                    )
+                )
 
             return stats
 
     def get_recent_processings(
         self,
         limit: int = 10,
-        engine_filter: Optional[str] = None,
-        since: Optional[datetime] = None,
-    ) -> List[RecentProcessing]:
+        engine_filter: str | None = None,
+        since: datetime | None = None,
+    ) -> list[RecentProcessing]:
         """Retorna ultimos processamentos"""
         with self._get_connection() as conn:
             cursor = conn.cursor()
@@ -254,7 +262,7 @@ class ContextStatsDB:
                 JOIN caso c ON op.caso_id = c.id
                 WHERE 1=1
             """
-            params: List[Any] = []
+            params: list[Any] = []
 
             if engine_filter:
                 query += " AND op.created_by_engine = ?"
@@ -264,21 +272,23 @@ class ContextStatsDB:
                 query += " AND op.created_at >= ?"
                 params.append(since.isoformat())
 
-            query += f" ORDER BY op.created_at DESC LIMIT ?"
+            query += " ORDER BY op.created_at DESC LIMIT ?"
             params.append(limit)
 
             cursor.execute(query, params)
 
             processings = []
             for row in cursor.fetchall():
-                processings.append(RecentProcessing(
-                    caso_cnj=row["numero_cnj"],
-                    pattern_type=row["pattern_type"],
-                    engine=row["engine"],
-                    confidence=row["confidence"] or 0.0,
-                    page=row["page"],
-                    created_at=row["created_at"],
-                ))
+                processings.append(
+                    RecentProcessing(
+                        caso_cnj=row["numero_cnj"],
+                        pattern_type=row["pattern_type"],
+                        engine=row["engine"],
+                        confidence=row["confidence"] or 0.0,
+                        page=row["page"],
+                        created_at=row["created_at"],
+                    )
+                )
 
             return processings
 
@@ -309,12 +319,13 @@ class ContextStatsDB:
                 "avg_divergence": avg_divergence,
             }
 
-    def get_casos_summary(self, limit: int = 10) -> List[dict]:
+    def get_casos_summary(self, limit: int = 10) -> list[dict]:
         """Retorna resumo dos casos mais recentes"""
         with self._get_connection() as conn:
             cursor = conn.cursor()
 
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT
                     c.numero_cnj,
                     c.sistema,
@@ -326,7 +337,9 @@ class ContextStatsDB:
                 GROUP BY c.id
                 ORDER BY c.created_at DESC
                 LIMIT ?
-            """, (limit,))
+            """,
+                (limit,),
+            )
 
             return [dict(row) for row in cursor.fetchall()]
 
@@ -345,14 +358,14 @@ def render_summary_panel(summary: dict) -> Panel:
     text.append("Divergencias: ", style="bold")
     text.append(f"{summary['total_divergences']}\n", style="yellow")
     text.append("Confianca Media: ", style="bold")
-    confidence = summary['avg_confidence']
+    confidence = summary["avg_confidence"]
     style = "green" if confidence >= 0.8 else "yellow" if confidence >= 0.6 else "red"
     text.append(f"{confidence:.1%}", style=style)
 
     return Panel(text, title="Resumo do Context Store", border_style="blue")
 
 
-def render_engine_table(stats: List[EngineStats]) -> Table:
+def render_engine_table(stats: list[EngineStats]) -> Table:
     """Renderiza tabela de estatisticas por engine"""
     table = Table(
         title="Estatisticas por Engine",
@@ -370,8 +383,12 @@ def render_engine_table(stats: List[EngineStats]) -> Table:
     table.add_column("Taxa Sucesso", justify="right")
 
     for s in stats:
-        conf_style = "green" if s.avg_confidence >= 0.8 else "yellow" if s.avg_confidence >= 0.6 else "red"
-        rate_style = "green" if s.success_rate >= 80 else "yellow" if s.success_rate >= 60 else "red"
+        conf_style = (
+            "green" if s.avg_confidence >= 0.8 else "yellow" if s.avg_confidence >= 0.6 else "red"
+        )
+        rate_style = (
+            "green" if s.success_rate >= 80 else "yellow" if s.success_rate >= 60 else "red"
+        )
 
         table.add_row(
             s.engine,
@@ -386,7 +403,7 @@ def render_engine_table(stats: List[EngineStats]) -> Table:
     return table
 
 
-def render_pattern_table(stats: List[PatternStats]) -> Table:
+def render_pattern_table(stats: list[PatternStats]) -> Table:
     """Renderiza tabela de distribuicao de padroes"""
     table = Table(
         title="Distribuicao por Tipo de Padrao",
@@ -401,7 +418,9 @@ def render_pattern_table(stats: List[PatternStats]) -> Table:
     table.add_column("Engine Principal", style="dim")
 
     for s in stats:
-        conf_style = "green" if s.avg_confidence >= 0.8 else "yellow" if s.avg_confidence >= 0.6 else "red"
+        conf_style = (
+            "green" if s.avg_confidence >= 0.8 else "yellow" if s.avg_confidence >= 0.6 else "red"
+        )
 
         table.add_row(
             s.pattern_type,
@@ -413,7 +432,7 @@ def render_pattern_table(stats: List[PatternStats]) -> Table:
     return table
 
 
-def render_recent_table(processings: List[RecentProcessing]) -> Table:
+def render_recent_table(processings: list[RecentProcessing]) -> Table:
     """Renderiza tabela de processamentos recentes"""
     table = Table(
         title="Ultimos Processamentos",
@@ -454,7 +473,7 @@ def render_recent_table(processings: List[RecentProcessing]) -> Table:
     return table
 
 
-def render_casos_table(casos: List[dict]) -> Table:
+def render_casos_table(casos: list[dict]) -> Table:
     """Renderiza tabela de casos"""
     table = Table(
         title="Casos Recentes",
@@ -516,13 +535,13 @@ def dashboard(
         help="Caminho para o banco de dados SQLite",
         exists=False,  # We handle the check ourselves for better error message
     ),
-    engine: Optional[str] = typer.Option(
+    engine: str | None = typer.Option(
         None,
         "--engine",
         "-e",
         help="Filtrar por engine (marker, pdfplumber, tesseract)",
     ),
-    since: Optional[str] = typer.Option(
+    since: str | None = typer.Option(
         None,
         "--since",
         "-s",
@@ -534,7 +553,7 @@ def dashboard(
         "-n",
         help="Numero de itens a mostrar nas listas",
     ),
-    section: Optional[str] = typer.Option(
+    section: str | None = typer.Option(
         None,
         "--section",
         help="Mostrar apenas uma secao: summary, engines, patterns, recent, casos",
@@ -553,7 +572,7 @@ def dashboard(
         raise typer.Exit(1)
 
     # Parse date filter
-    since_dt: Optional[datetime] = None
+    since_dt: datetime | None = None
     if since:
         try:
             since_dt = parse_date(since)
@@ -586,7 +605,9 @@ def dashboard(
         console.print(f"[dim]Filtros ativos: {', '.join(filters)}[/dim]\n")
 
     # Render sections based on --section flag
-    sections_to_show = [section] if section else ["summary", "engines", "patterns", "recent", "casos"]
+    sections_to_show = (
+        [section] if section else ["summary", "engines", "patterns", "recent", "casos"]
+    )
 
     with Progress(
         SpinnerColumn(),
@@ -681,11 +702,13 @@ def divergences(
     store = ContextStatsDB(db)
     div_stats = store.get_divergence_stats()
 
-    console.print(Panel(
-        f"Divergencia Media: [yellow]{div_stats['avg_divergence']:.1%}[/yellow]",
-        title="Divergencias",
-        border_style="yellow",
-    ))
+    console.print(
+        Panel(
+            f"Divergencia Media: [yellow]{div_stats['avg_divergence']:.1%}[/yellow]",
+            title="Divergencias",
+            border_style="yellow",
+        )
+    )
 
     if div_stats["by_engine"]:
         table = Table(
@@ -697,7 +720,9 @@ def divergences(
         table.add_column("Engine", style="bold")
         table.add_column("Divergencias", justify="right")
 
-        for engine, count in sorted(div_stats["by_engine"].items(), key=lambda x: x[1], reverse=True):
+        for engine, count in sorted(
+            div_stats["by_engine"].items(), key=lambda x: x[1], reverse=True
+        ):
             table.add_row(engine, str(count))
 
         console.print(table)
@@ -729,9 +754,8 @@ def export(
     """
     Exporta estatisticas em formato JSON ou CSV.
     """
-    import json
     import csv
-    import sys
+    import json
     from io import StringIO
 
     if not db.exists():
@@ -778,9 +802,29 @@ def export(
 
         # Engine stats
         writer.writerow(["# Engine Statistics"])
-        writer.writerow(["engine", "total_patterns", "avg_confidence", "total_occurrences", "deprecated", "active", "success_rate"])
+        writer.writerow(
+            [
+                "engine",
+                "total_patterns",
+                "avg_confidence",
+                "total_occurrences",
+                "deprecated",
+                "active",
+                "success_rate",
+            ]
+        )
         for s in engine_stats:
-            writer.writerow([s.engine, s.total_patterns, f"{s.avg_confidence:.4f}", s.total_occurrences, s.deprecated_count, s.active_count, f"{s.success_rate:.2f}"])
+            writer.writerow(
+                [
+                    s.engine,
+                    s.total_patterns,
+                    f"{s.avg_confidence:.4f}",
+                    s.total_occurrences,
+                    s.deprecated_count,
+                    s.active_count,
+                    f"{s.success_rate:.2f}",
+                ]
+            )
 
         writer.writerow([])
         writer.writerow(["# Pattern Distribution"])

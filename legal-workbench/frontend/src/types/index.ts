@@ -60,6 +60,24 @@ export interface Toast {
 }
 
 // LEDES Converter Types
+export interface LedesMatter {
+  matter_name: string;
+  matter_id: string;
+  client_matter_id: string;
+  client_id: string;
+  client_name: string;
+  law_firm_id: string;
+  law_firm_name: string;
+  timekeeper_id: string;
+  timekeeper_name: string;
+  timekeeper_classification: string;
+  unit_cost: number;
+  default_task_code: string;
+  default_activity_code: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export type LedesConversionStatus =
   | 'idle'
   | 'validating'
@@ -86,6 +104,8 @@ export interface LedesExtractedData {
   line_items: Array<{
     description: string;
     amount: number;
+    task_code: string;
+    activity_code: string;
   }>;
 }
 
@@ -93,13 +113,28 @@ export interface ConvertLedesResponse {
   filename: string;
   status: 'success' | 'error';
   message?: string;
-  ledes_content?: string;
-  extracted_data?: LedesExtractedData;
+  ledes_content: string;
+  extracted_data: LedesExtractedData;
 }
 
 export interface LedesFileValidation {
   valid: boolean;
   error?: string;
+}
+
+export interface LedesValidationIssue {
+  line: number;
+  field: number;
+  field_name: string;
+  severity: 'error' | 'warning';
+  message: string;
+}
+
+export interface LedesValidationResponse {
+  valid: boolean;
+  error_count: number;
+  warning_count: number;
+  issues: LedesValidationIssue[];
 }
 
 // Doc Assembler Types

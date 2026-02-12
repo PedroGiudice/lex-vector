@@ -8,14 +8,14 @@ Tests cover:
 - Stats command with filters
 - Batch command with dry-run
 """
-import pytest
-from pathlib import Path
-from typer.testing import CliRunner
-from unittest.mock import patch, MagicMock
 
+from pathlib import Path
+
+import pytest
+from typer.testing import CliRunner
 
 # Import the CLI app
-from cli.main import app, __version__
+from cli.main import __version__, app
 
 runner = CliRunner()
 
@@ -124,6 +124,7 @@ class TestStatsCommand:
         with runner.isolated_filesystem():
             # Create a minimal SQLite database
             import sqlite3
+
             Path("test.db").touch()
             conn = sqlite3.connect("test.db")
             conn.execute("CREATE TABLE caso (id INTEGER PRIMARY KEY)")
@@ -139,6 +140,7 @@ class TestStatsCommand:
         """Test stats with invalid date format."""
         with runner.isolated_filesystem():
             import sqlite3
+
             Path("test.db").touch()
             conn = sqlite3.connect("test.db")
             conn.execute("CREATE TABLE caso (id INTEGER PRIMARY KEY)")
@@ -223,7 +225,9 @@ class TestBatchCommand:
             (Path("test_dir") / "contrato_456.pdf").write_bytes(b"%PDF-1.4")
             (Path("test_dir") / "processo_789.pdf").write_bytes(b"%PDF-1.4")
 
-            result = runner.invoke(app, ["batch", "test_dir", "--pattern", "processo_*.pdf", "--dry-run"])
+            result = runner.invoke(
+                app, ["batch", "test_dir", "--pattern", "processo_*.pdf", "--dry-run"]
+            )
             assert "processo_123.pdf" in result.stdout
             assert "processo_789.pdf" in result.stdout
             assert "contrato_456.pdf" not in result.stdout

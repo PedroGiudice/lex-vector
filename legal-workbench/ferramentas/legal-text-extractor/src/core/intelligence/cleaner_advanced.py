@@ -16,7 +16,7 @@ import unicodedata
 from dataclasses import dataclass, field
 from typing import TypedDict
 
-from .cleaning_rules import CleaningRules, RULE_ORDER
+from .cleaning_rules import RULE_ORDER, CleaningRules
 
 
 class CleaningStats(TypedDict):
@@ -260,9 +260,7 @@ class AdvancedCleaner:
                 pattern_counts[pattern] = pattern_counts.get(pattern, 0) + count
 
         # Ordena por frequencia
-        sorted_patterns = sorted(
-            pattern_counts.items(), key=lambda x: x[1], reverse=True
-        )
+        sorted_patterns = sorted(pattern_counts.items(), key=lambda x: x[1], reverse=True)
 
         return {
             "total_pages": len(stats_list),

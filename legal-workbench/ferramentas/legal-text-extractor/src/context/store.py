@@ -6,24 +6,22 @@ Princípios:
 2. Engine-aware updates - Resultado de engine inferior não sobrescreve superior
 3. Feedback loop - Aprende com acertos e erros
 """
-import sqlite3
-import json
+
 import hashlib
-from pathlib import Path
-from typing import Optional, List, Tuple
-from datetime import datetime
+import json
 import logging
+import sqlite3
+from datetime import datetime
+from pathlib import Path
 
 from .models import (
     Caso,
-    ObservedPattern,
-    Divergence,
-    PatternHint,
-    ObservationResult,
+    EngineQuality,
     EngineType,
+    ObservationResult,
+    PatternHint,
     PatternType,
     SignatureVector,
-    EngineQuality,
 )
 
 logger = logging.getLogger(__name__)
@@ -47,7 +45,7 @@ class ContextStore:
     """
 
     SIMILARITY_THRESHOLD = 0.85  # Mínimo para considerar padrões similares
-    DEPRECATION_THRESHOLD = 3    # Número de divergências antes de deprecar
+    DEPRECATION_THRESHOLD = 3  # Número de divergências antes de deprecar
 
     def __init__(self, db_path: Path):
         """
@@ -63,7 +61,7 @@ class ContextStore:
     def _init_db(self) -> None:
         """Inicializa schema do banco"""
         schema_path = Path(__file__).parent / "schema.sql"
-        with open(schema_path, "r") as f:
+        with open(schema_path) as f:
             schema_sql = f.read()
 
         with sqlite3.connect(self.db_path) as conn:
@@ -89,7 +87,7 @@ class ContextStore:
             # Tenta recuperar existente
             cursor.execute(
                 "SELECT id, numero_cnj, sistema, created_at, updated_at FROM caso WHERE numero_cnj = ?",
-                (numero_cnj,)
+                (numero_cnj,),
             )
             row = cursor.fetchone()
 
@@ -104,8 +102,7 @@ class ContextStore:
 
             # Cria novo
             cursor.execute(
-                "INSERT INTO caso (numero_cnj, sistema) VALUES (?, ?)",
-                (numero_cnj, sistema)
+                "INSERT INTO caso (numero_cnj, sistema) VALUES (?, ?)", (numero_cnj, sistema)
             )
             conn.commit()
 
@@ -120,12 +117,12 @@ class ContextStore:
                 updated_at=datetime.now(),
             )
 
-    def _compute_signature_hash(self, vector: List[float]) -> str:
+    def _compute_signature_hash(self, vector: list[float]) -> str:
         """Computa hash MD5 de um vetor"""
         vector_str = json.dumps(vector, sort_keys=True)
         return hashlib.md5(vector_str.encode()).hexdigest()
 
-    def _cosine_similarity(self, vec1: List[float], vec2: List[float]) -> float:
+    def _cosine_similarity(self, vec1: list[float], vec2: list[float]) -> float:
         """
         Calcula similaridade cosine entre dois vetores.
 
@@ -151,9 +148,9 @@ class ContextStore:
     def find_similar_pattern(
         self,
         caso_id: int,
-        signature_vector: List[float],
-        pattern_type: Optional[PatternType] = None,
-    ) -> Optional[PatternHint]:
+        signature_vector: list[float],
+        pattern_type: PatternType | None = None,
+    ) -> PatternHint | None:
         """
         Busca padrão similar no histórico do caso.
 
@@ -247,7 +244,7 @@ class ContextStore:
             cursor = conn.cursor()
             cursor.execute(
                 "SELECT created_by_engine, engine_quality_score FROM observed_patterns WHERE id = ?",
-                (pattern_id,)
+                (pattern_id,),
             )
             row = cursor.fetchone()
 
@@ -274,7 +271,7 @@ class ContextStore:
         caso_id: int,
         signature: SignatureVector,
         result: ObservationResult,
-        hint: Optional[PatternHint] = None,
+        hint: PatternHint | None = None,
     ) -> int:
         """
         Aprende com resultado de processamento de uma página.
@@ -294,7 +291,7 @@ class ContextStore:
             # Verifica se padrão já existe
             cursor.execute(
                 "SELECT id FROM observed_patterns WHERE caso_id = ? AND signature_hash = ?",
-                (caso_id, signature.hash)
+                (caso_id, signature.hash),
             )
             row = cursor.fetchone()
 
@@ -338,7 +335,7 @@ class ContextStore:
                 result.confidence,
                 suggested_bbox,
                 result.engine_used.value,
-            )
+            ),
         )
         conn.commit()
 
@@ -353,7 +350,7 @@ class ContextStore:
         self,
         pattern_id: int,
         result: ObservationResult,
-        hint: Optional[PatternHint],
+        hint: PatternHint | None,
         conn: sqlite3.Connection,
     ) -> int:
         """Atualiza padrão existente"""
@@ -391,7 +388,7 @@ class ContextStore:
                 result.confidence,
                 json.dumps(result.bbox) if result.bbox else None,
                 pattern_id,
-            )
+            ),
         )
         conn.commit()
 
@@ -420,11 +417,11 @@ class ContextStore:
                 expected_confidence,
                 result.confidence,
                 result.engine_used.value,
-            )
+            ),
         )
         conn.commit()
 
-    def get_engine_stats(self) -> List[EngineQuality]:
+    def get_engine_stats(self) -> list[EngineQuality]:
         """
         Retorna estatísticas de qualidade por engine.
 
@@ -455,17 +452,17 @@ class ContextStore:
             cursor = conn.cursor()
             cursor.execute(
                 "SELECT COUNT(*) FROM observed_patterns WHERE caso_id = ? AND deprecated = ?",
-                (caso_id, deprecated)
+                (caso_id, deprecated),
             )
             return cursor.fetchone()[0]
 
     def get_engine_hint_for_signature(
         self,
-        signature_vector: List[float],
-        pattern_type: Optional[PatternType] = None,
-        caso_id: Optional[int] = None,
+        signature_vector: list[float],
+        pattern_type: PatternType | None = None,
+        caso_id: int | None = None,
         min_occurrences: int = 2,
-    ) -> Optional[PatternHint]:
+    ) -> PatternHint | None:
         """
         Busca hint de engine baseado em padrões similares GLOBAIS.
 
@@ -512,7 +509,7 @@ class ContextStore:
                 WHERE deprecated = FALSE
                 AND occurrence_count >= ?
             """
-            params: List = [min_occurrences]
+            params: list = [min_occurrences]
 
             # Filtra por tipo se especificado
             if pattern_type:
@@ -530,7 +527,7 @@ class ContextStore:
                 return None
 
             # Calcula similaridade e agrupa por engine
-            engine_scores: dict[EngineType, List[Tuple[float, float, int]]] = {}
+            engine_scores: dict[EngineType, list[tuple[float, float, int]]] = {}
 
             for row in rows:
                 stored_vector = json.loads(row[2])
@@ -597,7 +594,7 @@ class ContextStore:
     def get_best_engine_for_pattern_type(
         self,
         pattern_type: PatternType,
-    ) -> Optional[EngineType]:
+    ) -> EngineType | None:
         """
         Retorna o melhor engine para um tipo de padrão baseado em estatísticas globais.
 
@@ -620,7 +617,7 @@ class ContextStore:
                 ORDER BY avg_confidence DESC, total_occurrences DESC
                 LIMIT 1
                 """,
-                (pattern_type.value,)
+                (pattern_type.value,),
             )
             row = cursor.fetchone()
 

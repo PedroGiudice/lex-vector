@@ -17,7 +17,7 @@ Sistemas suportados:
 
 import re
 from dataclasses import dataclass
-from typing import Pattern
+from re import Pattern
 
 
 @dataclass
@@ -78,13 +78,13 @@ class JudicialSystemDetector:
                 code="STF",
                 priority=1,  # Alta prioridade (padrões muito específicos)
                 signatures=[
-                    re.compile(r'supremo\s+tribunal\s+federal', re.I),
-                    re.compile(r'e-stf', re.I),
-                    re.compile(r'portal\.stf\.jus\.br', re.I),
-                    re.compile(r'peticionamento\s+eletr[oô]nico\s+stf', re.I),
-                    re.compile(r'resolu[cç][aã]o\s+stf\s+693', re.I),
-                    re.compile(r'pkcs\s*[#]?\s*7', re.I),  # Assinatura PKCS7 específica do STF
-                    re.compile(r'projeto\s+victor', re.I),
+                    re.compile(r"supremo\s+tribunal\s+federal", re.I),
+                    re.compile(r"e-stf", re.I),
+                    re.compile(r"portal\.stf\.jus\.br", re.I),
+                    re.compile(r"peticionamento\s+eletr[oô]nico\s+stf", re.I),
+                    re.compile(r"resolu[cç][aã]o\s+stf\s+693", re.I),
+                    re.compile(r"pkcs\s*[#]?\s*7", re.I),  # Assinatura PKCS7 específica do STF
+                    re.compile(r"projeto\s+victor", re.I),
                 ],
                 min_matches=2,
                 description="PDF gerado pelo sistema e-STF com assinatura PKCS7 e marca d'água com CPF",
@@ -94,12 +94,12 @@ class JudicialSystemDetector:
                 code="STJ",
                 priority=1,
                 signatures=[
-                    re.compile(r'superior\s+tribunal\s+de\s+justi[cç]a', re.I),
-                    re.compile(r'e-stj', re.I),
-                    re.compile(r'www\.stj\.jus\.br', re.I),
-                    re.compile(r'central\s+do\s+processo\s+eletr[oô]nico', re.I),
-                    re.compile(r'resolu[cç][aã]o\s+stj/gp\s+10', re.I),
-                    re.compile(r'autentique\s+em:\s*https?://www\.stj\.jus\.br/validar', re.I),
+                    re.compile(r"superior\s+tribunal\s+de\s+justi[cç]a", re.I),
+                    re.compile(r"e-stj", re.I),
+                    re.compile(r"www\.stj\.jus\.br", re.I),
+                    re.compile(r"central\s+do\s+processo\s+eletr[oô]nico", re.I),
+                    re.compile(r"resolu[cç][aã]o\s+stj/gp\s+10", re.I),
+                    re.compile(r"autentique\s+em:\s*https?://www\.stj\.jus\.br/validar", re.I),
                 ],
                 min_matches=2,
                 description="PDF gerado pelo sistema e-STJ com múltiplos elementos de validação",
@@ -109,23 +109,23 @@ class JudicialSystemDetector:
                 code="PJE",
                 priority=2,
                 signatures=[
-                    re.compile(r'processo\s+judicial\s+eletr[oô]nico', re.I),
-                    re.compile(r'\bpje\b', re.I),
-                    re.compile(r'resolu[cç][aã]o\s+cnj\s+281', re.I),
+                    re.compile(r"processo\s+judicial\s+eletr[oô]nico", re.I),
+                    re.compile(r"\bpje\b", re.I),
+                    re.compile(r"resolu[cç][aã]o\s+cnj\s+281", re.I),
                     re.compile(
-                        r'documento\s+assinado\s+por.*e\s+certificado\s+digitalmente\s+por',
+                        r"documento\s+assinado\s+por.*e\s+certificado\s+digitalmente\s+por",
                         re.I,
                     ),
                     re.compile(
-                        r'c[oó]digo\s+de\s+verifica[cç][aã]o:\s*[A-Z0-9]{4}\.[0-9]{4}\.[0-9]X{2}[0-9]\.[X0-9]{4}',
+                        r"c[oó]digo\s+de\s+verifica[cç][aã]o:\s*[A-Z0-9]{4}\.[0-9]{4}\.[0-9]X{2}[0-9]\.[X0-9]{4}",
                         re.I,
                     ),
                     re.compile(
-                        r'este\s+documento\s+foi\s+gerado\s+pelo\s+usu[aá]rio\s+\d{3}\.\d{3}\.\d{3}-\d{2}',
+                        r"este\s+documento\s+foi\s+gerado\s+pelo\s+usu[aá]rio\s+\d{3}\.\d{3}\.\d{3}-\d{2}",
                         re.I,
                     ),
-                    re.compile(r'trt\d+\.jus\.br/pje', re.I),
-                    re.compile(r'trf\d+\.jus\.br/pje', re.I),
+                    re.compile(r"trt\d+\.jus\.br/pje", re.I),
+                    re.compile(r"trf\d+\.jus\.br/pje", re.I),
                 ],
                 min_matches=2,
                 description="PDF gerado pelo PJE com códigos alfanuméricos e timestamps repetitivos",
@@ -135,16 +135,16 @@ class JudicialSystemDetector:
                 code="ESAJ",
                 priority=2,
                 signatures=[
-                    re.compile(r'e-saj', re.I),
-                    re.compile(r'\besaj\b', re.I),
-                    re.compile(r'softplan', re.I),
-                    re.compile(r'portal\s+e-saj', re.I),
-                    re.compile(r'confer[eê]ncia\s+de\s+documento\s+digital', re.I),
-                    re.compile(r'tjsp\.jus\.br.*esaj', re.I),
-                    re.compile(r'tjce\.jus\.br.*esaj', re.I),
-                    re.compile(r'tjam\.jus\.br.*esaj', re.I),
-                    re.compile(r'tjms\.jus\.br.*esaj', re.I),
-                    re.compile(r'resolu[cç][aã]o\s+.*552/11', re.I),  # Resolução do brasão TJSP
+                    re.compile(r"e-saj", re.I),
+                    re.compile(r"\besaj\b", re.I),
+                    re.compile(r"softplan", re.I),
+                    re.compile(r"portal\s+e-saj", re.I),
+                    re.compile(r"confer[eê]ncia\s+de\s+documento\s+digital", re.I),
+                    re.compile(r"tjsp\.jus\.br.*esaj", re.I),
+                    re.compile(r"tjce\.jus\.br.*esaj", re.I),
+                    re.compile(r"tjam\.jus\.br.*esaj", re.I),
+                    re.compile(r"tjms\.jus\.br.*esaj", re.I),
+                    re.compile(r"resolu[cç][aã]o\s+.*552/11", re.I),  # Resolução do brasão TJSP
                 ],
                 min_matches=2,
                 description="PDF gerado pelo ESAJ com selo lateral vertical e QR codes",
@@ -154,16 +154,16 @@ class JudicialSystemDetector:
                 code="EPROC",
                 priority=2,
                 signatures=[
-                    re.compile(r'\beproc\b', re.I),
-                    re.compile(r'sistema\s+de\s+processo\s+eletr[oô]nico', re.I),
-                    re.compile(r'trf4\.jus\.br.*eproc', re.I),
-                    re.compile(r'trf2\.jus\.br.*eproc', re.I),
-                    re.compile(r'trf6\.jus\.br.*eproc', re.I),
-                    re.compile(r'tjrs\.jus\.br.*eproc', re.I),
-                    re.compile(r'tjsc\.jus\.br.*eproc', re.I),
-                    re.compile(r'\.p7s', re.I),  # Referência a arquivo de assinatura destacada
-                    re.compile(r'cades', re.I),  # Padrão CAdES específico
-                    re.compile(r'assinatura\s+destacada', re.I),
+                    re.compile(r"\beproc\b", re.I),
+                    re.compile(r"sistema\s+de\s+processo\s+eletr[oô]nico", re.I),
+                    re.compile(r"trf4\.jus\.br.*eproc", re.I),
+                    re.compile(r"trf2\.jus\.br.*eproc", re.I),
+                    re.compile(r"trf6\.jus\.br.*eproc", re.I),
+                    re.compile(r"tjrs\.jus\.br.*eproc", re.I),
+                    re.compile(r"tjsc\.jus\.br.*eproc", re.I),
+                    re.compile(r"\.p7s", re.I),  # Referência a arquivo de assinatura destacada
+                    re.compile(r"cades", re.I),  # Padrão CAdES específico
+                    re.compile(r"assinatura\s+destacada", re.I),
                 ],
                 min_matches=2,
                 description="PDF gerado pelo EPROC com assinatura destacada (arquivo .p7s separado)",
@@ -173,16 +173,16 @@ class JudicialSystemDetector:
                 code="PROJUDI",
                 priority=3,  # Menor prioridade (padrões menos específicos)
                 signatures=[
-                    re.compile(r'projudi', re.I),
-                    re.compile(r'processo\s+judicial\s+digital', re.I),
-                    re.compile(r'tjba\.jus\.br.*projudi', re.I),
-                    re.compile(r'tjce\.jus\.br.*projudi', re.I),
-                    re.compile(r'tjpr\.jus\.br.*projudi', re.I),
-                    re.compile(r'tjmg\.jus\.br.*projudi', re.I),
-                    re.compile(r'vers[aã]o\s+1\.\d+', re.I),  # Versões variadas
-                    re.compile(r'assinador\s+livre', re.I),
+                    re.compile(r"projudi", re.I),
+                    re.compile(r"processo\s+judicial\s+digital", re.I),
+                    re.compile(r"tjba\.jus\.br.*projudi", re.I),
+                    re.compile(r"tjce\.jus\.br.*projudi", re.I),
+                    re.compile(r"tjpr\.jus\.br.*projudi", re.I),
+                    re.compile(r"tjmg\.jus\.br.*projudi", re.I),
+                    re.compile(r"vers[aã]o\s+1\.\d+", re.I),  # Versões variadas
+                    re.compile(r"assinador\s+livre", re.I),
                     re.compile(
-                        r'universidade\s+federal\s+de\s+campina\s+grande', re.I
+                        r"universidade\s+federal\s+de\s+campina\s+grande", re.I
                     ),  # Origem do PROJUDI
                 ],
                 min_matches=2,
@@ -192,13 +192,13 @@ class JudicialSystemDetector:
 
         # Padrões gerais de assinatura ICP-Brasil (não identificam sistema específico)
         self.icp_brasil_patterns = [
-            re.compile(r'icp-brasil', re.I),
-            re.compile(r'certificado\s+digital', re.I),
-            re.compile(r'assinado\s+digitalmente', re.I),
-            re.compile(r'pades|cades|xades', re.I),
-            re.compile(r'ac\s+[a-z]+', re.I),  # Autoridade Certificadora
+            re.compile(r"icp-brasil", re.I),
+            re.compile(r"certificado\s+digital", re.I),
+            re.compile(r"assinado\s+digitalmente", re.I),
+            re.compile(r"pades|cades|xades", re.I),
+            re.compile(r"ac\s+[a-z]+", re.I),  # Autoridade Certificadora
             re.compile(
-                r'iti\s+-\s+instituto\s+nacional\s+de\s+tecnologia\s+da\s+informa[cç][aã]o',
+                r"iti\s+-\s+instituto\s+nacional\s+de\s+tecnologia\s+da\s+informa[cç][aã]o",
                 re.I,
             ),
         ]
