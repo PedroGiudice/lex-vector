@@ -20,6 +20,8 @@ TASK_CODE_PATTERNS: list[tuple[str, str]] = [
     (r"(?i)(investiga|dilig[eê]ncia|fact\s+finding|discovery|inqu[eé]rito)", "L120"),
     # L310 - Witness Management
     (r"(?i)(testemunha|witness|depoi?mento|oitiva|audi[eê]ncia)", "L310"),
+    # L110 - Employment/Labor Advice (assessoria trabalhista)
+    (r"(?i)(employment\s+advice|labor\s+(law\s+)?advice|general\s+legal\s+advice|assessoria\s+trabalhist|direito\s+do\s+trabalho|consultoria\s+trabalhist)", "L110"),
     # L100 - Case Assessment
     (r"(?i)(an[aá]lise\s+(do\s+)?caso|case\s+assess|parecer|estudo)", "L100"),
 ]
@@ -27,8 +29,8 @@ TASK_CODE_PATTERNS: list[tuple[str, str]] = [
 ACTIVITY_CODE_PATTERNS: list[tuple[str, str]] = [
     # A103 - Draft/Revise
     (r"(?i)(draft|revise|elabora|redigi|reda[cç][aã]o|minuta|prepar)", "A103"),
-    # A106 - Communicate (with client/opposing counsel)
-    (r"(?i)(communic|reuni[aã]o|meeting|conference|e-?mail|correspond[eê]ncia)", "A106"),
+    # A106 - Communicate / Advise / Consult
+    (r"(?i)(communic|reuni[aã]o|meeting|conference|e-?mail|correspond[eê]ncia|advise|advis[eo]r|\bconsult\b|orienta[cç][aã]o|provide\s+.*?advice)", "A106"),
     # A101 - Plan and Prepare
     (r"(?i)(plan|organiz|estrateg|estrat[eé]g)", "A101"),
     # A102 - Research

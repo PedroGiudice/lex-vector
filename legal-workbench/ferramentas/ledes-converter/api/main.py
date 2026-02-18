@@ -21,13 +21,10 @@ logger = setup_logging("ledes-converter", level=log_level)
 
 from fastapi import FastAPI, UploadFile, File, HTTPException, Request, Form
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
 from typing import Annotated, Optional
 from dataclasses import asdict
 import docx
 import tempfile
-import io
-import zipfile
 from collections import defaultdict
 import time
 import magic
@@ -37,21 +34,15 @@ from .models import (
     LedesData, ConversionResponse, HealthResponse, LineItem, LedesConfig,
     MatterRequest, MatterResponse, ValidationIssueResponse, ValidationResponse,
     BatchResultItem, BatchConversionResponse,
-    StructuredConversionRequest, StructuredLineItemInput, TextConversionRequest,
+    StructuredConversionRequest, TextConversionRequest,
 )
 from .matter_store import MatterStore, Matter
 from .task_codes import classify_task_code, classify_activity_code
 from .ledes_validator import validate_ledes_1998b
 from .ledes_generator import (
     sanitize_string,
-    sanitize_ledes_field,
-    parse_currency,
-    format_ledes_currency,
-    format_date_ledes,
     extract_ledes_data,
     generate_ledes_1998b,
-    MAX_DESCRIPTION_LENGTH,
-    MAX_LINE_ITEMS,
 )
 
 app = FastAPI(

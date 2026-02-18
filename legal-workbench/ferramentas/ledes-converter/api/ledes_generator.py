@@ -7,6 +7,7 @@ and generating LEDES 1998B compliant output. No FastAPI dependencies.
 
 import logging
 import re
+import calendar
 from datetime import datetime
 
 from .task_codes import classify_task_code, classify_activity_code
@@ -100,6 +101,34 @@ def format_date_ledes(date_str: str) -> str:
         return ""
 
 
+def infer_billing_period(text: str) -> tuple[str, str]:
+    """Infer billing start/end dates from month/year references in text."""
+    month_pattern = re.compile(
+        r"(January|February|March|April|May|June|July|August|September|October|November|December"
+        r"|Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d{4})",
+        re.IGNORECASE,
+    )
+    match = month_pattern.search(text)
+    if not match:
+        return ("", "")
+
+    month_str = match.group(1)
+    year = int(match.group(2))
+
+    month_names = {
+        "january": 1, "jan": 1, "february": 2, "feb": 2, "march": 3, "mar": 3,
+        "april": 4, "apr": 4, "may": 5, "june": 6, "jun": 6,
+        "july": 7, "jul": 7, "august": 8, "aug": 8, "september": 9, "sep": 9,
+        "october": 10, "oct": 10, "november": 11, "nov": 11, "december": 12, "dec": 12,
+    }
+    month_num = month_names.get(month_str.lower())
+    if not month_num:
+        return ("", "")
+
+    last_day = calendar.monthrange(year, month_num)[1]
+    return (f"{year:04d}{month_num:02d}01", f"{year:04d}{month_num:02d}{last_day:02d}")
+
+
 def extract_ledes_data(text: str) -> dict:
     """Extract invoice data from text content with validation."""
     data = {
@@ -108,6 +137,7 @@ def extract_ledes_data(text: str) -> dict:
         "client_id": "SALESFORCE",  # Placeholder based on template analysis
         "matter_id": "LITIGATION-BRAZIL",  # Placeholder
         "invoice_total": 0.0,
+        "invoice_description": "",
         "line_items": []
     }
 
@@ -117,11 +147,19 @@ def extract_ledes_data(text: str) -> dict:
         re.IGNORECASE,
     )
     invoice_num_pattern = re.compile(
-        r"(?:Invoice\s*(?:#|No\.?|Number)|Nota\s*Fiscal\s*(?:#|No\.?)?)\s*:?\s*(\d+)",
+        r"(?:Invoice\s*(?:#|No\.?|Number)?|Nota\s*Fiscal\s*(?:#|No\.?)?)\s*:?\s*#?\s*(\d+)",
         re.IGNORECASE,
     )
     total_pattern = re.compile(
         r"(?:Total\s*(?:Gross\s*)?Amount|Valor\s*Total|Grand\s*Total)\s*:?\s*(?:US\s*)?\$?\s*([\d,]+\.?\d*)",
+        re.IGNORECASE,
+    )
+    matter_pattern = re.compile(
+        r"^Matter\s*:\s*(.+)",
+        re.IGNORECASE,
+    )
+    services_pattern = re.compile(
+        r"Description\s+of\s+Services.*?[-\u2013]\s*(.+)",
         re.IGNORECASE,
     )
 
@@ -149,6 +187,15 @@ def extract_ledes_data(text: str) -> dict:
         if total_match:
             data["invoice_total"] = parse_currency(total_match.group(1))
 
+        if not data["invoice_description"]:
+            matter_match = matter_pattern.search(line)
+            if matter_match:
+                data["invoice_description"] = sanitize_string(matter_match.group(1).strip(), 200)
+
+            services_match = services_pattern.search(line)
+            if services_match:
+                data["invoice_description"] = sanitize_string(services_match.group(1).strip(), 200)
+
         # Extract Line Items (with limit to prevent DoS)
         if len(data["line_items"]) >= MAX_LINE_ITEMS:
             logger.warning(f"Reached max line items limit ({MAX_LINE_ITEMS})")
@@ -168,6 +215,15 @@ def extract_ledes_data(text: str) -> dict:
                         "task_code": classify_task_code(desc),
                         "activity_code": classify_activity_code(desc),
                     })
+
+    # Infer billing period from line item descriptions if not already set
+    if not data.get("billing_start_date"):
+        for item in data["line_items"]:
+            start, end = infer_billing_period(item["description"])
+            if start:
+                data["billing_start_date"] = start
+                data["billing_end_date"] = end
+                break
 
     return data
 
@@ -242,7 +298,7 @@ def generate_ledes_1998b(data: dict) -> str:
             format_ledes_currency(unit_cost) if unit_cost else "",   # 21. LINE_ITEM_UNIT_COST
             sanitize_ledes_field(timekeeper_name, 50),               # 22. TIMEKEEPER_NAME
             sanitize_ledes_field(timekeeper_class, 10),              # 23. TIMEKEEPER_CLASSIFICATION
-            sanitize_ledes_field(data.get("client_matter_id", ""), 50) # 24. CLIENT_MATTER_ID
+            sanitize_ledes_field(data.get("client_matter_id") or data.get("matter_id", ""), 50) # 24. CLIENT_MATTER_ID
         ]
 
         lines.append("|".join(row) + "[]")

@@ -1,4 +1,3 @@
-import { fetch as tauriFetch } from '@tauri-apps/plugin-http';
 import type {
   ConvertLedesResponse,
   LedesFileValidation,
@@ -9,11 +8,13 @@ import type {
 const isTauri =
   typeof window !== 'undefined' && !!(window as unknown as { __TAURI__?: unknown }).__TAURI__;
 const API_BASE_URL = isTauri
-  ? import.meta.env.VITE_LEDES_API_URL || 'http://100.98.38.32:8003'
+  ? import.meta.env.VITE_LEDES_API_URL || 'http://localhost:8003'
   : '/api/ledes';
 
-/** HTTP fetch that works in both Tauri (via plugin) and browser (via native fetch) */
-const httpFetch = isTauri ? tauriFetch : globalThis.fetch.bind(globalThis);
+/** Native fetch for all environments.
+ * tauriFetch (plugin-http/reqwest) hangs on Tailscale IPs and localhost on Windows.
+ * Native fetch works via CSP connect-src whitelist + SSH reverse tunnel. */
+const httpFetch = globalThis.fetch.bind(globalThis);
 
 // Constants
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
