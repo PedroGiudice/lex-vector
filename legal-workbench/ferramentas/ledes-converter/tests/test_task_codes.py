@@ -81,6 +81,24 @@ class TestClassifyTaskCode:
     def test_discovery_process(self) -> None:
         assert classify_task_code("Discovery process management") == "L120"
 
+    # --- L110 Employment/Labor Advice (CMR-41) ---
+
+    def test_general_legal_advice_employment(self) -> None:
+        """CMR-41: 'general legal advice' maps to L110."""
+        assert classify_task_code("Provide general legal advice for September 2025") == "L110"
+
+    def test_employment_advice(self) -> None:
+        assert classify_task_code("Employment advice regarding termination") == "L110"
+
+    def test_labor_advice(self) -> None:
+        assert classify_task_code("Labor law advice") == "L110"
+
+    def test_assessoria_trabalhista(self) -> None:
+        assert classify_task_code("Assessoria trabalhista geral") == "L110"
+
+    def test_consultoria_employment(self) -> None:
+        assert classify_task_code("Consultoria em direito do trabalho") == "L110"
+
     # --- Edge cases ---
 
     def test_string_vazia(self) -> None:
@@ -173,6 +191,21 @@ class TestClassifyActivityCode:
 
     def test_meeting_client(self) -> None:
         assert classify_activity_code("Meeting with client to discuss case") == "A106"
+
+    # --- A106 Advise/Consult (CMR-42) ---
+
+    def test_provide_advice(self) -> None:
+        """CMR-42: 'Provide general legal advice' maps to A106."""
+        assert classify_activity_code("Provide general legal advice for September 2025") == "A106"
+
+    def test_advise_client(self) -> None:
+        assert classify_activity_code("Advise client on employment matters") == "A106"
+
+    def test_consult_on_matter(self) -> None:
+        assert classify_activity_code("Consult on labor dispute") == "A106"
+
+    def test_orientacao_juridica(self) -> None:
+        assert classify_activity_code("Orientacao juridica sobre rescisao") == "A106"
 
     # --- Edge cases ---
 

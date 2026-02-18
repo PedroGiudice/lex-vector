@@ -602,3 +602,34 @@ class TestConvertTextToLedes:
         assert data["invoice_number"] == "7700"
         assert data["invoice_date"] == "20260310"
         assert data["invoice_total"] == 600.0
+
+
+def test_extract_invoice_number_colon_hash():
+    """CMR-38: Invoice: #4170 format must be captured."""
+    text = "Invoice: #4170\nProvide general legal advice US $2,000"
+    data = extract_ledes_data(text)
+    assert data["invoice_number"] == "4170"
+
+
+def test_extract_billing_period_from_description():
+    """CMR-39: Billing period should be inferred from line item description."""
+    text = "Invoice: #4170\nDate of Issuance: February 3, 2026\nProvide general legal advice for September 2025 US $2,000\nTotal Gross Amount: US $2,000"
+    data = extract_ledes_data(text)
+    assert data["billing_start_date"] == "20250901"
+    assert data["billing_end_date"] == "20250930"
+
+
+def test_extract_billing_period_january():
+    """CMR-39: January billing period."""
+    text = "Provide general legal advice for January 2026 US $2,000"
+    data = extract_ledes_data(text)
+    assert data["billing_start_date"] == "20260101"
+    assert data["billing_end_date"] == "20260131"
+
+
+def test_extract_billing_period_february():
+    """CMR-39: February in non-leap year."""
+    text = "Provide general legal advice for February 2025 US $2,000"
+    data = extract_ledes_data(text)
+    assert data["billing_start_date"] == "20250201"
+    assert data["billing_end_date"] == "20250228"
