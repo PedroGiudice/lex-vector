@@ -1,12 +1,12 @@
 [package]
-name = "tauri-app"
+name = "legal-workbench"
 version = "0.1.4"
 description = "Legal Workbench - Thin Client Desktop"
 authors = ["LexVector"]
 edition = "2021"
 
 [lib]
-name = "tauri_app_lib"
+name = "legal_workbench_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]

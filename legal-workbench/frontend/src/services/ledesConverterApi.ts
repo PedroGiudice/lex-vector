@@ -1,4 +1,4 @@
-import axios, { AxiosProgressEvent } from 'axios';
+import { fetch as tauriFetch } from '@tauri-apps/plugin-http';
 import type {
   ConvertLedesResponse,
   LedesFileValidation,
@@ -11,6 +11,9 @@ const isTauri =
 const API_BASE_URL = isTauri
   ? import.meta.env.VITE_LEDES_API_URL || 'http://localhost:8003'
   : '/api/ledes';
+
+/** HTTP fetch that works in both Tauri (via plugin) and browser (via native fetch) */
+const httpFetch = isTauri ? tauriFetch : globalThis.fetch.bind(globalThis);
 
 // Constants
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
@@ -82,8 +85,9 @@ export const ledesConverterApi = {
    * @throws Error if service is unreachable
    */
   healthCheck: async (): Promise<{ status: string; service?: string }> => {
-    const response = await axios.get(`${API_BASE_URL}/health`);
-    return response.data;
+    const response = await httpFetch(`${API_BASE_URL}/health`);
+    if (!response.ok) throw new Error(`Health check failed: ${response.status}`);
+    return response.json();
   },
 
   /**
@@ -97,7 +101,7 @@ export const ledesConverterApi = {
   convertDocxToLedes: async (
     file: File,
     matterName?: string,
-    onProgress?: (progress: number) => void
+    _onProgress?: (progress: number) => void
   ): Promise<ConvertLedesResponse> => {
     const formData = new FormData();
     formData.append('file', file);
@@ -106,24 +110,12 @@ export const ledesConverterApi = {
       formData.append('config', JSON.stringify({ matter_name: matterName }));
     }
 
-    const response = await axios.post<ConvertLedesResponse>(
-      `${API_BASE_URL}/convert/docx-to-ledes`,
-      formData,
-      {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-        onUploadProgress: (progressEvent: AxiosProgressEvent) => {
-          if (progressEvent.total && onProgress) {
-            const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-            onProgress(percentCompleted);
-          }
-        },
-        timeout: 30000, // 30 second timeout for large files
-      }
-    );
-
-    return response.data;
+    const response = await httpFetch(`${API_BASE_URL}/convert/docx-to-ledes`, {
+      method: 'POST',
+      body: formData,
+    });
+    if (!response.ok) throw new Error(`Conversion failed: ${response.status}`);
+    return response.json();
   },
 
   /**
@@ -131,8 +123,9 @@ export const ledesConverterApi = {
    * @returns Promise resolving to array of matters
    */
   listMatters: async (): Promise<LedesMatter[]> => {
-    const response = await axios.get<LedesMatter[]>(`${API_BASE_URL}/matters`);
-    return response.data;
+    const response = await httpFetch(`${API_BASE_URL}/matters`);
+    if (!response.ok) throw new Error(`Failed to list matters: ${response.status}`);
+    return response.json();
   },
 
   /**
@@ -146,12 +139,13 @@ export const ledesConverterApi = {
     if (matterName) {
       payload.matter_name = matterName;
     }
-    const response = await axios.post<ConvertLedesResponse>(
-      `${API_BASE_URL}/convert/text-to-ledes`,
-      payload,
-      { timeout: 30000 }
-    );
-    return response.data;
+    const response = await httpFetch(`${API_BASE_URL}/convert/text-to-ledes`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!response.ok) throw new Error(`Text conversion failed: ${response.status}`);
+    return response.json();
   },
 
   /**
@@ -162,12 +156,12 @@ export const ledesConverterApi = {
   validateLedes: async (ledesContent: string): Promise<LedesValidationResponse> => {
     const formData = new FormData();
     formData.append('ledes_content', ledesContent);
-    const response = await axios.post<LedesValidationResponse>(
-      `${API_BASE_URL}/validate`,
-      formData,
-      { timeout: 15000 }
-    );
-    return response.data;
+    const response = await httpFetch(`${API_BASE_URL}/validate`, {
+      method: 'POST',
+      body: formData,
+    });
+    if (!response.ok) throw new Error(`Validation failed: ${response.status}`);
+    return response.json();
   },
 };
 
