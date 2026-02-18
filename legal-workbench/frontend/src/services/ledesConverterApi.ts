@@ -9,7 +9,7 @@ import type {
 const isTauri =
   typeof window !== 'undefined' && !!(window as unknown as { __TAURI__?: unknown }).__TAURI__;
 const API_BASE_URL = isTauri
-  ? import.meta.env.VITE_LEDES_API_URL || 'http://localhost:8003'
+  ? import.meta.env.VITE_LEDES_API_URL || 'http://100.98.38.32:8003'
   : '/api/ledes';
 
 /** HTTP fetch that works in both Tauri (via plugin) and browser (via native fetch) */

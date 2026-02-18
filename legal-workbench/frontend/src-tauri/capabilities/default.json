@@ -13,6 +13,7 @@
       "allow": [
         { "url": "http://localhost:*" },
         { "url": "http://127.0.0.1:*" },
+        { "url": "http://100.98.38.32:*" },
         { "url": "http://100.114.203.28:*" },
         { "url": "https://*.lexvector.com.br/*" }
       ]
