@@ -137,6 +137,7 @@ def extract_ledes_data(text: str) -> dict:
         "client_id": "SALESFORCE",  # Placeholder based on template analysis
         "matter_id": "LITIGATION-BRAZIL",  # Placeholder
         "invoice_total": 0.0,
+        "invoice_description": "",
         "line_items": []
     }
 
@@ -151,6 +152,14 @@ def extract_ledes_data(text: str) -> dict:
     )
     total_pattern = re.compile(
         r"(?:Total\s*(?:Gross\s*)?Amount|Valor\s*Total|Grand\s*Total)\s*:?\s*(?:US\s*)?\$?\s*([\d,]+\.?\d*)",
+        re.IGNORECASE,
+    )
+    matter_pattern = re.compile(
+        r"^Matter\s*:\s*(.+)",
+        re.IGNORECASE,
+    )
+    services_pattern = re.compile(
+        r"Description\s+of\s+Services.*?[-\u2013]\s*(.+)",
         re.IGNORECASE,
     )
 
@@ -177,6 +186,15 @@ def extract_ledes_data(text: str) -> dict:
         total_match = total_pattern.search(line)
         if total_match:
             data["invoice_total"] = parse_currency(total_match.group(1))
+
+        if not data["invoice_description"]:
+            matter_match = matter_pattern.search(line)
+            if matter_match:
+                data["invoice_description"] = sanitize_string(matter_match.group(1).strip(), 200)
+
+            services_match = services_pattern.search(line)
+            if services_match:
+                data["invoice_description"] = sanitize_string(services_match.group(1).strip(), 200)
 
         # Extract Line Items (with limit to prevent DoS)
         if len(data["line_items"]) >= MAX_LINE_ITEMS:
@@ -280,7 +298,7 @@ def generate_ledes_1998b(data: dict) -> str:
             format_ledes_currency(unit_cost) if unit_cost else "",   # 21. LINE_ITEM_UNIT_COST
             sanitize_ledes_field(timekeeper_name, 50),               # 22. TIMEKEEPER_NAME
             sanitize_ledes_field(timekeeper_class, 10),              # 23. TIMEKEEPER_CLASSIFICATION
-            sanitize_ledes_field(data.get("client_matter_id", ""), 50) # 24. CLIENT_MATTER_ID
+            sanitize_ledes_field(data.get("client_matter_id") or data.get("matter_id", ""), 50) # 24. CLIENT_MATTER_ID
         ]
 
         lines.append("|".join(row) + "[]")

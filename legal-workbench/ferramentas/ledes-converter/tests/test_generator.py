@@ -633,3 +633,34 @@ def test_extract_billing_period_february():
     data = extract_ledes_data(text)
     assert data["billing_start_date"] == "20250201"
     assert data["billing_end_date"] == "20250228"
+
+
+def test_extract_invoice_description_from_matter():
+    """CMR-40: Extract description from Matter field."""
+    text = "Matter: Brazil Employment Advice\nProvide general legal advice for September 2025 US $2,000"
+    data = extract_ledes_data(text)
+    assert data["invoice_description"] == "Brazil Employment Advice"
+
+
+def test_extract_invoice_description_from_services():
+    """CMR-40: Extract from 'Description of Services' field."""
+    text = "Description of Services Rendered to Salesforce Tecnologia Ltda. - General Employment Advice\nProvide general legal advice US $2,000"
+    data = extract_ledes_data(text)
+    assert "General Employment Advice" in data["invoice_description"]
+
+
+def test_client_matter_id_fallback_to_matter_id():
+    """CMR-43: When client_matter_id is empty, use matter_id as fallback."""
+    data = {
+        "invoice_date": "20260203", "invoice_number": "4170",
+        "client_id": "Salesforce", "matter_id": "LS-2025-22672",
+        "client_matter_id": "", "invoice_total": 2000.0,
+        "law_firm_id": "SF004554", "timekeeper_id": "CMR",
+        "timekeeper_name": "RODRIGUES", "timekeeper_classification": "PARTNR",
+        "unit_cost": 300.0,
+        "line_items": [{"description": "Advice", "amount": 2000.0, "task_code": "L110", "activity_code": "A106"}],
+    }
+    ledes = generate_ledes_1998b(data)
+    data_line = ledes.strip().split("\n")[2]
+    fields = data_line.rstrip("[]").split("|")
+    assert fields[23] == "LS-2025-22672"
