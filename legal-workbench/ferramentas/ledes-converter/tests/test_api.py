@@ -2,7 +2,6 @@ import pytest
 from fastapi.testclient import TestClient
 from api.main import app
 import os
-import io
 import json
 
 client = TestClient(app)
@@ -281,7 +280,7 @@ def test_ledes_ascii_and_special_char_sanitization():
     - No pipe characters (|) in field values
     - No bracket characters ([]) in field values
     """
-    from api.main import sanitize_ledes_field, format_ledes_currency
+    from api.ledes_generator import sanitize_ledes_field, format_ledes_currency
 
     # Test ASCII-only enforcement
     assert sanitize_ledes_field("Hello café") == "Hello caf"  # é removed

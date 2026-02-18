@@ -1,7 +1,6 @@
 """Tests for LEDES 1998B validator."""
 
-import pytest
-from api.ledes_validator import validate_ledes_1998b, ValidationIssue
+from api.ledes_validator import validate_ledes_1998b
 
 
 # --- Helpers ---

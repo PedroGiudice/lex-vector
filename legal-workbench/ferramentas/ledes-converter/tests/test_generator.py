@@ -3,7 +3,6 @@ e para a extracao de task/activity codes no ledes_generator."""
 
 import json
 import os
-import tempfile
 
 import pytest
 from fastapi.testclient import TestClient

@@ -1,6 +1,5 @@
 """Testes para classificação automática de códigos UTBMS."""
 
-import pytest
 
 from api.task_codes import classify_activity_code, classify_task_code
 
