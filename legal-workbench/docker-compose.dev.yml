@@ -172,6 +172,7 @@ services:
       - PYTHONUNBUFFERED=1
       - PYTHONPATH=/app
       - DATA_PATH=/data
+      - ALLOWED_ORIGINS=http://localhost,http://localhost:3000,https://tauri.localhost,http://tauri.localhost,http://100.112.239.110
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.ledes.rule=PathPrefix(`/api/ledes`)"

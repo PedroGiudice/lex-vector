@@ -131,6 +131,15 @@ def validate_ledes_1998b(content: str) -> list[ValidationIssue]:
                     issues.append(ValidationIssue(line_num, i + 1, field_name, "error",
                         f"Currency field '{field_name}' must be up to 14 digits with 2 decimals, got '{value}'"))
 
+            # 10b. LINE_ITEM_DATE dentro do billing period
+            if field_name == "LINE_ITEM_DATE" and value.strip() and re.match(r"^\d{8}$", value):
+                bs = fields[5].strip()  # BILLING_START_DATE (index 5)
+                be = fields[6].strip()  # BILLING_END_DATE (index 6)
+                if bs and be and re.match(r"^\d{8}$", bs) and re.match(r"^\d{8}$", be):
+                    if not (bs <= value <= be):
+                        issues.append(ValidationIssue(line_num, i + 1, field_name, "error",
+                            f"LINE_ITEM_DATE ({value}) is outside billing period ({bs}-{be})"))
+
             # 10. Task codes conhecidos (warning se vazio)
             if field_name == "LINE_ITEM_TASK_CODE":
                 if not value.strip():
