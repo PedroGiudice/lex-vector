@@ -35,7 +35,8 @@
     "useFullWidth": false,
     "incrementalRendering": false,
     "accessibility": {
-      "disableLoadingPhrases": true
+      "disableLoadingPhrases": true,
+      "enableLoadingPhrases": false
     }
   },
   "security": {

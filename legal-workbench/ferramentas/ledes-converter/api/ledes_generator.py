@@ -266,6 +266,13 @@ def generate_ledes_1998b(data: dict) -> str:
     unit_cost = data.get("unit_cost", 0)
     invoice_desc = data.get("invoice_description", "Legal Services")
 
+    # LINE_ITEM_DATE: must fall within billing period.
+    # Use day 15 of billing_start month; fallback to invoice_date.
+    if billing_start and len(billing_start) >= 6:
+        line_item_date = billing_start[:6] + "15"
+    else:
+        line_item_date = data["invoice_date"]
+
     # Data rows: Each line item becomes a row with 24 fields
     for i, item in enumerate(data["line_items"], 1):
         # Calculate units if unit_cost is provided
@@ -288,7 +295,7 @@ def generate_ledes_1998b(data: dict) -> str:
             units,                                                   # 11. LINE_ITEM_NUMBER_OF_UNITS
             "",                                                      # 12. LINE_ITEM_ADJUSTMENT_AMOUNT
             format_ledes_currency(item['amount']),                   # 13. LINE_ITEM_TOTAL
-            sanitize_ledes_field(data["invoice_date"], 8),           # 14. LINE_ITEM_DATE
+            sanitize_ledes_field(line_item_date, 8),                  # 14. LINE_ITEM_DATE
             item.get("task_code", ""),                               # 15. LINE_ITEM_TASK_CODE
             "",                                                      # 16. LINE_ITEM_EXPENSE_CODE
             item.get("activity_code", ""),                           # 17. LINE_ITEM_ACTIVITY_CODE
