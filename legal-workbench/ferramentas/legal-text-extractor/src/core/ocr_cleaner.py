@@ -169,9 +169,37 @@ def _phase_repetition(lines: list[str], config: CleanerConfig) -> tuple[list[str
         line = lines[i]
         stripped = line.strip()
 
-        # Não colapsar dentro de tabelas
+        # Tabelas: aplicar detecção de repetição intra-célula
         if stripped.startswith("|"):
-            result.append(line)
+            if len(stripped) > config.long_line_threshold:
+                cells = stripped.split("|")
+                new_cells: list[str] = []
+                changed = False
+                for cell in cells:
+                    cell_stripped = cell.strip()
+                    if len(cell_stripped) > config.long_line_threshold:
+                        match = _find_repeating_unit(
+                            cell_stripped,
+                            config.min_repeats,
+                            config.min_repeat_unit_len,
+                            config.repeat_coverage_threshold,
+                        )
+                        if match:
+                            unit, count = match
+                            new_cells.append(f" {unit.strip()} ")
+                            changed = True
+                            log.append(
+                                f"  L{i + 1}: célula tabela '{unit.strip()[:40]}' "
+                                f"repetido {count}x → colapsado"
+                            )
+                            continue
+                    new_cells.append(cell)
+                if changed:
+                    result.append("|".join(new_cells))
+                else:
+                    result.append(line)
+            else:
+                result.append(line)
             i += 1
             continue
 
@@ -208,8 +236,13 @@ def _phase_repetition(lines: list[str], config: CleanerConfig) -> tuple[list[str
             )
             if match:
                 unit, count = match
-                result.append(unit.strip())
-                log.append(f"  L{i + 1}: '{unit.strip()[:50]}' repetido {count}x → colapsado")
+                collapsed = unit.strip()
+                log.append(f"  L{i + 1}: '{collapsed[:50]}' repetido {count}x → colapsado")
+                # Fragmentos colapsados de repeticao sao lixo OCR -- threshold mais alto
+                if len(collapsed) <= max(config.fragment_max_len * 4, 20):
+                    log.append(f"  L{i + 1}: fragmento colapsado '{collapsed}' descartado (curto)")
+                else:
+                    result.append(collapsed)
                 i += 1
                 continue
 
