@@ -1,0 +1,26 @@
+[workspace]
+resolver = "2"
+members = ["crates/*"]
+
+[workspace.dependencies]
+tokio = { version = "1", features = ["full"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+anyhow = "1"
+thiserror = "2"
+clap = { version = "4", features = ["derive"] }
+rusqlite = { version = "0.33", features = ["bundled"] }
+sqlite-vec = "0.1.7-alpha.2"
+zerocopy = "0.7"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+axum = "0.8"
+tower-http = { version = "0.6", features = ["cors"] }
+toml = "0.8"
+uuid = { version = "1", features = ["v4"] }
+md5 = "0.7"
+chrono = { version = "0.4", features = ["serde"] }
+indicatif = "0.17"
+reqwest = { version = "0.12", features = ["json"] }
+zip = "2"
+async-trait = "0.1"
