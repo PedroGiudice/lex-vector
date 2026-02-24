@@ -45,7 +45,7 @@ def spawn_server():
 # Modelo ja esta no Volume stj-vec-models em /bge-m3/
 tei_image = (
     modal.Image.from_registry(
-        "ghcr.io/huggingface/text-embeddings-inference:86-1.7",
+        "ghcr.io/huggingface/text-embeddings-inference:80-1.7",
         add_python="3.11",
     )
     .dockerfile_commands("ENTRYPOINT []")
