@@ -1,7 +1,7 @@
 """Modal Class para gerar embeddings BGE-M3 via TEI (Text Embeddings Inference).
 
-L4 ($0.80/h) com TEI arch 89: batch=1024, flash attention.
-BGE-M3 568M params (~1GB FP16). batch=256 usava 16% VRAM, 1024 satura.
+H200 ($4.54/h) com TEI hopper: batch=1024, 141GB HBM3e, 4.8TB/s bandwidth.
+BGE-M3 568M params (~1GB FP16).
 """
 import modal
 import json
@@ -11,16 +11,17 @@ app = modal.App("stj-vec-embed")
 volume_models = modal.Volume.from_name("stj-vec-models")
 volume_data = modal.Volume.from_name("stj-vec-data", create_if_missing=True)
 
-GPU_CONFIG = "L4"
+GPU_CONFIG = "H200"
 PORT = 8000
-BATCH_SIZE = 2048  # 4096 OOM, 1024 usava 27% VRAM
+BATCH_SIZE = 4096  # H200 tem 141GB, satura GPU
 
 LAUNCH_FLAGS = [
     "--model-id", "/models/bge-m3",  # pre-carregado no Volume stj-vec-models
     "--port", str(PORT),
-    "--max-batch-tokens", "1048576",  # 2048 * 512 tokens
-    "--max-client-batch-size", "2048",
+    "--max-batch-tokens", "2097152",  # 4096*512
+    "--max-client-batch-size", "4096",
     "--dtype", "float16",
+    "--payload-limit", "50000000",  # 50MB
 ]
 
 
@@ -45,7 +46,7 @@ def spawn_server():
 # Modelo ja esta no Volume stj-vec-models em /bge-m3/
 tei_image = (
     modal.Image.from_registry(
-        "ghcr.io/huggingface/text-embeddings-inference:89-1.7",
+        "ghcr.io/huggingface/text-embeddings-inference:hopper-1.7",
         add_python="3.11",
     )
     .dockerfile_commands("ENTRYPOINT []")
@@ -77,7 +78,7 @@ class Embedder:
         self.process.terminate()
 
     @modal.method()
-    def embed_source(self, source_name: str, batch_size: int = 2048) -> dict:
+    def embed_source(self, source_name: str, batch_size: int = 4096) -> dict:
         """Processa 1 source JSONL, gera .npz + .json no Volume."""
         import numpy as np
         import os
