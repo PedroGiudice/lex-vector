@@ -19,7 +19,7 @@ image = (
 
 @app.cls(
     image=image,
-    gpu="L4",
+    gpu="A100-40GB",
     volumes={
         "/models": volume_models,
         "/data": volume_data,
@@ -45,7 +45,7 @@ class Embedder:
         print(f"Modelo carregado: dim={self.dim}")
 
     @modal.method()
-    def embed_source(self, source_name: str, batch_size: int = 128) -> dict:
+    def embed_source(self, source_name: str, batch_size: int = 512) -> dict:
         """Processa 1 source JSONL, gera .npz + .json no Volume."""
         import numpy as np
         import os
@@ -135,7 +135,7 @@ def list_pending_sources() -> list[str]:
 def main(
     source: str = "",
     all_pending: bool = False,
-    batch_size: int = 128,
+    batch_size: int = 512,
 ):
     """Entrypoint: processar 1 source ou todos pendentes."""
     embedder = Embedder()

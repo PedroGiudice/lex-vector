@@ -12,7 +12,7 @@
 |---------|---------|---------------|
 | Modelo de embedding | BGE-M3 (BAAI/bge-m3) | Melhor open-source multilingual pra retrieval. JurisTCU mostra que nenhum modelo PT-BR legal bate BM25; BGE-M3 com 8K context e contrastive training domina. |
 | Modos de embedding | Dense (1024d) + Sparse | Dense captura semantica; sparse captura termos exatos (artigos, sumulas, "provido"/"deferido"). ColBERT descartado por storage (~1.4TB minimo). |
-| GPU | Modal L4 (multi-container via map()) | ~2x throughput do T4, custo/emb menor. BGE-M3 FP16 cabe com folga em 24GB VRAM. |
+| GPU | Modal A100-40GB (4x containers via map()) | Melhor emb/$ medido (~475K emb/$). BGE-M3 FP16 cabe com folga em 40GB VRAM. Benchmark real: 83 emb/s na L4, ~277 emb/s estimado na A100. |
 | Re-ranker | Serafim 335M ou cross-encoder Legal-BERTimbau (2o estagio) | Roda em CPU na VM sobre top-k candidatos. Bias complementar ao BGE-M3 pra vocabulario juridico BR. Adicionado depois do pipeline base funcionar. |
 | Storage | SQLite unico (dense em vec_chunks via sqlite-vec, sparse em tabela separada) | Uma base, um endpoint. |
 | Busca hibrida | Fusao automatica dense + sparse com peso configuravel | Transparente pro usuario. Score = w * dense + (1-w) * sparse. |
