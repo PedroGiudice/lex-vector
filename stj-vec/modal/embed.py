@@ -25,7 +25,7 @@ image = (
         "/data": volume_data,
     },
     timeout=3600,
-    container_idle_timeout=120,
+    scaledown_window=120,
 )
 class Embedder:
     @modal.enter()
