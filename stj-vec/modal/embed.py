@@ -1,7 +1,7 @@
 """Modal Class para gerar embeddings BGE-M3 via TEI (Text Embeddings Inference).
 
-L4 ($0.80/h) com TEI: ~140 emb/s, flash attention, continuous batching.
-BGE-M3 e 568M params (~1GB FP16). VRAM vem do batch, nao do modelo.
+A100-80GB ($2.50/h) com TEI: batch=512, max_len=512 ~= 40-50GB VRAM.
+BGE-M3 e 568M params (~1GB FP16). batch=256 usa ~20GB, batch=512 ~40GB.
 """
 import modal
 import json
@@ -11,16 +11,15 @@ app = modal.App("stj-vec-embed")
 volume_models = modal.Volume.from_name("stj-vec-models")
 volume_data = modal.Volume.from_name("stj-vec-data", create_if_missing=True)
 
-GPU_CONFIG = "L4"
-MODEL_ID = "BAAI/bge-m3"
+GPU_CONFIG = "A100-80GB"
 PORT = 8000
-BATCH_SIZE = 256  # L4 batch=256 max_len=512 usa ~20GB dos 24GB
+BATCH_SIZE = 1024  # batch=256 ~20GB, batch=1024 ~80GB, satura A100-80GB
 
 LAUNCH_FLAGS = [
-    "--model-id", MODEL_ID,
+    "--model-id", "/models/bge-m3",  # pre-carregado no Volume stj-vec-models
     "--port", str(PORT),
-    "--max-batch-tokens", "131072",
-    "--max-client-batch-size", "512",
+    "--max-batch-tokens", "524288",  # 1024 * 512 tokens
+    "--max-client-batch-size", "1024",
     "--dtype", "float16",
 ]
 
@@ -42,26 +41,15 @@ def spawn_server():
                 raise RuntimeError(f"TEI server exited with code {retcode}")
 
 
-def download_model():
-    """Download modelo durante build da imagem."""
-    proc = spawn_server()
-    proc.terminate()
-
-
 # Imagem TEI com GPU arch 89 (Ada Lovelace = L4)
+# Modelo ja esta no Volume stj-vec-models em /bge-m3/
 tei_image = (
     modal.Image.from_registry(
-        "ghcr.io/huggingface/text-embeddings-inference:89-1.7",
+        "ghcr.io/huggingface/text-embeddings-inference:86-1.7",
         add_python="3.11",
     )
     .dockerfile_commands("ENTRYPOINT []")
-    .env({"HF_HOME": "/models"})
     .pip_install("httpx>=0.27.0", "numpy>=1.24.0")
-    .run_function(
-        download_model,
-        gpu=GPU_CONFIG,
-        volumes={"/models": volume_models},
-    )
 )
 
 
@@ -89,7 +77,7 @@ class Embedder:
         self.process.terminate()
 
     @modal.method()
-    def embed_source(self, source_name: str, batch_size: int = BATCH_SIZE) -> dict:
+    def embed_source(self, source_name: str, batch_size: int = 1024) -> dict:
         """Processa 1 source JSONL, gera .npz + .json no Volume."""
         import numpy as np
         import os
