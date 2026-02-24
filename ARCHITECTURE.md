@@ -65,7 +65,7 @@ lex-vector/
 │   │   └── services/     # FastAPI backends + Traefik
 │   └── docs/             # LV-specific documentation
 ├── docs/                 # Global documentation and plans
-├── infra/                # Infrastructure configs (Oracle Cloud)
+├── infra/                # Infrastructure configs
 ├── _archived/            # Archived code for future reference
 └── .claude/              # Config (agents, hooks, skills managed)
 ```
@@ -77,10 +77,10 @@ lex-vector/
 
 ## Legal Workbench - Arquitetura de Servicos
 
-### Producao (Oracle Cloud - 64.181.162.38)
+### Arquitetura de Servicos (Docker Compose local)
 
 ```
-Internet (:80)
+localhost (:80)
     |
     v
 +------------------+

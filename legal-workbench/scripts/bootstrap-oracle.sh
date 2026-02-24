@@ -1,9 +1,7 @@
 #!/bin/bash
 # =============================================================================
-# Legal Workbench - Oracle Cloud Bootstrap Script
-# =============================================================================
-# Execute apos criar a VM Oracle Cloud A1.Flex:
-#   curl -fsSL https://raw.githubusercontent.com/PedroGiudice/lex-vector/main/legal-workbench/scripts/bootstrap-oracle.sh | bash
+# OBSOLETO - Script de bootstrap para Oracle Cloud descontinuado
+# Producao Oracle Cloud foi removida. Manter apenas como referencia historica.
 # =============================================================================
 
 set -e  # Exit on error
