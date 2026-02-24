@@ -25,10 +25,6 @@ fn default_limit() -> usize {
     10
 }
 
-#[derive(Serialize)]
-pub struct ErrorResponse {
-    pub error: String,
-}
 
 pub async fn health() -> Json<HealthResponse> {
     Json(HealthResponse {
