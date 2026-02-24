@@ -14,7 +14,7 @@ from pathlib import Path
 logging.basicConfig(level=logging.INFO, stream=sys.stderr, format="%(levelname)s: %(message)s")
 log = logging.getLogger("search-case")
 
-OLLAMA_URL = "http://100.114.203.28:11434/api/embeddings"
+OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://localhost:11434/api/embeddings")
 EMBED_MODEL = "bge-m3"
 
 SEARCH_TOOL = {

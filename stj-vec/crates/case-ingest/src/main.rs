@@ -40,7 +40,7 @@ async fn main() -> anyhow::Result<()> {
             let work_dir = std::env::current_dir()?;
             let ing = Ingestor::create(&work_dir)?;
             let embedder = OllamaEmbedder::new(
-                "http://100.114.203.28:11434/api/embeddings",
+                "http://localhost:11434/api/embeddings",
                 "bge-m3",
                 1024,
                 30,
@@ -53,7 +53,7 @@ async fn main() -> anyhow::Result<()> {
             let work_dir = std::env::current_dir()?;
             let ing = Ingestor::open(&work_dir)?;
             let embedder = OllamaEmbedder::new(
-                "http://100.114.203.28:11434/api/embeddings",
+                "http://localhost:11434/api/embeddings",
                 "bge-m3",
                 1024,
                 30,
@@ -73,7 +73,7 @@ async fn main() -> anyhow::Result<()> {
                     match Ingestor::open(&work_dir) {
                         Ok(ing) => {
                             let embedder = OllamaEmbedder::new(
-                                "http://100.114.203.28:11434/api/embeddings",
+                                "http://localhost:11434/api/embeddings",
                                 "bge-m3",
                                 1024,
                                 30,
@@ -102,7 +102,7 @@ async fn main() -> anyhow::Result<()> {
             let work_dir = std::env::current_dir()?;
             let ing = Ingestor::open(&work_dir)?;
             let embedder = OllamaEmbedder::new(
-                "http://100.114.203.28:11434/api/embeddings",
+                "http://localhost:11434/api/embeddings",
                 "bge-m3",
                 1024,
                 30,

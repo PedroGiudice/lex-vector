@@ -1,6 +1,6 @@
 use stj_vec_core::embedder::{Embedder, OllamaEmbedder};
 
-const OLLAMA_URL: &str = "http://100.114.203.28:11434/api/embeddings";
+const OLLAMA_URL: &str = "http://localhost:11434/api/embeddings";
 const MODEL: &str = "bge-m3";
 const DIM: usize = 1024;
 
