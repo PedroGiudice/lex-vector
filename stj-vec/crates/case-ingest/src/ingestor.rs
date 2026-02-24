@@ -11,6 +11,8 @@ use stj_vec_core::embedder::Embedder;
 use stj_vec_core::storage::Storage;
 use stj_vec_core::types::{Chunk, Document};
 
+use std::collections::HashSet;
+
 use crate::file_index::{compute_file_hash, get_mtime, FileIndex};
 
 const DB_NAME: &str = "knowledge.db";
@@ -187,6 +189,126 @@ impl Ingestor {
         let mtime = get_mtime(abs_path).unwrap_or(0);
         let hash = compute_file_hash(abs_path).unwrap_or_default();
         idx.upsert(&rel, mtime, &hash)?;
+
+        Ok(())
+    }
+
+    /// Detecta mudancas em `base/` comparando com `file_index`.
+    ///
+    /// Retorna `(novos, modificados, removidos_rel_paths)`.
+    ///
+    /// # Errors
+    ///
+    /// Retorna erro se falhar ao acessar o file index ou escanear `base/`.
+    pub fn detect_changes(&self) -> Result<(Vec<PathBuf>, Vec<PathBuf>, Vec<String>)> {
+        let conn = Connection::open(&self.db_path)
+            .context("falha ao abrir conexao para file_index (detect_changes)")?;
+        let idx = FileIndex::new(&conn)?;
+        let records = idx.all()?;
+
+        let indexed: std::collections::HashMap<String, String> = records
+            .into_iter()
+            .map(|r| (r.path, r.hash_md5))
+            .collect();
+
+        let disk_files = scan_base_dir(&self.base_dir)?;
+
+        let mut disk_rels: HashSet<String> = HashSet::new();
+        let mut new_files = Vec::new();
+        let mut modified_files = Vec::new();
+
+        for file_path in &disk_files {
+            let rel = rel_path(&self.base_dir, file_path);
+            disk_rels.insert(rel.clone());
+
+            match indexed.get(&rel) {
+                None => new_files.push(file_path.clone()),
+                Some(old_hash) => {
+                    let current_hash = compute_file_hash(file_path).unwrap_or_default();
+                    if &current_hash != old_hash {
+                        modified_files.push(file_path.clone());
+                    }
+                }
+            }
+        }
+
+        let removed: Vec<String> = indexed
+            .keys()
+            .filter(|p| !disk_rels.contains(p.as_str()))
+            .cloned()
+            .collect();
+
+        Ok((new_files, modified_files, removed))
+    }
+
+    /// Sync: processa delta (novos + modificados + removidos).
+    ///
+    /// Retorna `(new_count, modified_count, removed_count)`.
+    ///
+    /// # Errors
+    ///
+    /// Retorna erro se falhar ao processar qualquer arquivo do delta.
+    pub async fn sync(&self, embedder: &dyn Embedder) -> Result<(usize, usize, usize)> {
+        let (new_files, modified_files, removed_rels) = self.detect_changes()?;
+
+        let new_count = new_files.len();
+        let modified_count = modified_files.len();
+        let removed_count = removed_rels.len();
+
+        for rel in &removed_rels {
+            self.remove_file_data(rel)
+                .with_context(|| format!("falha ao remover dados de {rel}"))?;
+        }
+
+        for file_path in &modified_files {
+            let rel = rel_path(&self.base_dir, file_path);
+            self.remove_file_data(&rel)
+                .with_context(|| format!("falha ao remover dados antigos de {rel}"))?;
+            self.ingest_file(file_path, embedder).await
+                .with_context(|| format!("falha ao re-ingerir {}", file_path.display()))?;
+        }
+
+        for file_path in &new_files {
+            self.ingest_file(file_path, embedder).await
+                .with_context(|| format!("falha ao ingerir {}", file_path.display()))?;
+        }
+
+        Ok((new_count, modified_count, removed_count))
+    }
+
+    /// Remove todos os dados de um arquivo: chunks, embeddings, documento e `file_index`.
+    ///
+    /// # Errors
+    ///
+    /// Retorna erro se falhar ao executar as queries de limpeza.
+    pub fn remove_file_data(&self, rel_path: &str) -> Result<()> {
+        let doc_id = doc_id_from_rel(rel_path);
+
+        let conn = Connection::open(&self.db_path)
+            .context("falha ao abrir conexao para remove_file_data")?;
+
+        // Buscar chunk IDs
+        let chunk_ids: Vec<String> = {
+            let mut stmt = conn.prepare("SELECT id FROM chunks WHERE doc_id = ?1")?;
+            let rows = stmt.query_map([&doc_id], |row| row.get::<_, String>(0))?;
+            rows.filter_map(std::result::Result::ok).collect()
+        };
+
+        // Deletar embeddings (vec_chunks)
+        for chunk_id in &chunk_ids {
+            conn.execute("DELETE FROM vec_chunks WHERE chunk_id = ?1", [chunk_id])?;
+        }
+
+        // Deletar chunks
+        conn.execute("DELETE FROM chunks WHERE doc_id = ?1", [&doc_id])?;
+
+        // Deletar documento
+        conn.execute("DELETE FROM documents WHERE id = ?1", [&doc_id])?;
+
+        // Deletar do file_index
+        conn.execute("DELETE FROM file_index WHERE path = ?1", [rel_path])?;
+
+        eprintln!("[sync] removido: {rel_path} ({} chunks)", chunk_ids.len());
 
         Ok(())
     }
