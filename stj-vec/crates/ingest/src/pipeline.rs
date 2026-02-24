@@ -161,6 +161,11 @@ impl Pipeline {
         Ok(())
     }
 
+    /// Referencia ao storage.
+    pub fn storage(&self) -> &Storage {
+        &self.storage
+    }
+
     /// Estatisticas do banco.
     pub fn stats(&self) -> Result<DbStats> {
         self.storage.stats()

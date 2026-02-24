@@ -505,6 +505,21 @@ impl Storage {
         Ok(())
     }
 
+    // === Document Queries ===
+
+    /// Lista IDs de documentos de um source.
+    pub fn list_documents_by_source(&self, source: &str) -> Result<Vec<String>> {
+        let conn = self.lock()?;
+        let mut stmt = conn.prepare(
+            "SELECT id FROM documents WHERE source_file = ? ORDER BY id",
+        )?;
+        let ids = stmt
+            .query_map(params![source], |row| row.get::<_, String>(0))?
+            .filter_map(|r| r.ok())
+            .collect();
+        Ok(ids)
+    }
+
     // === Stats ===
 
     /// Estatisticas do banco

@@ -40,6 +40,13 @@ enum Commands {
         #[arg(short, long)]
         limit: Option<usize>,
     },
+    /// Import embeddings from Modal Volume (.npz + .json)
+    ImportEmbeddings {
+        #[arg(short, long, default_value = "/tmp/stj-vec-embeddings")]
+        input: PathBuf,
+        #[arg(short, long)]
+        limit: Option<usize>,
+    },
 }
 
 #[tokio::main]
@@ -93,6 +100,12 @@ async fn main() -> anyhow::Result<()> {
                 "Upload: modal volume put stj-vec-data {0}/ /chunks/ --force",
                 output.display()
             );
+        }
+        Commands::ImportEmbeddings { input, limit } => {
+            let (sources, embeddings) = stj_vec_ingest::importer::import_embeddings_from_modal(
+                pipeline.storage(), &input, limit,
+            )?;
+            println!("Imported {embeddings} embeddings from {sources} sources");
         }
     }
     Ok(())
