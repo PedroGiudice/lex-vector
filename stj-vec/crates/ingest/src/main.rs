@@ -33,6 +33,13 @@ enum Commands {
         /// Source name to reset (e.g. "202203")
         source: String,
     },
+    /// Export chunks to JSONL for Modal embedding
+    ExportChunks {
+        #[arg(short, long, default_value = "/tmp/stj-vec-chunks")]
+        output: PathBuf,
+        #[arg(short, long)]
+        limit: Option<usize>,
+    },
 }
 
 #[tokio::main]
@@ -76,6 +83,16 @@ async fn main() -> anyhow::Result<()> {
         Commands::Reset { source } => {
             pipeline.reset(&source)?;
             println!("Reset source: {source}");
+        }
+        Commands::ExportChunks { output, limit } => {
+            let (sources, chunks) = stj_vec_ingest::exporter::export_chunks_for_modal(
+                pipeline.storage(), &output, limit,
+            )?;
+            println!("Exported {chunks} chunks from {sources} sources to {}", output.display());
+            println!(
+                "Upload: modal volume put stj-vec-data {0}/ /chunks/ --force",
+                output.display()
+            );
         }
     }
     Ok(())
