@@ -45,7 +45,7 @@ pub struct OllamaConfig {
     pub timeout_secs: u64,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct ServerConfig {
     pub socket: String,
     pub port: u16,
