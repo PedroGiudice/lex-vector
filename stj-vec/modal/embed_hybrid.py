@@ -58,6 +58,8 @@ class HybridEmbedder:
         """Processa 1 source JSONL, gera .npz + .json + .sparse.json no Volume."""
         import numpy as np
         import os
+        import time
+        import torch
 
         input_path = f"/data/chunks/{source_name}.jsonl"
         out_npz = f"/data/embeddings/{source_name}.npz"
@@ -74,6 +76,9 @@ class HybridEmbedder:
 
         if not texts:
             return {"source": source_name, "count": 0, "status": "empty"}
+
+        torch.cuda.reset_peak_memory_stats()
+        t0 = time.perf_counter()
 
         # FlagEmbedding: dense + sparse numa chamada
         output = self.model.encode(
@@ -108,6 +113,17 @@ class HybridEmbedder:
 
         volume_data.commit()
 
+        elapsed = time.perf_counter() - t0
+        vram_peak_gb = torch.cuda.max_memory_allocated() / (1024**3)
+        vram_total_gb = torch.cuda.get_device_properties(0).total_mem / (1024**3)
+        emb_per_sec = len(chunk_ids) / elapsed if elapsed > 0 else 0
+
+        print(f"[CALIBRATION] source={source_name} chunks={len(chunk_ids)} "
+              f"batch={batch_size} max_length=512")
+        print(f"[CALIBRATION] VRAM peak: {vram_peak_gb:.1f}GB / {vram_total_gb:.1f}GB "
+              f"({vram_peak_gb/vram_total_gb*100:.0f}%)")
+        print(f"[CALIBRATION] Time: {elapsed:.1f}s | Throughput: {emb_per_sec:.0f} emb/s")
+
         return {
             "source": source_name,
             "count": len(chunk_ids),
@@ -116,6 +132,11 @@ class HybridEmbedder:
                 sum(len(s) for s in sparse_list) / len(sparse_list), 1
             ),
             "status": "done",
+            "vram_peak_gb": round(vram_peak_gb, 2),
+            "vram_total_gb": round(vram_total_gb, 2),
+            "vram_pct": round(vram_peak_gb / vram_total_gb * 100, 1),
+            "elapsed_s": round(elapsed, 1),
+            "emb_per_sec": round(emb_per_sec, 1),
         }
 
     @modal.method()
