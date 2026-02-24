@@ -1,0 +1,29 @@
+[data]
+integras_dir = "/home/opc/juridico-data/stj/integras/textos"
+metadata_dir = "/home/opc/juridico-data/stj/integras/metadata"
+db_path = "db/stj-vec.db"
+
+[chunking]
+max_tokens = 512
+overlap_tokens = 64
+min_chunk_tokens = 50
+
+[embedding]
+model = "BAAI/bge-m3"
+dim = 1024
+provider = "modal"
+
+[embedding.modal]
+endpoint = ""  # preencher quando Modal function estiver deployada
+batch_size = 256
+
+[embedding.ollama]
+url = "http://100.114.203.28:11434/api/embeddings"
+model = "bge-m3"
+timeout_secs = 10
+
+[server]
+socket = "/tmp/stj-vec.sock"
+port = 8421
+max_results = 20
+default_threshold = 0.3

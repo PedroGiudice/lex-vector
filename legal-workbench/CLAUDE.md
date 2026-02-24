@@ -27,11 +27,6 @@ Browser ──> Traefik (:80) ──> React SPA (/)
 | redis | - | 6379 | Redis 7 Alpine |
 | prometheus | - | 9090 | Prometheus v2.47.0 |
 
-### Producao
-- **Servidor:** Oracle Cloud (64.181.162.38)
-- **Deploy:** rsync + docker compose build + up -d
-- **SSH:** `opc@64.181.162.38` com chave `~/.ssh/oci_lw`
-
 ---
 
 ## RULE 0: UMA UNICA ARQUITETURA

@@ -145,19 +145,6 @@ bun install && bun run build  # Stage 1: build
 nginx                          # Stage 2: serve
 ```
 
-### Sincronizar para Producao
-```bash
-rsync -avz --delete \
-  --exclude=node_modules --exclude=.git \
-  -e "ssh -i ~/.ssh/oci_lw" \
-  ./ opc@64.181.162.38:/home/opc/lex-vector/legal-workbench/frontend/
-
-ssh -i ~/.ssh/oci_lw opc@64.181.162.38 \
-  "cd /home/opc/lex-vector/legal-workbench && \
-   docker compose build frontend-react && \
-   docker compose up -d frontend-react"
-```
-
 ---
 
 *Herdado de: legal-workbench/CLAUDE.md*

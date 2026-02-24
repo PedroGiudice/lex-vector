@@ -36,8 +36,8 @@ mgrep "pattern"           # em vez de grep -r "pattern"
 mgrep "pattern" src/      # busca em diretório específico
 ```
 
-### 5. Gemini para Context Offloading
-**SEMPRE** usar `gemini-assistant` (modelo: gemini-3-flash) para:
+### 5. Gemini Bridge para Context Offloading
+**SEMPRE** usar `gemini-bridge-explorer` plugin para:
 - Arquivos > 500 linhas
 - Múltiplos arquivos simultâneos
 - Logs extensos, diffs grandes
@@ -49,13 +49,12 @@ Motivo: Bug no CLI Rust causa crash em char boundaries de emojis (4 bytes).
 ### 7. Testes Obrigatórios (Backend)
 Pre-commit executa **ruff + pytest** automaticamente para arquivos Python em `ferramentas/`.
 
-### 8. Podman (não Docker)
+### 8. Docker Compose
 ```bash
-podman ps                  # listar containers
-podman logs <container>    # ver logs
-podman compose up -d       # subir serviços
+docker compose ps                  # listar containers
+docker compose logs <container>    # ver logs
+docker compose up -d               # subir serviços
 ```
-**NUNCA usar `docker` diretamente** - este ambiente usa Podman.
 - Commit bloqueado se testes falharem
 - Bypass (emergência): `git commit --no-verify`
 - CI também bloqueia merge se testes falharem
@@ -78,7 +77,7 @@ Não crie hooks para cada erro — documente aqui primeiro. Esta seção cresce 
 | 2026-01-11 | Crash do CLI pode perder edits não commitados | **Commitar frequentemente durante sessão** |
 | 2026-01-13 | Feedback loop só roda no commit, não proativamente | Commitar após cada mudança lógica para validar cedo |
 | 2026-01-13 | Troquei modelo especificado pelo usuário (gemini-3-pro-preview) | **NUNCA substituir modelo indicado pelo usuário - usar EXATAMENTE o especificado** |
-| 2026-01-17 | Build local (bun) não atualiza Docker no OCI - fiz rsync do dist mas container usa build interno | **SEMPRE usar cicd-operator para deploy no LW** - Docker faz build interno, rsync não basta |
+| 2026-01-17 | Build local (bun) nao atualiza Docker - fiz rsync do dist mas container usa build interno | **SEMPRE usar cicd-operator para deploy no LW** - Docker faz build interno, rsync nao basta |
 | 2026-01-17 | Assumi que testes falhando = deps faltando. Na verdade, LTE usa Marker (não pytesseract/pdf2image/anthropic) | **VER CLAUDE.md DO MÓDULO antes de rodar testes** - código legado tem imports obsoletos |
 | 2026-01-31 | Versão no Cargo.toml (0.1.0) divergia do tauri.conf.json (0.1.3) - build ia regredir versão | **Tauri: SEMPRE sincronizar versão em Cargo.toml E tauri.conf.json antes de build** |
 

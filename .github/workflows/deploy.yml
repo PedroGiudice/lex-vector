@@ -48,29 +48,5 @@ jobs:
           cache-to: type=gha,mode=max
         continue-on-error: true
 
-  deploy:
-    needs: build-and-push
-    runs-on: ubuntu-latest
-    environment: production
-    if: github.ref == 'refs/heads/main'
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Deploy to Oracle Cloud
-        uses: appleboy/ssh-action@v1.0.0
-        with:
-          host: ${{ secrets.OCI_HOST }}
-          username: opc
-          key: ${{ secrets.OCI_SSH_KEY }}
-          script: |
-            cd /home/opc/legal-workbench
-            git pull origin main
-            docker compose pull
-            docker compose up -d --remove-orphans
-            docker system prune -f
-        continue-on-error: true
-
-      - name: Verify deployment
-        if: success()
-        run: |
-          echo "Deploy completed. Manual verification required."
+  # Deploy job removido - producao Oracle Cloud descontinuada
+  # Build images ficam no GHCR para uso local via docker compose pull
