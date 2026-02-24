@@ -15,6 +15,9 @@ use std::collections::HashSet;
 
 use crate::file_index::{compute_file_hash, get_mtime, FileIndex};
 
+/// Caminho absoluto do wrapper MCP search-case.
+const SEARCH_CASE_WRAPPER: &str = "/home/opc/lex-vector/stj-vec/tools/search-case/wrapper.mjs";
+
 const DB_NAME: &str = "knowledge.db";
 const EMBEDDING_DIM: usize = 1024;
 
@@ -274,6 +277,50 @@ impl Ingestor {
         }
 
         Ok((new_count, modified_count, removed_count))
+    }
+
+    /// Gera `.claude.json` com config do MCP server `search-case` e hook de sync.
+    ///
+    /// Se o arquivo ja existir, nao sobrescreve.
+    ///
+    /// # Errors
+    ///
+    /// Retorna erro se falhar ao serializar ou escrever o arquivo.
+    pub fn generate_claude_config(work_dir: &Path) -> Result<()> {
+        let config_path = work_dir.join(".claude.json");
+        if config_path.exists() {
+            eprintln!("[init] .claude.json ja existe, pulando");
+            return Ok(());
+        }
+
+        let case_ingest_bin = std::env::current_exe()
+            .unwrap_or_else(|_| PathBuf::from("case-ingest"));
+
+        let config = serde_json::json!({
+            "mcpServers": {
+                "search-case": {
+                    "command": "node",
+                    "args": [SEARCH_CASE_WRAPPER]
+                }
+            },
+            "hooks": {
+                "PreToolUse": [
+                    {
+                        "matcher": "mcp__search-case__search_case",
+                        "hooks": [
+                            {
+                                "type": "command",
+                                "command": format!("{} sync", case_ingest_bin.display())
+                            }
+                        ]
+                    }
+                ]
+            }
+        });
+
+        std::fs::write(&config_path, serde_json::to_string_pretty(&config)?)?;
+        eprintln!("[init] .claude.json criado com MCP server e hook de sync");
+        Ok(())
     }
 
     /// Remove todos os dados de um arquivo: chunks, embeddings, documento e `file_index`.

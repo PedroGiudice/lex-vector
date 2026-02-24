@@ -1,5 +1,6 @@
 mod file_index;
 mod ingestor;
+mod watcher;
 
 use clap::{Parser, Subcommand};
 
@@ -45,6 +46,7 @@ async fn main() -> anyhow::Result<()> {
                 30,
             );
             let (docs, chunks) = ing.init(&embedder).await?;
+            Ingestor::generate_claude_config(&work_dir)?;
             println!("Inicializado: {docs} documentos, {chunks} chunks embedados");
         }
         Commands::Sync => {
@@ -59,7 +61,35 @@ async fn main() -> anyhow::Result<()> {
             let (new, modified, removed) = ing.sync(&embedder).await?;
             println!("Sync: {new} novos, {modified} modificados, {removed} removidos");
         }
-        Commands::Watch => todo!("Task 5"),
+        Commands::Watch => {
+            let work_dir = std::env::current_dir()?;
+            let base_dir = work_dir.join("base");
+            anyhow::ensure!(base_dir.is_dir(), "base/ nao encontrado");
+
+            eprintln!("[watch] Modo watch. Ctrl+C para parar.");
+            watcher::watch_base(&base_dir, || {
+                let rt = tokio::runtime::Runtime::new().expect("falha ao criar tokio runtime");
+                rt.block_on(async {
+                    match Ingestor::open(&work_dir) {
+                        Ok(ing) => {
+                            let embedder = OllamaEmbedder::new(
+                                "http://100.114.203.28:11434/api/embeddings",
+                                "bge-m3",
+                                1024,
+                                30,
+                            );
+                            match ing.sync(&embedder).await {
+                                Ok((n, m, r)) => eprintln!(
+                                    "[watch] Sync: {n} novos, {m} modificados, {r} removidos"
+                                ),
+                                Err(e) => eprintln!("[watch] Erro no sync: {e}"),
+                            }
+                        }
+                        Err(e) => eprintln!("[watch] Erro ao abrir ingestor: {e}"),
+                    }
+                });
+            })?;
+        }
         Commands::Stats => {
             let work_dir = std::env::current_dir()?;
             let ing = Ingestor::open(&work_dir)?;
