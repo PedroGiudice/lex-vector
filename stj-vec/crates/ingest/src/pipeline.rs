@@ -111,8 +111,7 @@ impl Pipeline {
                         .and_then(|m| m.ministro.clone()),
                     orgao_julgador: None,
                     data_publicacao: meta
-                        .and_then(|m| m.data_publicacao)
-                        .map(epoch_ms_to_date),
+                        .and_then(|m| m.data_publicacao.clone()),
                     data_julgamento: None,
                     assuntos: meta.and_then(|m| m.assuntos.clone()),
                     teor: meta.and_then(|m| m.teor.clone()),

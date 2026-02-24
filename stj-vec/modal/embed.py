@@ -19,7 +19,7 @@ image = (
 
 @app.cls(
     image=image,
-    gpu="T4",
+    gpu="L4",
     volumes={
         "/models": volume_models,
         "/data": volume_data,

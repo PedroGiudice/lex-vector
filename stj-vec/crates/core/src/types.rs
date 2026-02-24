@@ -66,17 +66,58 @@ pub struct IngestStatus {
     pub error: Option<String>,
 }
 
-/// Metadado bruto do JSON do STJ (camelCase do JSON original)
+/// Metadado bruto do JSON do STJ (campo names variam entre sources)
 #[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct StjMetadata {
+    #[serde(alias = "seqDocumento", alias = "SeqDocumento")]
     pub seq_documento: i64,
-    pub data_publicacao: Option<i64>,
+    #[serde(alias = "dataPublicacao", alias = "DataPublicacao", default, deserialize_with = "deserialize_date_flexible")]
+    pub data_publicacao: Option<String>,
+    #[serde(alias = "tipoDocumento", alias = "TipoDocumento")]
     pub tipo_documento: Option<String>,
+    #[serde(alias = "numeroRegistro", alias = "NumeroRegistro")]
     pub numero_registro: Option<String>,
+    #[serde(alias = "processo", alias = "Processo")]
     pub processo: Option<String>,
+    #[serde(alias = "NM_MINISTRO", alias = "nM_MINISTRO", alias = "ministro")]
     pub ministro: Option<String>,
+    #[serde(alias = "recurso", alias = "Recurso")]
     pub recurso: Option<String>,
+    #[serde(alias = "teor", alias = "Teor")]
     pub teor: Option<String>,
+    #[serde(alias = "assuntos", alias = "Assuntos")]
     pub assuntos: Option<String>,
+}
+
+/// Aceita data como string ("2024-04-03") ou epoch i64, retorna sempre Option<String>.
+fn deserialize_date_flexible<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    use serde::de;
+
+    struct DateVisitor;
+    impl<'de> de::Visitor<'de> for DateVisitor {
+        type Value = Option<String>;
+        fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+            f.write_str("string date or integer epoch")
+        }
+        fn visit_str<E: de::Error>(self, v: &str) -> Result<Self::Value, E> {
+            Ok(Some(v.to_string()))
+        }
+        fn visit_i64<E: de::Error>(self, v: i64) -> Result<Self::Value, E> {
+            Ok(Some(v.to_string()))
+        }
+        fn visit_u64<E: de::Error>(self, v: u64) -> Result<Self::Value, E> {
+            Ok(Some(v.to_string()))
+        }
+        fn visit_none<E: de::Error>(self) -> Result<Self::Value, E> {
+            Ok(None)
+        }
+        fn visit_unit<E: de::Error>(self) -> Result<Self::Value, E> {
+            Ok(None)
+        }
+    }
+
+    deserializer.deserialize_any(DateVisitor)
 }

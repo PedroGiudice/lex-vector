@@ -75,14 +75,16 @@ pub fn chunk_legal_text(text: &str, doc_id: &str, config: &ChunkingConfig) -> Ch
             // Quebrar por sentenca (". ")
             let mut remaining = para.as_str();
             while !remaining.is_empty() {
-                let max_chars = config.max_tokens * 4;
-                if remaining.len() <= max_chars {
+                let max_bytes = config.max_tokens * 4;
+                if remaining.len() <= max_bytes {
                     split_paras.push(remaining.to_string());
                     break;
                 }
-                // Encontrar ponto final mais proximo do limite
-                let search_range = &remaining[..max_chars.min(remaining.len())];
-                let split_at = search_range.rfind(". ").map(|i| i + 2).unwrap_or(max_chars);
+                // Garantir que o limite cai em char boundary
+                let safe_max = remaining.floor_char_boundary(max_bytes.min(remaining.len()));
+                let search_range = &remaining[..safe_max];
+                let split_at = search_range.rfind(". ").map(|i| i + 2).unwrap_or(safe_max);
+                // split_at vem de rfind (sempre char boundary) ou safe_max (ja ajustado)
                 split_paras.push(remaining[..split_at].to_string());
                 remaining = &remaining[split_at..];
             }
@@ -114,9 +116,12 @@ pub fn chunk_legal_text(text: &str, doc_id: &str, config: &ChunkingConfig) -> Ch
             }
 
             // Overlap: pegar o final do chunk anterior
-            let overlap_chars = config.overlap_tokens * 4;
-            if current_text.len() > overlap_chars {
-                current_text = current_text[current_text.len() - overlap_chars..].to_string();
+            let overlap_bytes = config.overlap_tokens * 4;
+            if current_text.len() > overlap_bytes {
+                let start = current_text.len() - overlap_bytes;
+                // Avançar até encontrar char boundary válido
+                let start = current_text.ceil_char_boundary(start);
+                current_text = current_text[start..].to_string();
             }
             // Nao limpar current_text se for menor que overlap
         }
