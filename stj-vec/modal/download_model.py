@@ -14,6 +14,7 @@ image = (
 @app.function(
     image=image,
     volumes={"/models": volume},
+    secrets=[modal.Secret.from_name("huggingface-secret")],
     timeout=900,
 )
 def download_model():

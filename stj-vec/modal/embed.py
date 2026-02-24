@@ -24,6 +24,7 @@ image = (
         "/models": volume_models,
         "/data": volume_data,
     },
+    secrets=[modal.Secret.from_name("huggingface-secret")],
     timeout=3600,
     scaledown_window=120,
 )
