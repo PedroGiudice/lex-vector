@@ -13,8 +13,10 @@ Plataforma de automação jurídica brasileira. Extração de documentos PDF, an
 | Frontend | Next.js 15, React 19, TypeScript, Tailwind, Shadcn/UI |
 | Backend | Python 3.12, FastAPI |
 | PDF Extraction | Marker (deep learning), pdfplumber (fallback) |
+| Busca Vetorial | Rust (stj-vec), SQLite + sqlite-vec, BGE-M3 (1024d) |
+| Embedding | Modal (TEI/FlagEmbedding em GPU), Ollama (local) |
 | LLM | Google Gemini |
-| Database | PostgreSQL (Supabase) |
+| Database | PostgreSQL (Supabase), SQLite (stj-vec) |
 | Package Managers | Bun (frontend), uv (backend) |
 | Containers | Docker, Docker Compose |
 
@@ -27,6 +29,13 @@ legal-workbench/
 │   └── legal-text-extractor/  # LTE (Marker + Gemini)
 ├── docker/          # Serviços Docker
 └── docs/            # Documentação
+
+stj-vec/             # Busca vetorial sobre jurisprudência STJ
+├── crates/          # Rust workspace (core, ingest, server)
+├── modal/           # Scripts Modal (embedding GPU em cloud)
+├── scripts/         # Utilitários Python
+├── db/              # SQLite com chunks + embeddings
+└── config.toml      # Configuração
 ```
 
 ## Serviços
@@ -35,6 +44,7 @@ legal-workbench/
 |---------|-------|-----------|
 | legal-frontend | 3000 | Interface Next.js |
 | legal-api | 8000 | API principal |
+| stj-vec-server | 8421 | Busca vetorial STJ (Rust/Axum) |
 
 ## Comandos
 
