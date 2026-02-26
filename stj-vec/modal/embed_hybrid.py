@@ -81,7 +81,7 @@ class HybridEmbedder:
         output = self.model.encode(
             texts,
             batch_size=batch_size,
-            max_length=512,
+            max_length=1024,
             return_dense=False,
             return_sparse=True,
             return_colbert_vecs=False,
