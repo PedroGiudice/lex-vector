@@ -6,26 +6,25 @@ os lexical weights (sparse) que TEI nao suporta pra BGE-M3.
 Output por source:
   /embeddings/{source}.sparse.json -- sparse weights [{token: weight, ...}, ...]
 """
-import modal
+
 import json
+
+import modal
 
 app = modal.App("stj-vec-embed-hybrid")
 
 volume_models = modal.Volume.from_name("stj-vec-models")
 volume_data = modal.Volume.from_name("stj-vec-data", create_if_missing=True)
 
-GPU_CONFIG = "H200"
-BATCH_SIZE = 128  # BGE-M3 sparse e compute-bound: batch maior nao aumenta throughput
+GPU_CONFIG = "L4"
+BATCH_SIZE = 32  # BGE-M3 sparse e compute-bound: batch maior nao aumenta throughput
 MIN_SPARSE_WEIGHT = 0.01  # descartar pesos abaixo disso pra controlar tamanho
 
-image = (
-    modal.Image.debian_slim(python_version="3.11")
-    .pip_install(
-        "FlagEmbedding>=1.2.11",
-        "transformers>=4.40.0,<4.46.0",
-        "torch>=2.1.0",
-        "numpy>=1.24.0",
-    )
+image = modal.Image.debian_slim(python_version="3.11").pip_install(
+    "FlagEmbedding>=1.2.11",
+    "transformers>=4.40.0,<4.46.0",
+    "torch>=2.1.0",
+    "numpy>=1.24.0",
 )
 
 
@@ -38,7 +37,7 @@ image = (
     },
     timeout=3600,
     scaledown_window=120,
-    max_containers=2,
+    max_containers=10,
 )
 class HybridEmbedder:
     @modal.enter()
@@ -58,6 +57,7 @@ class HybridEmbedder:
         """Processa 1 source JSONL, gera .sparse.json no Volume (sparse only)."""
         import os
         import time
+
         import torch
 
         input_path = f"/data/chunks/{source_name}.jsonl"
@@ -109,11 +109,17 @@ class HybridEmbedder:
         vram_total_gb = torch.cuda.get_device_properties(0).total_memory / (1024**3)
         emb_per_sec = len(chunk_ids) / elapsed if elapsed > 0 else 0
 
-        print(f"[CALIBRATION] source={source_name} chunks={len(chunk_ids)} "
-              f"batch={batch_size} max_length=512")
-        print(f"[CALIBRATION] VRAM peak: {vram_peak_gb:.1f}GB / {vram_total_gb:.1f}GB "
-              f"({vram_peak_gb/vram_total_gb*100:.0f}%)")
-        print(f"[CALIBRATION] Time: {elapsed:.1f}s | Throughput: {emb_per_sec:.0f} emb/s")
+        print(
+            f"[CALIBRATION] source={source_name} chunks={len(chunk_ids)} "
+            f"batch={batch_size} max_length=512"
+        )
+        print(
+            f"[CALIBRATION] VRAM peak: {vram_peak_gb:.1f}GB / {vram_total_gb:.1f}GB "
+            f"({vram_peak_gb / vram_total_gb * 100:.0f}%)"
+        )
+        print(
+            f"[CALIBRATION] Time: {elapsed:.1f}s | Throughput: {emb_per_sec:.0f} emb/s"
+        )
 
         return {
             "source": source_name,
@@ -166,16 +172,18 @@ def list_pending_sources() -> list[str]:
         return []
 
     chunk_sources = {
-        f.replace(".jsonl", "")
-        for f in os.listdir(chunks_dir)
-        if f.endswith(".jsonl")
+        f.replace(".jsonl", "") for f in os.listdir(chunks_dir) if f.endswith(".jsonl")
     }
     # Pendente = nao tem .sparse.json (mesmo que tenha .npz do dense-only)
-    done_sources = {
-        f.replace(".sparse.json", "")
-        for f in os.listdir(embeddings_dir)
-        if f.endswith(".sparse.json")
-    } if os.path.exists(embeddings_dir) else set()
+    done_sources = (
+        {
+            f.replace(".sparse.json", "")
+            for f in os.listdir(embeddings_dir)
+            if f.endswith(".sparse.json")
+        }
+        if os.path.exists(embeddings_dir)
+        else set()
+    )
 
     return sorted(chunk_sources - done_sources)
 
