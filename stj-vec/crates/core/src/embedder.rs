@@ -43,11 +43,153 @@ impl Embedder for NoopEmbedder {
     }
 }
 
-// PLACEHOLDER: ModalEmbedder sera implementado quando Modal estiver configurado.
-// pub struct ModalEmbedder { config: ModalConfig, client: reqwest::Client }
+/// Embedder que usa TEI (Text Embeddings Inference) via HTTP API.
+///
+/// Suporta sub-batching para respeitar `max_client_batch_size` do TEI.
+pub struct TeiEmbedder {
+    url: String,
+    dim: usize,
+    sub_batch_size: usize,
+    client: reqwest::Client,
+}
 
-// PLACEHOLDER: OllamaEmbedder como fallback (mesmo do cogmem).
-// pub struct OllamaEmbedder { url: String, model: String, client: reqwest::Client }
+#[derive(serde::Serialize)]
+struct TeiRequest {
+    inputs: Vec<String>,
+}
+
+impl TeiEmbedder {
+    /// Cria embedder TEI com parametros explicitos.
+    ///
+    /// # Panics
+    ///
+    /// Panics se o cliente HTTP nao puder ser construido (TLS indisponivel).
+    #[must_use]
+    pub fn new(url: &str, dim: usize, timeout_secs: u64, sub_batch_size: usize) -> Self {
+        let client = reqwest::Client::builder()
+            .timeout(std::time::Duration::from_secs(timeout_secs))
+            .build()
+            .expect("failed to build reqwest client — TLS backend unavailable");
+        Self {
+            url: url.to_owned(),
+            dim,
+            sub_batch_size,
+            client,
+        }
+    }
+
+    /// Cria embedder TEI com defaults: localhost:8080, 1024d, 120s timeout, batch 32.
+    #[must_use]
+    pub fn default_local() -> Self {
+        let url = std::env::var("TEI_URL")
+            .unwrap_or_else(|_| "http://127.0.0.1:8080/embed".to_string());
+        let batch_size: usize = std::env::var("TEI_BATCH_SIZE")
+            .ok()
+            .and_then(|v| v.parse().ok())
+            .unwrap_or(4);
+        Self::new(&url, 1024, 120, batch_size)
+    }
+}
+
+#[async_trait]
+impl Embedder for TeiEmbedder {
+    async fn embed(&self, text: &str) -> Result<Vec<f32>> {
+        let req = TeiRequest {
+            inputs: vec![text.to_string()],
+        };
+
+        let resp = self
+            .client
+            .post(&self.url)
+            .json(&req)
+            .send()
+            .await
+            .map_err(|e| anyhow::anyhow!("TEI request failed: {e}"))?;
+
+        let status = resp.status();
+        if !status.is_success() {
+            let body = resp.text().await.unwrap_or_default();
+            anyhow::bail!("TEI returned {status}: {body}");
+        }
+
+        let data: Vec<Vec<f32>> = resp
+            .json()
+            .await
+            .map_err(|e| anyhow::anyhow!("TEI response parse failed: {e}"))?;
+
+        let embedding = data
+            .into_iter()
+            .next()
+            .ok_or_else(|| anyhow::anyhow!("TEI returned empty response"))?;
+
+        if embedding.len() != self.dim {
+            anyhow::bail!(
+                "embedding dimension mismatch: expected {}, got {}",
+                self.dim,
+                embedding.len()
+            );
+        }
+
+        Ok(embedding)
+    }
+
+    async fn embed_batch(&self, texts: &[String]) -> Result<Vec<Vec<f32>>> {
+        if texts.is_empty() {
+            return Ok(vec![]);
+        }
+
+        let mut all_results = Vec::with_capacity(texts.len());
+
+        for sub_batch in texts.chunks(self.sub_batch_size) {
+            let req = TeiRequest {
+                inputs: sub_batch.to_vec(),
+            };
+
+            let resp = self
+                .client
+                .post(&self.url)
+                .json(&req)
+                .send()
+                .await
+                .map_err(|e| anyhow::anyhow!("TEI batch request failed: {e}"))?;
+
+            let status = resp.status();
+            if !status.is_success() {
+                let body = resp.text().await.unwrap_or_default();
+                anyhow::bail!("TEI returned {status}: {body}");
+            }
+
+            let data: Vec<Vec<f32>> = resp
+                .json()
+                .await
+                .map_err(|e| anyhow::anyhow!("TEI batch response parse failed: {e}"))?;
+
+            for (i, emb) in data.iter().enumerate() {
+                if emb.len() != self.dim {
+                    anyhow::bail!(
+                        "embedding dimension mismatch at index {i}: expected {}, got {}",
+                        self.dim,
+                        emb.len()
+                    );
+                }
+            }
+
+            all_results.extend(data);
+        }
+
+        Ok(all_results)
+    }
+
+    fn dim(&self) -> usize {
+        self.dim
+    }
+
+    fn model_name(&self) -> &str {
+        "bge-m3"
+    }
+}
+
+// --- Legacy OllamaEmbedder kept for backwards compatibility ---
 
 #[derive(serde::Deserialize)]
 struct OllamaResponse {

@@ -49,6 +49,13 @@ CREATE TABLE IF NOT EXISTS chunks (
 
 CREATE INDEX IF NOT EXISTS idx_chunks_doc ON chunks(doc_id);
 
+-- Full-text search (BM25 sparse retrieval)
+CREATE VIRTUAL TABLE IF NOT EXISTS chunks_fts USING fts5(
+    chunk_id UNINDEXED,
+    content,
+    tokenize='unicode61 remove_diacritics 2'
+);
+
 CREATE TABLE IF NOT EXISTS ingest_log (
     source_file TEXT PRIMARY KEY,
     status TEXT NOT NULL,
@@ -413,6 +420,153 @@ impl Storage {
                     source_file: row.get(17)?,
                 },
             });
+        }
+
+        Ok(results)
+    }
+
+    // === FTS5 ===
+
+    /// Insere chunks no indice FTS5
+    pub fn insert_chunks_fts(&self, chunks: &[Chunk]) -> Result<()> {
+        let conn = self.lock()?;
+        let mut stmt = conn.prepare(
+            "INSERT OR IGNORE INTO chunks_fts (chunk_id, content) VALUES (?1, ?2)",
+        )?;
+        for chunk in chunks {
+            stmt.execute(params![chunk.id, chunk.content])?;
+        }
+        Ok(())
+    }
+
+    /// Busca FTS5 (BM25 sparse). Retorna (chunk_id, bm25_score).
+    pub fn fts5_search(&self, query: &str, limit: usize) -> Result<Vec<(String, f64)>> {
+        let conn = self.lock()?;
+
+        // Sanitizar: manter alfanumericos, espacos e hifens (termos juridicos como REsp-1234)
+        let safe_query: String = query
+            .chars()
+            .filter(|c| c.is_alphanumeric() || c.is_whitespace() || *c == '-')
+            .collect();
+        if safe_query.trim().is_empty() {
+            return Ok(vec![]);
+        }
+
+        let mut stmt = conn.prepare(
+            "SELECT f.chunk_id, bm25(chunks_fts) as rank
+             FROM chunks_fts f
+             WHERE chunks_fts MATCH ?1
+             ORDER BY rank
+             LIMIT ?2",
+        )?;
+
+        let results = stmt
+            .query_map(params![safe_query, limit as i64], |row| {
+                Ok((row.get::<_, String>(0)?, row.get::<_, f64>(1)?))
+            })?
+            .filter_map(|r| r.ok())
+            .collect();
+
+        Ok(results)
+    }
+
+    /// Hybrid search: dense (sqlite-vec) + sparse (FTS5 BM25) com RRF fusion.
+    ///
+    /// Combina resultados de busca vetorial e textual usando Reciprocal Rank Fusion.
+    pub fn hybrid_search(
+        &self,
+        query_embedding: &[f32],
+        query_text: &str,
+        limit: usize,
+        threshold: f64,
+        filters: &SearchFilters,
+    ) -> Result<Vec<SearchResult>> {
+        let k = 60.0_f64; // RRF constant
+
+        // 1. Dense search (fetch more candidates for fusion)
+        let dense_results = self.search(query_embedding, limit * 3, 0.0, filters)?;
+
+        // 2. Sparse search (FTS5) - graceful fallback
+        let sparse_results = self.fts5_search(query_text, limit * 3).unwrap_or_default();
+
+        // 3. RRF fusion
+        let mut rrf_scores: std::collections::HashMap<String, f64> =
+            std::collections::HashMap::new();
+        let mut result_map: std::collections::HashMap<String, &SearchResult> =
+            std::collections::HashMap::new();
+
+        for (rank, result) in dense_results.iter().enumerate() {
+            let score = 1.0 / (k + rank as f64 + 1.0);
+            *rrf_scores.entry(result.chunk.id.clone()).or_default() += score;
+            result_map.insert(result.chunk.id.clone(), result);
+        }
+
+        for (rank, (id, _bm25)) in sparse_results.iter().enumerate() {
+            let score = 1.0 / (k + rank as f64 + 1.0);
+            *rrf_scores.entry(id.clone()).or_default() += score;
+        }
+
+        // 4. Sort by RRF score
+        let mut ranked: Vec<_> = rrf_scores.into_iter().collect();
+        ranked.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
+        ranked.truncate(limit);
+
+        // 5. Build results
+        let mut results = Vec::new();
+        for (id, rrf_score) in &ranked {
+            if let Some(sr) = result_map.get(id.as_str()) {
+                if sr.score >= threshold
+                    || sparse_results.iter().any(|(sid, _)| sid == id)
+                {
+                    results.push(SearchResult {
+                        score: *rrf_score,
+                        chunk: sr.chunk.clone(),
+                        document: sr.document.clone(),
+                    });
+                }
+            } else {
+                // FTS-only result: fetch chunk + doc from DB
+                let conn = self.lock()?;
+                let opt = conn.query_row(
+                    "SELECT c.id, c.doc_id, c.chunk_index, c.content, c.token_count,
+                            d.id, d.processo, d.classe, d.ministro, d.orgao_julgador,
+                            d.data_publicacao, d.data_julgamento, d.assuntos, d.teor, d.tipo,
+                            d.chunk_count, d.source_file
+                     FROM chunks c
+                     JOIN documents d ON d.id = c.doc_id
+                     WHERE c.id = ?1",
+                    params![id],
+                    |row| {
+                        Ok(SearchResult {
+                            score: *rrf_score,
+                            chunk: Chunk {
+                                id: row.get(0)?,
+                                doc_id: row.get(1)?,
+                                chunk_index: row.get::<_, Option<i32>>(2)?.unwrap_or(0),
+                                content: row.get(3)?,
+                                token_count: row.get::<_, Option<i32>>(4)?.unwrap_or(0),
+                            },
+                            document: Document {
+                                id: row.get(5)?,
+                                processo: row.get(6)?,
+                                classe: row.get(7)?,
+                                ministro: row.get(8)?,
+                                orgao_julgador: row.get(9)?,
+                                data_publicacao: row.get(10)?,
+                                data_julgamento: row.get(11)?,
+                                assuntos: row.get(12)?,
+                                teor: row.get(13)?,
+                                tipo: row.get(14)?,
+                                chunk_count: row.get::<_, Option<i32>>(15)?.unwrap_or(0),
+                                source_file: row.get(16)?,
+                            },
+                        })
+                    },
+                );
+                if let Ok(sr) = opt {
+                    results.push(sr);
+                }
+            }
         }
 
         Ok(results)

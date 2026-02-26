@@ -21,6 +21,81 @@ const SEARCH_CASE_WRAPPER: &str = "/home/opc/lex-vector/stj-vec/tools/search-cas
 const DB_NAME: &str = "knowledge.db";
 const EMBEDDING_DIM: usize = 1024;
 
+/// Throughput medido do TEI local (BGE-M3 CPU): ~1 chunk/s em batch de 4.
+const TEI_CHUNKS_PER_SEC: f64 = 1.0;
+
+/// ETA maximo aceitavel para embedding local (em segundos).
+/// Acima disso, exporta para Modal GPU. Default: 5 minutos.
+/// Configuravel via env TEI_MAX_ETA_SECS.
+fn max_eta_secs() -> f64 {
+    std::env::var("TEI_MAX_ETA_SECS")
+        .ok()
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(300.0)
+}
+
+/// Estrategia de embedding escolhida.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum EmbedStrategy {
+    /// Embeda localmente via TEI CPU
+    Local,
+    /// Exporta JSONL para processamento via Modal GPU
+    ExportModal,
+}
+
+/// Decide a estrategia de embedding baseado no numero de chunks e flags.
+pub fn decide_embed_strategy(
+    chunk_count: usize,
+    force_cpu: bool,
+    force_gpu: bool,
+) -> EmbedStrategy {
+    if force_gpu {
+        return EmbedStrategy::ExportModal;
+    }
+    if force_cpu {
+        return EmbedStrategy::Local;
+    }
+
+    let eta = chunk_count as f64 / TEI_CHUNKS_PER_SEC;
+    let threshold = max_eta_secs();
+
+    if eta > threshold {
+        eprintln!(
+            "[embed] ETA local: {:.0}s ({chunk_count} chunks @ {TEI_CHUNKS_PER_SEC:.1}/s) > threshold {threshold:.0}s -> exportando para Modal",
+            eta
+        );
+        EmbedStrategy::ExportModal
+    } else {
+        eprintln!(
+            "[embed] ETA local: {:.0}s ({chunk_count} chunks) <= threshold {threshold:.0}s -> embedding via TEI local",
+            eta
+        );
+        EmbedStrategy::Local
+    }
+}
+
+/// Exporta chunks como JSONL para processamento Modal.
+/// Retorna o path do arquivo JSONL gerado.
+pub fn export_chunks_jsonl(chunks: &[Chunk], output_dir: &Path) -> Result<PathBuf> {
+    let jsonl_path = output_dir.join("chunks_to_embed.jsonl");
+    let mut writer = std::io::BufWriter::new(
+        std::fs::File::create(&jsonl_path)
+            .with_context(|| format!("falha ao criar {}", jsonl_path.display()))?,
+    );
+
+    use std::io::Write;
+    for chunk in chunks {
+        let line = serde_json::json!({
+            "chunk_id": chunk.id,
+            "content": chunk.content,
+        });
+        serde_json::to_writer(&mut writer, &line)?;
+        writer.write_all(b"\n")?;
+    }
+
+    Ok(jsonl_path)
+}
+
 /// Pipeline de ingestao para um diretorio de caso juridico.
 pub struct Ingestor {
     pub storage: Storage,
@@ -91,55 +166,92 @@ impl Ingestor {
     ///
     /// Retorna erro se falhar ao ler arquivos, chunkar, embedar ou persistir.
     pub async fn init(&self, embedder: &dyn Embedder) -> Result<(usize, usize)> {
+        self.init_with_strategy(embedder, false, false).await
+    }
+
+    /// Init com decisao automatica de backend de embedding.
+    ///
+    /// Passo 1: chunk todos os arquivos e persiste docs/chunks/FTS5.
+    /// Passo 2: decide se embeda local (TEI) ou exporta JSONL (Modal).
+    pub async fn init_with_strategy(
+        &self,
+        embedder: &dyn Embedder,
+        force_cpu: bool,
+        force_gpu: bool,
+    ) -> Result<(usize, usize)> {
         let files = scan_base_dir(&self.base_dir)?;
         let mut total_docs: usize = 0;
-        let mut total_chunks: usize = 0;
+        let mut all_chunks: Vec<Chunk> = Vec::new();
 
+        // Passo 1: chunk e persiste metadados
         for file_path in &files {
-            self.ingest_file(file_path, embedder).await
-                .with_context(|| format!("falha ao ingerir {}", file_path.display()))?;
-            total_docs += 1;
+            let chunks = self.chunk_and_store(file_path)?;
+            if !chunks.is_empty() {
+                total_docs += 1;
+                all_chunks.extend(chunks);
+            }
+        }
 
-            // Contar chunks inseridos para este doc
+        let total_chunks = all_chunks.len();
+        if total_chunks == 0 {
+            return Ok((total_docs, 0));
+        }
+
+        // Passo 2: decidir estrategia de embedding
+        let strategy = decide_embed_strategy(total_chunks, force_cpu, force_gpu);
+
+        match strategy {
+            EmbedStrategy::Local => {
+                self.embed_chunks_local(embedder, &all_chunks).await?;
+            }
+            EmbedStrategy::ExportModal => {
+                let work_dir = self.db_path.parent().unwrap_or(Path::new("."));
+                let jsonl_path = export_chunks_jsonl(&all_chunks, work_dir)?;
+                eprintln!("[embed] {} chunks exportados para: {}", all_chunks.len(), jsonl_path.display());
+                eprintln!("[embed] Batch grande demais para TEI local. Opcoes:");
+                eprintln!("  1. Forcar TEI local (lento): case-ingest init --cpu");
+                eprintln!("  2. Embedar via Modal GPU:    modal run embed_modal.py --input {} --db {}", jsonl_path.display(), self.db_path.display());
+                eprintln!("[embed] Chunks ja estao no DB (docs + FTS5). Faltam apenas os embeddings dense.");
+            }
+        }
+
+        // Atualizar file_index para todos os arquivos (uma unica conexao)
+        let conn = Connection::open(&self.db_path)
+            .context("falha ao abrir conexao para file_index")?;
+        let idx = FileIndex::new(&conn)?;
+        for file_path in &files {
             let rel = rel_path(&self.base_dir, file_path);
-            let doc_id = doc_id_from_rel(&rel);
-            let chunks = self.storage.get_chunks_by_doc(&doc_id)?;
-            total_chunks += chunks.len();
+            let mtime = get_mtime(file_path).unwrap_or(0);
+            let hash = compute_file_hash(file_path).unwrap_or_default();
+            idx.upsert(&rel, mtime, &hash)?;
         }
 
         Ok((total_docs, total_chunks))
     }
 
-    /// Processa um unico arquivo: ler, chunkar, embedar, persistir.
-    ///
-    /// # Errors
-    ///
-    /// Retorna erro em qualquer etapa do pipeline.
-    pub async fn ingest_file(&self, abs_path: &Path, embedder: &dyn Embedder) -> Result<()> {
+    /// Chunk e persiste doc/chunks/FTS5 sem embedding. Retorna chunks criados.
+    fn chunk_and_store(&self, abs_path: &Path) -> Result<Vec<Chunk>> {
         let rel = rel_path(&self.base_dir, abs_path);
         let doc_id = doc_id_from_rel(&rel);
 
-        // Ler conteudo
         let content = read_file_content(abs_path)
             .with_context(|| format!("falha ao ler {}", abs_path.display()))?;
 
         if content.trim().is_empty() {
             eprintln!("[ingest] {rel} (vazio, ignorado)");
-            return Ok(());
+            return Ok(vec![]);
         }
 
-        // Chunk
         let output = chunk_legal_text(&content, &doc_id, &self.chunking);
         let chunk_count = output.chunks.len();
 
         if chunk_count == 0 {
             eprintln!("[ingest] {rel} (0 chunks, ignorado)");
-            return Ok(());
+            return Ok(vec![]);
         }
 
         eprintln!("[ingest] {rel} ({chunk_count} chunks)");
 
-        // Persistir documento
         let doc = Document {
             id: doc_id.clone(),
             processo: None,
@@ -153,11 +265,10 @@ impl Ingestor {
             tipo: None,
             #[allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
             chunk_count: chunk_count as i32,
-            source_file: Some(rel.clone()),
+            source_file: Some(rel),
         };
         self.storage.insert_document(&doc)?;
 
-        // Converter RawChunks -> Chunks e persistir
         let chunks: Vec<Chunk> = output
             .chunks
             .iter()
@@ -171,12 +282,18 @@ impl Ingestor {
                 token_count: rc.token_count as i32,
             })
             .collect();
-        self.storage.insert_chunks(&chunks)?;
 
-        // Embed
+        self.storage.insert_chunks(&chunks)?;
+        self.storage.insert_chunks_fts(&chunks)?;
+
+        Ok(chunks)
+    }
+
+    /// Embeda chunks localmente via TEI e persiste embeddings.
+    async fn embed_chunks_local(&self, embedder: &dyn Embedder, chunks: &[Chunk]) -> Result<()> {
         let texts: Vec<String> = chunks.iter().map(|c| c.content.clone()).collect();
         let embeddings = embedder.embed_batch(&texts).await
-            .context("falha ao gerar embeddings")?;
+            .context("falha ao gerar embeddings via TEI local")?;
 
         let pairs: Vec<(String, Vec<f32>)> = chunks
             .iter()
@@ -184,14 +301,6 @@ impl Ingestor {
             .map(|(c, emb)| (c.id.clone(), emb))
             .collect();
         self.storage.insert_embeddings_batch(&pairs)?;
-
-        // Atualizar file_index
-        let conn = Connection::open(&self.db_path)
-            .context("falha ao abrir conexao para file_index")?;
-        let idx = FileIndex::new(&conn)?;
-        let mtime = get_mtime(abs_path).unwrap_or(0);
-        let hash = compute_file_hash(abs_path).unwrap_or_default();
-        idx.upsert(&rel, mtime, &hash)?;
 
         Ok(())
     }
@@ -244,36 +353,66 @@ impl Ingestor {
         Ok((new_files, modified_files, removed))
     }
 
-    /// Sync: processa delta (novos + modificados + removidos).
-    ///
-    /// Retorna `(new_count, modified_count, removed_count)`.
-    ///
-    /// # Errors
-    ///
-    /// Retorna erro se falhar ao processar qualquer arquivo do delta.
-    pub async fn sync(&self, embedder: &dyn Embedder) -> Result<(usize, usize, usize)> {
+    /// Sync com decisao automatica de backend de embedding.
+    pub async fn sync_with_strategy(
+        &self,
+        embedder: &dyn Embedder,
+        force_cpu: bool,
+        force_gpu: bool,
+    ) -> Result<(usize, usize, usize)> {
         let (new_files, modified_files, removed_rels) = self.detect_changes()?;
 
         let new_count = new_files.len();
         let modified_count = modified_files.len();
         let removed_count = removed_rels.len();
 
+        // Remover dados de arquivos removidos
         for rel in &removed_rels {
             self.remove_file_data(rel)
                 .with_context(|| format!("falha ao remover dados de {rel}"))?;
         }
 
+        // Remover dados antigos de arquivos modificados
         for file_path in &modified_files {
             let rel = rel_path(&self.base_dir, file_path);
             self.remove_file_data(&rel)
                 .with_context(|| format!("falha ao remover dados antigos de {rel}"))?;
-            self.ingest_file(file_path, embedder).await
-                .with_context(|| format!("falha ao re-ingerir {}", file_path.display()))?;
         }
 
-        for file_path in &new_files {
-            self.ingest_file(file_path, embedder).await
-                .with_context(|| format!("falha ao ingerir {}", file_path.display()))?;
+        // Chunk todos os novos + modificados
+        let files_to_process: Vec<&PathBuf> = modified_files.iter().chain(new_files.iter()).collect();
+        let mut all_chunks: Vec<Chunk> = Vec::new();
+
+        for file_path in &files_to_process {
+            let chunks = self.chunk_and_store(file_path)?;
+            all_chunks.extend(chunks);
+        }
+
+        if !all_chunks.is_empty() {
+            let strategy = decide_embed_strategy(all_chunks.len(), force_cpu, force_gpu);
+            match strategy {
+                EmbedStrategy::Local => {
+                    self.embed_chunks_local(embedder, &all_chunks).await?;
+                }
+                EmbedStrategy::ExportModal => {
+                    let work_dir = self.db_path.parent().unwrap_or(Path::new("."));
+                    let jsonl_path = export_chunks_jsonl(&all_chunks, work_dir)?;
+                    eprintln!("[embed] Chunks exportados para: {}", jsonl_path.display());
+                    eprintln!("[embed] Rode o comando Modal para embedar:");
+                    eprintln!("  modal run embed_modal.py --input {} --db {}", jsonl_path.display(), self.db_path.display());
+                }
+            }
+
+            // Atualizar file_index (uma unica conexao)
+            let conn = Connection::open(&self.db_path)
+                .context("falha ao abrir conexao para file_index")?;
+            let idx = FileIndex::new(&conn)?;
+            for file_path in &files_to_process {
+                let rel = rel_path(&self.base_dir, file_path);
+                let mtime = get_mtime(file_path).unwrap_or(0);
+                let hash = compute_file_hash(file_path).unwrap_or_default();
+                idx.upsert(&rel, mtime, &hash)?;
+            }
         }
 
         Ok((new_count, modified_count, removed_count))
@@ -341,9 +480,10 @@ impl Ingestor {
             rows.filter_map(std::result::Result::ok).collect()
         };
 
-        // Deletar embeddings (vec_chunks)
+        // Deletar embeddings (vec_chunks) e FTS5
         for chunk_id in &chunk_ids {
             conn.execute("DELETE FROM vec_chunks WHERE chunk_id = ?1", [chunk_id])?;
+            conn.execute("DELETE FROM chunks_fts WHERE chunk_id = ?1", [chunk_id])?;
         }
 
         // Deletar chunks

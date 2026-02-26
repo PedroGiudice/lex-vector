@@ -5,7 +5,7 @@ mod watcher;
 use clap::{Parser, Subcommand};
 
 use ingestor::Ingestor;
-use stj_vec_core::embedder::{Embedder, OllamaEmbedder};
+use stj_vec_core::embedder::{Embedder, TeiEmbedder};
 
 #[derive(Parser)]
 #[command(name = "case-ingest", about = "Ingestao de documentos por caso juridico")]
@@ -17,9 +17,23 @@ struct Cli {
 #[derive(Subcommand)]
 enum Commands {
     /// Cria knowledge.db e indexa tudo em base/
-    Init,
+    Init {
+        /// Forcar embedding via TEI local (CPU)
+        #[arg(long)]
+        cpu: bool,
+        /// Forcar export para Modal GPU
+        #[arg(long)]
+        gpu: bool,
+    },
     /// Sync delta desde ultimo sync
-    Sync,
+    Sync {
+        /// Forcar embedding via TEI local (CPU)
+        #[arg(long)]
+        cpu: bool,
+        /// Forcar export para Modal GPU
+        #[arg(long)]
+        gpu: bool,
+    },
     /// Monitora base/ por mudancas
     Watch,
     /// Mostra estatisticas do knowledge.db
@@ -36,29 +50,19 @@ enum Commands {
 async fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
     match cli.command {
-        Commands::Init => {
+        Commands::Init { cpu, gpu } => {
             let work_dir = std::env::current_dir()?;
             let ing = Ingestor::create(&work_dir)?;
-            let embedder = OllamaEmbedder::new(
-                "http://localhost:11434/api/embeddings",
-                "bge-m3",
-                1024,
-                30,
-            );
-            let (docs, chunks) = ing.init(&embedder).await?;
+            let embedder = TeiEmbedder::default_local();
+            let (docs, chunks) = ing.init_with_strategy(&embedder, cpu, gpu).await?;
             Ingestor::generate_claude_config(&work_dir)?;
-            println!("Inicializado: {docs} documentos, {chunks} chunks embedados");
+            println!("Inicializado: {docs} documentos, {chunks} chunks");
         }
-        Commands::Sync => {
+        Commands::Sync { cpu, gpu } => {
             let work_dir = std::env::current_dir()?;
             let ing = Ingestor::open(&work_dir)?;
-            let embedder = OllamaEmbedder::new(
-                "http://localhost:11434/api/embeddings",
-                "bge-m3",
-                1024,
-                30,
-            );
-            let (new, modified, removed) = ing.sync(&embedder).await?;
+            let embedder = TeiEmbedder::default_local();
+            let (new, modified, removed) = ing.sync_with_strategy(&embedder, cpu, gpu).await?;
             println!("Sync: {new} novos, {modified} modificados, {removed} removidos");
         }
         Commands::Watch => {
@@ -72,13 +76,8 @@ async fn main() -> anyhow::Result<()> {
                 rt.block_on(async {
                     match Ingestor::open(&work_dir) {
                         Ok(ing) => {
-                            let embedder = OllamaEmbedder::new(
-                                "http://localhost:11434/api/embeddings",
-                                "bge-m3",
-                                1024,
-                                30,
-                            );
-                            match ing.sync(&embedder).await {
+                            let embedder = TeiEmbedder::default_local();
+                            match ing.sync_with_strategy(&embedder, true, false).await {
                                 Ok((n, m, r)) => eprintln!(
                                     "[watch] Sync: {n} novos, {m} modificados, {r} removidos"
                                 ),
@@ -101,15 +100,10 @@ async fn main() -> anyhow::Result<()> {
         Commands::Search { query, limit } => {
             let work_dir = std::env::current_dir()?;
             let ing = Ingestor::open(&work_dir)?;
-            let embedder = OllamaEmbedder::new(
-                "http://localhost:11434/api/embeddings",
-                "bge-m3",
-                1024,
-                30,
-            );
+            let embedder = TeiEmbedder::default_local();
             let query_vec = embedder.embed(&query).await?;
             let filters = stj_vec_core::types::SearchFilters::default();
-            let results = ing.storage.search(&query_vec, limit, 0.3, &filters)?;
+            let results = ing.storage.hybrid_search(&query_vec, &query, limit, 0.3, &filters)?;
             if results.is_empty() {
                 println!("Nenhum resultado encontrado.");
             } else {
