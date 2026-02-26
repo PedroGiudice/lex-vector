@@ -1,11 +1,9 @@
-"""Modal Class para gerar embeddings BGE-M3 dense + sparse via FlagEmbedding.
+"""Modal Class para gerar sparse embeddings BGE-M3 via FlagEmbedding.
 
-H200 ($4.54/h) com FlagEmbedding: dense (1024d) + sparse (lexical weights)
-numa unica passada. Elimina necessidade de re-embedding pro sparse.
+Dense embeddings ja existem (gerados por TEI). Este script gera apenas
+os lexical weights (sparse) que TEI nao suporta pra BGE-M3.
 
 Output por source:
-  /embeddings/{source}.npz       -- dense embeddings (N x 1024, float32)
-  /embeddings/{source}.json      -- chunk_ids alinhados
   /embeddings/{source}.sparse.json -- sparse weights [{token: weight, ...}, ...]
 """
 import modal
@@ -17,13 +15,14 @@ volume_models = modal.Volume.from_name("stj-vec-models")
 volume_data = modal.Volume.from_name("stj-vec-data", create_if_missing=True)
 
 GPU_CONFIG = "H200"
-BATCH_SIZE = 1024  # FlagEmbedding e mais pesado que TEI, comecar conservador
+BATCH_SIZE = 32  # BGE-M3 sparse e compute-bound: batch maior nao aumenta throughput
 MIN_SPARSE_WEIGHT = 0.01  # descartar pesos abaixo disso pra controlar tamanho
 
 image = (
     modal.Image.debian_slim(python_version="3.11")
     .pip_install(
         "FlagEmbedding>=1.2.11",
+        "transformers>=4.40.0,<4.46.0",
         "torch>=2.1.0",
         "numpy>=1.24.0",
     )
@@ -39,6 +38,7 @@ image = (
     },
     timeout=3600,
     scaledown_window=120,
+    max_containers=2,
 )
 class HybridEmbedder:
     @modal.enter()
@@ -55,15 +55,12 @@ class HybridEmbedder:
 
     @modal.method()
     def embed_source(self, source_name: str, batch_size: int = BATCH_SIZE) -> dict:
-        """Processa 1 source JSONL, gera .npz + .json + .sparse.json no Volume."""
-        import numpy as np
+        """Processa 1 source JSONL, gera .sparse.json no Volume (sparse only)."""
         import os
         import time
         import torch
 
         input_path = f"/data/chunks/{source_name}.jsonl"
-        out_npz = f"/data/embeddings/{source_name}.npz"
-        out_json = f"/data/embeddings/{source_name}.json"
         out_sparse = f"/data/embeddings/{source_name}.sparse.json"
 
         chunk_ids = []
@@ -80,18 +77,15 @@ class HybridEmbedder:
         torch.cuda.reset_peak_memory_stats()
         t0 = time.perf_counter()
 
-        # FlagEmbedding: dense + sparse numa chamada
+        # FlagEmbedding: sparse only (dense ja existe via TEI)
         output = self.model.encode(
             texts,
             batch_size=batch_size,
             max_length=512,
-            return_dense=True,
+            return_dense=False,
             return_sparse=True,
-            return_colbert_vecs=False,  # skip ColBERT, nao precisamos
+            return_colbert_vecs=False,
         )
-
-        # Dense embeddings
-        dense = np.array(output["dense_vecs"], dtype=np.float32)
 
         # Sparse weights: converter token_ids (int) pra string e filtrar pesos baixos
         sparse_list = []
@@ -105,9 +99,6 @@ class HybridEmbedder:
 
         os.makedirs("/data/embeddings", exist_ok=True)
 
-        np.savez_compressed(out_npz, embeddings=dense)
-        with open(out_json, "w") as f:
-            json.dump(chunk_ids, f)
         with open(out_sparse, "w") as f:
             json.dump(sparse_list, f)
 
@@ -115,7 +106,7 @@ class HybridEmbedder:
 
         elapsed = time.perf_counter() - t0
         vram_peak_gb = torch.cuda.max_memory_allocated() / (1024**3)
-        vram_total_gb = torch.cuda.get_device_properties(0).total_mem / (1024**3)
+        vram_total_gb = torch.cuda.get_device_properties(0).total_memory / (1024**3)
         emb_per_sec = len(chunk_ids) / elapsed if elapsed > 0 else 0
 
         print(f"[CALIBRATION] source={source_name} chunks={len(chunk_ids)} "
@@ -127,7 +118,6 @@ class HybridEmbedder:
         return {
             "source": source_name,
             "count": len(chunk_ids),
-            "dense_shape": list(dense.shape),
             "sparse_avg_tokens": round(
                 sum(len(s) for s in sparse_list) / len(sparse_list), 1
             ),
@@ -196,7 +186,7 @@ def main(
     all_pending: bool = False,
     batch_size: int = BATCH_SIZE,
 ):
-    """Entrypoint: processar 1 source ou todos pendentes (hybrid dense+sparse)."""
+    """Entrypoint: processar 1 source ou todos pendentes (sparse only)."""
     embedder = HybridEmbedder()
 
     if source:
@@ -221,7 +211,7 @@ def main(
             results.append(result)
 
         total = sum(r["count"] for r in results)
-        print(f"\nTotal: {total} embeddings (dense+sparse) para {len(results)} sources")
+        print(f"\nTotal: {total} sparse embeddings para {len(results)} sources")
     else:
         print("Uso: modal run embed_hybrid.py --source 202203")
         print("  ou: modal run embed_hybrid.py --all-pending")
