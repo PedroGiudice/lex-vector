@@ -81,7 +81,7 @@ class HybridEmbedder:
         output = self.model.encode(
             texts,
             batch_size=batch_size,
-            max_length=2048,
+            max_length=512,
             return_dense=False,
             return_sparse=True,
             return_colbert_vecs=False,
@@ -111,7 +111,7 @@ class HybridEmbedder:
 
         print(
             f"[CALIBRATION] source={source_name} chunks={len(chunk_ids)} "
-            f"batch={batch_size} max_length=2048"
+            f"batch={batch_size} max_length=512"
         )
         print(
             f"[CALIBRATION] VRAM peak: {vram_peak_gb:.1f}GB / {vram_total_gb:.1f}GB "
