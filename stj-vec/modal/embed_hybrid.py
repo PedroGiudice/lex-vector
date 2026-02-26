@@ -16,7 +16,7 @@ app = modal.App("stj-vec-embed-hybrid")
 volume_models = modal.Volume.from_name("stj-vec-models")
 volume_data = modal.Volume.from_name("stj-vec-data", create_if_missing=True)
 
-GPU_CONFIG = "H200"
+GPU_CONFIG = "A100 40GB"
 BATCH_SIZE = 32  # BGE-M3 sparse e compute-bound: batch maior nao aumenta throughput
 MIN_SPARSE_WEIGHT = 0.01  # descartar pesos abaixo disso pra controlar tamanho
 
@@ -37,7 +37,7 @@ image = modal.Image.debian_slim(python_version="3.11").pip_install(
     },
     timeout=3600,
     scaledown_window=120,
-    max_containers=2,
+    max_containers=8,
 )
 class HybridEmbedder:
     @modal.enter()
@@ -81,7 +81,7 @@ class HybridEmbedder:
         output = self.model.encode(
             texts,
             batch_size=batch_size,
-            max_length=1024,
+            max_length=2048,
             return_dense=False,
             return_sparse=True,
             return_colbert_vecs=False,
