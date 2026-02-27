@@ -113,6 +113,99 @@ async fn not_found_for_unknown_route() {
 }
 
 // ---------------------------------------------------------------------------
+// GET /api/cases
+// ---------------------------------------------------------------------------
+
+#[tokio::test]
+async fn list_cases_returns_array() {
+    use axum::body::Body;
+    use hyper::Request;
+    use tower::ServiceExt;
+
+    let tmp = tempfile::tempdir().unwrap();
+    let case_dir = tmp.path().join("caso-teste");
+    std::fs::create_dir_all(case_dir.join("base")).unwrap();
+    std::fs::File::create(case_dir.join("knowledge.db")).unwrap();
+    std::fs::write(case_dir.join("base/doc1.md"), "conteudo").unwrap();
+    std::fs::write(case_dir.join("base/doc2.md"), "conteudo").unwrap();
+
+    let mut config = AppConfig::default();
+    config.cases_dir = tmp.path().to_path_buf();
+    let state = AppState::new(config);
+    let app = create_router(state);
+
+    let request = Request::builder()
+        .uri("/api/cases")
+        .body(Body::empty())
+        .unwrap();
+
+    let response = app.oneshot(request).await.unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body_bytes = response.into_body().collect().await.unwrap().to_bytes();
+    let parsed: serde_json::Value = serde_json::from_slice(&body_bytes).unwrap();
+
+    let cases = parsed["cases"].as_array().expect("cases deve ser array");
+    assert_eq!(cases.len(), 1);
+    assert_eq!(cases[0]["id"].as_str(), Some("caso-teste"));
+    assert_eq!(cases[0]["ready"].as_bool(), Some(true));
+    assert_eq!(cases[0]["doc_count"].as_u64(), Some(2));
+}
+
+#[tokio::test]
+async fn list_cases_not_ready_without_knowledge_db() {
+    use axum::body::Body;
+    use hyper::Request;
+    use tower::ServiceExt;
+
+    let tmp = tempfile::tempdir().unwrap();
+    let case_dir = tmp.path().join("caso-incompleto");
+    std::fs::create_dir_all(case_dir.join("base")).unwrap();
+
+    let mut config = AppConfig::default();
+    config.cases_dir = tmp.path().to_path_buf();
+    let state = AppState::new(config);
+    let app = create_router(state);
+
+    let request = Request::builder()
+        .uri("/api/cases")
+        .body(Body::empty())
+        .unwrap();
+
+    let response = app.oneshot(request).await.unwrap();
+    let body_bytes = response.into_body().collect().await.unwrap().to_bytes();
+    let parsed: serde_json::Value = serde_json::from_slice(&body_bytes).unwrap();
+
+    let cases = parsed["cases"].as_array().unwrap();
+    assert_eq!(cases[0]["ready"].as_bool(), Some(false));
+}
+
+#[tokio::test]
+async fn list_cases_empty_dir() {
+    use axum::body::Body;
+    use hyper::Request;
+    use tower::ServiceExt;
+
+    let tmp = tempfile::tempdir().unwrap();
+    let mut config = AppConfig::default();
+    config.cases_dir = tmp.path().to_path_buf();
+    let state = AppState::new(config);
+    let app = create_router(state);
+
+    let request = Request::builder()
+        .uri("/api/cases")
+        .body(Body::empty())
+        .unwrap();
+
+    let response = app.oneshot(request).await.unwrap();
+    let body_bytes = response.into_body().collect().await.unwrap().to_bytes();
+    let parsed: serde_json::Value = serde_json::from_slice(&body_bytes).unwrap();
+
+    let cases = parsed["cases"].as_array().unwrap();
+    assert!(cases.is_empty());
+}
+
+// ---------------------------------------------------------------------------
 // Testes WebSocket via tokio-tungstenite
 // ---------------------------------------------------------------------------
 

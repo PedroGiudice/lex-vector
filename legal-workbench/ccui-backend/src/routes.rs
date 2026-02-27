@@ -67,6 +67,7 @@ pub fn create_router(state: AppState) -> Router {
         .route("/health", get(health))
         .route("/ws", get(ws_upgrade))
         .route("/api/sessions", get(list_sessions))
+        .route("/api/cases", get(list_cases))
         .layer(CorsLayer::permissive())
         .with_state(Arc::new(state))
 }
@@ -86,6 +87,65 @@ async fn list_sessions(State(state): State<Arc<AppState>>) -> impl IntoResponse 
     let sessions = state.session_mgr.list_sessions().await;
     let ids: Vec<&str> = sessions.iter().map(|s| s.id.as_str()).collect();
     Json(json!({ "sessions": ids }))
+}
+
+/// `GET /api/cases` -- lista casos disponiveis com metadados.
+async fn list_cases(State(state): State<Arc<AppState>>) -> impl IntoResponse {
+    let cases_dir = &state.config.cases_dir;
+    let mut cases = Vec::new();
+
+    if let Ok(entries) = std::fs::read_dir(cases_dir) {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if !path.is_dir() {
+                continue;
+            }
+
+            let id = entry.file_name().to_string_lossy().to_string();
+            let ready = path.join("knowledge.db").exists();
+
+            let doc_count = path
+                .join("base")
+                .read_dir()
+                .map(|rd| rd.flatten().filter(|e| e.path().is_file()).count())
+                .unwrap_or(0);
+
+            let last_modified = std::fs::metadata(&path)
+                .and_then(|m| m.modified())
+                .ok()
+                .and_then(|t| {
+                    let duration = t
+                        .duration_since(std::time::UNIX_EPOCH)
+                        .unwrap_or_default();
+                    Some(duration.as_secs())
+                });
+
+            // Sessoes ativas apontando para este caso
+            let active_sessions: Vec<String> = state
+                .session_mgr
+                .list_sessions()
+                .await
+                .iter()
+                .filter(|s| {
+                    s.working_dir
+                        .as_ref()
+                        .is_some_and(|wd| wd == path.to_str().unwrap_or_default())
+                })
+                .map(|s| s.id.clone())
+                .collect();
+
+            cases.push(json!({
+                "id": id,
+                "path": path.to_string_lossy(),
+                "ready": ready,
+                "doc_count": doc_count,
+                "active_sessions": active_sessions,
+                "last_modified": last_modified,
+            }));
+        }
+    }
+
+    Json(json!({ "cases": cases }))
 }
 
 // ---------------------------------------------------------------------------
