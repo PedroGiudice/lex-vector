@@ -16,7 +16,7 @@ app = modal.App("stj-vec-embed-hybrid")
 volume_models = modal.Volume.from_name("stj-vec-models")
 volume_data = modal.Volume.from_name("stj-vec-data", create_if_missing=True)
 
-GPU_CONFIG = "A10G"
+GPU_CONFIG = "A100-40GB"
 BATCH_SIZE = 32  # BGE-M3 sparse e compute-bound: batch maior nao aumenta throughput
 MIN_SPARSE_WEIGHT = 0.01  # descartar pesos abaixo disso pra controlar tamanho
 
@@ -111,7 +111,7 @@ class HybridEmbedder:
 
         print(
             f"[CALIBRATION] source={source_name} chunks={len(chunk_ids)} "
-            f"batch={batch_size} max_length=512"
+            f"batch={batch_size} max_length=4096"
         )
         print(
             f"[CALIBRATION] VRAM peak: {vram_peak_gb:.1f}GB / {vram_total_gb:.1f}GB "
