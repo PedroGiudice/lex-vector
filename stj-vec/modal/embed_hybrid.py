@@ -111,7 +111,7 @@ class HybridEmbedder:
 
         print(
             f"[CALIBRATION] source={source_name} chunks={len(chunk_ids)} "
-            f"batch={batch_size} max_length=512
+            f"batch={batch_size} max_length=512"
         )
         print(
             f"[CALIBRATION] VRAM peak: {vram_peak_gb:.1f}GB / {vram_total_gb:.1f}GB "
