@@ -206,6 +206,64 @@ async fn list_cases_empty_dir() {
 }
 
 // ---------------------------------------------------------------------------
+// GET /api/sessions/{id}/channels
+// ---------------------------------------------------------------------------
+
+#[tokio::test]
+async fn channels_returns_404_for_nonexistent_session() {
+    use axum::body::Body;
+    use hyper::Request;
+    use tower::ServiceExt;
+
+    let config = AppConfig::default();
+    let state = AppState::new(config);
+    let app = create_router(state);
+
+    let request = Request::builder()
+        .uri("/api/sessions/inexistente/channels")
+        .body(Body::empty())
+        .unwrap();
+
+    let response = app.oneshot(request).await.unwrap();
+    assert_eq!(response.status(), StatusCode::NOT_FOUND);
+}
+
+#[tokio::test]
+async fn channels_returns_ok_for_valid_session() {
+    use axum::body::Body;
+    use hyper::Request;
+    use tower::ServiceExt;
+
+    let config = AppConfig::default();
+    let state = AppState::new(config);
+
+    // Inserir sessao fake no session_mgr (sem tmux real)
+    state.session_mgr.insert_fake_session("test-id").await;
+
+    let app = create_router(state);
+
+    let request = Request::builder()
+        .uri("/api/sessions/test-id/channels")
+        .body(Body::empty())
+        .unwrap();
+
+    let response = app.oneshot(request).await.unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body_bytes = response.into_body().collect().await.unwrap().to_bytes();
+    let parsed: serde_json::Value = serde_json::from_slice(&body_bytes).unwrap();
+
+    let channels = parsed["channels"]
+        .as_array()
+        .expect("channels deve ser array");
+    // Sem canais registrados (nao ha tmux real), mas o formato esta correto
+    assert!(
+        channels.is_empty(),
+        "sem canais registrados, lista deve estar vazia"
+    );
+}
+
+// ---------------------------------------------------------------------------
 // Testes WebSocket via tokio-tungstenite
 // ---------------------------------------------------------------------------
 

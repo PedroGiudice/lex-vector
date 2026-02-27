@@ -185,6 +185,21 @@ impl SessionManager {
 
         Ok(recovered)
     }
+
+    /// Insere uma sessao fake para testes de integracao.
+    #[doc(hidden)]
+    pub async fn insert_fake_session(&self, session_id: &str) {
+        let info = SessionInfo {
+            id: session_id.to_owned(),
+            tmux_session: format!("fake-{session_id}"),
+            main_pane_id: "%0".to_owned(),
+            working_dir: None,
+        };
+        self.sessions
+            .write()
+            .await
+            .insert(session_id.to_owned(), info);
+    }
 }
 
 /// Gera os primeiros 8 caracteres de um UUID v4.

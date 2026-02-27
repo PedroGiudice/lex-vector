@@ -5,8 +5,9 @@ use std::sync::Arc;
 use axum::{
     extract::{
         ws::{Message, WebSocket, WebSocketUpgrade},
-        State,
+        Path, State,
     },
+    http::StatusCode,
     response::IntoResponse,
     routing::get,
     Json, Router,
@@ -68,6 +69,7 @@ pub fn create_router(state: AppState) -> Router {
         .route("/ws", get(ws_upgrade))
         .route("/api/sessions", get(list_sessions))
         .route("/api/cases", get(list_cases))
+        .route("/api/sessions/{id}/channels", get(list_channels))
         .layer(CorsLayer::permissive())
         .with_state(Arc::new(state))
 }
@@ -87,6 +89,30 @@ async fn list_sessions(State(state): State<Arc<AppState>>) -> impl IntoResponse 
     let sessions = state.session_mgr.list_sessions().await;
     let ids: Vec<&str> = sessions.iter().map(|s| s.id.as_str()).collect();
     Json(json!({ "sessions": ids }))
+}
+
+/// `GET /api/sessions/{id}/channels` -- lista canais ativos de uma sessao.
+///
+/// Retorna 404 se a sessao nao existir.
+async fn list_channels(
+    Path(session_id): Path<String>,
+    State(state): State<Arc<AppState>>,
+) -> impl IntoResponse {
+    if state.session_mgr.get_session(&session_id).await.is_none() {
+        return (
+            StatusCode::NOT_FOUND,
+            Json(json!({ "error": "sessao nao encontrada" })),
+        )
+            .into_response();
+    }
+
+    let details = state.pane_proxy.list_channel_details().await;
+    let channels: Vec<serde_json::Value> = details
+        .into_iter()
+        .map(|(name, pane_id)| json!({ "name": name, "pane_id": pane_id }))
+        .collect();
+
+    Json(json!({ "channels": channels })).into_response()
 }
 
 /// `GET /api/cases` -- lista casos disponiveis com metadados.
@@ -114,9 +140,7 @@ async fn list_cases(State(state): State<Arc<AppState>>) -> impl IntoResponse {
                 .and_then(|m| m.modified())
                 .ok()
                 .and_then(|t| {
-                    let duration = t
-                        .duration_since(std::time::UNIX_EPOCH)
-                        .unwrap_or_default();
+                    let duration = t.duration_since(std::time::UNIX_EPOCH).unwrap_or_default();
                     Some(duration.as_secs())
                 });
 
@@ -263,11 +287,7 @@ async fn handle_client_message_tracked(
     current_session_id: &mut Option<String>,
 ) {
     if let ClientMessage::CreateSession { ref case_id } = msg {
-        match state
-            .session_mgr
-            .create_session(case_id.as_deref())
-            .await
-        {
+        match state.session_mgr.create_session(case_id.as_deref()).await {
             Ok(session_id) => {
                 info!(session_id = %session_id, "sessao criada");
                 *current_session_id = Some(session_id.clone());
@@ -337,11 +357,7 @@ async fn handle_client_message(socket: &mut WebSocket, state: &AppState, msg: Cl
         }
 
         ClientMessage::CreateSession { case_id } => {
-            match state
-                .session_mgr
-                .create_session(case_id.as_deref())
-                .await
-            {
+            match state.session_mgr.create_session(case_id.as_deref()).await {
                 Ok(session_id) => {
                     info!(session_id = %session_id, "sessao criada");
 
