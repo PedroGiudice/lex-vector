@@ -117,3 +117,133 @@ fn reject_unknown_type() {
     let result = serde_json::from_str::<ClientMessage>(json);
     assert!(result.is_err());
 }
+
+// --- Serialize gaps ---
+
+#[test]
+fn serialize_session_created() {
+    let msg = ServerMessage::SessionCreated {
+        session_id: "abc".into(),
+    };
+    let json = serde_json::to_string(&msg).unwrap();
+    assert!(
+        json.contains("session_created"),
+        "missing session_created in: {json}"
+    );
+    assert!(json.contains("abc"), "missing session_id value in: {json}");
+}
+
+#[test]
+fn serialize_session_ended() {
+    let msg = ServerMessage::SessionEnded {
+        session_id: "xyz".into(),
+    };
+    let json = serde_json::to_string(&msg).unwrap();
+    assert!(
+        json.contains("session_ended"),
+        "missing session_ended in: {json}"
+    );
+    assert!(json.contains("xyz"), "missing session_id value in: {json}");
+}
+
+#[test]
+fn serialize_agent_left() {
+    let msg = ServerMessage::AgentLeft {
+        name: "researcher".into(),
+    };
+    let json = serde_json::to_string(&msg).unwrap();
+    assert!(json.contains("agent_left"), "missing agent_left in: {json}");
+    assert!(json.contains("researcher"), "missing name value in: {json}");
+}
+
+#[test]
+fn serialize_agent_crashed() {
+    let msg = ServerMessage::AgentCrashed {
+        name: "strategist".into(),
+    };
+    let json = serde_json::to_string(&msg).unwrap();
+    assert!(
+        json.contains("agent_crashed"),
+        "missing agent_crashed in: {json}"
+    );
+    assert!(json.contains("strategist"), "missing name value in: {json}");
+}
+
+// --- Deserialize error paths ---
+
+#[test]
+fn deserialize_input_missing_channel() {
+    let json = r#"{"type": "input", "text": "hi"}"#;
+    let result = serde_json::from_str::<ClientMessage>(json);
+    assert!(result.is_err(), "expected error for missing channel field");
+}
+
+#[test]
+fn deserialize_input_missing_text() {
+    let json = r#"{"type": "input", "channel": "main"}"#;
+    let result = serde_json::from_str::<ClientMessage>(json);
+    assert!(result.is_err(), "expected error for missing text field");
+}
+
+#[test]
+fn deserialize_resize_missing_cols() {
+    let json = r#"{"type": "resize", "channel": "x", "rows": 40}"#;
+    let result = serde_json::from_str::<ClientMessage>(json);
+    assert!(result.is_err(), "expected error for missing cols field");
+}
+
+#[test]
+fn deserialize_destroy_missing_session_id() {
+    let json = r#"{"type": "destroy_session"}"#;
+    let result = serde_json::from_str::<ClientMessage>(json);
+    assert!(
+        result.is_err(),
+        "expected error for missing session_id field"
+    );
+}
+
+#[test]
+fn deserialize_empty_json() {
+    let json = r#"{}"#;
+    let result = serde_json::from_str::<ClientMessage>(json);
+    assert!(result.is_err(), "expected error for empty JSON object");
+}
+
+#[test]
+fn deserialize_not_json() {
+    let input = "not json at all";
+    let result = serde_json::from_str::<ClientMessage>(input);
+    assert!(result.is_err(), "expected error for non-JSON input");
+}
+
+// --- Roundtrip ---
+
+#[test]
+fn roundtrip_output() {
+    let msg = ServerMessage::Output {
+        channel: "main".into(),
+        data: "hello\r\n".into(),
+    };
+    let json = serde_json::to_string(&msg).unwrap();
+    let value: serde_json::Value = serde_json::from_str(&json).unwrap();
+    assert_eq!(value["type"], "output");
+    assert_eq!(value["channel"], "main");
+    assert_eq!(value["data"], "hello\r\n");
+}
+
+#[test]
+fn roundtrip_agent_joined() {
+    let msg = ServerMessage::AgentJoined {
+        name: "tester".into(),
+        color: "green".into(),
+        model: "haiku".into(),
+        pane_id: "%42".into(),
+    };
+    let json = serde_json::to_string(&msg).unwrap();
+    let value: serde_json::Value = serde_json::from_str(&json).unwrap();
+    assert_eq!(value["type"], "agent_joined");
+    assert_eq!(value["name"], "tester");
+    assert_eq!(value["color"], "green");
+    assert_eq!(value["model"], "haiku");
+    assert_eq!(value["pane_id"], "%42");
+}
