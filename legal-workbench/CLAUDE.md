@@ -4,14 +4,15 @@ Regras para desenvolvimento no Legal Workbench.
 
 ---
 
-## Arquitetura Atual (2026-01-17)
+## Arquitetura Atual (2026-02-27)
 
-**Stack: React SPA (Vite) + FastAPI Services + Traefik**
+**Stack: React SPA (Vite) + FastAPI Services + Traefik + ccui-backend (Rust)**
 
 ```
 Browser ──> Traefik (:80) ──> React SPA (/)
                 │
-                └──> FastAPI Services (/api/*)
+                ├──> FastAPI Services (/api/*)
+                └──> ccui-backend (:8005) ──> tmux ──> Claude Code sessions
 ```
 
 ### Servicos Docker
@@ -24,8 +25,35 @@ Browser ──> Traefik (:80) ──> React SPA (/)
 | api-doc-assembler | `/api/doc` | 8002 | FastAPI |
 | api-ledes-converter | `/api/ledes` | 8003 | FastAPI |
 | api-trello | `/api/trello` | 8004 | Bun |
+| ccui-backend | `/api/ccui` | 8005 | Rust (axum + tokio + tmux) |
 | redis | - | 6379 | Redis 7 Alpine |
 | prometheus | - | 9090 | Prometheus v2.47.0 |
+
+### ccui-backend (Wrapper Web para Claude Code)
+
+Backend Rust que gerencia sessoes Claude Code via tmux headless para uso por advogados.
+
+**Endpoints:**
+- `GET /health` -- healthcheck
+- `GET /api/sessions` -- lista sessoes ativas
+- `GET /api/cases` -- lista casos disponiveis com metadados (ready, doc_count)
+- `GET /api/sessions/{id}/channels` -- canais ativos de uma sessao (reconexao)
+- `GET /ws` -- WebSocket (create_session, input, resize, output, agent_joined/left)
+
+**Funcionalidades Phase 2:**
+- Selecao de caso (case_id -> working_dir)
+- Auto-start do Claude Code na sessao
+- Auto-registro de canal "main" e canais de teammates
+- Persistencia de metadados de sessao em disco
+- 103 testes, clippy pedantic limpo
+
+**Desenvolvimento:**
+```bash
+cd legal-workbench/ccui-backend
+cargo test -- --test-threads=1
+cargo clippy -- -W clippy::pedantic
+cargo run  # porta 8005
+```
 
 ---
 
@@ -61,6 +89,9 @@ legal-workbench/
 │   ├── services/            # Backends (doc-assembler, stj-api, etc)
 │   ├── scripts/             # deploy.sh, health-check.sh
 │   └── docker-compose.yml
+├── ccui-backend/            # Rust backend (axum+tokio+tmux)
+│   ├── src/                 # config, routes, session, tmux, pane_proxy, ws, team_watcher
+│   └── tests/               # 103 testes (unit + integration)
 ├── ferramentas/             # Python tools standalone
 │   ├── stj-dados-abertos/   # STJ data pipeline
 │   └── legal-text-extractor/# OCR + AI extraction

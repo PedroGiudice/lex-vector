@@ -95,6 +95,7 @@ legal-workbench/       # Lex-Vector (LV) - Projeto principal
 ├── frontend/          # Next.js 15 + React 19
 ├── ferramentas/       # Python backends e tools
 │   └── legal-text-extractor/  # LTE (Marker + Gemini)
+├── ccui-backend/      # Backend Rust (axum+tokio+tmux) para wrapper web
 ├── docker/            # Servicos Docker
 └── docs/              # Documentacao
 
