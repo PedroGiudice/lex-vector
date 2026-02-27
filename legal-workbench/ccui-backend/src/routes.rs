@@ -127,8 +127,11 @@ async fn handle_ws(mut socket: WebSocket, state: Arc<AppState>) {
                         info!("cliente desconectou");
                         break;
                     }
+                    Some(Ok(Message::Ping(payload))) => {
+                        let _ = socket.send(Message::Pong(payload)).await;
+                    }
                     Some(Ok(_)) => {
-                        // binario ou ping/pong de protocolo -- ignorar
+                        // binario ou outros -- ignorar
                     }
                     Some(Err(e)) => {
                         warn!("erro ao receber mensagem WebSocket: {e}");
@@ -184,14 +187,6 @@ async fn handle_client_message(socket: &mut WebSocket, state: &AppState, msg: Cl
             {
                 Ok(session_id) => {
                     info!(session_id = %session_id, "sessao criada");
-                    send_server_msg(
-                        socket,
-                        &ServerMessage::SessionCreated {
-                            session_id: session_id.clone(),
-                        },
-                    )
-                    .await;
-                    // Notifica demais clientes via broadcast.
                     let _ = state
                         .broadcast_tx
                         .send(ServerMessage::SessionCreated { session_id });
@@ -213,13 +208,6 @@ async fn handle_client_message(socket: &mut WebSocket, state: &AppState, msg: Cl
             match state.session_mgr.destroy_session(&session_id).await {
                 Ok(()) => {
                     info!(session_id = %session_id, "sessao destruida");
-                    send_server_msg(
-                        socket,
-                        &ServerMessage::SessionEnded {
-                            session_id: session_id.clone(),
-                        },
-                    )
-                    .await;
                     let _ = state
                         .broadcast_tx
                         .send(ServerMessage::SessionEnded { session_id });

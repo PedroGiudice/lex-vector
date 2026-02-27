@@ -40,9 +40,12 @@ struct TeamConfig {
 
 /// Observa o diretorio de teams do Claude Code e emite eventos WebSocket
 /// quando teammates entram ou saem.
+/// Tracking: member name -> `tmux_pane_id` (vazio se ainda nao atribuido).
+type KnownMembers = HashMap<String, HashMap<String, String>>;
+
 pub struct TeamWatcher {
     teams_dir: PathBuf,
-    known_members: Arc<RwLock<HashMap<String, Vec<String>>>>,
+    known_members: Arc<RwLock<KnownMembers>>,
     tx: broadcast::Sender<ServerMessage>,
 }
 
@@ -131,14 +134,19 @@ impl TeamWatcher {
             config.name.clone()
         };
 
-        let current_names: Vec<String> = config.members.iter().map(|m| m.name.clone()).collect();
-
         let mut known = self.known_members.write().await;
         let previous = known.entry(team_name.clone()).or_default();
 
-        // Detecta novos membros.
+        let current_names: Vec<String> = config.members.iter().map(|m| m.name.clone()).collect();
+
+        // Detecta novos membros ou pane_id recebido pela primeira vez.
         for member in &config.members {
-            if !previous.contains(&member.name) && !member.tmux_pane_id.is_empty() {
+            let prev_pane = previous.get(&member.name).cloned().unwrap_or_default();
+            let pane_now = !member.tmux_pane_id.is_empty();
+            let pane_before = !prev_pane.is_empty();
+
+            // Emitir AgentJoined quando pane_id aparece pela primeira vez
+            if pane_now && !pane_before {
                 info!(
                     team = %team_display_name,
                     agent = %member.name,
@@ -151,23 +159,28 @@ impl TeamWatcher {
                     pane_id: member.tmux_pane_id.clone(),
                 });
             }
+
+            // Atualizar tracking
+            previous.insert(member.name.clone(), member.tmux_pane_id.clone());
         }
 
         // Detecta membros removidos.
-        for name in previous.iter() {
-            if !current_names.contains(name) {
-                info!(
-                    team = %team_display_name,
-                    agent = %name,
-                    "agente saiu do team"
-                );
-                let _ = self
-                    .tx
-                    .send(ServerMessage::AgentLeft { name: name.clone() });
-            }
+        let removed: Vec<String> = previous
+            .keys()
+            .filter(|name| !current_names.contains(name))
+            .cloned()
+            .collect();
+        for name in &removed {
+            info!(
+                team = %team_display_name,
+                agent = %name,
+                "agente saiu do team"
+            );
+            let _ = self
+                .tx
+                .send(ServerMessage::AgentLeft { name: name.clone() });
+            previous.remove(name);
         }
-
-        *previous = current_names;
 
         Ok(())
     }

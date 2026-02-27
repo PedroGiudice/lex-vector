@@ -145,7 +145,7 @@ impl TmuxDriver {
         log_path: impl AsRef<Path>,
     ) -> Result<(), AppError> {
         let path = log_path.as_ref().to_string_lossy();
-        let cmd = format!("cat >> {path}");
+        let cmd = format!("cat >> '{path}'");
         self.run(&["pipe-pane", "-o", "-t", pane_id, &cmd]).await
     }
 

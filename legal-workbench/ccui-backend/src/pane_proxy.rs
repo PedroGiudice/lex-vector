@@ -9,6 +9,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use tokio::sync::{broadcast, RwLock};
+use tokio_util::sync::CancellationToken;
 
 use crate::config::AppConfig;
 use crate::error::AppError;
@@ -24,6 +25,7 @@ struct ChannelMapping {
     pane_id: String,
     tmux_session: String,
     log_path: PathBuf,
+    cancel: CancellationToken,
 }
 
 // ---------------------------------------------------------------------------
@@ -40,6 +42,7 @@ pub struct PaneProxy {
     tx: broadcast::Sender<ServerMessage>,
 }
 
+#[allow(clippy::missing_errors_doc)]
 impl PaneProxy {
     /// Cria uma nova instancia do proxy.
     #[must_use]
@@ -56,11 +59,6 @@ impl PaneProxy {
     ///
     /// Cria o diretorio de log se necessario, inicia `pipe-pane` no tmux
     /// e spawna a task de tail do arquivo de log.
-    ///
-    /// # Errors
-    ///
-    /// Retorna erro se a criacao do diretorio/arquivo de log falhar ou
-    /// se o comando `pipe-pane` do tmux falhar.
     pub async fn register_channel(
         &self,
         channel_name: &str,
@@ -77,10 +75,13 @@ impl PaneProxy {
         // Inicia pipe do tmux para o arquivo de log
         self.tmux.pipe_pane(pane_id, &log_path).await?;
 
+        let cancel = CancellationToken::new();
+
         let mapping = ChannelMapping {
             pane_id: pane_id.to_owned(),
             tmux_session: tmux_session.to_owned(),
             log_path: log_path.clone(),
+            cancel: cancel.clone(),
         };
 
         self.channels
@@ -88,25 +89,26 @@ impl PaneProxy {
             .await
             .insert(channel_name.to_owned(), mapping);
 
-        // Spawna task de tail em background
+        // Spawna task de tail em background com cancellation
         let tx = self.tx.clone();
         let channel = channel_name.to_owned();
         tokio::spawn(async move {
-            if let Err(e) = tail_log(log_path, channel, tx).await {
-                tracing::warn!("tail_log encerrado com erro: {e}");
+            tokio::select! {
+                result = tail_log(&log_path, &channel, &tx) => {
+                    if let Err(e) = result {
+                        tracing::warn!(channel = %channel, "tail_log encerrado com erro: {e}");
+                    }
+                }
+                () = cancel.cancelled() => {
+                    tracing::debug!(channel = %channel, "tail_log cancelado");
+                }
             }
         });
 
         Ok(())
     }
 
-    /// Remove o registro de um canal.
-    ///
-    /// Para o pipe tmux e remove o arquivo de log.
-    ///
-    /// # Errors
-    ///
-    /// Retorna erro se o canal nao existir ou se `unpipe-pane` falhar.
+    /// Remove o registro de um canal. Para a task de tail, o pipe tmux e o log.
     pub async fn unregister_channel(&self, channel_name: &str) -> Result<(), AppError> {
         let mapping = self
             .channels
@@ -118,22 +120,16 @@ impl PaneProxy {
                 pane_id: channel_name.to_owned(),
             })?;
 
-        self.tmux.unpipe_pane(&mapping.pane_id).await?;
+        // Cancela a task de tail ANTES de limpar recursos
+        mapping.cancel.cancel();
 
-        // Remove arquivo de log; ignora erro se nao existir
+        self.tmux.unpipe_pane(&mapping.pane_id).await?;
         let _ = tokio::fs::remove_file(&mapping.log_path).await;
 
         Ok(())
     }
 
     /// Envia texto para o pane associado ao canal.
-    ///
-    /// Usa `send_text_multiline` para textos com newlines,
-    /// `send_keys` para textos simples de uma linha.
-    ///
-    /// # Errors
-    ///
-    /// Retorna erro se o canal nao existir ou se o comando tmux falhar.
     pub async fn send_input(&self, channel_name: &str, text: &str) -> Result<(), AppError> {
         let guard = self.channels.read().await;
         let mapping = guard
@@ -155,10 +151,6 @@ impl PaneProxy {
     }
 
     /// Redimensiona o pane associado ao canal.
-    ///
-    /// # Errors
-    ///
-    /// Retorna erro se o canal nao existir ou se `resize-pane` falhar.
     pub async fn resize_channel(
         &self,
         channel_name: &str,
@@ -177,10 +169,6 @@ impl PaneProxy {
     }
 
     /// Captura o conteudo visivel atual do pane associado ao canal.
-    ///
-    /// # Errors
-    ///
-    /// Retorna erro se o canal nao existir ou se `capture-pane` falhar.
     pub async fn capture_snapshot(&self, channel_name: &str) -> Result<String, AppError> {
         let guard = self.channels.read().await;
         let mapping = guard
@@ -206,18 +194,14 @@ impl PaneProxy {
 // ---------------------------------------------------------------------------
 
 /// Faz tail de um arquivo de log, publicando novos dados no broadcast.
-///
-/// Le em loop continuo: se nao ha dados novos (`n == 0`), aguarda 100ms
-/// antes de tentar novamente. O `pipe-pane` do tmux faz append ao arquivo
-/// e o `read` retorna novos bytes conforme aparecem.
 async fn tail_log(
-    path: PathBuf,
-    channel: String,
-    tx: broadcast::Sender<ServerMessage>,
+    path: &PathBuf,
+    channel: &str,
+    tx: &broadcast::Sender<ServerMessage>,
 ) -> Result<(), std::io::Error> {
     use tokio::io::AsyncReadExt as _;
 
-    let mut file = tokio::fs::File::open(&path).await?;
+    let mut file = tokio::fs::File::open(path).await?;
     let mut buf = vec![0u8; 8192];
 
     loop {
@@ -228,9 +212,8 @@ async fn tail_log(
         }
 
         let data = String::from_utf8_lossy(&buf[..n]).into_owned();
-        // Ignorar erro de broadcast (sem receivers ativos)
         let _ = tx.send(ServerMessage::Output {
-            channel: channel.clone(),
+            channel: channel.to_owned(),
             data,
         });
     }
