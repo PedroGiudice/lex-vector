@@ -22,7 +22,7 @@ pub enum ClientMessage {
     #[serde(rename = "create_session")]
     CreateSession {
         #[serde(default)]
-        working_dir: Option<String>,
+        case_id: Option<String>,
     },
 
     /// Solicita destruicao de sessao existente.
@@ -44,7 +44,11 @@ pub enum ServerMessage {
 
     /// Confirmacao de sessao criada.
     #[serde(rename = "session_created")]
-    SessionCreated { session_id: String },
+    SessionCreated {
+        session_id: String,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        case_id: Option<String>,
+    },
 
     /// Notificacao de sessao encerrada.
     #[serde(rename = "session_ended")]

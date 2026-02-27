@@ -46,14 +46,17 @@ fn deserialize_create_session() {
     let msg: ClientMessage = serde_json::from_str(json).unwrap();
     assert!(matches!(
         msg,
-        ClientMessage::CreateSession { working_dir: None }
+        ClientMessage::CreateSession { case_id: None }
     ));
+}
 
-    let json = r#"{"type": "create_session", "working_dir": "/tmp"}"#;
+#[test]
+fn deserialize_create_session_with_case_id() {
+    let json = r#"{"type": "create_session", "case_id": "bianka-sfdc"}"#;
     let msg: ClientMessage = serde_json::from_str(json).unwrap();
     match msg {
-        ClientMessage::CreateSession { working_dir } => {
-            assert_eq!(working_dir.as_deref(), Some("/tmp"));
+        ClientMessage::CreateSession { case_id } => {
+            assert_eq!(case_id.as_deref(), Some("bianka-sfdc"));
         }
         _ => panic!("expected CreateSession"),
     }
@@ -124,6 +127,7 @@ fn reject_unknown_type() {
 fn serialize_session_created() {
     let msg = ServerMessage::SessionCreated {
         session_id: "abc".into(),
+        case_id: None,
     };
     let json = serde_json::to_string(&msg).unwrap();
     assert!(
@@ -131,6 +135,20 @@ fn serialize_session_created() {
         "missing session_created in: {json}"
     );
     assert!(json.contains("abc"), "missing session_id value in: {json}");
+    assert!(
+        !json.contains("case_id"),
+        "case_id should be skipped when None: {json}"
+    );
+}
+
+#[test]
+fn serialize_session_created_with_case_id() {
+    let msg = ServerMessage::SessionCreated {
+        session_id: "abc".into(),
+        case_id: Some("bianka-sfdc".into()),
+    };
+    let json = serde_json::to_string(&msg).unwrap();
+    assert!(json.contains("bianka-sfdc"), "missing case_id in: {json}");
 }
 
 #[test]

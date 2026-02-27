@@ -179,17 +179,18 @@ async fn handle_client_message(socket: &mut WebSocket, state: &AppState, msg: Cl
             send_server_msg(socket, &ServerMessage::Pong).await;
         }
 
-        ClientMessage::CreateSession { working_dir } => {
+        ClientMessage::CreateSession { case_id } => {
             match state
                 .session_mgr
-                .create_session(working_dir.as_deref())
+                .create_session(case_id.as_deref())
                 .await
             {
                 Ok(session_id) => {
                     info!(session_id = %session_id, "sessao criada");
-                    let _ = state
-                        .broadcast_tx
-                        .send(ServerMessage::SessionCreated { session_id });
+                    let _ = state.broadcast_tx.send(ServerMessage::SessionCreated {
+                        session_id,
+                        case_id,
+                    });
                 }
                 Err(e) => {
                     warn!("falha ao criar sessao: {e}");
