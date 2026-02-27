@@ -228,10 +228,11 @@ def main(
         print(f"Despachadas {len(handles)} chamadas via .spawn()")
 
         results = []
-        for handle in handles:
+        total_handles = len(handles)
+        for i, handle in enumerate(handles, 1):
             result = handle.get()
             print(
-                f"  {result['source']}: {result['count']} chunks, "
+                f"  [{i}/{total_handles}] {result['source']}: {result['count']} chunks, "
                 f"sparse avg {result.get('sparse_avg_tokens', '?')} tokens -> "
                 f"{result['status']}"
             )
