@@ -1,0 +1,119 @@
+@import "tailwindcss";
+
+/* ---- Variaveis de design ---- */
+:root {
+  --bg-base:     #080808;
+  --bg-surface:  #101010;
+  --bg-elevated: #161616;
+  --bg-input:    #0d0d0d;
+
+  --border:      #1e1e1e;
+  --border-mid:  #2a2a2a;
+  --border-focus:#d97757;
+
+  --text-primary:   #ede9e3;
+  --text-secondary: #6b6560;
+  --text-muted:     #3a3735;
+
+  --accent:       #d97757;
+  --accent-dim:   rgba(217, 119, 87, 0.12);
+  --accent-hover: rgba(217, 119, 87, 0.08);
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+
+  /* Tipografia */
+  --font-ui:   -apple-system, BlinkMacSystemFont, "Segoe UI Variable", "Segoe UI",
+               Helvetica, Arial, sans-serif;
+  --font-mono: "Cascadia Code", "Cascadia Mono", "Fira Code", "Menlo",
+               "Consolas", "DejaVu Sans Mono", monospace;
+}
+
+/* ---- Reset e base ---- */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--bg-base);
+  color: var(--text-primary);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  letter-spacing: 0.01em;
+}
+
+/* ---- Scrollbar personalizada ---- */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #2a2a2a;
+  border-radius: 99px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #3a3a3a;
+}
+
+/* ---- Keyframes ---- */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeInFast {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ---- Utilitarios de animacao ---- */
+.anim-fade-in {
+  animation: fadeIn 0.3s ease both;
+}
+
+.anim-slide-up {
+  animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Stagger para listas de cards */
+.anim-stagger > *:nth-child(1) { animation-delay: 0.04s; }
+.anim-stagger > *:nth-child(2) { animation-delay: 0.08s; }
+.anim-stagger > *:nth-child(3) { animation-delay: 0.12s; }
+.anim-stagger > *:nth-child(4) { animation-delay: 0.16s; }
+.anim-stagger > *:nth-child(5) { animation-delay: 0.20s; }
+.anim-stagger > *:nth-child(6) { animation-delay: 0.24s; }
+.anim-stagger > *:nth-child(n+7) { animation-delay: 0.28s; }
+
+/* ---- Selecao de texto ---- */
+::selection {
+  background: rgba(217, 119, 87, 0.25);
+  color: var(--text-primary);
+}
+
+/* ---- Focus ring acessivel ---- */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}

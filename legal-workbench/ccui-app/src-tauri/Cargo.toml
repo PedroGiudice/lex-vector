@@ -1,0 +1,26 @@
+[package]
+name = "ccui-app"
+version = "0.1.0"
+description = "ccui-app -- cliente Tauri para ccui-backend"
+authors = ["LexVector"]
+edition = "2021"
+
+[lib]
+name = "ccui_app_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-shell = "2"
+tauri-plugin-store = "2"
+tauri-plugin-opener = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["full"] }
+reqwest = { version = "0.12", features = ["json"] }
+ssh-key = { version = "0.6", features = ["ed25519", "getrandom"] }
+rand_core = { version = "0.6", features = ["getrandom"] }
+dirs = "5"

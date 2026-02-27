@@ -1,0 +1,28 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Capability for the main window",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "opener:default",
+    "shell:allow-stdin-write",
+    "shell:allow-kill",
+    {
+      "identifier": "shell:allow-execute",
+      "allow": [
+        {
+          "name": "ssh",
+          "cmd": "ssh",
+          "args": [
+            "-N",
+            "-o", { "validator": "regex", "value": "^(StrictHostKeyChecking|ServerAliveInterval)=" },
+            "-L", { "validator": "regex", "value": "^\\d+:localhost:\\d+$" },
+            "-i", { "validator": "regex", "value": "^/home/[^/]+/\\.ccui/id_ed25519$" },
+            { "validator": "regex", "value": "^opc@[\\d.]+$" }
+          ]
+        }
+      ]
+    }
+  ]
+}
