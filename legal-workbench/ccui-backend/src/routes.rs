@@ -18,6 +18,7 @@ use tracing::{info, warn};
 
 use crate::{
     config::AppConfig,
+    pane_proxy::PaneProxy,
     session::SessionManager,
     tmux::TmuxDriver,
     ws::{ClientMessage, ServerMessage},
@@ -33,6 +34,7 @@ pub struct AppState {
     pub config: AppConfig,
     pub session_mgr: SessionManager,
     pub tmux: TmuxDriver,
+    pub pane_proxy: PaneProxy,
     pub broadcast_tx: broadcast::Sender<ServerMessage>,
 }
 
@@ -43,11 +45,13 @@ impl AppState {
         let tmux = TmuxDriver::new();
         let session_mgr = SessionManager::new(config.clone(), tmux.clone());
         let (broadcast_tx, _) = broadcast::channel(256);
+        let pane_proxy = PaneProxy::new(config.clone(), tmux.clone(), broadcast_tx.clone());
 
         Self {
             config,
             session_mgr,
             tmux,
+            pane_proxy,
             broadcast_tx,
         }
     }
@@ -234,9 +238,16 @@ async fn handle_client_message(socket: &mut WebSocket, state: &AppState, msg: Cl
         }
 
         ClientMessage::Input { channel, text } => {
-            info!(channel = %channel, "input recebido (routing pendente para PaneProxy)");
-            // TODO: rotear para PaneProxy quando implementado.
-            let _ = (&channel, &text);
+            if let Err(e) = state.pane_proxy.send_input(&channel, &text).await {
+                warn!(channel = %channel, "falha ao enviar input: {e}");
+                send_server_msg(
+                    socket,
+                    &ServerMessage::Error {
+                        message: format!("input error: {e}"),
+                    },
+                )
+                .await;
+            }
         }
 
         ClientMessage::Resize {
@@ -244,13 +255,11 @@ async fn handle_client_message(socket: &mut WebSocket, state: &AppState, msg: Cl
             cols,
             rows,
         } => {
-            info!(
-                channel = %channel,
-                cols = cols,
-                rows = rows,
-                "resize recebido (routing pendente para PaneProxy)"
-            );
-            // TODO: rotear para PaneProxy quando implementado.
+            #[allow(clippy::cast_possible_truncation)]
+            let (cols, rows) = (cols as u16, rows as u16);
+            if let Err(e) = state.pane_proxy.resize_channel(&channel, cols, rows).await {
+                warn!(channel = %channel, "falha ao resize: {e}");
+            }
         }
     }
 }
