@@ -205,7 +205,7 @@ impl PaneProxy {
 
 /// Faz tail de um arquivo de log, publicando novos dados no broadcast.
 async fn tail_log(
-    path: &PathBuf,
+    path: &std::path::Path,
     channel: &str,
     tx: &broadcast::Sender<ServerMessage>,
 ) -> Result<(), std::io::Error> {

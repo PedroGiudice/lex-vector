@@ -25,14 +25,8 @@ pub struct PaneInfo {
 /// Driver que encapsula toda interacao com o binario `tmux`.
 ///
 /// Sem estado interno -- wrapper puro sobre subprocess.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct TmuxDriver;
-
-impl Default for TmuxDriver {
-    fn default() -> Self {
-        Self
-    }
-}
 
 #[allow(clippy::missing_errors_doc)]
 impl TmuxDriver {

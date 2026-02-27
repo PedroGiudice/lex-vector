@@ -22,7 +22,10 @@ async fn create_session_writes_metadata_file() {
     let session_id = mgr.create_session(None).await.unwrap();
 
     // Arquivo JSON deve existir
-    let meta_path = tmp.path().join("sessions").join(format!("{session_id}.json"));
+    let meta_path = tmp
+        .path()
+        .join("sessions")
+        .join(format!("{session_id}.json"));
     assert!(meta_path.exists(), "arquivo de metadados nao foi criado");
 
     // Conteudo deve ser um SessionMetadata valido
@@ -43,7 +46,10 @@ async fn destroy_session_removes_metadata_file() {
     let mgr = SessionManager::new(config, tmux);
 
     let session_id = mgr.create_session(None).await.unwrap();
-    let meta_path = tmp.path().join("sessions").join(format!("{session_id}.json"));
+    let meta_path = tmp
+        .path()
+        .join("sessions")
+        .join(format!("{session_id}.json"));
     assert!(meta_path.exists());
 
     mgr.destroy_session(&session_id).await.unwrap();
@@ -95,11 +101,20 @@ async fn recover_sessions_from_disk_ignores_dead_sessions() {
     // Novo manager tenta recuperar
     let mgr2 = SessionManager::new(config.clone(), tmux.clone());
     let recovered = mgr2.recover_sessions_from_disk().await.unwrap();
-    assert!(recovered.is_empty(), "sessao morta nao deveria ser recuperada");
+    assert!(
+        recovered.is_empty(),
+        "sessao morta nao deveria ser recuperada"
+    );
 
     // Arquivo deve ter sido removido
-    let meta_path = tmp.path().join("sessions").join(format!("{session_id}.json"));
-    assert!(!meta_path.exists(), "arquivo de sessao morta nao foi removido");
+    let meta_path = tmp
+        .path()
+        .join("sessions")
+        .join(format!("{session_id}.json"));
+    assert!(
+        !meta_path.exists(),
+        "arquivo de sessao morta nao foi removido"
+    );
 }
 
 #[tokio::test]
@@ -132,7 +147,10 @@ async fn create_session_with_case_id_persists_it() {
 
     let session_id = mgr.create_session(Some("caso-teste")).await.unwrap();
 
-    let meta_path = tmp.path().join("sessions").join(format!("{session_id}.json"));
+    let meta_path = tmp
+        .path()
+        .join("sessions")
+        .join(format!("{session_id}.json"));
     let content = tokio::fs::read_to_string(&meta_path).await.unwrap();
     let metadata: SessionMetadata = serde_json::from_str(&content).unwrap();
     assert_eq!(metadata.case_id.as_deref(), Some("caso-teste"));

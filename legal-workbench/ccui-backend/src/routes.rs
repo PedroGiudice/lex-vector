@@ -139,9 +139,10 @@ async fn list_cases(State(state): State<Arc<AppState>>) -> impl IntoResponse {
             let last_modified = std::fs::metadata(&path)
                 .and_then(|m| m.modified())
                 .ok()
-                .and_then(|t| {
-                    let duration = t.duration_since(std::time::UNIX_EPOCH).unwrap_or_default();
-                    Some(duration.as_secs())
+                .map(|t| {
+                    t.duration_since(std::time::UNIX_EPOCH)
+                        .unwrap_or_default()
+                        .as_secs()
                 });
 
             // Sessoes ativas apontando para este caso
@@ -279,7 +280,7 @@ async fn handle_ws(mut socket: WebSocket, state: Arc<AppState>) {
     }
 }
 
-/// Versao de `handle_client_message` que captura o session_id resultante.
+/// Versao de `handle_client_message` que captura o `session_id` resultante.
 async fn handle_client_message_tracked(
     socket: &mut WebSocket,
     state: &AppState,
@@ -356,51 +357,9 @@ async fn handle_client_message(socket: &mut WebSocket, state: &AppState, msg: Cl
             send_server_msg(socket, &ServerMessage::Pong).await;
         }
 
-        ClientMessage::CreateSession { case_id } => {
-            match state.session_mgr.create_session(case_id.as_deref()).await {
-                Ok(session_id) => {
-                    info!(session_id = %session_id, "sessao criada");
-
-                    // Auto-registra canal "main" no pane_proxy
-                    if let Some(info) = state.session_mgr.get_session(&session_id).await {
-                        if let Err(e) = state
-                            .pane_proxy
-                            .register_channel("main", &info.tmux_session, &info.main_pane_id)
-                            .await
-                        {
-                            warn!(session_id = %session_id, "falha ao registrar canal main: {e}");
-                        }
-
-                        // Auto-start Claude Code
-                        if let Err(e) = state
-                            .tmux
-                            .send_keys(
-                                &info.tmux_session,
-                                &info.main_pane_id,
-                                "claude --dangerously-skip-permissions",
-                            )
-                            .await
-                        {
-                            warn!(session_id = %session_id, "falha ao iniciar Claude: {e}");
-                        }
-                    }
-
-                    let _ = state.broadcast_tx.send(ServerMessage::SessionCreated {
-                        session_id,
-                        case_id,
-                    });
-                }
-                Err(e) => {
-                    warn!("falha ao criar sessao: {e}");
-                    send_server_msg(
-                        socket,
-                        &ServerMessage::Error {
-                            message: e.to_string(),
-                        },
-                    )
-                    .await;
-                }
-            }
+        // CreateSession e tratado por handle_client_message_tracked no loop WS.
+        ClientMessage::CreateSession { .. } => {
+            unreachable!("roteado via handle_client_message_tracked")
         }
 
         ClientMessage::DestroySession { session_id } => {

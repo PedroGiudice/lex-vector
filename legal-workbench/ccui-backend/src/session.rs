@@ -88,16 +88,8 @@ impl SessionManager {
     /// Cria uma nova sessao tmux headless e a registra no mapa interno.
     ///
     /// Nao inicia o Claude Code -- isso deve ser feito externamente.
-    /// Retorna o `session_id` (8 primeiros chars de um UUID v4).
-    ///
-    /// # Errors
-    ///
-    /// Retorna `AppError::Io` se nao conseguir criar o diretorio de logs.
-    /// Retorna `AppError::Tmux` se o tmux falhar.
-    /// Cria uma nova sessao tmux headless e a registra no mapa interno.
-    ///
     /// Se `case_id` for fornecido, resolve o diretorio via `config.cases_dir / case_id`
-    /// e valida que o diretorio existe. A sessao tmux e criada com esse working_dir.
+    /// e valida que o diretorio existe. A sessao tmux e criada com esse `working_dir`.
     ///
     /// Retorna o `session_id` (8 primeiros chars de um UUID v4).
     ///
@@ -105,7 +97,7 @@ impl SessionManager {
     ///
     /// Retorna `AppError::Io` se nao conseguir criar o diretorio de logs.
     /// Retorna `AppError::Tmux` se o tmux falhar.
-    /// Retorna `AppError::InvalidCaseId` se o case_id nao corresponder a um diretorio existente.
+    /// Retorna `AppError::InvalidCaseId` se o `case_id` nao corresponder a um diretorio existente.
     pub async fn create_session(&self, case_id: Option<&str>) -> Result<String, AppError> {
         // Garante que o diretorio de logs existe.
         tokio::fs::create_dir_all(&self.config.pane_log_dir).await?;
@@ -284,9 +276,8 @@ impl SessionManager {
                 continue;
             }
 
-            let content = match tokio::fs::read_to_string(&path).await {
-                Ok(c) => c,
-                Err(_) => continue,
+            let Ok(content) = tokio::fs::read_to_string(&path).await else {
+                continue;
             };
 
             let metadata: SessionMetadata = match serde_json::from_str(&content) {
