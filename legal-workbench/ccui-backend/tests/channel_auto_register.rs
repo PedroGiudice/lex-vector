@@ -91,11 +91,11 @@ async fn auto_register_on_agent_joined_and_unregister_on_left() {
     });
 
     // Consome do broadcast e processa
-    if let Ok(ServerMessage::AgentJoined { name, pane_id: pid, .. }) = rx.recv().await {
-        proxy
-            .register_channel(&name, session, &pid)
-            .await
-            .unwrap();
+    if let Ok(ServerMessage::AgentJoined {
+        name, pane_id: pid, ..
+    }) = rx.recv().await
+    {
+        proxy.register_channel(&name, session, &pid).await.unwrap();
     }
 
     // Verifica que canal existe
@@ -146,10 +146,9 @@ async fn ws_handler_auto_registers_on_agent_joined() {
     });
 
     // Conecta WS
-    let (mut ws, _) =
-        tokio_tungstenite::connect_async(format!("ws://{addr}/ws"))
-            .await
-            .unwrap();
+    let (mut ws, _) = tokio_tungstenite::connect_async(format!("ws://{addr}/ws"))
+        .await
+        .unwrap();
 
     // Cria sessao tmux para ter um pane valido
     let test_session = "ccui-test-ws-autoreg";
@@ -196,8 +195,14 @@ async fn ws_handler_auto_registers_on_agent_joined() {
 
     // Verifica que o canal foi registrado no pane_proxy
     let details = pane_proxy.list_channel_details().await;
-    let found = details.iter().any(|(name, pid)| name == "test-agent" && pid == &pane_id);
-    assert!(found, "canal 'test-agent' deveria ter sido auto-registrado. canais: {:?}", details);
+    let found = details
+        .iter()
+        .any(|(name, pid)| name == "test-agent" && pid == &pane_id);
+    assert!(
+        found,
+        "canal 'test-agent' deveria ter sido auto-registrado. canais: {:?}",
+        details
+    );
 
     // Publica AgentLeft
     let _ = broadcast_tx.send(ServerMessage::AgentLeft {
@@ -208,7 +213,11 @@ async fn ws_handler_auto_registers_on_agent_joined() {
 
     let details = pane_proxy.list_channel_details().await;
     let found = details.iter().any(|(name, _)| name == "test-agent");
-    assert!(!found, "canal 'test-agent' deveria ter sido removido. canais: {:?}", details);
+    assert!(
+        !found,
+        "canal 'test-agent' deveria ter sido removido. canais: {:?}",
+        details
+    );
 
     // Cleanup
     let _ = session_mgr.destroy_session(&session_id).await;

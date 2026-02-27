@@ -156,7 +156,10 @@ async fn new_session_with_working_dir() {
     tokio::time::sleep(std::time::Duration::from_millis(500)).await;
 
     let output = tmux.capture_pane(session, pane_id).await.unwrap();
-    assert!(output.contains("/tmp"), "pwd deveria ser /tmp, output: {output}");
+    assert!(
+        output.contains("/tmp"),
+        "pwd deveria ser /tmp, output: {output}"
+    );
 
     tmux.kill_session(session).await.unwrap();
 }
