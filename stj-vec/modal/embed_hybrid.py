@@ -102,7 +102,9 @@ class HybridEmbedder:
         with open(out_sparse, "w") as f:
             json.dump(sparse_list, f)
 
-        volume_data.commit()
+        # NAO fazer commit aqui -- commit concorrente de multiplos containers
+        # causa contention no volume e serializa a execucao.
+        # O commit e feito em batch no final via flush_volume().
 
         elapsed = time.perf_counter() - t0
         vram_peak_gb = torch.cuda.max_memory_allocated() / (1024**3)
@@ -161,6 +163,16 @@ class HybridEmbedder:
     volumes={"/data": volume_data},
     timeout=120,
 )
+def flush_volume() -> str:
+    """Commit do volume apos todos os containers terminarem de escrever."""
+    volume_data.commit()
+    return "committed"
+
+
+@app.function(
+    volumes={"/data": volume_data},
+    timeout=120,
+)
 def list_pending_sources() -> list[str]:
     """Lista sources que nao tem .sparse.json (precisam de re-embedding hybrid)."""
     import os
@@ -199,6 +211,7 @@ def main(
 
     if source:
         result = embedder.embed_source.remote(source, batch_size)
+        flush_volume.remote()
         print(f"Done: {result}")
     elif all_pending:
         sources = list_pending_sources.remote()
@@ -206,18 +219,27 @@ def main(
         if not sources:
             return
 
+        # .spawn() forca despacho PARALELO imediato de todas as chamadas.
+        # .map() pode serializar por afinidade de container ou backpressure.
+        handles = []
+        for s in sources:
+            handle = embedder.embed_source.spawn(s, batch_size)
+            handles.append(handle)
+        print(f"Despachadas {len(handles)} chamadas via .spawn()")
+
         results = []
-        for result in embedder.embed_source.map(
-            sources,
-            kwargs={"batch_size": batch_size},
-            order_outputs=False,
-        ):
+        for handle in handles:
+            result = handle.get()
             print(
                 f"  {result['source']}: {result['count']} chunks, "
                 f"sparse avg {result.get('sparse_avg_tokens', '?')} tokens -> "
                 f"{result['status']}"
             )
             results.append(result)
+
+        # Commit unico apos todos os containers terminarem
+        flush_volume.remote()
+        print("Volume committed.")
 
         total = sum(r["count"] for r in results)
         print(f"\nTotal: {total} sparse embeddings para {len(results)} sources")
