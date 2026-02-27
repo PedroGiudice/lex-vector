@@ -37,7 +37,7 @@ image = modal.Image.debian_slim(python_version="3.11").pip_install(
     },
     timeout=3600,
     scaledown_window=120,
-    max_containers=8,
+    max_containers=6,
 )
 class HybridEmbedder:
     @modal.enter()
