@@ -2,32 +2,42 @@ import React, { useCallback, useRef, useState } from "react";
 import { LogOut, Send, Briefcase } from "lucide-react";
 import { useSession } from "../contexts/SessionContext";
 import { useWebSocket } from "../contexts/WebSocketContext";
+import { useChat } from "../hooks/useChat";
 import { ConnectionStatus } from "./ConnectionStatus";
-import { ChannelTabs } from "./ChannelTabs";
-import { TerminalPane } from "./TerminalPane";
+import { ModeToggle } from "./ModeToggle";
+import type { ViewMode } from "./ModeToggle";
+import { ChatView } from "./ChatView";
 
 interface SessionViewProps {
   onClose: () => void;
 }
 
-export const SessionView: React.FC<SessionViewProps> = ({ onClose }) => {
-  const { caseId, sessionId, channels, reset } = useSession();
-  const { status, retryCount, maxRetries, send, retryManual } = useWebSocket();
+const MODE_STORAGE_KEY = "ccui-view-mode";
 
-  const [activeChannel, setActiveChannel] = useState("main");
+export const SessionView: React.FC<SessionViewProps> = ({ onClose }) => {
+  const { caseId, sessionId, reset } = useSession();
+  const { status, retryCount, maxRetries, send, retryManual } = useWebSocket();
+  const { messages, isStreaming, sendMessage } = useChat();
+
+  const [viewMode, setViewMode] = useState<ViewMode>(() => {
+    const saved = localStorage.getItem(MODE_STORAGE_KEY);
+    return saved === "developer" ? "developer" : "client";
+  });
   const [inputText, setInputText] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const channelNames = channels.map((c) => c.name);
-  const safeActive = channelNames.includes(activeChannel) ? activeChannel : "main";
+  const handleModeChange = useCallback((mode: ViewMode) => {
+    setViewMode(mode);
+    localStorage.setItem(MODE_STORAGE_KEY, mode);
+  }, []);
 
   const handleSend = useCallback(() => {
     const text = inputText.trim();
     if (!text || !sessionId) return;
-    send({ type: "input", channel: safeActive, text });
+    sendMessage(text);
     setInputText("");
     textareaRef.current?.focus();
-  }, [inputText, sessionId, safeActive, send]);
+  }, [inputText, sessionId, sendMessage]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -70,12 +80,17 @@ export const SessionView: React.FC<SessionViewProps> = ({ onClose }) => {
             className="text-sm font-semibold text-[var(--text-primary)] truncate"
             title={caseId ?? ""}
           >
-            {caseId ?? "—"}
+            {caseId ?? "\u2014"}
           </span>
         </div>
 
         {/* Controles direita */}
         <div className="flex items-center gap-1 shrink-0">
+          <ModeToggle mode={viewMode} onChange={handleModeChange} />
+          <div
+            className="w-px h-4 mx-1"
+            style={{ background: "var(--border-mid)" }}
+          />
           <ConnectionStatus
             status={status}
             retryCount={retryCount}
@@ -104,19 +119,8 @@ export const SessionView: React.FC<SessionViewProps> = ({ onClose }) => {
         </div>
       </header>
 
-      {/* Abas de canal (so exibe quando ha mais de um) */}
-      {channels.length > 1 && (
-        <ChannelTabs
-          channels={channels}
-          activeChannel={safeActive}
-          onSelect={setActiveChannel}
-        />
-      )}
-
-      {/* Area de output do terminal */}
-      <div className="flex-1 overflow-hidden" style={{ background: "var(--bg-input)" }}>
-        <TerminalPane channel={safeActive} />
-      </div>
+      {/* Chat area */}
+      <ChatView messages={messages} isStreaming={isStreaming} viewMode={viewMode} />
 
       {/* Input */}
       <div
@@ -146,7 +150,7 @@ export const SessionView: React.FC<SessionViewProps> = ({ onClose }) => {
             placeholder={
               !isConnected
                 ? "Aguardando conexao..."
-                : `Instruir o ${safeActive === "main" ? "Claude" : safeActive}...`
+                : "Instruir o Claude..."
             }
             rows={1}
             className="flex-1 resize-none bg-transparent text-sm leading-relaxed outline-none
