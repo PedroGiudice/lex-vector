@@ -247,6 +247,31 @@ async fn handle_client_message(socket: &mut WebSocket, state: &AppState, msg: Cl
             {
                 Ok(session_id) => {
                     info!(session_id = %session_id, "sessao criada");
+
+                    // Auto-registra canal "main" no pane_proxy
+                    if let Some(info) = state.session_mgr.get_session(&session_id).await {
+                        if let Err(e) = state
+                            .pane_proxy
+                            .register_channel("main", &info.tmux_session, &info.main_pane_id)
+                            .await
+                        {
+                            warn!(session_id = %session_id, "falha ao registrar canal main: {e}");
+                        }
+
+                        // Auto-start Claude Code
+                        if let Err(e) = state
+                            .tmux
+                            .send_keys(
+                                &info.tmux_session,
+                                &info.main_pane_id,
+                                "claude --dangerously-skip-permissions",
+                            )
+                            .await
+                        {
+                            warn!(session_id = %session_id, "falha ao iniciar Claude: {e}");
+                        }
+                    }
+
                     let _ = state.broadcast_tx.send(ServerMessage::SessionCreated {
                         session_id,
                         case_id,

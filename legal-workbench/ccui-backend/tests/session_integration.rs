@@ -94,20 +94,75 @@ async fn recover_orphan_sessions() {
 
 #[tokio::test]
 async fn create_session_stores_working_dir() {
-    let config = AppConfig::default();
+    // Cria diretorio temporario com um caso
+    let tmp = tempfile::tempdir().unwrap();
+    let case_dir = tmp.path().join("meu-caso");
+    std::fs::create_dir_all(&case_dir).unwrap();
+
+    let mut config = AppConfig::default();
+    config.cases_dir = tmp.path().to_path_buf();
+
     let tmux = TmuxDriver::new();
     let mgr = SessionManager::new(config, tmux);
 
-    let id = mgr.create_session(Some("/tmp")).await.unwrap();
+    let id = mgr.create_session(Some("meu-caso")).await.unwrap();
 
     let info = mgr.get_session(&id).await.expect("sessao deve existir");
     assert_eq!(
         info.working_dir,
-        Some("/tmp".to_string()),
-        "working_dir deve ser /tmp"
+        Some(case_dir.to_string_lossy().to_string()),
+        "working_dir deve ser o path resolvido do case_id"
     );
 
     // Cleanup.
+    mgr.destroy_session(&id).await.unwrap();
+}
+
+#[tokio::test]
+async fn create_session_with_case_id_sets_working_dir() {
+    // Cria diretorio temporario simulando um caso
+    let tmp = tempfile::tempdir().unwrap();
+    let case_dir = tmp.path().join("caso-teste");
+    std::fs::create_dir_all(&case_dir).unwrap();
+
+    let mut config = AppConfig::default();
+    config.cases_dir = tmp.path().to_path_buf();
+
+    let tmux = TmuxDriver::new();
+    let mgr = SessionManager::new(config, tmux);
+
+    let id = mgr.create_session(Some("caso-teste")).await.unwrap();
+
+    let info = mgr.get_session(&id).await.expect("sessao deve existir");
+    assert_eq!(
+        info.working_dir,
+        Some(case_dir.to_string_lossy().to_string()),
+        "working_dir deve ser o path resolvido do case_id"
+    );
+
+    mgr.destroy_session(&id).await.unwrap();
+}
+
+#[tokio::test]
+async fn create_session_with_invalid_case_id_fails() {
+    let config = AppConfig::default();
+    let tmux = TmuxDriver::new();
+    let mgr = SessionManager::new(config, tmux);
+
+    let result = mgr.create_session(Some("caso-inexistente-xyz")).await;
+    assert!(result.is_err(), "deve falhar com case_id inexistente");
+}
+
+#[tokio::test]
+async fn create_session_without_case_id_works() {
+    let config = AppConfig::default();
+    let tmux = TmuxDriver::new();
+    let mgr = SessionManager::new(config, tmux);
+
+    let id = mgr.create_session(None).await.unwrap();
+    let info = mgr.get_session(&id).await.expect("sessao deve existir");
+    assert!(info.working_dir.is_none());
+
     mgr.destroy_session(&id).await.unwrap();
 }
 

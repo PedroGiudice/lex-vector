@@ -142,6 +142,40 @@ async fn list_sessions_with_prefix() {
 }
 
 #[tokio::test]
+async fn new_session_with_working_dir() {
+    let tmux = TmuxDriver::new();
+    let session = "ccui-test-workdir";
+    let _ = tmux.kill_session(session).await;
+
+    tmux.new_session_in_dir(session, 200, 50, Some("/tmp"))
+        .await
+        .unwrap();
+    let pane_id = &tmux.list_panes(session).await.unwrap()[0].id;
+
+    tmux.send_keys(session, pane_id, "pwd").await.unwrap();
+    tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+
+    let output = tmux.capture_pane(session, pane_id).await.unwrap();
+    assert!(output.contains("/tmp"), "pwd deveria ser /tmp, output: {output}");
+
+    tmux.kill_session(session).await.unwrap();
+}
+
+#[tokio::test]
+async fn new_session_in_dir_none_works_like_new_session() {
+    let tmux = TmuxDriver::new();
+    let session = "ccui-test-workdir-none";
+    let _ = tmux.kill_session(session).await;
+
+    tmux.new_session_in_dir(session, 200, 50, None)
+        .await
+        .unwrap();
+    assert!(tmux.session_exists(session).await);
+
+    tmux.kill_session(session).await.unwrap();
+}
+
+#[tokio::test]
 async fn session_exists_false_for_nonexistent() {
     let tmux = TmuxDriver::new();
     assert!(!tmux.session_exists("ccui-nonexistent-session-xyz").await);

@@ -52,14 +52,42 @@ impl SessionManager {
     ///
     /// Retorna `AppError::Io` se nao conseguir criar o diretorio de logs.
     /// Retorna `AppError::Tmux` se o tmux falhar.
-    pub async fn create_session(&self, working_dir: Option<&str>) -> Result<String, AppError> {
+    /// Cria uma nova sessao tmux headless e a registra no mapa interno.
+    ///
+    /// Se `case_id` for fornecido, resolve o diretorio via `config.cases_dir / case_id`
+    /// e valida que o diretorio existe. A sessao tmux e criada com esse working_dir.
+    ///
+    /// Retorna o `session_id` (8 primeiros chars de um UUID v4).
+    ///
+    /// # Errors
+    ///
+    /// Retorna `AppError::Io` se nao conseguir criar o diretorio de logs.
+    /// Retorna `AppError::Tmux` se o tmux falhar.
+    /// Retorna `AppError::InvalidCaseId` se o case_id nao corresponder a um diretorio existente.
+    pub async fn create_session(&self, case_id: Option<&str>) -> Result<String, AppError> {
         // Garante que o diretorio de logs existe.
         tokio::fs::create_dir_all(&self.config.pane_log_dir).await?;
+
+        // Resolve case_id -> working_dir
+        let working_dir = if let Some(cid) = case_id {
+            let path = self.config.cases_dir.join(cid);
+            if !path.is_dir() {
+                return Err(AppError::Tmux(format!(
+                    "case_id '{cid}' nao encontrado em {}",
+                    self.config.cases_dir.display()
+                )));
+            }
+            Some(path.to_string_lossy().to_string())
+        } else {
+            None
+        };
 
         let session_id = short_uuid();
         let tmux_session = format!("{}-{session_id}", self.config.tmux_session_prefix);
 
-        self.tmux.new_session(&tmux_session, 220, 50).await?;
+        self.tmux
+            .new_session_in_dir(&tmux_session, 220, 50, working_dir.as_deref())
+            .await?;
 
         // Descobre o pane principal criado automaticamente.
         let panes = self.tmux.list_panes(&tmux_session).await?;
@@ -73,7 +101,7 @@ impl SessionManager {
             id: session_id.clone(),
             tmux_session,
             main_pane_id,
-            working_dir: working_dir.map(ToOwned::to_owned),
+            working_dir,
         };
 
         self.sessions.write().await.insert(session_id.clone(), info);

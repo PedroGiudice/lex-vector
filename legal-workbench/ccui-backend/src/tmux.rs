@@ -44,17 +44,25 @@ impl TmuxDriver {
 
     /// Cria uma nova sessao tmux detached com dimensoes especificadas.
     pub async fn new_session(&self, name: &str, width: u16, height: u16) -> Result<(), AppError> {
-        self.run(&[
-            "new-session",
-            "-d",
-            "-s",
-            name,
-            "-x",
-            &width.to_string(),
-            "-y",
-            &height.to_string(),
-        ])
-        .await
+        self.new_session_in_dir(name, width, height, None).await
+    }
+
+    /// Cria uma nova sessao tmux detached com dimensoes e diretorio de trabalho opcionais.
+    pub async fn new_session_in_dir(
+        &self,
+        name: &str,
+        width: u16,
+        height: u16,
+        working_dir: Option<&str>,
+    ) -> Result<(), AppError> {
+        let w = width.to_string();
+        let h = height.to_string();
+        let mut args = vec!["new-session", "-d", "-s", name, "-x", &w, "-y", &h];
+        if let Some(dir) = working_dir {
+            args.push("-c");
+            args.push(dir);
+        }
+        self.run(&args).await
     }
 
     /// Retorna `true` se a sessao com o nome dado existe.
