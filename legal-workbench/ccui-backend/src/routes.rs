@@ -163,6 +163,8 @@ async fn ws_upgrade(ws: WebSocketUpgrade, State(state): State<Arc<AppState>>) ->
 
 async fn handle_ws(mut socket: WebSocket, state: Arc<AppState>) {
     let mut rx = state.broadcast_tx.subscribe();
+    // Rastreia a sessao ativa desta conexao WS para resolver tmux_session de agentes.
+    let mut current_session_id: Option<String> = None;
 
     loop {
         tokio::select! {
@@ -172,7 +174,14 @@ async fn handle_ws(mut socket: WebSocket, state: Arc<AppState>) {
                     Some(Ok(Message::Text(text))) => {
                         match serde_json::from_str::<ClientMessage>(&text) {
                             Ok(msg) => {
-                                handle_client_message(&mut socket, &state, msg).await;
+                                // Captura session_id ao criar sessao
+                                if let ClientMessage::CreateSession { .. } = &msg {
+                                    handle_client_message_tracked(
+                                        &mut socket, &state, msg, &mut current_session_id
+                                    ).await;
+                                } else {
+                                    handle_client_message(&mut socket, &state, msg).await;
+                                }
                             }
                             Err(e) => {
                                 warn!("mensagem invalida do cliente: {e}");
@@ -203,8 +212,36 @@ async fn handle_ws(mut socket: WebSocket, state: Arc<AppState>) {
             // Mensagem de broadcast para enviar ao cliente.
             broadcast_msg = rx.recv() => {
                 match broadcast_msg {
-                    Ok(msg) => {
-                        send_server_msg(&mut socket, &msg).await;
+                    Ok(ref msg) => {
+                        // Auto-registro de canais de teammates
+                        match msg {
+                            ServerMessage::AgentJoined { name, pane_id, .. } => {
+                                if let Some(ref sid) = current_session_id {
+                                    if let Some(info) = state.session_mgr.get_session(sid).await {
+                                        if let Err(e) = state
+                                            .pane_proxy
+                                            .register_channel(name, &info.tmux_session, pane_id)
+                                            .await
+                                        {
+                                            warn!(
+                                                agent = %name,
+                                                "falha ao auto-registrar canal de agente: {e}"
+                                            );
+                                        }
+                                    }
+                                }
+                            }
+                            ServerMessage::AgentLeft { name } => {
+                                if let Err(e) = state.pane_proxy.unregister_channel(name).await {
+                                    warn!(
+                                        agent = %name,
+                                        "falha ao desregistrar canal de agente: {e}"
+                                    );
+                                }
+                            }
+                            _ => {}
+                        }
+                        send_server_msg(&mut socket, msg).await;
                     }
                     Err(broadcast::error::RecvError::Lagged(n)) => {
                         warn!("cliente perdeu {n} mensagens de broadcast");
@@ -213,6 +250,66 @@ async fn handle_ws(mut socket: WebSocket, state: Arc<AppState>) {
                         break;
                     }
                 }
+            }
+        }
+    }
+}
+
+/// Versao de `handle_client_message` que captura o session_id resultante.
+async fn handle_client_message_tracked(
+    socket: &mut WebSocket,
+    state: &AppState,
+    msg: ClientMessage,
+    current_session_id: &mut Option<String>,
+) {
+    if let ClientMessage::CreateSession { ref case_id } = msg {
+        match state
+            .session_mgr
+            .create_session(case_id.as_deref())
+            .await
+        {
+            Ok(session_id) => {
+                info!(session_id = %session_id, "sessao criada");
+                *current_session_id = Some(session_id.clone());
+
+                // Auto-registra canal "main" no pane_proxy
+                if let Some(info) = state.session_mgr.get_session(&session_id).await {
+                    if let Err(e) = state
+                        .pane_proxy
+                        .register_channel("main", &info.tmux_session, &info.main_pane_id)
+                        .await
+                    {
+                        warn!(session_id = %session_id, "falha ao registrar canal main: {e}");
+                    }
+
+                    // Auto-start Claude Code
+                    if let Err(e) = state
+                        .tmux
+                        .send_keys(
+                            &info.tmux_session,
+                            &info.main_pane_id,
+                            "claude --dangerously-skip-permissions",
+                        )
+                        .await
+                    {
+                        warn!(session_id = %session_id, "falha ao iniciar Claude: {e}");
+                    }
+                }
+
+                let _ = state.broadcast_tx.send(ServerMessage::SessionCreated {
+                    session_id,
+                    case_id: case_id.clone(),
+                });
+            }
+            Err(e) => {
+                warn!("falha ao criar sessao: {e}");
+                send_server_msg(
+                    socket,
+                    &ServerMessage::Error {
+                        message: e.to_string(),
+                    },
+                )
+                .await;
             }
         }
     }

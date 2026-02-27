@@ -187,6 +187,16 @@ impl PaneProxy {
     pub async fn list_channels(&self) -> Vec<String> {
         self.channels.read().await.keys().cloned().collect()
     }
+
+    /// Retorna detalhes dos canais ativos: `(nome, pane_id)`.
+    pub async fn list_channel_details(&self) -> Vec<(String, String)> {
+        self.channels
+            .read()
+            .await
+            .iter()
+            .map(|(name, mapping)| (name.clone(), mapping.pane_id.clone()))
+            .collect()
+    }
 }
 
 // ---------------------------------------------------------------------------
