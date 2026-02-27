@@ -12,15 +12,50 @@ export type ClientMessage =
   | { type: "destroy_session"; session_id: string }
   | { type: "ping" };
 
+// ---- Stream-JSON Message Parts ----
+
+export type MessagePartType =
+  | "text"
+  | "thinking"
+  | "tool_use"
+  | "tool_result"
+  ;
+
+export interface MessagePart {
+  type: MessagePartType;
+  content: string;
+  metadata?: {
+    toolName?: string;
+    toolId?: string;
+    filePath?: string;
+    exitCode?: number;
+    isError?: boolean;
+    language?: string;
+    isStreaming?: boolean;
+  };
+}
+
+// ---- Chat Messages ----
+
+export type MessageRole = "user" | "assistant";
+
+export interface ChatMessage {
+  id: string;
+  role: MessageRole;
+  parts: MessagePart[];
+  timestamp: number;
+  isStreaming?: boolean;
+}
+
 // ---- Server -> Client ----
 
 export type ServerMessage =
   | { type: "output"; channel: string; data: string }
   | { type: "session_created"; session_id: string; case_id?: string }
   | { type: "session_ended"; session_id: string }
-  | { type: "agent_joined"; name: string; color: string; model: string; pane_id: string }
-  | { type: "agent_left"; name: string }
-  | { type: "agent_crashed"; name: string }
+  | { type: "chat_start"; message_id: string }
+  | { type: "chat_delta"; message_id: string; part: MessagePart }
+  | { type: "chat_end"; message_id: string }
   | { type: "error"; message: string }
   | { type: "pong" };
 
