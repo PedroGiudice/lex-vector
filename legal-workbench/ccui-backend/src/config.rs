@@ -14,6 +14,7 @@ pub struct AppConfig {
     pub ws_pong_timeout_secs: u64,
     pub pane_health_interval_secs: u64,
     pub capture_poll_ms: u64,
+    pub cases_dir: PathBuf,
 }
 
 impl Default for AppConfig {
@@ -31,6 +32,7 @@ impl Default for AppConfig {
             ws_pong_timeout_secs: 10,
             pane_health_interval_secs: 5,
             capture_poll_ms: 200,
+            cases_dir: PathBuf::from(format!("{home}/casos")),
         }
     }
 }
@@ -47,6 +49,9 @@ impl AppConfig {
         }
         if let Ok(h) = std::env::var("CCUI_HOST") {
             cfg.host = h;
+        }
+        if let Ok(d) = std::env::var("CCUI_CASES_DIR") {
+            cfg.cases_dir = PathBuf::from(d);
         }
         cfg
     }

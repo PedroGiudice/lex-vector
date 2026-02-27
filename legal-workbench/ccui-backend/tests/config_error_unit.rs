@@ -93,6 +93,24 @@ fn from_env_without_vars_uses_defaults() {
 }
 
 // ---------------------------------------------------------------------------
+// config.rs -- cases_dir
+// ---------------------------------------------------------------------------
+
+#[test]
+fn default_cases_dir() {
+    let cfg = AppConfig::default();
+    assert_eq!(cfg.cases_dir, PathBuf::from("/home/opc/casos"));
+}
+
+#[test]
+fn from_env_reads_cases_dir() {
+    unsafe { std::env::set_var("CCUI_CASES_DIR", "/tmp/test-cases") };
+    let cfg = AppConfig::from_env();
+    unsafe { std::env::remove_var("CCUI_CASES_DIR") };
+    assert_eq!(cfg.cases_dir, PathBuf::from("/tmp/test-cases"));
+}
+
+// ---------------------------------------------------------------------------
 // error.rs -- IntoResponse status codes
 // ---------------------------------------------------------------------------
 
