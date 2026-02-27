@@ -1,0 +1,256 @@
+//! Router HTTP e handlers WebSocket.
+
+use std::sync::Arc;
+
+use axum::{
+    extract::{
+        ws::{Message, WebSocket, WebSocketUpgrade},
+        State,
+    },
+    response::IntoResponse,
+    routing::get,
+    Json, Router,
+};
+use serde_json::json;
+use tokio::sync::broadcast;
+use tower_http::cors::CorsLayer;
+use tracing::{info, warn};
+
+use crate::{
+    config::AppConfig,
+    session::SessionManager,
+    tmux::TmuxDriver,
+    ws::{ClientMessage, ServerMessage},
+};
+
+// ---------------------------------------------------------------------------
+// Estado compartilhado
+// ---------------------------------------------------------------------------
+
+/// Estado da aplicacao compartilhado entre handlers.
+#[derive(Clone)]
+pub struct AppState {
+    pub config: AppConfig,
+    pub session_mgr: SessionManager,
+    pub tmux: TmuxDriver,
+    pub broadcast_tx: broadcast::Sender<ServerMessage>,
+}
+
+impl AppState {
+    /// Cria o estado inicial da aplicacao.
+    #[must_use]
+    pub fn new(config: AppConfig) -> Self {
+        let tmux = TmuxDriver::new();
+        let session_mgr = SessionManager::new(config.clone(), tmux.clone());
+        let (broadcast_tx, _) = broadcast::channel(256);
+
+        Self {
+            config,
+            session_mgr,
+            tmux,
+            broadcast_tx,
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Router
+// ---------------------------------------------------------------------------
+
+/// Constroi o `Router` principal da aplicacao.
+pub fn create_router(state: AppState) -> Router {
+    Router::new()
+        .route("/health", get(health))
+        .route("/ws", get(ws_upgrade))
+        .route("/api/sessions", get(list_sessions))
+        .layer(CorsLayer::permissive())
+        .with_state(Arc::new(state))
+}
+
+// ---------------------------------------------------------------------------
+// Handlers HTTP
+// ---------------------------------------------------------------------------
+
+/// `GET /health` -- retorna `"ok"`.
+async fn health() -> &'static str {
+    "ok"
+}
+
+/// `GET /api/sessions` -- lista IDs das sessoes ativas.
+#[allow(clippy::missing_errors_doc)]
+async fn list_sessions(State(state): State<Arc<AppState>>) -> impl IntoResponse {
+    let sessions = state.session_mgr.list_sessions().await;
+    let ids: Vec<&str> = sessions.iter().map(|s| s.id.as_str()).collect();
+    Json(json!({ "sessions": ids }))
+}
+
+// ---------------------------------------------------------------------------
+// WebSocket upgrade
+// ---------------------------------------------------------------------------
+
+/// `GET /ws` -- upgrade para WebSocket.
+async fn ws_upgrade(ws: WebSocketUpgrade, State(state): State<Arc<AppState>>) -> impl IntoResponse {
+    ws.on_upgrade(move |socket| handle_ws(socket, state))
+}
+
+// ---------------------------------------------------------------------------
+// Handler WebSocket
+// ---------------------------------------------------------------------------
+
+async fn handle_ws(mut socket: WebSocket, state: Arc<AppState>) {
+    let mut rx = state.broadcast_tx.subscribe();
+
+    loop {
+        tokio::select! {
+            // Mensagem vinda do cliente.
+            client_msg = socket.recv() => {
+                match client_msg {
+                    Some(Ok(Message::Text(text))) => {
+                        match serde_json::from_str::<ClientMessage>(&text) {
+                            Ok(msg) => {
+                                handle_client_message(&mut socket, &state, msg).await;
+                            }
+                            Err(e) => {
+                                warn!("mensagem invalida do cliente: {e}");
+                                let err = ServerMessage::Error {
+                                    message: format!("mensagem invalida: {e}"),
+                                };
+                                send_server_msg(&mut socket, &err).await;
+                            }
+                        }
+                    }
+                    Some(Ok(Message::Close(_))) | None => {
+                        info!("cliente desconectou");
+                        break;
+                    }
+                    Some(Ok(_)) => {
+                        // binario ou ping/pong de protocolo -- ignorar
+                    }
+                    Some(Err(e)) => {
+                        warn!("erro ao receber mensagem WebSocket: {e}");
+                        break;
+                    }
+                }
+            }
+
+            // Mensagem de broadcast para enviar ao cliente.
+            broadcast_msg = rx.recv() => {
+                match broadcast_msg {
+                    Ok(msg) => {
+                        send_server_msg(&mut socket, &msg).await;
+                    }
+                    Err(broadcast::error::RecvError::Lagged(n)) => {
+                        warn!("cliente perdeu {n} mensagens de broadcast");
+                    }
+                    Err(broadcast::error::RecvError::Closed) => {
+                        break;
+                    }
+                }
+            }
+        }
+    }
+}
+
+/// Envia uma `ServerMessage` serializada como texto JSON ao socket.
+async fn send_server_msg(socket: &mut WebSocket, msg: &ServerMessage) {
+    match serde_json::to_string(msg) {
+        Ok(json) => {
+            if let Err(e) = socket.send(Message::Text(json.into())).await {
+                warn!("falha ao enviar mensagem ao cliente: {e}");
+            }
+        }
+        Err(e) => {
+            warn!("falha ao serializar ServerMessage: {e}");
+        }
+    }
+}
+
+/// Despacha uma `ClientMessage` para o handler correspondente.
+async fn handle_client_message(socket: &mut WebSocket, state: &AppState, msg: ClientMessage) {
+    match msg {
+        ClientMessage::Ping => {
+            send_server_msg(socket, &ServerMessage::Pong).await;
+        }
+
+        ClientMessage::CreateSession { working_dir } => {
+            match state
+                .session_mgr
+                .create_session(working_dir.as_deref())
+                .await
+            {
+                Ok(session_id) => {
+                    info!(session_id = %session_id, "sessao criada");
+                    send_server_msg(
+                        socket,
+                        &ServerMessage::SessionCreated {
+                            session_id: session_id.clone(),
+                        },
+                    )
+                    .await;
+                    // Notifica demais clientes via broadcast.
+                    let _ = state
+                        .broadcast_tx
+                        .send(ServerMessage::SessionCreated { session_id });
+                }
+                Err(e) => {
+                    warn!("falha ao criar sessao: {e}");
+                    send_server_msg(
+                        socket,
+                        &ServerMessage::Error {
+                            message: e.to_string(),
+                        },
+                    )
+                    .await;
+                }
+            }
+        }
+
+        ClientMessage::DestroySession { session_id } => {
+            match state.session_mgr.destroy_session(&session_id).await {
+                Ok(()) => {
+                    info!(session_id = %session_id, "sessao destruida");
+                    send_server_msg(
+                        socket,
+                        &ServerMessage::SessionEnded {
+                            session_id: session_id.clone(),
+                        },
+                    )
+                    .await;
+                    let _ = state
+                        .broadcast_tx
+                        .send(ServerMessage::SessionEnded { session_id });
+                }
+                Err(e) => {
+                    warn!("falha ao destruir sessao: {e}");
+                    send_server_msg(
+                        socket,
+                        &ServerMessage::Error {
+                            message: e.to_string(),
+                        },
+                    )
+                    .await;
+                }
+            }
+        }
+
+        ClientMessage::Input { channel, text } => {
+            info!(channel = %channel, "input recebido (routing pendente para PaneProxy)");
+            // TODO: rotear para PaneProxy quando implementado.
+            let _ = (&channel, &text);
+        }
+
+        ClientMessage::Resize {
+            channel,
+            cols,
+            rows,
+        } => {
+            info!(
+                channel = %channel,
+                cols = cols,
+                rows = rows,
+                "resize recebido (routing pendente para PaneProxy)"
+            );
+            // TODO: rotear para PaneProxy quando implementado.
+        }
+    }
+}
