@@ -29,12 +29,6 @@ fn default_prefix_is_ccui() {
 }
 
 #[test]
-fn default_pane_log_dir() {
-    let cfg = AppConfig::default();
-    assert_eq!(cfg.pane_log_dir, PathBuf::from("/tmp/ccui-pane-logs"));
-}
-
-#[test]
 fn default_claude_bin() {
     let cfg = AppConfig::default();
     assert_eq!(cfg.claude_bin, "claude");

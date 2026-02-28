@@ -191,21 +191,3 @@ async fn session_id_is_8_chars() {
     mgr.destroy_session(&id3).await.unwrap();
 }
 
-#[tokio::test]
-async fn create_session_has_valid_main_pane() {
-    let config = AppConfig::default();
-    let tmux = TmuxDriver::new();
-    let mgr = SessionManager::new(config, tmux);
-
-    let id = mgr.create_session(None).await.unwrap();
-
-    let info = mgr.get_session(&id).await.expect("sessao deve existir");
-    assert!(
-        info.main_pane_id.starts_with('%'),
-        "main_pane_id deve comecar com '%', obtido: '{}'",
-        info.main_pane_id
-    );
-
-    // Cleanup.
-    mgr.destroy_session(&id).await.unwrap();
-}

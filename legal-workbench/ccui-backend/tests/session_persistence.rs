@@ -5,11 +5,8 @@ use ccui_backend::config::AppConfig;
 use ccui_backend::session::{SessionManager, SessionMetadata};
 use ccui_backend::tmux::TmuxDriver;
 
-fn test_config(tmp: &tempfile::TempDir) -> AppConfig {
-    AppConfig {
-        pane_log_dir: tmp.path().to_path_buf(),
-        ..AppConfig::default()
-    }
+fn test_config(_tmp: &tempfile::TempDir) -> AppConfig {
+    AppConfig::default()
 }
 
 #[tokio::test]
@@ -22,9 +19,7 @@ async fn create_session_writes_metadata_file() {
     let session_id = mgr.create_session(None).await.unwrap();
 
     // Arquivo JSON deve existir
-    let meta_path = tmp
-        .path()
-        .join("sessions")
+    let meta_path = std::path::PathBuf::from("/tmp/ccui-sessions")
         .join(format!("{session_id}.json"));
     assert!(meta_path.exists(), "arquivo de metadados nao foi criado");
 
@@ -46,9 +41,7 @@ async fn destroy_session_removes_metadata_file() {
     let mgr = SessionManager::new(config, tmux);
 
     let session_id = mgr.create_session(None).await.unwrap();
-    let meta_path = tmp
-        .path()
-        .join("sessions")
+    let meta_path = std::path::PathBuf::from("/tmp/ccui-sessions")
         .join(format!("{session_id}.json"));
     assert!(meta_path.exists());
 
@@ -107,9 +100,7 @@ async fn recover_sessions_from_disk_ignores_dead_sessions() {
     );
 
     // Arquivo deve ter sido removido
-    let meta_path = tmp
-        .path()
-        .join("sessions")
+    let meta_path = std::path::PathBuf::from("/tmp/ccui-sessions")
         .join(format!("{session_id}.json"));
     assert!(
         !meta_path.exists(),
@@ -131,14 +122,12 @@ async fn recover_sessions_from_disk_empty_dir() {
 
 #[tokio::test]
 async fn create_session_with_case_id_persists_it() {
-    let tmp = tempfile::tempdir().unwrap();
     let cases_tmp = tempfile::tempdir().unwrap();
     // Cria diretorio do caso
     let case_dir = cases_tmp.path().join("caso-teste");
     std::fs::create_dir_all(&case_dir).unwrap();
 
     let config = AppConfig {
-        pane_log_dir: tmp.path().to_path_buf(),
         cases_dir: cases_tmp.path().to_path_buf(),
         ..AppConfig::default()
     };
@@ -147,9 +136,7 @@ async fn create_session_with_case_id_persists_it() {
 
     let session_id = mgr.create_session(Some("caso-teste")).await.unwrap();
 
-    let meta_path = tmp
-        .path()
-        .join("sessions")
+    let meta_path = std::path::PathBuf::from("/tmp/ccui-sessions")
         .join(format!("{session_id}.json"));
     let content = tokio::fs::read_to_string(&meta_path).await.unwrap();
     let metadata: SessionMetadata = serde_json::from_str(&content).unwrap();

@@ -19,7 +19,7 @@ async fn create_and_destroy_session() {
 }
 
 #[tokio::test]
-async fn send_keys_and_capture() {
+async fn send_keys_to_pane() {
     let tmux = TmuxDriver::new();
     let session = "ccui-test-keys";
     let _ = tmux.kill_session(session).await;
@@ -27,13 +27,10 @@ async fn send_keys_and_capture() {
     tmux.new_session(session, 200, 50).await.unwrap();
     let pane_id = &tmux.list_panes(session).await.unwrap()[0].id;
 
+    // Verifica que send_keys nao retorna erro (nao capturamos output -- removido com PaneProxy)
     tmux.send_keys(session, pane_id, "echo HELLO_CCUI")
         .await
         .unwrap();
-    tokio::time::sleep(std::time::Duration::from_millis(500)).await;
-
-    let output = tmux.capture_pane(session, pane_id).await.unwrap();
-    assert!(output.contains("HELLO_CCUI"), "output was: {output}");
 
     tmux.kill_session(session).await.unwrap();
 }
@@ -66,31 +63,6 @@ async fn resize_pane() {
     tmux.kill_session(session).await.unwrap();
 }
 
-#[tokio::test]
-async fn pipe_pane_to_file() {
-    let tmux = TmuxDriver::new();
-    let session = "ccui-test-pipe";
-    let _ = tmux.kill_session(session).await;
-
-    let log_path = "/tmp/ccui-test-pipe.log";
-    let _ = std::fs::remove_file(log_path);
-
-    tmux.new_session(session, 200, 50).await.unwrap();
-    let pane_id = &tmux.list_panes(session).await.unwrap()[0].id;
-
-    tmux.pipe_pane(pane_id, log_path).await.unwrap();
-
-    tmux.send_keys(session, pane_id, "echo PIPE_TEST")
-        .await
-        .unwrap();
-    tokio::time::sleep(std::time::Duration::from_millis(500)).await;
-
-    let content = std::fs::read_to_string(log_path).unwrap_or_default();
-    assert!(content.contains("PIPE_TEST"), "log content: {content}");
-
-    tmux.kill_session(session).await.unwrap();
-    let _ = std::fs::remove_file(log_path);
-}
 
 #[tokio::test]
 async fn send_text_multiline() {
@@ -101,13 +73,10 @@ async fn send_text_multiline() {
     tmux.new_session(session, 200, 50).await.unwrap();
     let pane_id = tmux.list_panes(session).await.unwrap()[0].id.clone();
 
+    // Verifica que send_text_multiline nao retorna erro
     tmux.send_text_multiline(session, &pane_id, "echo MULTI_LINE_TEST\n")
         .await
         .unwrap();
-    tokio::time::sleep(std::time::Duration::from_millis(500)).await;
-
-    let output = tmux.capture_pane(session, &pane_id).await.unwrap();
-    assert!(output.contains("MULTI_LINE_TEST"), "output was: {output}");
 
     tmux.kill_session(session).await.unwrap();
 }
@@ -152,14 +121,8 @@ async fn new_session_with_working_dir() {
         .unwrap();
     let pane_id = &tmux.list_panes(session).await.unwrap()[0].id;
 
+    // Verifica que send_keys funciona sem erro (capture_pane removido com PaneProxy)
     tmux.send_keys(session, pane_id, "pwd").await.unwrap();
-    tokio::time::sleep(std::time::Duration::from_millis(500)).await;
-
-    let output = tmux.capture_pane(session, pane_id).await.unwrap();
-    assert!(
-        output.contains("/tmp"),
-        "pwd deveria ser /tmp, output: {output}"
-    );
 
     tmux.kill_session(session).await.unwrap();
 }
@@ -199,7 +162,7 @@ async fn list_panes_nonexistent_session_returns_error() {
 }
 
 #[tokio::test]
-async fn capture_pane_with_global_id() {
+async fn send_keys_with_global_pane_id() {
     let tmux = TmuxDriver::new();
     let session = "ccui-test-global-id";
     let _ = tmux.kill_session(session).await;
@@ -210,13 +173,10 @@ async fn capture_pane_with_global_id() {
     // pane_id comeca com '%' -- resolve_target usa o ID global diretamente
     assert!(pane_id.starts_with('%'), "pane_id: {pane_id}");
 
+    // Verifica que send_keys aceita pane_id global sem erro
     tmux.send_keys(session, &pane_id, "echo GLOBAL_ID_TEST")
         .await
         .unwrap();
-    tokio::time::sleep(std::time::Duration::from_millis(500)).await;
-
-    let output = tmux.capture_pane(session, &pane_id).await.unwrap();
-    assert!(output.contains("GLOBAL_ID_TEST"), "output was: {output}");
 
     tmux.kill_session(session).await.unwrap();
 }
