@@ -1,6 +1,8 @@
+pub mod claude_types;
 pub mod config;
 pub mod error;
-pub mod pane_proxy;
+pub mod message_part;
+pub mod process_proxy;
 pub mod routes;
 pub mod session;
 pub mod team_watcher;

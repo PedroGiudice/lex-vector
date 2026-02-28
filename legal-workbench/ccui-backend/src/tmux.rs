@@ -3,8 +3,6 @@
 //! Nenhum outro modulo deve chamar tmux diretamente. Este modulo e o unico
 //! ponto de entrada para subprocessos tmux.
 
-use std::path::Path;
-
 use tokio::process::Command;
 
 use crate::error::AppError;
@@ -86,13 +84,6 @@ impl TmuxDriver {
         self.run(&["send-keys", "-t", &target, "Enter"]).await
     }
 
-    /// Captura o conteudo visivel do painel, preservando escapes ANSI (`-e`).
-    pub async fn capture_pane(&self, session: &str, pane_id: &str) -> Result<String, AppError> {
-        let target = Self::resolve_target(session, pane_id);
-        self.run_output(&["capture-pane", "-e", "-p", "-t", &target])
-            .await
-    }
-
     /// Lista os paineis de uma sessao.
     ///
     /// Formato interno: `#{pane_id}\t#{pane_dead}\t#{pane_current_command}\t#{pane_pid}`
@@ -136,24 +127,6 @@ impl TmuxDriver {
             &rows.to_string(),
         ])
         .await
-    }
-
-    /// Inicia o pipe de saida do painel para um arquivo de log.
-    ///
-    /// Usa `pipe-pane -o` para capturar apenas saida nova.
-    pub async fn pipe_pane(
-        &self,
-        pane_id: &str,
-        log_path: impl AsRef<Path>,
-    ) -> Result<(), AppError> {
-        let path = log_path.as_ref().to_string_lossy();
-        let cmd = format!("cat >> '{path}'");
-        self.run(&["pipe-pane", "-o", "-t", pane_id, &cmd]).await
-    }
-
-    /// Para o pipe de saida do painel.
-    pub async fn unpipe_pane(&self, pane_id: &str) -> Result<(), AppError> {
-        self.run(&["pipe-pane", "-t", pane_id]).await
     }
 
     /// Lista nomes de sessoes que comecam com o prefixo dado.

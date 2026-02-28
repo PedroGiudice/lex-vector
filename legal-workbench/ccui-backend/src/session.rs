@@ -16,10 +16,8 @@ use crate::tmux::TmuxDriver;
 pub struct SessionInfo {
     /// UUID curto (8 chars).
     pub id: String,
-    /// Nome da sessao tmux: `"{prefix}-{id}"`.
+    /// Nome da sessao tmux: `"{prefix}-{id}"`. Mantido para developer mode.
     pub tmux_session: String,
-    /// ID do pane principal (ex: `%0`).
-    pub main_pane_id: String,
     /// Diretorio de trabalho, se fornecido na criacao.
     pub working_dir: Option<String>,
     /// ID do caso juridico associado.
@@ -31,7 +29,6 @@ pub struct SessionInfo {
 pub struct SessionMetadata {
     pub id: String,
     pub tmux_session: String,
-    pub main_pane_id: String,
     pub working_dir: Option<String>,
     pub case_id: Option<String>,
     pub created_at: String,
@@ -44,7 +41,6 @@ impl SessionMetadata {
         Self {
             id: info.id.clone(),
             tmux_session: info.tmux_session.clone(),
-            main_pane_id: info.main_pane_id.clone(),
             working_dir: info.working_dir.clone(),
             case_id: info.case_id.clone(),
             created_at: chrono::Utc::now().to_rfc3339(),
@@ -57,7 +53,6 @@ impl SessionMetadata {
         SessionInfo {
             id: self.id,
             tmux_session: self.tmux_session,
-            main_pane_id: self.main_pane_id,
             working_dir: self.working_dir,
             case_id: self.case_id,
         }
@@ -99,9 +94,6 @@ impl SessionManager {
     /// Retorna `AppError::Tmux` se o tmux falhar.
     /// Retorna `AppError::InvalidCaseId` se o `case_id` nao corresponder a um diretorio existente.
     pub async fn create_session(&self, case_id: Option<&str>) -> Result<String, AppError> {
-        // Garante que o diretorio de logs existe.
-        tokio::fs::create_dir_all(&self.config.pane_log_dir).await?;
-
         // Resolve case_id -> working_dir
         let working_dir = if let Some(cid) = case_id {
             let path = self.config.cases_dir.join(cid);
@@ -123,18 +115,9 @@ impl SessionManager {
             .new_session_in_dir(&tmux_session, 220, 50, working_dir.as_deref())
             .await?;
 
-        // Descobre o pane principal criado automaticamente.
-        let panes = self.tmux.list_panes(&tmux_session).await?;
-        let main_pane_id = panes
-            .into_iter()
-            .next()
-            .ok_or_else(|| AppError::Tmux(format!("nenhum pane encontrado em {tmux_session}")))?
-            .id;
-
         let info = SessionInfo {
             id: session_id.clone(),
             tmux_session,
-            main_pane_id,
             working_dir,
             case_id: case_id.map(String::from),
         };
@@ -201,18 +184,9 @@ impl SessionManager {
                 continue;
             }
 
-            // Tenta descobrir o pane principal.
-            let panes = self
-                .tmux
-                .list_panes(&tmux_session)
-                .await
-                .unwrap_or_default();
-            let main_pane_id = panes.into_iter().next().map(|p| p.id).unwrap_or_default();
-
             let info = SessionInfo {
                 id: session_id.to_owned(),
                 tmux_session: tmux_session.clone(),
-                main_pane_id,
                 working_dir: None,
                 case_id: None,
             };
@@ -225,8 +199,9 @@ impl SessionManager {
     }
 
     /// Retorna o caminho do diretorio de metadados de sessao.
+    #[allow(clippy::unused_self)]
     fn sessions_dir(&self) -> PathBuf {
-        self.config.pane_log_dir.join("sessions")
+        PathBuf::from("/tmp/ccui-sessions")
     }
 
     /// Retorna o caminho do arquivo JSON para uma sessao.
@@ -312,7 +287,6 @@ impl SessionManager {
         let info = SessionInfo {
             id: session_id.to_owned(),
             tmux_session: format!("fake-{session_id}"),
-            main_pane_id: "%0".to_owned(),
             working_dir: None,
             case_id: None,
         };

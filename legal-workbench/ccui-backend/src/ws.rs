@@ -2,6 +2,8 @@
 
 use serde::{Deserialize, Serialize};
 
+use crate::message_part::MessagePart;
+
 /// Mensagens enviadas pelo cliente ao servidor.
 #[derive(Debug, Deserialize)]
 #[serde(tag = "type")]
@@ -28,6 +30,10 @@ pub enum ClientMessage {
     /// Solicita destruicao de sessao existente.
     #[serde(rename = "destroy_session")]
     DestroySession { session_id: String },
+
+    /// Envia prompt para o Claude via stream-json input.
+    #[serde(rename = "chat_input")]
+    ChatInput { session_id: String, text: String },
 
     /// Keepalive.
     #[serde(rename = "ping")]
@@ -70,6 +76,36 @@ pub enum ServerMessage {
     /// Agente encerrou de forma inesperada.
     #[serde(rename = "agent_crashed")]
     AgentCrashed { name: String },
+
+    /// Inicio de uma nova mensagem do assistente.
+    #[serde(rename = "chat_start")]
+    ChatStart {
+        message_id: String,
+        session_id: String,
+    },
+
+    /// Parte incremental de uma mensagem (texto, thinking, `tool_use`, `tool_result`).
+    #[serde(rename = "chat_delta")]
+    ChatDelta {
+        message_id: String,
+        session_id: String,
+        part: MessagePart,
+    },
+
+    /// Fim de uma mensagem do assistente.
+    #[serde(rename = "chat_end")]
+    ChatEnd {
+        message_id: String,
+        session_id: String,
+    },
+
+    /// Sessao Claude inicializada (metadata, nao faz parte do fluxo de chat).
+    #[serde(rename = "chat_init")]
+    ChatInit {
+        session_id: String,
+        model: String,
+        claude_session_id: String,
+    },
 
     /// Erro generico.
     #[serde(rename = "error")]

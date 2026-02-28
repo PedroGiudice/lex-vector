@@ -9,11 +9,10 @@ pub struct AppConfig {
     pub claude_flags: Vec<String>,
     pub teams_dir: PathBuf,
     pub tmux_session_prefix: String,
-    pub pane_log_dir: PathBuf,
     pub ws_ping_interval_secs: u64,
     pub ws_pong_timeout_secs: u64,
-    pub pane_health_interval_secs: u64,
-    pub capture_poll_ms: u64,
+    /// Timeout em segundos para o processo Claude responder apos spawn.
+    pub process_start_timeout_secs: u64,
     pub cases_dir: PathBuf,
 }
 
@@ -27,11 +26,9 @@ impl Default for AppConfig {
             claude_flags: vec!["--dangerously-skip-permissions".into()],
             teams_dir: PathBuf::from(format!("{home}/.claude/teams")),
             tmux_session_prefix: "ccui".into(),
-            pane_log_dir: PathBuf::from("/tmp/ccui-pane-logs"),
             ws_ping_interval_secs: 30,
             ws_pong_timeout_secs: 10,
-            pane_health_interval_secs: 5,
-            capture_poll_ms: 200,
+            process_start_timeout_secs: 30,
             cases_dir: PathBuf::from(format!("{home}/casos")),
         }
     }

@@ -19,7 +19,7 @@ use tracing::{info, warn};
 
 use crate::{
     config::AppConfig,
-    pane_proxy::PaneProxy,
+    process_proxy::ProcessProxy,
     session::SessionManager,
     tmux::TmuxDriver,
     ws::{ClientMessage, ServerMessage},
@@ -35,7 +35,7 @@ pub struct AppState {
     pub config: AppConfig,
     pub session_mgr: SessionManager,
     pub tmux: TmuxDriver,
-    pub pane_proxy: PaneProxy,
+    pub process_proxy: ProcessProxy,
     pub broadcast_tx: broadcast::Sender<ServerMessage>,
 }
 
@@ -46,13 +46,13 @@ impl AppState {
         let tmux = TmuxDriver::new();
         let session_mgr = SessionManager::new(config.clone(), tmux.clone());
         let (broadcast_tx, _) = broadcast::channel(256);
-        let pane_proxy = PaneProxy::new(config.clone(), tmux.clone(), broadcast_tx.clone());
+        let process_proxy = ProcessProxy::new(config.clone(), broadcast_tx.clone());
 
         Self {
             config,
             session_mgr,
             tmux,
-            pane_proxy,
+            process_proxy,
             broadcast_tx,
         }
     }
@@ -106,10 +106,10 @@ async fn list_channels(
             .into_response();
     }
 
-    let details = state.pane_proxy.list_channel_details().await;
-    let channels: Vec<serde_json::Value> = details
+    let active = state.process_proxy.list_sessions().await;
+    let channels: Vec<serde_json::Value> = active
         .into_iter()
-        .map(|(name, pane_id)| json!({ "name": name, "pane_id": pane_id }))
+        .map(|sid| json!({ "name": "main", "session_id": sid }))
         .collect();
 
     Json(json!({ "channels": channels })).into_response()
@@ -238,31 +238,13 @@ async fn handle_ws(mut socket: WebSocket, state: Arc<AppState>) {
             broadcast_msg = rx.recv() => {
                 match broadcast_msg {
                     Ok(ref msg) => {
-                        // Auto-registro de canais de teammates
+                        // Log de eventos de agentes (futuro: adaptar para ProcessProxy)
                         match msg {
-                            ServerMessage::AgentJoined { name, pane_id, .. } => {
-                                if let Some(ref sid) = current_session_id {
-                                    if let Some(info) = state.session_mgr.get_session(sid).await {
-                                        if let Err(e) = state
-                                            .pane_proxy
-                                            .register_channel(name, &info.tmux_session, pane_id)
-                                            .await
-                                        {
-                                            warn!(
-                                                agent = %name,
-                                                "falha ao auto-registrar canal de agente: {e}"
-                                            );
-                                        }
-                                    }
-                                }
+                            ServerMessage::AgentJoined { name, .. } => {
+                                info!(agent = %name, "agente entrou na sessao");
                             }
                             ServerMessage::AgentLeft { name } => {
-                                if let Err(e) = state.pane_proxy.unregister_channel(name).await {
-                                    warn!(
-                                        agent = %name,
-                                        "falha ao desregistrar canal de agente: {e}"
-                                    );
-                                }
+                                info!(agent = %name, "agente saiu da sessao");
                             }
                             _ => {}
                         }
@@ -293,27 +275,18 @@ async fn handle_client_message_tracked(
                 info!(session_id = %session_id, "sessao criada");
                 *current_session_id = Some(session_id.clone());
 
-                // Auto-registra canal "main" no pane_proxy
+                // Auto-start Claude Code via ProcessProxy (headless)
                 if let Some(info) = state.session_mgr.get_session(&session_id).await {
                     if let Err(e) = state
-                        .pane_proxy
-                        .register_channel("main", &info.tmux_session, &info.main_pane_id)
-                        .await
-                    {
-                        warn!(session_id = %session_id, "falha ao registrar canal main: {e}");
-                    }
-
-                    // Auto-start Claude Code
-                    if let Err(e) = state
-                        .tmux
-                        .send_keys(
-                            &info.tmux_session,
-                            &info.main_pane_id,
-                            "claude --dangerously-skip-permissions",
+                        .process_proxy
+                        .spawn_process(
+                            &session_id,
+                            info.working_dir.as_deref(),
+                            None,
                         )
                         .await
                     {
-                        warn!(session_id = %session_id, "falha ao iniciar Claude: {e}");
+                        warn!(session_id = %session_id, "falha ao spawnar Claude: {e}");
                     }
                 }
 
@@ -363,6 +336,7 @@ async fn handle_client_message(socket: &mut WebSocket, state: &AppState, msg: Cl
         }
 
         ClientMessage::DestroySession { session_id } => {
+            let _ = state.process_proxy.kill_process(&session_id).await;
             match state.session_mgr.destroy_session(&session_id).await {
                 Ok(()) => {
                     info!(session_id = %session_id, "sessao destruida");
@@ -383,29 +357,27 @@ async fn handle_client_message(socket: &mut WebSocket, state: &AppState, msg: Cl
             }
         }
 
-        ClientMessage::Input { channel, text } => {
-            if let Err(e) = state.pane_proxy.send_input(&channel, &text).await {
-                warn!(channel = %channel, "falha ao enviar input: {e}");
+        ClientMessage::ChatInput { session_id, text } => {
+            if let Err(e) = state.process_proxy.send_input(&session_id, &text).await {
+                warn!(session_id = %session_id, "falha ao enviar chat input: {e}");
                 send_server_msg(
                     socket,
                     &ServerMessage::Error {
-                        message: format!("input error: {e}"),
+                        message: format!("chat input error: {e}"),
                     },
                 )
                 .await;
             }
         }
 
-        ClientMessage::Resize {
-            channel,
-            cols,
-            rows,
-        } => {
-            #[allow(clippy::cast_possible_truncation)]
-            let (cols, rows) = (cols as u16, rows as u16);
-            if let Err(e) = state.pane_proxy.resize_channel(&channel, cols, rows).await {
-                warn!(channel = %channel, "falha ao resize: {e}");
-            }
+        ClientMessage::Input { channel, text } => {
+            // Legado: input para panes tmux (developer mode).
+            // Mantido para compatibilidade, mas sem PaneProxy.
+            warn!(channel = %channel, text = %text, "input legado ignorado (sem PaneProxy)");
+        }
+
+        ClientMessage::Resize { .. } => {
+            // Resize de panes tmux -- noop sem PaneProxy.
         }
     }
 }

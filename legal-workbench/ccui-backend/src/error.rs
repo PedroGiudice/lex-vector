@@ -16,6 +16,9 @@ pub enum AppError {
     #[error("websocket error: {0}")]
     WebSocket(String),
 
+    #[error("process error: {0}")]
+    Process(String),
+
     #[error(transparent)]
     Io(#[from] std::io::Error),
 
