@@ -111,8 +111,8 @@ describe("chat flow integration", () => {
     fireEvent.keyDown(input, { key: "Enter" });
 
     expect(mockSend).toHaveBeenCalledWith({
-      type: "input",
-      channel: "main",
+      type: "chat_input",
+      session_id: "sess-1",
       text: "Qual o prazo?",
     });
 
@@ -121,19 +121,20 @@ describe("chat flow integration", () => {
 
     // 7. Simular resposta do assistente
     act(() => {
-      emitWs({ type: "chat_start", message_id: "m1" });
+      emitWs({ type: "chat_start", message_id: "m1", session_id: "sess_test" });
     });
 
     act(() => {
       emitWs({
         type: "chat_delta",
         message_id: "m1",
+        session_id: "sess_test",
         part: { type: "text", content: "O prazo prescricional e de 3 anos." },
       });
     });
 
     act(() => {
-      emitWs({ type: "chat_end", message_id: "m1" });
+      emitWs({ type: "chat_end", message_id: "m1", session_id: "sess_test" });
     });
 
     // 8. Verificar resposta renderizada
