@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useWebSocket } from "../contexts/WebSocketContext";
 import { useSession } from "../contexts/SessionContext";
-import type { ChatMessage, MessagePart, ServerMessage } from "../types/protocol";
+import type { ChatMessage, ServerMessage } from "../types/protocol";
 
 interface UseChatReturn {
   messages: ChatMessage[];
