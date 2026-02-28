@@ -8,6 +8,7 @@
 export type ClientMessage =
   | { type: "create_session"; case_id?: string }
   | { type: "input"; channel: string; text: string }
+  | { type: "chat_input"; session_id: string; text: string }
   | { type: "resize"; channel: string; cols: number; rows: number }
   | { type: "destroy_session"; session_id: string }
   | { type: "ping" };

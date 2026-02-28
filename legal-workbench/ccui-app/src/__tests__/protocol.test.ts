@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import type { MessagePart, ChatMessage, ServerMessage } from "../types/protocol";
+import type { MessagePart, ChatMessage, ServerMessage, ClientMessage } from "../types/protocol";
 
 describe("protocol types", () => {
   it("MessagePart aceita todos os tipos validos", () => {
@@ -69,5 +69,14 @@ describe("protocol types", () => {
     };
     expect(msg.type).toBe("chat_init");
     expect(msg.model).toBe("claude-sonnet-4-5");
+  });
+
+  it("ClientMessage aceita chat_input com session_id", () => {
+    const msg: ClientMessage = {
+      type: "chat_input",
+      session_id: "sess_abc",
+      text: "Qual o status do processo?",
+    };
+    expect(msg.type).toBe("chat_input");
   });
 });
