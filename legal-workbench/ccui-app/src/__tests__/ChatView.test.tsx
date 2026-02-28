@@ -40,9 +40,14 @@ describe("ChatView", () => {
     expect(screen.getByText("Analisando prazo...")).toBeInTheDocument();
   });
 
-  it("client mode mostra status pill para tool_use", () => {
-    render(<ChatView messages={[assistantMsg]} isStreaming={false} viewMode="client" />);
+  it("client mode mostra status pill para tool_use durante streaming", () => {
+    render(<ChatView messages={[assistantMsg]} isStreaming={true} viewMode="client" />);
     expect(screen.getByText(/Buscando nos documentos/)).toBeInTheDocument();
+  });
+
+  it("client mode suprime status pill para tool_use apos streaming encerrado", () => {
+    render(<ChatView messages={[assistantMsg]} isStreaming={false} viewMode="client" />);
+    expect(screen.queryByText(/Buscando nos documentos/)).not.toBeInTheDocument();
   });
 
   it("mostra indicador de streaming", () => {

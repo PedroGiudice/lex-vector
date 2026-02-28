@@ -23,16 +23,19 @@ export function useChat(): UseChatReturn {
         case "chat_start":
           currentMsgRef.current = msg.message_id;
           setIsStreaming(true);
-          setMessages((prev) => [
-            ...prev,
-            {
-              id: msg.message_id,
-              role: "assistant",
-              parts: [],
-              timestamp: Date.now(),
-              isStreaming: true,
-            },
-          ]);
+          setMessages((prev) => {
+            if (prev.find((m) => m.id === msg.message_id)) return prev;
+            return [
+              ...prev,
+              {
+                id: msg.message_id,
+                role: "assistant",
+                parts: [],
+                timestamp: Date.now(),
+                isStreaming: true,
+              },
+            ];
+          });
           break;
 
         case "chat_delta":

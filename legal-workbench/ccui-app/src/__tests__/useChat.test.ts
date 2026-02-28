@@ -101,6 +101,16 @@ describe("useChat", () => {
     expect(result.current.messages[0].isStreaming).toBe(false);
   });
 
+  it("chat_start duplicado com mesmo message_id nao adiciona mensagem extra", () => {
+    const { result } = renderHook(() => useChat());
+
+    act(() => messageHandler?.({ type: "chat_start", message_id: "m1" }));
+    act(() => messageHandler?.({ type: "chat_start", message_id: "m1" }));
+    act(() => messageHandler?.({ type: "chat_start", message_id: "m1" }));
+
+    expect(result.current.messages).toHaveLength(1);
+  });
+
   it("clearMessages limpa tudo", () => {
     const { result } = renderHook(() => useChat());
     act(() => result.current.sendMessage("msg"));
