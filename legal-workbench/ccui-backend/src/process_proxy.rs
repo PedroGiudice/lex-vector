@@ -60,6 +60,7 @@ impl ProcessProxy {
             .arg("--input-format")
             .arg("stream-json")
             .arg("--include-partial-messages")
+            .arg("--verbose")
             .arg("--permission-mode")
             .arg("bypassPermissions");
 
@@ -71,7 +72,7 @@ impl ProcessProxy {
             cmd.current_dir(dir);
         }
 
-        cmd.env("CLAUDECODE", "");
+        cmd.env_remove("CLAUDECODE");
 
         cmd.stdin(std::process::Stdio::piped())
             .stdout(std::process::Stdio::piped())
@@ -128,7 +129,10 @@ impl ProcessProxy {
 
         let msg = serde_json::json!({
             "type": "user",
-            "content": [{"type": "text", "text": text}]
+            "message": {
+                "role": "user",
+                "content": [{"type": "text", "text": text}]
+            }
         });
         let mut line = serde_json::to_string(&msg).map_err(|e| {
             AppError::Process(format!("json serialize: {e}"))
@@ -212,7 +216,7 @@ fn spawn_stderr_drain(session_id: &str, stderr: tokio::process::ChildStderr) {
         let mut lines = reader.lines();
         while let Ok(Some(line)) = lines.next_line().await {
             if !line.trim().is_empty() {
-                tracing::debug!(session_id = %sid, stderr = %line);
+                tracing::warn!(session_id = %sid, "claude stderr: {}", line);
             }
         }
     });
