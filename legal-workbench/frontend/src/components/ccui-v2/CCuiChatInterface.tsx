@@ -1,14 +1,12 @@
 import React, { useState, useEffect, useRef, useLayoutEffect, useCallback } from 'react';
 import {
   ArrowUp,
-  Sparkles,
   Check,
   Copy,
   ChevronDown,
   ChevronRight,
   Command,
   History,
-  Info,
   Plus,
   Trash2,
   X,
@@ -27,6 +25,8 @@ import {
   Loader2,
   RefreshCw,
   AlertTriangle,
+  Sparkles,
+  CornerDownLeft,
 } from 'lucide-react';
 import { useWebSocket } from './contexts/WebSocketContext';
 import { ErrorBanner, type ErrorType } from './ErrorBanner';
@@ -38,11 +38,9 @@ import {
 } from './contexts/ChatHistoryContext';
 import { ReactorSpinner, PhyllotaxisSpinner } from './Spinners';
 
-// Working directory for Claude CLI (configurable)
 const WORKING_DIR =
   import.meta.env.VITE_CLAUDE_CWD || '/home/cmr-auto/claude-work/repos/lex-vector';
 
-// Extend Window interface for Prism
 declare global {
   interface Window {
     Prism?: {
@@ -51,10 +49,12 @@ declare global {
   }
 }
 
-// Tool call state
+// ============================================================
+// Types
+// ============================================================
+
 type ToolStatus = 'pending' | 'running' | 'completed' | 'failed';
 
-// Tool call data stored in messages
 interface ToolCall {
   id: string;
   name: string;
@@ -73,6 +73,10 @@ interface Message {
   isSystem?: boolean;
   toolCalls?: ToolCall[];
 }
+
+// ============================================================
+// CodeBlock
+// ============================================================
 
 interface CodeBlockProps {
   code: string;
@@ -101,32 +105,40 @@ const CodeBlock: React.FC<CodeBlockProps> = ({
   };
 
   return (
-    <div className="relative group my-5 rounded-lg overflow-hidden border border-[#27272a] bg-[#050505] shadow-lg">
-      <div className="flex items-center justify-between px-5 py-2.5 bg-[#121212] border-b border-[#27272a]">
-        <div className="flex items-center space-x-2">
-          <span className="text-sm text-[#d97757] font-mono lowercase font-bold">{language}</span>
+    <div className="relative group my-4 overflow-hidden border border-[#231d15] bg-[#110e0b]">
+      <div className="flex items-center justify-between px-4 py-2 bg-[#161210] border-b border-[#231d15]">
+        <div className="flex items-center gap-2">
+          <div className="w-1.5 h-1.5 rounded-full bg-[#b85a30]/60" />
+          <span className="lv-mono text-[10px] text-[#b85a30] tracking-wider lowercase font-medium">
+            {language}
+          </span>
         </div>
         <button
           onClick={handleCopy}
-          className="flex items-center space-x-2 text-xs text-[#b5b5b5] hover:text-[#e3e1de] transition-colors"
+          className="flex items-center gap-1.5 text-[10px] lv-mono text-[#5a4a32] hover:text-[#a0603a] transition-colors"
+          aria-label={copied ? 'Copiado' : 'Copiar codigo'}
         >
-          {copied ? <Check className="w-4 h-4 text-[#d97757]" /> : <Copy className="w-4 h-4" />}
-          <span>{copied ? 'Copied' : 'Copy'}</span>
+          {copied ? <Check className="w-3 h-3 text-[#5a7a3a]" /> : <Copy className="w-3 h-3" />}
+          <span>{copied ? 'Copiado' : 'Copiar'}</span>
         </button>
       </div>
       <div className="relative">
-        <pre className="!m-0 !p-6 !bg-[#050505] !text-base overflow-x-auto custom-scrollbar font-mono leading-relaxed">
-          <code ref={codeRef} className={`language-${language} !bg-transparent !text-shadow-none`}>
+        <pre className="!m-0 !p-5 !bg-[#110e0b] !text-sm overflow-x-auto lv-scrollbar lv-mono leading-relaxed">
+          <code ref={codeRef} className={`language-${language} !bg-transparent`}>
             {code}
           </code>
           {isStreaming && (
-            <span className="inline-block w-2.5 h-5 bg-[#d97757] align-middle ml-1.5 animate-pulse"></span>
+            <span className="inline-block w-2 h-4 bg-[#b85a30] align-middle ml-1 animate-pulse" />
           )}
         </pre>
       </div>
     </div>
   );
 };
+
+// ============================================================
+// ThinkingBlock
+// ============================================================
 
 interface ThinkingBlockProps {
   content: string;
@@ -138,40 +150,44 @@ interface ThinkingBlockProps {
 const ThinkingBlock: React.FC<ThinkingBlockProps> = ({
   content,
   isStreaming,
-  label = 'Reasoning',
+  label = 'Raciocinio',
   duration,
 }) => {
   const [isOpen, setIsOpen] = useState(true);
 
   return (
-    <div className="mb-5 group border border-[#27272a] rounded-lg bg-[#080808] overflow-hidden">
+    <div className="mb-4 group border border-[#231d15] bg-[#110e0b] overflow-hidden">
       <div
-        className="flex items-center gap-3 cursor-pointer select-none px-5 py-3 bg-[#111] hover:bg-[#151515] transition-colors"
+        className="flex items-center gap-2.5 cursor-pointer select-none px-4 py-2.5 bg-[#141009] hover:bg-[#181510] transition-colors"
         onClick={() => setIsOpen(!isOpen)}
+        role="button"
+        tabIndex={0}
+        aria-expanded={isOpen}
+        onKeyDown={(e) => e.key === 'Enter' && setIsOpen(!isOpen)}
       >
-        <div className="w-5 h-5 flex items-center justify-center">
+        <div className="w-4 h-4 flex items-center justify-center">
           {isStreaming ? (
             <PhyllotaxisSpinner className="w-full h-full" />
           ) : isOpen ? (
-            <ChevronDown className="w-5 h-5 text-[#b5b5b5]" />
+            <ChevronDown className="w-3.5 h-3.5 text-[#5a4a32]" />
           ) : (
-            <ChevronRight className="w-5 h-5 text-[#b5b5b5]" />
+            <ChevronRight className="w-3.5 h-3.5 text-[#5a4a32]" />
           )}
         </div>
         <span
-          className={`text-sm font-mono font-medium tracking-tight ${isStreaming ? 'text-[#e3e1de]' : 'text-[#b5b5b5]'}`}
+          className={`text-[11px] lv-mono tracking-wider ${isStreaming ? 'text-[#a0603a]' : 'text-[#5a4a32]'}`}
         >
-          {label}
+          {label.toUpperCase()}
         </span>
-        {duration && <span className="text-sm text-[#888] font-mono ml-auto">{duration}</span>}
+        {duration && <span className="text-[10px] text-[#3e3222] lv-mono ml-auto">{duration}</span>}
       </div>
 
       {isOpen && (
-        <div className="px-5 py-4">
-          <div className="text-base text-[#c0c0c0] font-mono leading-relaxed whitespace-pre-wrap">
+        <div className="px-4 py-3 border-t border-[#1c1710]">
+          <div className="text-[13px] text-[#9a8060] lv-mono leading-relaxed whitespace-pre-wrap">
             {content}
             {isStreaming && (
-              <span className="inline-block w-2.5 h-5 bg-[#d97757] ml-1 animate-pulse" />
+              <span className="inline-block w-2 h-4 bg-[#a0603a] ml-1 animate-pulse" />
             )}
           </div>
         </div>
@@ -180,35 +196,37 @@ const ThinkingBlock: React.FC<ThinkingBlockProps> = ({
   );
 };
 
-// Tool icon mapping
+// ============================================================
+// Tool helpers
+// ============================================================
+
 const getToolIcon = (toolName: string): React.ReactNode => {
-  const iconClass = 'w-4 h-4';
+  const cls = 'w-3.5 h-3.5';
   switch (toolName.toLowerCase()) {
     case 'read':
-      return <FileText className={iconClass} />;
+      return <FileText className={cls} />;
     case 'write':
     case 'edit':
-      return <FileEdit className={iconClass} />;
+      return <FileEdit className={cls} />;
     case 'bash':
-      return <Terminal className={iconClass} />;
+      return <Terminal className={cls} />;
     case 'grep':
-      return <Search className={iconClass} />;
+      return <Search className={cls} />;
     case 'glob':
-      return <FolderSearch className={iconClass} />;
+      return <FolderSearch className={cls} />;
     case 'websearch':
-      return <Globe className={iconClass} />;
+      return <Globe className={cls} />;
     case 'webfetch':
-      return <Link className={iconClass} />;
+      return <Link className={cls} />;
     case 'todowrite':
-      return <ListTodo className={iconClass} />;
+      return <ListTodo className={cls} />;
     case 'skill':
-      return <Zap className={iconClass} />;
+      return <Zap className={cls} />;
     default:
-      return <Terminal className={iconClass} />;
+      return <Terminal className={cls} />;
   }
 };
 
-// Format tool input for display
 const formatToolInput = (toolName: string, input: Record<string, unknown>): string => {
   switch (toolName.toLowerCase()) {
     case 'read':
@@ -231,7 +249,10 @@ const formatToolInput = (toolName: string, input: Record<string, unknown>): stri
   }
 };
 
-// ToolCallBlock component
+// ============================================================
+// ToolCallBlock
+// ============================================================
+
 interface ToolCallBlockProps {
   toolCall: ToolCall;
   isExpanded?: boolean;
@@ -244,105 +265,98 @@ const ToolCallBlock: React.FC<ToolCallBlockProps> = ({
   const [isOpen, setIsOpen] = useState(defaultExpanded);
   const [showResult, setShowResult] = useState(false);
 
-  const statusIcon = () => {
-    switch (toolCall.status) {
-      case 'pending':
-        return <div className="w-4 h-4 rounded-full border-2 border-[#555]" />;
-      case 'running':
-        return <Loader2 className="w-4 h-4 text-[#d97757] animate-spin" />;
-      case 'completed':
-        return <CheckCircle2 className="w-4 h-4 text-green-500" />;
-      case 'failed':
-        return <XCircle className="w-4 h-4 text-red-500" />;
-      default:
-        return null;
-    }
+  const statusConfig = {
+    pending: {
+      icon: <div className="w-3 h-3 rounded-full border border-[#3e3222]" />,
+      color: 'text-[#5a4a32]',
+      label: 'pendente',
+    },
+    running: {
+      icon: <Loader2 className="w-3 h-3 text-[#b85a30] animate-spin" />,
+      color: 'text-[#b85a30]',
+      label: 'executando',
+    },
+    completed: {
+      icon: <CheckCircle2 className="w-3 h-3 text-[#5a7a3a]" />,
+      color: 'text-[#5a7a3a]',
+      label: 'concluido',
+    },
+    failed: {
+      icon: <XCircle className="w-3 h-3 text-[#8a3028]" />,
+      color: 'text-[#8a3028]',
+      label: 'falhou',
+    },
   };
 
-  const statusColor = () => {
-    switch (toolCall.status) {
-      case 'pending':
-        return 'text-[#888]';
-      case 'running':
-        return 'text-[#d97757]';
-      case 'completed':
-        return 'text-green-500';
-      case 'failed':
-        return 'text-red-500';
-      default:
-        return 'text-[#888]';
-    }
-  };
-
+  const status = statusConfig[toolCall.status] || statusConfig.pending;
   const displayInput = formatToolInput(toolCall.name, toolCall.input);
   const hasResult = toolCall.result && toolCall.result.length > 0;
 
   return (
-    <div className="mb-3 group border border-[#27272a] rounded-lg bg-[#080808] overflow-hidden">
-      {/* Header */}
+    <div className="mb-2 group border border-[#231d15] bg-[#110e0b] overflow-hidden">
       <div
-        className="flex items-center gap-3 cursor-pointer select-none px-4 py-2.5 bg-[#111] hover:bg-[#151515] transition-colors"
+        className="flex items-center gap-2.5 cursor-pointer select-none px-3 py-2 bg-[#141009] hover:bg-[#181510] transition-colors"
         onClick={() => setIsOpen(!isOpen)}
+        role="button"
+        tabIndex={0}
+        aria-expanded={isOpen}
+        onKeyDown={(e) => e.key === 'Enter' && setIsOpen(!isOpen)}
       >
-        <div className="w-5 h-5 flex items-center justify-center">
-          {isOpen ? (
-            <ChevronDown className="w-4 h-4 text-[#b5b5b5]" />
-          ) : (
-            <ChevronRight className="w-4 h-4 text-[#b5b5b5]" />
-          )}
+        <div className="w-3.5 h-3.5 flex items-center justify-center text-[#5a4a32]">
+          {isOpen ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
         </div>
 
-        <div className="flex items-center gap-2 text-[#d97757]">
+        <div className="flex items-center gap-1.5 text-[#b85a30]">
           {getToolIcon(toolCall.name)}
-          <span className="text-sm font-mono font-semibold">{toolCall.name}</span>
+          <span className="text-[11px] lv-mono font-medium">{toolCall.name}</span>
         </div>
 
         <div className="flex-1 min-w-0">
-          <span className="text-sm text-[#888] font-mono truncate block">
-            {displayInput.length > 60 ? displayInput.substring(0, 57) + '...' : displayInput}
+          <span className="text-[11px] text-[#4a3d28] lv-mono truncate block">
+            {displayInput.length > 50 ? displayInput.substring(0, 47) + '...' : displayInput}
           </span>
         </div>
 
-        <div className="flex items-center gap-2">
-          {statusIcon()}
-          <span className={`text-xs font-mono ${statusColor()}`}>{toolCall.status}</span>
+        <div className="flex items-center gap-1.5">
+          {status.icon}
+          <span className={`text-[9px] lv-mono tracking-wider ${status.color}`}>
+            {status.label}
+          </span>
         </div>
       </div>
 
-      {/* Expanded Input Details */}
       {isOpen && (
-        <div className="px-4 py-3 border-t border-[#1a1a1a]">
-          <div className="text-xs text-[#666] font-mono mb-1">Input:</div>
-          <pre className="text-sm text-[#c0c0c0] font-mono leading-relaxed whitespace-pre-wrap bg-[#050505] p-3 rounded border border-[#1a1a1a] overflow-x-auto custom-scrollbar">
+        <div className="px-3 py-2.5 border-t border-[#1c1710]">
+          <div className="text-[9px] text-[#3e3222] lv-mono mb-1 tracking-wider">INPUT:</div>
+          <pre className="text-[11px] text-[#9a8060] lv-mono leading-relaxed whitespace-pre-wrap bg-[#0d0a08] p-2.5 border border-[#1c1710] overflow-x-auto lv-scrollbar">
             {typeof toolCall.input === 'object'
               ? JSON.stringify(toolCall.input, null, 2)
               : String(toolCall.input)}
           </pre>
 
-          {/* Result section (collapsible) */}
           {hasResult && (
-            <div className="mt-3">
+            <div className="mt-2">
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   setShowResult(!showResult);
                 }}
-                className="flex items-center gap-2 text-xs text-[#888] font-mono hover:text-[#b5b5b5] transition-colors"
+                className="flex items-center gap-1.5 text-[9px] text-[#4a3d28] lv-mono hover:text-[#7a6545] transition-colors tracking-wider"
               >
                 {showResult ? (
-                  <ChevronDown className="w-3 h-3" />
+                  <ChevronDown className="w-2.5 h-2.5" />
                 ) : (
-                  <ChevronRight className="w-3 h-3" />
+                  <ChevronRight className="w-2.5 h-2.5" />
                 )}
-                <span>Result ({toolCall.isError ? 'error' : 'success'})</span>
+                <span>RESULTADO ({toolCall.isError ? 'erro' : 'ok'})</span>
               </button>
 
               {showResult && (
                 <div
-                  className={`mt-2 p-3 rounded border ${toolCall.isError ? 'border-red-500/30 bg-red-500/5' : 'border-[#1a1a1a] bg-[#050505]'}`}
+                  className={`mt-1.5 p-2.5 border ${toolCall.isError ? 'border-[#8a3028]/30 bg-[#8a3028]/5' : 'border-[#1c1710] bg-[#0d0a08]'}`}
                 >
                   <pre
-                    className={`text-sm font-mono leading-relaxed whitespace-pre-wrap overflow-x-auto custom-scrollbar ${toolCall.isError ? 'text-red-400' : 'text-[#c0c0c0]'}`}
+                    className={`text-[11px] lv-mono leading-relaxed whitespace-pre-wrap overflow-x-auto lv-scrollbar ${toolCall.isError ? 'text-[#a04038]' : 'text-[#9a8060]'}`}
                   >
                     {toolCall.result}
                   </pre>
@@ -356,7 +370,10 @@ const ToolCallBlock: React.FC<ToolCallBlockProps> = ({
   );
 };
 
-// History Panel Component
+// ============================================================
+// HistoryPanel
+// ============================================================
+
 interface HistoryPanelProps {
   isOpen: boolean;
   onClose: () => void;
@@ -376,116 +393,107 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
   onDeleteConversation,
   onNewChat,
 }) => {
-  // Format date for display
   const formatDate = (isoString: string): string => {
     const date = new Date(isoString);
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
     const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
-    if (diffDays === 0) {
-      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    } else if (diffDays === 1) {
-      return 'Yesterday';
-    } else if (diffDays < 7) {
-      return `${diffDays} days ago`;
-    } else {
-      return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
-    }
+    if (diffDays === 0)
+      return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    if (diffDays === 1) return 'Ontem';
+    if (diffDays < 7) return `${diffDays} dias`;
+    return date.toLocaleDateString('pt-BR', { month: 'short', day: 'numeric' });
   };
 
-  // Get last message preview
   const getPreview = (conversation: Conversation): string => {
     const lastMessage = conversation.messages[conversation.messages.length - 1];
     if (lastMessage) {
       const content = lastMessage.content.trim();
-      if (content.length <= 60) return content;
-      return content.substring(0, 57) + '...';
+      return content.length <= 55 ? content : content.substring(0, 52) + '...';
     }
-    return 'No messages';
+    return 'Sem mensagens';
   };
 
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
-      {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
 
-      {/* Panel */}
-      <div className="relative w-full max-w-md bg-[#0a0a0a] border-l border-[#27272a] h-full flex flex-col animate-in slide-in-from-right duration-300">
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#27272a]">
-          <div className="flex items-center gap-3">
-            <History className="w-5 h-5 text-[#d97757]" />
-            <h2 className="text-lg font-semibold text-[#e3e1de]">Chat History</h2>
+      <div className="relative w-full max-w-sm bg-[#110e0b] border-l border-[#231d15] h-full flex flex-col">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-[#231d15]">
+          <div className="flex items-center gap-2">
+            <History className="w-4 h-4 text-[#a0603a]" strokeWidth={1.4} />
+            <span className="lv-serif text-[16px] text-[#c0a880] italic">Historico</span>
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-lg hover:bg-[#1a1a1a] transition-colors text-[#888] hover:text-[#e3e1de]"
+            className="p-1.5 text-[#3e3222] hover:text-[#7a6545] transition-colors"
+            aria-label="Fechar historico"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" strokeWidth={1.4} />
           </button>
         </div>
 
-        {/* New Chat Button */}
-        <div className="px-4 py-3 border-b border-[#27272a]">
+        <div className="px-3 py-2 border-b border-[#231d15]">
           <button
             onClick={() => {
               onNewChat();
               onClose();
             }}
-            className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-[#d97757]/10 border border-[#d97757]/30 text-[#d97757] hover:bg-[#d97757]/20 transition-colors"
+            className="w-full flex items-center justify-center gap-2 px-3 py-2
+              border border-[#a0603a]/20 text-[#a0603a]
+              hover:bg-[#a0603a]/5 hover:border-[#a0603a]/35
+              lv-mono text-[10px] tracking-wider transition-all duration-200"
           >
-            <Plus className="w-4 h-4" />
-            <span className="font-medium">New Chat</span>
+            <Plus className="w-3 h-3" strokeWidth={1.8} />
+            <span>NOVA SESSAO</span>
           </button>
         </div>
 
-        {/* Conversations List */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar">
+        <div className="flex-1 overflow-y-auto lv-scrollbar">
           {conversations.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-center px-6">
-              <MessageSquare className="w-12 h-12 text-[#333] mb-4" />
-              <p className="text-[#666] text-sm">No conversations yet</p>
-              <p className="text-[#555] text-xs mt-1">Start a chat to see your history here</p>
+            <div className="flex flex-col items-center justify-center h-full text-center px-5">
+              <MessageSquare className="w-8 h-8 text-[#251f16] mb-3" strokeWidth={1} />
+              <p className="text-[11px] text-[#3e3222] lv-mono">Nenhuma sessao</p>
             </div>
           ) : (
-            <div className="py-2">
-              {conversations.map((conversation) => (
+            <div className="py-1">
+              {conversations.map((conv) => (
                 <div
-                  key={conversation.id}
-                  className={`group px-4 py-3 mx-2 my-1 rounded-lg cursor-pointer transition-colors ${
-                    currentConversationId === conversation.id
-                      ? 'bg-[#d97757]/10 border border-[#d97757]/30'
-                      : 'hover:bg-[#1a1a1a] border border-transparent'
+                  key={conv.id}
+                  className={`group px-3 py-2.5 mx-1.5 my-0.5 cursor-pointer transition-all duration-150 border ${
+                    currentConversationId === conv.id
+                      ? 'bg-[#a0603a]/5 border-[#a0603a]/20'
+                      : 'border-transparent hover:bg-[#141009] hover:border-[#231d15]'
                   }`}
                   onClick={() => {
-                    onSelectConversation(conversation);
+                    onSelectConversation(conv);
                     onClose();
                   }}
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
-                      <h3 className="text-sm font-medium text-[#e3e1de] truncate">
-                        {conversation.title}
+                      <h3 className="text-[12px] font-medium text-[#c0a880] truncate">
+                        {conv.title}
                       </h3>
-                      <p className="text-xs text-[#666] mt-1 truncate">
-                        {getPreview(conversation)}
+                      <p className="text-[10px] text-[#4a3d28] mt-0.5 truncate lv-mono">
+                        {getPreview(conv)}
                       </p>
-                      <p className="text-xs text-[#555] mt-2">
-                        {formatDate(conversation.updatedAt)}
+                      <p className="text-[9px] text-[#3a301f] mt-1 lv-mono">
+                        {formatDate(conv.updatedAt)}
                       </p>
                     </div>
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        onDeleteConversation(conversation.id);
+                        onDeleteConversation(conv.id);
                       }}
-                      className="p-1.5 rounded opacity-0 group-hover:opacity-100 hover:bg-[#2a2a2a] text-[#666] hover:text-red-400 transition-all"
-                      title="Delete conversation"
+                      className="p-1 opacity-0 group-hover:opacity-100 text-[#3e3222] hover:text-[#8a3028] transition-all"
+                      aria-label="Excluir conversa"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="w-3 h-3" />
                     </button>
                   </div>
                 </div>
@@ -494,16 +502,20 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
           )}
         </div>
 
-        {/* Footer */}
-        <div className="px-6 py-3 border-t border-[#27272a] text-center">
-          <p className="text-xs text-[#555]">{conversations.length} / 50 conversations stored</p>
+        <div className="px-4 py-2 border-t border-[#231d15] text-center">
+          <span className="text-[8px] text-[#2e2519] lv-mono tracking-wider">
+            {conversations.length}/50 SESSOES
+          </span>
         </div>
       </div>
     </div>
   );
 };
 
-// Error Message Content with Retry and Copy
+// ============================================================
+// ErrorMessageContent
+// ============================================================
+
 interface ErrorMessageContentProps {
   content: string;
   onRetry?: () => void;
@@ -524,9 +536,9 @@ const ErrorMessageContent: React.FC<ErrorMessageContentProps> = ({
   };
 
   return (
-    <div className="space-y-3">
-      <div className="p-4 rounded-lg bg-red-500/5 border border-red-500/20">
-        <pre className="text-sm text-red-400 font-mono whitespace-pre-wrap overflow-x-auto">
+    <div className="space-y-2">
+      <div className="p-3 bg-[#8a3028]/5 border border-[#8a3028]/20">
+        <pre className="text-[12px] text-[#a04038] lv-mono whitespace-pre-wrap overflow-x-auto">
           {content}
         </pre>
       </div>
@@ -534,36 +546,31 @@ const ErrorMessageContent: React.FC<ErrorMessageContentProps> = ({
         {canRetry && onRetry && (
           <button
             onClick={onRetry}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium
-              bg-[#d97757]/10 text-[#d97757] hover:bg-[#d97757]/20 transition-colors
-              border border-[#d97757]/30"
+            className="flex items-center gap-1.5 px-2.5 py-1 text-[9px] lv-mono tracking-wider
+              bg-[#b85a30]/10 text-[#b85a30] hover:bg-[#b85a30]/20 transition-colors
+              border border-[#b85a30]/25"
           >
-            <RefreshCw className="w-3.5 h-3.5" />
-            Retry Message
+            <RefreshCw className="w-3 h-3" />
+            REENVIAR
           </button>
         )}
         <button
           onClick={handleCopy}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium
-            bg-[#1a1a1a] text-[#888] hover:text-[#e3e1de] transition-colors
-            border border-[#27272a]"
+          className="flex items-center gap-1.5 px-2.5 py-1 text-[9px] lv-mono tracking-wider
+            bg-[#141009] text-[#5a4a32] hover:text-[#9a8060] transition-colors
+            border border-[#231d15]"
         >
-          {copied ? (
-            <>
-              <Check className="w-3.5 h-3.5 text-green-500" />
-              Copied
-            </>
-          ) : (
-            <>
-              <Copy className="w-3.5 h-3.5" />
-              Copy Error
-            </>
-          )}
+          {copied ? <Check className="w-3 h-3 text-[#5a7a3a]" /> : <Copy className="w-3 h-3" />}
+          {copied ? 'COPIADO' : 'COPIAR'}
         </button>
       </div>
     </div>
   );
 };
+
+// ============================================================
+// CCuiChatInterface (main)
+// ============================================================
 
 export default function CCuiChatInterface() {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -588,40 +595,35 @@ export default function CCuiChatInterface() {
     isConnected,
   } = useWebSocket();
 
-  // Derive error banner state from connection status
   const showConnectionError =
     lastError &&
     (connectionStatus === 'error' ||
       connectionStatus === 'disconnected' ||
       connectionStatus === 'disabled');
 
-  // Get error type for banner
   const getErrorType = (): ErrorType => {
     if (!lastError) return 'unknown';
     return lastError.type;
   };
 
-  // Check if input should be disabled
   const isInputDisabled = isTyping || !isConnected;
 
-  // Get placeholder text based on connection status
   const getPlaceholderText = (): string => {
-    if (isTyping) return 'Thinking...';
+    if (isTyping) return 'Processando...';
     if (connectionStatus === 'connecting') {
       return retryCount > 0
-        ? `Reconnecting... (${retryCount}/${maxRetries})`
-        : 'Connecting to Claude...';
+        ? `Reconectando... (${retryCount}/${maxRetries})`
+        : 'Conectando ao backend...';
     }
     if (connectionStatus === 'disconnected' || connectionStatus === 'error') {
-      return 'Connection lost. Click retry or check backend...';
+      return 'Conexao perdida. Tente reconectar...';
     }
     if (connectionStatus === 'disabled') {
-      return 'Backend unavailable. Running in offline mode...';
+      return 'Backend indisponivel.';
     }
-    return 'Describe your task or enter a command...';
+    return 'Descreva a tarefa ou digite um comando...';
   };
 
-  // Chat history integration
   const {
     conversations,
     currentConversationId,
@@ -631,7 +633,7 @@ export default function CCuiChatInterface() {
     startNewConversation,
   } = useChatHistory();
 
-  // Handle incoming WS messages (claudecodeui backend format)
+  // ---- WebSocket message handler ----
   useEffect(() => {
     if (!lastMessage) return;
 
@@ -651,11 +653,9 @@ export default function CCuiChatInterface() {
       error?: string;
     };
 
-    // Handle claude-response messages (streaming content)
     if (wsMessage.type === 'claude-response' && wsMessage.data) {
       const data = wsMessage.data;
 
-      // Handle tool_use - Claude is invoking a tool
       if (data.type === 'tool_use' && data.id && data.name) {
         const newToolCall: ToolCall = {
           id: data.id,
@@ -666,34 +666,27 @@ export default function CCuiChatInterface() {
 
         setMessages((prev) => {
           const lastMsg = prev[prev.length - 1];
-          // Append to existing assistant message or create new one
           if (lastMsg && lastMsg.role === 'assistant') {
             const existingToolCalls = lastMsg.toolCalls || [];
             return [
               ...prev.slice(0, -1),
-              {
-                ...lastMsg,
-                isStreaming: true,
-                toolCalls: [...existingToolCalls, newToolCall],
-              },
-            ];
-          } else {
-            return [
-              ...prev,
-              {
-                id: Date.now().toString(),
-                role: 'assistant',
-                content: '',
-                isStreaming: true,
-                toolCalls: [newToolCall],
-              },
+              { ...lastMsg, isStreaming: true, toolCalls: [...existingToolCalls, newToolCall] },
             ];
           }
+          return [
+            ...prev,
+            {
+              id: Date.now().toString(),
+              role: 'assistant',
+              content: '',
+              isStreaming: true,
+              toolCalls: [newToolCall],
+            },
+          ];
         });
         setIsTyping(true);
       }
 
-      // Handle tool_result - Result from tool execution
       if (data.type === 'tool_result' && data.tool_use_id) {
         const resultContent =
           typeof data.content === 'string'
@@ -702,8 +695,8 @@ export default function CCuiChatInterface() {
               ? data.content.map((c) => c.text || '').join('')
               : '';
 
-        setMessages((prev) => {
-          return prev.map((msg) => {
+        setMessages((prev) =>
+          prev.map((msg) => {
             if (msg.role === 'assistant' && msg.toolCalls) {
               const updatedToolCalls = msg.toolCalls.map((tc) => {
                 if (tc.id === data.tool_use_id) {
@@ -712,7 +705,7 @@ export default function CCuiChatInterface() {
                     status: (data.is_error ? 'failed' : 'completed') as ToolStatus,
                     result:
                       resultContent.length > 2000
-                        ? resultContent.substring(0, 2000) + '\n... (truncated)'
+                        ? resultContent.substring(0, 2000) + '\n... (truncado)'
                         : resultContent,
                     isError: data.is_error,
                   };
@@ -722,11 +715,10 @@ export default function CCuiChatInterface() {
               return { ...msg, toolCalls: updatedToolCalls };
             }
             return msg;
-          });
-        });
+          })
+        );
       }
 
-      // Handle streaming deltas (content_block_delta)
       if (data.type === 'content_block_delta' && data.delta?.text) {
         setMessages((prev) => {
           const lastMsg = prev[prev.length - 1];
@@ -735,22 +727,20 @@ export default function CCuiChatInterface() {
               ...prev.slice(0, -1),
               { ...lastMsg, content: lastMsg.content + data.delta!.text },
             ];
-          } else {
-            return [
-              ...prev,
-              {
-                id: Date.now().toString(),
-                role: 'assistant',
-                content: data.delta!.text!,
-                isStreaming: true,
-              },
-            ];
           }
+          return [
+            ...prev,
+            {
+              id: Date.now().toString(),
+              role: 'assistant',
+              content: data.delta!.text!,
+              isStreaming: true,
+            },
+          ];
         });
         setIsTyping(true);
       }
 
-      // Handle end of content block
       if (data.type === 'content_block_stop') {
         setMessages((prev) => {
           const lastMsg = prev[prev.length - 1];
@@ -761,7 +751,6 @@ export default function CCuiChatInterface() {
         });
       }
 
-      // Handle assistant messages with content array
       if (data.type === 'assistant' && data.message?.content) {
         const textContent = data.message.content
           .filter((c) => c.type === 'text')
@@ -772,30 +761,25 @@ export default function CCuiChatInterface() {
             const lastMsg = prev[prev.length - 1];
             if (lastMsg && lastMsg.role === 'assistant' && lastMsg.isStreaming) {
               return [...prev.slice(0, -1), { ...lastMsg, content: lastMsg.content + textContent }];
-            } else {
-              return [
-                ...prev,
-                {
-                  id: Date.now().toString(),
-                  role: 'assistant',
-                  content: textContent,
-                  isStreaming: true,
-                },
-              ];
             }
+            return [
+              ...prev,
+              {
+                id: Date.now().toString(),
+                role: 'assistant',
+                content: textContent,
+                isStreaming: true,
+              },
+            ];
           });
           setIsTyping(true);
         }
       }
-    }
-
-    // Handle completion
-    else if (wsMessage.type === 'claude-complete') {
+    } else if (wsMessage.type === 'claude-complete') {
       setIsTyping(false);
       setMessages((prev) => {
         const lastMsg = prev[prev.length - 1];
         if (lastMsg && lastMsg.role === 'assistant') {
-          // Mark any running tool calls as completed
           const updatedToolCalls = lastMsg.toolCalls?.map((tc) =>
             tc.status === 'running' ? { ...tc, status: 'completed' as ToolStatus } : tc
           );
@@ -806,13 +790,9 @@ export default function CCuiChatInterface() {
         }
         return prev;
       });
-    }
-
-    // Handle errors
-    else if (wsMessage.type === 'claude-error') {
+    } else if (wsMessage.type === 'claude-error') {
       setIsTyping(false);
       setMessages((prev) => {
-        // Mark any running tool calls as failed
         const lastMsg = prev[prev.length - 1];
         if (lastMsg && lastMsg.role === 'assistant' && lastMsg.toolCalls) {
           const updatedToolCalls = lastMsg.toolCalls.map((tc) =>
@@ -824,7 +804,7 @@ export default function CCuiChatInterface() {
             {
               id: Date.now().toString(),
               role: 'assistant',
-              content: `Error: ${wsMessage.error || 'Unknown error'}`,
+              content: `Erro: ${wsMessage.error || 'Erro desconhecido'}`,
               isError: true,
             },
           ];
@@ -834,7 +814,7 @@ export default function CCuiChatInterface() {
           {
             id: Date.now().toString(),
             role: 'assistant',
-            content: `Error: ${wsMessage.error || 'Unknown error'}`,
+            content: `Erro: ${wsMessage.error || 'Erro desconhecido'}`,
             isError: true,
           },
         ];
@@ -853,39 +833,29 @@ export default function CCuiChatInterface() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isTyping]);
 
-  // Auto-save conversation when messages change (only when not streaming)
   useEffect(() => {
-    // Only save when we have messages and are not currently streaming
     if (messages.length > 0 && !isTyping) {
-      // Cast Message[] to HistoryMessage[] (they're compatible)
       saveConversation(messages as HistoryMessage[], currentConversationId);
     }
   }, [messages, isTyping, saveConversation, currentConversationId]);
 
-  // Handle new chat
   const handleNewChat = useCallback(() => {
     setMessages([]);
     startNewConversation();
   }, [startNewConversation]);
 
-  // Handle selecting a conversation from history
   const handleSelectConversation = useCallback(
     (conversation: Conversation) => {
       setCurrentConversationId(conversation.id);
-      // Cast HistoryMessage[] to Message[] (they're compatible)
       setMessages(conversation.messages as Message[]);
     },
     [setCurrentConversationId]
   );
 
-  // Handle deleting a conversation
   const handleDeleteConversation = useCallback(
     (id: string) => {
       deleteConversation(id);
-      // If we deleted the current conversation, clear messages
-      if (currentConversationId === id) {
-        setMessages([]);
-      }
+      if (currentConversationId === id) setMessages([]);
     },
     [deleteConversation, currentConversationId]
   );
@@ -903,7 +873,7 @@ export default function CCuiChatInterface() {
             id: Date.now().toString(),
             role: 'system',
             content:
-              'Available commands:\n/clear - Clear chat history\n/compact - Toggle compact mode\n/help - Show this help message',
+              'Comandos disponiveis:\n/clear - Limpar chat\n/compact - Modo compacto\n/help - Esta ajuda',
             isSystem: true,
           },
         ]);
@@ -915,7 +885,7 @@ export default function CCuiChatInterface() {
           {
             id: Date.now().toString(),
             role: 'system',
-            content: `Compact mode ${!compactMode ? 'enabled' : 'disabled'}.`,
+            content: `Modo compacto ${!compactMode ? 'ativado' : 'desativado'}.`,
             isSystem: true,
           },
         ]);
@@ -928,15 +898,13 @@ export default function CCuiChatInterface() {
   const handleSendMessage = async () => {
     if (input.trim() === '' || isTyping) return;
 
-    // Check connection before sending
     if (!isConnected) {
       setMessages((prev) => [
         ...prev,
         {
           id: Date.now().toString(),
           role: 'system',
-          content:
-            'Cannot send message: not connected to backend. Please wait for reconnection or click retry.',
+          content: 'Sem conexao com o backend. Aguarde reconexao ou tente manualmente.',
           isSystem: true,
           isError: true,
         },
@@ -946,7 +914,6 @@ export default function CCuiChatInterface() {
 
     const trimmedInput = input.trim();
 
-    // Check for slash commands
     if (trimmedInput.startsWith('/')) {
       const [cmd, ...args] = trimmedInput.split(' ');
       if (handleSlashCommand(cmd, args)) {
@@ -955,7 +922,6 @@ export default function CCuiChatInterface() {
       }
     }
 
-    // Store for retry functionality
     lastUserMessageRef.current = trimmedInput;
 
     const userMessage: Message = { id: Date.now().toString(), role: 'user', content: trimmedInput };
@@ -963,7 +929,6 @@ export default function CCuiChatInterface() {
     setInput('');
     setIsTyping(true);
 
-    // Send message via WebSocket in claudecodeui backend format
     sendWsMessage({
       type: 'claude-command',
       command: trimmedInput,
@@ -974,18 +939,13 @@ export default function CCuiChatInterface() {
     });
   };
 
-  // Retry last message (used for error recovery)
   const handleRetryLastMessage = useCallback(() => {
     if (!lastUserMessageRef.current || isTyping || !isConnected) return;
-
     setIsTyping(true);
     sendWsMessage({
       type: 'claude-command',
       command: lastUserMessageRef.current,
-      options: {
-        cwd: WORKING_DIR,
-        permissionMode: 'bypassPermissions',
-      },
+      options: { cwd: WORKING_DIR, permissionMode: 'bypassPermissions' },
     });
   }, [isTyping, isConnected, sendWsMessage]);
 
@@ -996,17 +956,13 @@ export default function CCuiChatInterface() {
     }
   };
 
-  // Render tool calls for a message
   const renderToolCalls = (message: Message): React.ReactNode[] => {
-    if (!message.toolCalls || message.toolCalls.length === 0) {
-      return [];
-    }
-
-    return message.toolCalls.map((toolCall) => (
+    if (!message.toolCalls || message.toolCalls.length === 0) return [];
+    return message.toolCalls.map((tc) => (
       <ToolCallBlock
-        key={`${message.id}-tool-${toolCall.id}`}
-        toolCall={toolCall}
-        isExpanded={toolCall.status === 'running' || toolCall.status === 'failed'}
+        key={`${message.id}-tool-${tc.id}`}
+        toolCall={tc}
+        isExpanded={tc.status === 'running' || tc.status === 'failed'}
       />
     ));
   };
@@ -1015,17 +971,15 @@ export default function CCuiChatInterface() {
     const content = message.content;
     const elements: React.ReactNode[] = [];
 
-    // First render any tool calls
     const toolCallElements = renderToolCalls(message);
     if (toolCallElements.length > 0) {
       elements.push(
-        <div key={`${message.id}-tools`} className="mb-4">
+        <div key={`${message.id}-tools`} className="mb-3">
           {toolCallElements}
         </div>
       );
     }
 
-    // Then render the text content
     if (content && content.trim()) {
       const parts = content.split(/(```[\w\s]*?\n[\s\S]*?```)/g);
 
@@ -1054,24 +1008,23 @@ export default function CCuiChatInterface() {
               <ThinkingBlock
                 key={message.id + '-thinking-' + index}
                 content={thinkingContent}
-                label="Reasoning"
+                label="Raciocinio"
                 isStreaming={isStreamingThisBlock}
               />
             );
           }
 
-          // Skip empty parts
           if (!part.trim()) return null;
 
           const isStreamingThisText = message.isStreaming && index === parts.length - 1;
           return (
             <p
               key={message.id + '-text-' + index}
-              className={`leading-relaxed whitespace-pre-wrap font-sans text-[#e3e1de] ${compactMode ? 'text-sm' : 'text-lg'}`}
+              className={`leading-relaxed whitespace-pre-wrap text-[#c8b088] ${compactMode ? 'text-[12px]' : 'text-[14px]'}`}
             >
               {part}
               {isStreamingThisText && (
-                <span className="inline-block w-3 h-6 bg-[#d97757] align-bottom ml-1.5 animate-pulse"></span>
+                <span className="inline-block w-2 h-5 bg-[#a0603a] align-bottom ml-1 animate-pulse" />
               )}
             </p>
           );
@@ -1081,7 +1034,6 @@ export default function CCuiChatInterface() {
       elements.push(...textElements);
     }
 
-    // Show streaming indicator if message is streaming but has no content yet
     if (
       message.isStreaming &&
       !content?.trim() &&
@@ -1089,8 +1041,8 @@ export default function CCuiChatInterface() {
     ) {
       elements.push(
         <div key={`${message.id}-streaming`} className="flex items-center gap-2">
-          <Loader2 className="w-4 h-4 text-[#d97757] animate-spin" />
-          <span className="text-sm text-[#888]">Processing...</span>
+          <Loader2 className="w-3.5 h-3.5 text-[#a0603a] animate-spin" />
+          <span className="text-[11px] text-[#5a4a32] lv-mono">Processando...</span>
         </div>
       );
     }
@@ -1099,10 +1051,9 @@ export default function CCuiChatInterface() {
   };
 
   return (
-    <div className="flex flex-col h-full bg-[#000000]">
-      {/* Connection Error Banner */}
+    <div className="flex flex-col h-full">
       {showConnectionError && lastError && (
-        <div className="flex-none px-8 pt-4">
+        <div className="flex-none px-6 pt-3">
           <ErrorBanner
             type={getErrorType()}
             message={lastError.message}
@@ -1114,67 +1065,87 @@ export default function CCuiChatInterface() {
         </div>
       )}
 
-      {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto custom-scrollbar p-8 flex flex-col space-y-10">
+      <div className="flex-1 overflow-y-auto lv-scrollbar px-6 py-6 flex flex-col">
         {messages.length === 0 && !isTyping ? (
-          <div className="flex flex-col items-center justify-center h-[75%] text-center select-none animate-in fade-in zoom-in-95 duration-500">
-            {/* Reactor Spinner for Empty State */}
-            <div className="mb-8 opacity-90">
+          <div className="flex flex-col items-center justify-center h-full text-center select-none">
+            <div className="mb-6 opacity-80">
               <ReactorSpinner />
             </div>
 
-            {/* Empty State Title */}
-            <h1 className="text-4xl text-[#c0c0c0] font-serif tracking-wide mb-4">
-              Claude Code CLI
+            <h1 className="lv-serif text-[36px] text-[#a0603a]/80 italic tracking-wide mb-2">
+              Lex Vector
             </h1>
-            <p className="text-sm text-[#888] font-medium tracking-[0.2em] uppercase">
-              Ready for input
+            <p className="lv-mono text-[10px] tracking-[0.25em] text-[#3e3222] uppercase">
+              Interface de Comando Juridico
             </p>
+
+            <div className="mt-10 flex items-center gap-4">
+              <div className="flex items-center gap-1.5 px-3 py-1.5 border border-[#231d15] bg-[#110e0b]">
+                <Terminal className="w-3 h-3 text-[#3e3222]" strokeWidth={1.4} />
+                <span className="lv-mono text-[9px] text-[#3e3222]">/help</span>
+              </div>
+              <div className="flex items-center gap-1.5 px-3 py-1.5 border border-[#231d15] bg-[#110e0b]">
+                <Sparkles className="w-3 h-3 text-[#3e3222]" strokeWidth={1.4} />
+                <span className="lv-mono text-[9px] text-[#3e3222]">pergunte qualquer coisa</span>
+              </div>
+            </div>
           </div>
         ) : (
-          messages.map((msg) => (
-            <div
-              key={msg.id}
-              className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-in fade-in duration-300 slide-in-from-bottom-3`}
-            >
-              <div
-                className={`max-w-[85%] ${
-                  msg.role === 'user'
-                    ? 'bg-[#d97757]/10 border border-[#d97757]/20 shadow-[0_0_20px_rgba(217,119,87,0.05)]'
-                    : msg.isError
-                      ? 'bg-red-500/5 border border-red-500/30'
-                      : 'bg-[#000000]'
-                } rounded-xl p-3`}
-              >
-                {msg.role === 'assistant' ? (
-                  <div className="flex gap-5">
+          <div className="max-w-4xl w-full mx-auto space-y-6">
+            {messages.map((msg) => (
+              <div key={msg.id} className="group">
+                {msg.role === 'user' ? (
+                  <div className="flex justify-end">
+                    <div className="max-w-[80%] px-4 py-3 bg-[#a0603a]/5 border border-[#a0603a]/12">
+                      <p
+                        className={`whitespace-pre-wrap text-[#c8b088] ${compactMode ? 'text-[12px]' : 'text-[14px]'}`}
+                      >
+                        {msg.content}
+                      </p>
+                    </div>
+                  </div>
+                ) : msg.isSystem ? (
+                  <div className="flex justify-center">
                     <div
-                      className={`w-10 h-10 rounded-full flex items-center justify-center flex-none mt-1 shadow-sm ${
+                      className={`px-4 py-2 lv-mono text-[11px] ${
                         msg.isError
-                          ? 'bg-red-500/10 border border-red-500/30'
-                          : 'bg-[#111] border border-[#27272a]'
+                          ? 'text-[#a04038] border border-[#8a3028]/20 bg-[#8a3028]/5'
+                          : 'text-[#5a4a32] border border-[#231d15] bg-[#110e0b]'
                       }`}
                     >
-                      {msg.isError ? (
-                        <AlertTriangle className="w-5 h-5 text-red-500" />
-                      ) : (
-                        <Sparkles className="w-5 h-5 text-[#d97757]" />
-                      )}
+                      <p className="whitespace-pre-wrap">{msg.content}</p>
                     </div>
+                  </div>
+                ) : (
+                  <div className="flex gap-0">
+                    <div
+                      className={`w-[2px] flex-none mr-4 mt-1 ${
+                        msg.isError ? 'bg-[#8a3028]/60' : 'bg-[#a0603a]/30'
+                      }`}
+                    />
+
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-3 mb-3">
+                      <div className="flex items-center gap-2 mb-2">
+                        {msg.isError ? (
+                          <AlertTriangle className="w-3 h-3 text-[#8a3028]" strokeWidth={1.4} />
+                        ) : (
+                          <div className="w-1.5 h-1.5 rounded-full bg-[#a0603a]/60" />
+                        )}
                         <span
-                          className={`text-base font-bold ${msg.isError ? 'text-red-400' : 'text-[#e3e1de]'}`}
+                          className={`lv-mono text-[9px] tracking-[0.12em] ${
+                            msg.isError ? 'text-[#8a3028]' : 'text-[#5a4a32]'
+                          }`}
                         >
-                          {msg.isError ? 'Error' : 'Claude'}
+                          {msg.isError ? 'ERRO' : 'CLAUDE'}
                         </span>
-                        <span className="text-sm text-[#888] font-mono">
-                          {new Date().toLocaleTimeString([], {
+                        <span className="lv-mono text-[8px] text-[#2e2519]">
+                          {new Date().toLocaleTimeString('pt-BR', {
                             hour: '2-digit',
                             minute: '2-digit',
                           })}
                         </span>
                       </div>
+
                       {msg.isError ? (
                         <ErrorMessageContent
                           content={msg.content}
@@ -1186,48 +1157,31 @@ export default function CCuiChatInterface() {
                       )}
                     </div>
                   </div>
-                ) : msg.isSystem ? (
-                  <div
-                    className={`px-6 py-4 rounded-2xl text-lg leading-relaxed ${
-                      msg.isError
-                        ? 'bg-red-500/10 text-red-400 border border-red-500/30'
-                        : 'bg-[#111] text-[#888] border border-[#27272a]'
-                    }`}
-                  >
-                    <p className="whitespace-pre-wrap font-sans">{msg.content}</p>
-                  </div>
-                ) : (
-                  <div className="px-6 py-4 rounded-2xl bg-[#1a1a1a] text-[#e3e1de] border border-[#27272a] text-lg leading-relaxed">
-                    <p className="whitespace-pre-wrap font-sans">{msg.content}</p>
-                  </div>
                 )}
               </div>
-            </div>
-          ))
-        )}
-        {isTyping && (
-          <div className="flex justify-start">
-            <div className="flex gap-5">
-              <div className="w-10 h-10 rounded-full bg-[#111] border border-[#27272a] flex items-center justify-center flex-none mt-1">
-                <Sparkles className="w-5 h-5 text-[#d97757]" />
-              </div>
-              <div className="flex items-center gap-4 mt-2">
-                {/* Phyllotaxis Spinner for Loading */}
-                <div className="w-8 h-8">
-                  <PhyllotaxisSpinner className="w-full h-full" />
+            ))}
+
+            {isTyping && (
+              <div className="flex gap-0">
+                <div className="w-[2px] flex-none mr-4 mt-1 bg-[#a0603a]/30" />
+                <div className="flex items-center gap-3">
+                  <div className="w-6 h-6">
+                    <PhyllotaxisSpinner className="w-full h-full" />
+                  </div>
+                  <span className="text-[11px] text-[#5a4a32] lv-mono animate-pulse">
+                    Processando...
+                  </span>
                 </div>
-                <span className="text-base text-[#888] animate-pulse">Thinking...</span>
               </div>
-            </div>
+            )}
+
+            <div ref={messagesEndRef} />
           </div>
         )}
-        <div ref={messagesEndRef} />
       </div>
 
-      {/* Input Area */}
-      <div className="flex-none p-8 w-full max-w-5xl mx-auto z-30">
-        {/* Connection Status Indicator */}
-        <div className="flex justify-end mb-2">
+      <div className="flex-none px-6 pb-4 pt-2 w-full max-w-4xl mx-auto">
+        <div className="flex justify-end mb-1.5">
           <ConnectionStatus
             status={connectionStatus}
             retryCount={retryCount}
@@ -1238,23 +1192,28 @@ export default function CCuiChatInterface() {
 
         <div
           className={`
-             relative flex items-center gap-5 bg-[#0a0a0a] border rounded-xl px-6 py-5 transition-all duration-300
-             ${
-               isInputDisabled
-                 ? 'border-[#27272a] opacity-70 cursor-not-allowed'
-                 : 'border-[#d97757]/40 focus-within:border-[#d97757] shadow-[0_0_30px_rgba(0,0,0,0.7)] focus-within:shadow-[0_0_40px_rgba(217,119,87,0.1)]'
-             }
-             ${!isConnected && !isTyping ? 'border-red-500/30' : ''}
-        `}
+            relative flex items-end gap-3 bg-[#110e0b] border px-4 py-3 transition-all duration-300
+            ${
+              isInputDisabled
+                ? 'border-[#231d15] opacity-60'
+                : 'border-[#a0603a]/15 focus-within:border-[#a0603a]/35 shadow-[0_-4px_24px_rgba(0,0,0,0.4)] focus-within:shadow-[0_-4px_32px_rgba(160,96,58,0.04)]'
+            }
+            ${!isConnected && !isTyping ? 'border-[#8a3028]/20' : ''}
+          `}
         >
           <span
-            className={`font-mono text-xl font-bold select-none ${isConnected ? 'text-[#d97757]' : 'text-[#555]'}`}
-          >{`>_`}</span>
+            className={`lv-mono text-[14px] font-medium select-none pb-0.5 ${
+              isConnected ? 'text-[#a0603a]/60' : 'text-[#3e3222]'
+            }`}
+          >
+            {'>'}
+          </span>
+
           <textarea
             ref={textareaRef}
-            className={`flex-1 resize-none overflow-hidden max-h-48 bg-transparent focus:outline-none placeholder-[#666] custom-scrollbar font-mono text-lg leading-relaxed ${
-              isInputDisabled ? 'text-[#888] cursor-not-allowed' : 'text-[#e3e1de]'
-            }`}
+            className={`flex-1 resize-none overflow-hidden max-h-40 bg-transparent focus:outline-none
+              placeholder-[#3e3222] lv-scrollbar lv-mono text-[13px] leading-relaxed
+              ${isInputDisabled ? 'text-[#5a4a32] cursor-not-allowed' : 'text-[#c8b088]'}`}
             placeholder={getPlaceholderText()}
             value={input}
             onChange={(e) => setInput(e.target.value)}
@@ -1262,47 +1221,45 @@ export default function CCuiChatInterface() {
             disabled={isInputDisabled}
             rows={1}
             autoFocus
+            aria-label="Campo de mensagem"
           />
+
           <button
             onClick={handleSendMessage}
-            className={`transition-all duration-200 p-2.5 rounded-lg ${
+            className={`transition-all duration-200 p-1.5 ${
               input.trim() === '' || isInputDisabled
-                ? 'text-[#333]'
-                : 'text-[#d97757] hover:bg-[#d97757]/10 hover:scale-105'
+                ? 'text-[#2e2519]'
+                : 'text-[#a0603a] hover:text-[#b85a30] hover:bg-[#a0603a]/5'
             }`}
             disabled={input.trim() === '' || isInputDisabled}
-            aria-label="Send message"
+            aria-label="Enviar mensagem"
           >
-            <ArrowUp className="w-7 h-7 stroke-[2.5px]" />
+            <ArrowUp className="w-5 h-5" strokeWidth={2} />
           </button>
         </div>
 
-        {/* Helper Links */}
-        <div className="flex justify-center items-center gap-10 mt-5 text-sm text-[#666] font-medium tracking-wide select-none">
-          <button className="flex items-center gap-2.5 hover:text-[#b5b5b5] transition-colors group">
-            <Command className="w-4 h-4 group-hover:text-[#d97757]" />
-            <span>Actions</span>
+        <div className="flex justify-center items-center gap-6 mt-3 select-none">
+          <button className="flex items-center gap-1.5 text-[#3e3222] hover:text-[#7a6545] transition-colors group">
+            <Command className="w-3 h-3 group-hover:text-[#a0603a]" strokeWidth={1.4} />
+            <span className="lv-mono text-[9px] tracking-wider">ACOES</span>
           </button>
           <button
             onClick={() => setHistoryPanelOpen(true)}
-            className="flex items-center gap-2.5 hover:text-[#b5b5b5] transition-colors group"
+            className="flex items-center gap-1.5 text-[#3e3222] hover:text-[#7a6545] transition-colors group"
           >
-            <History className="w-4 h-4 group-hover:text-[#d97757]" />
-            <span>History</span>
+            <History className="w-3 h-3 group-hover:text-[#a0603a]" strokeWidth={1.4} />
+            <span className="lv-mono text-[9px] tracking-wider">HISTORICO</span>
             {conversations.length > 0 && (
-              <span className="text-xs text-[#d97757] bg-[#d97757]/10 px-1.5 py-0.5 rounded-full">
-                {conversations.length}
-              </span>
+              <span className="text-[8px] text-[#a0603a] lv-mono">{conversations.length}</span>
             )}
           </button>
-          <button className="flex items-center gap-2.5 hover:text-[#b5b5b5] transition-colors group">
-            <Info className="w-4 h-4 group-hover:text-[#d97757]" />
-            <span>Guide</span>
-          </button>
+          <div className="flex items-center gap-1 text-[#2e2519]">
+            <CornerDownLeft className="w-2.5 h-2.5" strokeWidth={1.4} />
+            <span className="lv-mono text-[8px]">ENTER</span>
+          </div>
         </div>
       </div>
 
-      {/* History Panel */}
       <HistoryPanel
         isOpen={historyPanelOpen}
         onClose={() => setHistoryPanelOpen(false)}
