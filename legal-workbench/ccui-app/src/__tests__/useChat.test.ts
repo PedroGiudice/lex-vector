@@ -15,6 +15,17 @@ vi.mock("../contexts/WebSocketContext", () => ({
   }),
 }));
 
+const mockSessionId = "sess_test_123";
+vi.mock("../contexts/SessionContext", () => ({
+  useSession: () => ({
+    sessionId: mockSessionId,
+    caseId: "caso-001",
+    selectCase: vi.fn(),
+    createSession: vi.fn(),
+    reset: vi.fn(),
+  }),
+}));
+
 import { useChat } from "../hooks/useChat";
 
 describe("useChat", () => {
@@ -29,7 +40,45 @@ describe("useChat", () => {
     expect(result.current.messages).toHaveLength(1);
     expect(result.current.messages[0].role).toBe("user");
     expect(result.current.messages[0].parts[0].content).toBe("Ola");
-    expect(mockSend).toHaveBeenCalledWith({ type: "input", channel: "main", text: "Ola" });
+  });
+
+  it("sendMessage envia chat_input com session_id", () => {
+    const { result } = renderHook(() => useChat());
+    act(() => result.current.sendMessage("Ola processProxy"));
+    expect(mockSend).toHaveBeenCalledWith({
+      type: "chat_input",
+      session_id: "sess_test_123",
+      text: "Ola processProxy",
+    });
+  });
+
+  it("ignora chat_init sem crashar", () => {
+    const { result } = renderHook(() => useChat());
+    act(() => messageHandler?.({
+      type: "chat_init",
+      session_id: "sess_abc",
+      model: "claude-sonnet-4-5",
+      claude_session_id: "claude_xyz",
+    }));
+    expect(result.current.messages).toHaveLength(0);
+  });
+
+  it("chat_start/delta/end com session_id funcionam igual", () => {
+    const { result } = renderHook(() => useChat());
+
+    act(() => messageHandler?.({ type: "chat_start", message_id: "m1", session_id: "sess_abc" }));
+    expect(result.current.isStreaming).toBe(true);
+
+    act(() => messageHandler?.({
+      type: "chat_delta",
+      message_id: "m1",
+      session_id: "sess_abc",
+      part: { type: "text", content: "ola" },
+    }));
+    expect(result.current.messages[0].parts[0].content).toBe("ola");
+
+    act(() => messageHandler?.({ type: "chat_end", message_id: "m1", session_id: "sess_abc" }));
+    expect(result.current.isStreaming).toBe(false);
   });
 
   it("processa chat_start + chat_delta + chat_end", () => {
@@ -50,6 +99,16 @@ describe("useChat", () => {
     act(() => messageHandler?.({ type: "chat_end", message_id: "m1" }));
     expect(result.current.isStreaming).toBe(false);
     expect(result.current.messages[0].isStreaming).toBe(false);
+  });
+
+  it("chat_start duplicado com mesmo message_id nao adiciona mensagem extra", () => {
+    const { result } = renderHook(() => useChat());
+
+    act(() => messageHandler?.({ type: "chat_start", message_id: "m1" }));
+    act(() => messageHandler?.({ type: "chat_start", message_id: "m1" }));
+    act(() => messageHandler?.({ type: "chat_start", message_id: "m1" }));
+
+    expect(result.current.messages).toHaveLength(1);
   });
 
   it("clearMessages limpa tudo", () => {

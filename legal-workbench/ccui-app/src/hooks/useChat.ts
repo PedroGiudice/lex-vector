@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useWebSocket } from "../contexts/WebSocketContext";
-import type { ChatMessage, MessagePart, ServerMessage } from "../types/protocol";
+import { useSession } from "../contexts/SessionContext";
+import type { ChatMessage, ServerMessage } from "../types/protocol";
 
 interface UseChatReturn {
   messages: ChatMessage[];
@@ -11,6 +12,7 @@ interface UseChatReturn {
 
 export function useChat(): UseChatReturn {
   const { send, onMessage } = useWebSocket();
+  const { sessionId } = useSession();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const currentMsgRef = useRef<string | null>(null);
@@ -21,16 +23,19 @@ export function useChat(): UseChatReturn {
         case "chat_start":
           currentMsgRef.current = msg.message_id;
           setIsStreaming(true);
-          setMessages((prev) => [
-            ...prev,
-            {
-              id: msg.message_id,
-              role: "assistant",
-              parts: [],
-              timestamp: Date.now(),
-              isStreaming: true,
-            },
-          ]);
+          setMessages((prev) => {
+            if (prev.find((m) => m.id === msg.message_id)) return prev;
+            return [
+              ...prev,
+              {
+                id: msg.message_id,
+                role: "assistant",
+                parts: [],
+                timestamp: Date.now(),
+                isStreaming: true,
+              },
+            ];
+          });
           break;
 
         case "chat_delta":
@@ -58,6 +63,10 @@ export function useChat(): UseChatReturn {
               };
             })
           );
+          break;
+
+        case "chat_init":
+          // Metadados da sessao Claude -- ignorado pelo hook de chat
           break;
 
         case "chat_end":
@@ -90,9 +99,11 @@ export function useChat(): UseChatReturn {
         timestamp: Date.now(),
       };
       setMessages((prev) => [...prev, userMsg]);
-      send({ type: "input", channel: "main", text });
+      if (sessionId) {
+        send({ type: "chat_input", session_id: sessionId, text });
+      }
     },
-    [send]
+    [send, sessionId]
   );
 
   const clearMessages = useCallback(() => {

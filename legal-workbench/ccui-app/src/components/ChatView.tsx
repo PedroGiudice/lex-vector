@@ -74,7 +74,7 @@ const ToolResultBlock: React.FC<{ part: MessagePart }> = ({ part }) => (
   </div>
 );
 
-const ClientPartRenderer: React.FC<{ part: MessagePart }> = ({ part }) => {
+const ClientPartRenderer: React.FC<{ part: MessagePart; isStreaming: boolean }> = ({ part, isStreaming }) => {
   const intent = getClientIntent(part);
 
   if (intent.hidden) return null;
@@ -83,7 +83,7 @@ const ClientPartRenderer: React.FC<{ part: MessagePart }> = ({ part }) => {
     return <MarkdownRenderer content={part.content} />;
   }
 
-  if (part.type === "tool_use" && intent.label) {
+  if (part.type === "tool_use" && intent.label && isStreaming) {
     return <StatusPill label={intent.label} />;
   }
 
@@ -105,12 +105,12 @@ const DevPartRenderer: React.FC<{ part: MessagePart }> = ({ part }) => {
   }
 };
 
-const MessageBubble: React.FC<{ message: ChatMessage; viewMode: "client" | "developer" }> = ({
+const MessageBubble: React.FC<{ message: ChatMessage; viewMode: "client" | "developer"; isStreaming: boolean }> = ({
   message,
   viewMode,
+  isStreaming,
 }) => {
   const isUser = message.role === "user";
-  const Renderer = viewMode === "client" ? ClientPartRenderer : DevPartRenderer;
 
   return (
     <div className={`flex ${isUser ? "justify-end" : "justify-start"} mb-3`}>
@@ -121,9 +121,13 @@ const MessageBubble: React.FC<{ message: ChatMessage; viewMode: "client" | "deve
           color: "var(--text-primary)",
         }}
       >
-        {message.parts.map((part, idx) => (
-          <Renderer key={`${message.id}-${idx}`} part={part} />
-        ))}
+        {message.parts.map((part, idx) =>
+          viewMode === "client" ? (
+            <ClientPartRenderer key={`${message.id}-${idx}`} part={part} isStreaming={isStreaming} />
+          ) : (
+            <DevPartRenderer key={`${message.id}-${idx}`} part={part} />
+          )
+        )}
       </div>
     </div>
   );
@@ -157,7 +161,7 @@ export const ChatView: React.FC<ChatViewProps> = ({ messages, isStreaming, viewM
   return (
     <div ref={scrollRef} className="flex-1 overflow-y-auto p-4">
       {messages.map((msg) => (
-        <MessageBubble key={msg.id} message={msg} viewMode={viewMode} />
+        <MessageBubble key={msg.id} message={msg} viewMode={viewMode} isStreaming={isStreaming} />
       ))}
       {isStreaming && <StreamingIndicator />}
     </div>

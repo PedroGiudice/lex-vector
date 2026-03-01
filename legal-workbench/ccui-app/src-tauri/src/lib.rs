@@ -155,10 +155,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .manage(TunnelState(Mutex::new(None)));
 
-    #[cfg(debug_assertions)]
-    {
-        builder = builder.plugin(tauri_plugin_mcp_bridge::init());
-    }
+    builder = builder.plugin(tauri_plugin_mcp_bridge::init());
 
     builder
         .invoke_handler(tauri::generate_handler![

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import type { MessagePart, ChatMessage, ServerMessage } from "../types/protocol";
+import type { MessagePart, ChatMessage, ServerMessage, ClientMessage } from "../types/protocol";
 
 describe("protocol types", () => {
   it("MessagePart aceita todos os tipos validos", () => {
@@ -30,5 +30,53 @@ describe("protocol types", () => {
       part: { type: "text", content: "chunk" },
     };
     expect(msg.type).toBe("chat_delta");
+  });
+
+  it("chat_start tem session_id", () => {
+    const msg: ServerMessage = {
+      type: "chat_start",
+      message_id: "m1",
+      session_id: "sess_abc",
+    };
+    expect(msg.session_id).toBe("sess_abc");
+  });
+
+  it("chat_delta tem session_id", () => {
+    const msg: ServerMessage = {
+      type: "chat_delta",
+      message_id: "m1",
+      session_id: "sess_abc",
+      part: { type: "text", content: "chunk" },
+    };
+    expect(msg.session_id).toBe("sess_abc");
+  });
+
+  it("chat_end tem session_id", () => {
+    const msg: ServerMessage = {
+      type: "chat_end",
+      message_id: "m1",
+      session_id: "sess_abc",
+    };
+    expect(msg.session_id).toBe("sess_abc");
+  });
+
+  it("chat_init existe e tem campos corretos", () => {
+    const msg: ServerMessage = {
+      type: "chat_init",
+      session_id: "sess_abc",
+      model: "claude-sonnet-4-5",
+      claude_session_id: "claude_xyz",
+    };
+    expect(msg.type).toBe("chat_init");
+    expect(msg.model).toBe("claude-sonnet-4-5");
+  });
+
+  it("ClientMessage aceita chat_input com session_id", () => {
+    const msg: ClientMessage = {
+      type: "chat_input",
+      session_id: "sess_abc",
+      text: "Qual o status do processo?",
+    };
+    expect(msg.type).toBe("chat_input");
   });
 });
