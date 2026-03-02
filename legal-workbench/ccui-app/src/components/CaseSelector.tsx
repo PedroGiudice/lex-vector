@@ -214,11 +214,19 @@ export function CaseSelector() {
   const filtered = cases.filter((c) => {
     if (filter === "active") return c.ready;
     if (filter === "done") return !c.ready;
+    if (filter === "recent") {
+      const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+      return new Date(c.last_modified).getTime() > weekAgo;
+    }
     return true;
   }).filter((c) => {
     if (!search) return true;
     const q = search.toLowerCase();
-    return c.id.toLowerCase().includes(q);
+    return (
+      c.id.toLowerCase().includes(q) ||
+      (c.title?.toLowerCase().includes(q) ?? false) ||
+      (c.parties?.toLowerCase().includes(q) ?? false)
+    );
   });
 
   const handleSelect = useCallback(async (caseId: string) => {
@@ -273,6 +281,13 @@ export function CaseSelector() {
   const totalCases = cases.length;
   const activeCases = cases.filter((c) => c.ready).length;
   const totalDocs = cases.reduce((sum, c) => sum + c.doc_count, 0);
+  const lastActivity = cases.length > 0
+    ? formatRelativeTime(
+        cases.reduce((latest, c) =>
+          new Date(c.last_modified) > new Date(latest) ? c.last_modified : latest,
+        cases[0].last_modified)
+      )
+    : "--";
 
   return (
     <div
@@ -391,7 +406,7 @@ export function CaseSelector() {
             <StatBlock value={String(totalCases)} label="TOTAL" />
             <StatBlock value={String(activeCases)} label="EM ANDAMENTO" />
             <StatBlock value={String(totalDocs)} label="DOCUMENTOS" />
-            <StatBlock value="--" label="ULTIMA ATIVIDADE" />
+            <StatBlock value={lastActivity} label="ULTIMA ATIVIDADE" />
           </div>
 
           {/* Section label */}

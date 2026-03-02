@@ -10,7 +10,6 @@ import {
   Wifi,
   WifiOff,
   Activity,
-  GitBranch,
   Clock,
   Columns,
   Layers,
@@ -22,6 +21,7 @@ import { useSession } from "../contexts/SessionContext";
 import { useWebSocket } from "../contexts/WebSocketContext";
 import { useChat } from "../hooks/useChat";
 import { useAgents } from "../hooks/useAgents";
+import { useSessionMeta } from "../hooks/useSessionMeta";
 import { useSessions } from "../hooks/useCcuiApi";
 import { ModeToggle } from "./ModeToggle";
 import type { ViewMode } from "./ModeToggle";
@@ -101,7 +101,13 @@ function AgentTab({
 }
 
 /* -- Sessions List (sidebar) -- */
-function SessionsList() {
+function SessionsList({
+  currentSessionId,
+  onSwitchSession,
+}: {
+  currentSessionId: string | null;
+  onSwitchSession: (caseId: string) => void;
+}) {
   const { sessions, loading, fetchSessions } = useSessions();
 
   useEffect(() => {
@@ -134,8 +140,12 @@ function SessionsList() {
       {sessions.map((s) => (
         <div
           key={s.session_id}
-          className="flex items-center gap-2 px-2.5 py-2 rounded-md cursor-default"
-          style={{ background: "var(--bg-cards)" }}
+          className="flex items-center gap-2 px-2.5 py-2 rounded-md cursor-pointer transition-colors"
+          style={{
+            background: "var(--bg-cards)",
+            border: s.session_id === currentSessionId ? "1px solid var(--accent)" : "1px solid transparent",
+          }}
+          onClick={() => s.case_id && onSwitchSession(s.case_id)}
         >
           <MessageSquare className="w-3 h-3 shrink-0" style={{ color: "var(--accent)" }} />
           <div className="flex flex-col min-w-0">
@@ -245,10 +255,11 @@ function SplitPanel({
 
 /* -- Main -- */
 export const SessionView: React.FC<SessionViewProps> = ({ onClose }) => {
-  const { caseId, sessionId, reset } = useSession();
+  const { caseId, sessionId, createSession, reset } = useSession();
   const { status, send } = useWebSocket();
   const { messages, isStreaming, sendMessage } = useChat();
   const { agents: wsAgents } = useAgents();
+  const sessionMeta = useSessionMeta();
 
   const [viewMode, setViewMode] = useTauriStore<ViewMode>(MODE_STORAGE_KEY, "client");
   const [layoutMode, setLayoutMode] = useTauriStore<LayoutMode>(LAYOUT_STORAGE_KEY, "tab");
@@ -286,6 +297,13 @@ export const SessionView: React.FC<SessionViewProps> = ({ onClose }) => {
       handleSend();
     }
   };
+
+  const handleSwitchSession = useCallback((newCaseId: string) => {
+    if (sessionId) {
+      send({ type: "destroy_session", session_id: sessionId });
+    }
+    createSession(newCaseId);
+  }, [sessionId, send, createSession]);
 
   const handleClose = useCallback(() => {
     if (sessionId) {
@@ -421,7 +439,7 @@ export const SessionView: React.FC<SessionViewProps> = ({ onClose }) => {
               </span>
             </div>
             <div className="flex-1 overflow-y-auto">
-              {sidebarTab === "sessions" && <SessionsList />}
+              {sidebarTab === "sessions" && <SessionsList currentSessionId={sessionId} onSwitchSession={handleSwitchSession} />}
               {sidebarTab === "files" && <FileTree caseId={caseId} />}
               {sidebarTab === "search" && (
                 <div className="px-3 py-4">
@@ -551,14 +569,7 @@ export const SessionView: React.FC<SessionViewProps> = ({ onClose }) => {
           <div className="flex items-center gap-1.5">
             <Activity className="w-2.5 h-2.5" style={{ color: "var(--accent)" }} />
             <span className="text-[9px]" style={{ fontFamily: "var(--font-mono)", color: "var(--accent)" }}>
-              Opus 4.5
-            </span>
-          </div>
-
-          <div className="flex items-center gap-1.5">
-            <GitBranch className="w-2.5 h-2.5" style={{ color: "var(--text-muted)" }} />
-            <span className="text-[9px]" style={{ fontFamily: "var(--font-mono)", color: "var(--text-muted)" }}>
-              main
+              {sessionMeta.model ?? "..."}
             </span>
           </div>
 
