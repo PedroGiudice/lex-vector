@@ -97,7 +97,25 @@ export function useSessions() {
     }
   }, []);
 
-  return { sessions, loading, error, fetchSessions };
+  const renameSession = useCallback(async (id: string, name: string) => {
+    const res = await fetch(`${API_BASE}/api/sessions/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name }),
+    });
+    if (!res.ok) throw new Error(`Erro ${res.status} ao renomear sessao`);
+    await fetchSessions();
+  }, [fetchSessions]);
+
+  const deleteSession = useCallback(async (id: string) => {
+    const res = await fetch(`${API_BASE}/api/sessions/${id}`, {
+      method: "DELETE",
+    });
+    if (!res.ok) throw new Error(`Erro ${res.status} ao deletar sessao`);
+    await fetchSessions();
+  }, [fetchSessions]);
+
+  return { sessions, loading, error, fetchSessions, renameSession, deleteSession };
 }
 
 // ---- Channels de uma sessao ----

@@ -16,6 +16,7 @@ import {
   FolderOpen,
   FileText,
   Loader2,
+  X,
 } from "lucide-react";
 import { useSession } from "../contexts/SessionContext";
 import { useWebSocket } from "../contexts/WebSocketContext";
@@ -104,15 +105,60 @@ function AgentTab({
 function SessionsList({
   currentSessionId,
   onSwitchSession,
+  onDeleteActive,
 }: {
   currentSessionId: string | null;
-  onSwitchSession: (caseId: string) => void;
+  onSwitchSession: (sessionId: string, caseId?: string) => void;
+  onDeleteActive: () => void;
 }) {
-  const { sessions, loading, fetchSessions } = useSessions();
+  const { sessions, loading, fetchSessions, renameSession, deleteSession } = useSessions();
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState("");
+  const editInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetchSessions();
   }, [fetchSessions]);
+
+  useEffect(() => {
+    if (editingId && editInputRef.current) {
+      editInputRef.current.focus();
+      editInputRef.current.select();
+    }
+  }, [editingId]);
+
+  const startRename = useCallback((s: { session_id: string; name?: string; case_id?: string }) => {
+    setEditingId(s.session_id);
+    setEditValue(s.name ?? s.case_id ?? s.session_id.slice(0, 8));
+  }, []);
+
+  const commitRename = useCallback(async () => {
+    if (!editingId) return;
+    const trimmed = editValue.trim();
+    if (trimmed) {
+      try {
+        await renameSession(editingId, trimmed);
+      } catch {
+        // silently fail -- backend may not support yet
+      }
+    }
+    setEditingId(null);
+  }, [editingId, editValue, renameSession]);
+
+  const handleDelete = useCallback(async (e: React.MouseEvent, sessionId: string) => {
+    e.stopPropagation();
+    try {
+      await deleteSession(sessionId);
+      if (sessionId === currentSessionId) {
+        onDeleteActive();
+      }
+    } catch {
+      // silently fail
+    }
+  }, [deleteSession, currentSessionId, onDeleteActive]);
+
+  const displayName = (s: { name?: string; case_id?: string; session_id: string }) =>
+    s.name ?? s.case_id ?? s.session_id.slice(0, 8);
 
   if (loading) {
     return (
@@ -140,27 +186,57 @@ function SessionsList({
       {sessions.map((s) => (
         <div
           key={s.session_id}
-          className="flex items-center gap-2 px-2.5 py-2 rounded-md cursor-pointer transition-colors"
+          className="group flex items-center gap-2 px-2.5 py-2 rounded-md cursor-pointer transition-colors"
           style={{
             background: "var(--bg-cards)",
             border: s.session_id === currentSessionId ? "1px solid var(--accent)" : "1px solid transparent",
           }}
-          onClick={() => s.case_id && onSwitchSession(s.case_id)}
+          onClick={() => onSwitchSession(s.session_id, s.case_id)}
+          onDoubleClick={() => startRename(s)}
         >
           <MessageSquare className="w-3 h-3 shrink-0" style={{ color: "var(--accent)" }} />
-          <div className="flex flex-col min-w-0">
-            <span
-              className="text-[11px] truncate"
-              style={{ fontFamily: "var(--font-mono)", color: "var(--text-primary)" }}
-            >
-              {s.case_id ?? s.session_id?.slice(0, 8) ?? "sessao"}
-            </span>
+          <div className="flex flex-col min-w-0 flex-1">
+            {editingId === s.session_id ? (
+              <input
+                ref={editInputRef}
+                value={editValue}
+                onChange={(e) => setEditValue(e.target.value)}
+                onBlur={commitRename}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") commitRename();
+                  if (e.key === "Escape") setEditingId(null);
+                }}
+                onClick={(e) => e.stopPropagation()}
+                className="text-[11px] bg-transparent outline-none px-0 py-0"
+                style={{
+                  fontFamily: "var(--font-mono)",
+                  color: "var(--text-primary)",
+                  borderBottom: "1px solid var(--accent)",
+                }}
+              />
+            ) : (
+              <span
+                className="text-[11px] truncate"
+                style={{ fontFamily: "var(--font-mono)", color: "var(--text-primary)" }}
+              >
+                {displayName(s)}
+              </span>
+            )}
             {s.created_at && (
               <span className="text-[9px]" style={{ fontFamily: "var(--font-mono)", color: "var(--text-muted)" }}>
                 {new Date(s.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
               </span>
             )}
           </div>
+          <button
+            onClick={(e) => handleDelete(e, s.session_id)}
+            className="opacity-0 group-hover:opacity-100 shrink-0 flex items-center justify-center w-5 h-5 rounded transition-opacity"
+            style={{ color: "var(--text-muted)" }}
+            title="Deletar sessao"
+            aria-label={`Deletar sessao ${displayName(s)}`}
+          >
+            <X className="w-3 h-3" />
+          </button>
         </div>
       ))}
     </div>
@@ -298,11 +374,12 @@ export const SessionView: React.FC<SessionViewProps> = ({ onClose }) => {
     }
   };
 
-  const handleSwitchSession = useCallback((newCaseId: string) => {
+  const handleSwitchSession = useCallback((targetSessionId: string, targetCaseId?: string) => {
     if (sessionId) {
       send({ type: "destroy_session", session_id: sessionId });
     }
-    createSession(newCaseId);
+    // Por enquanto, reconectar passa session_id como case_id (backend implementara reconnect depois)
+    createSession(targetCaseId ?? targetSessionId);
   }, [sessionId, send, createSession]);
 
   const handleClose = useCallback(() => {
@@ -439,7 +516,7 @@ export const SessionView: React.FC<SessionViewProps> = ({ onClose }) => {
               </span>
             </div>
             <div className="flex-1 overflow-y-auto">
-              {sidebarTab === "sessions" && <SessionsList currentSessionId={sessionId} onSwitchSession={handleSwitchSession} />}
+              {sidebarTab === "sessions" && <SessionsList currentSessionId={sessionId} onSwitchSession={handleSwitchSession} onDeleteActive={handleClose} />}
               {sidebarTab === "files" && <FileTree caseId={caseId} />}
               {sidebarTab === "search" && (
                 <div className="px-3 py-4">
@@ -477,7 +554,7 @@ export const SessionView: React.FC<SessionViewProps> = ({ onClose }) => {
 
           {/* Messages area: tab mode = full, split mode = 70% + detail panel */}
           <div className="flex flex-1 overflow-hidden">
-            <div className={layoutMode === "split" ? "flex-[7] min-w-0" : "flex-1"}>
+            <div className={`flex flex-col overflow-hidden ${layoutMode === "split" ? "flex-[7] min-w-0" : "flex-1"}`}>
               <ChatView messages={messages} isStreaming={isStreaming} viewMode={viewMode} />
             </div>
 
