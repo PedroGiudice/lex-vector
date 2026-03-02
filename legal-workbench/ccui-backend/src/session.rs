@@ -204,9 +204,8 @@ impl SessionManager {
     }
 
     /// Retorna o caminho do diretorio de metadados de sessao.
-    #[allow(clippy::unused_self)]
     fn sessions_dir(&self) -> PathBuf {
-        PathBuf::from("/tmp/ccui-sessions")
+        self.config.sessions_dir.clone()
     }
 
     /// Retorna o caminho do arquivo JSON para uma sessao.

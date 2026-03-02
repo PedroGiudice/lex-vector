@@ -14,6 +14,8 @@ pub struct AppConfig {
     /// Timeout em segundos para o processo Claude responder apos spawn.
     pub process_start_timeout_secs: u64,
     pub cases_dir: PathBuf,
+    /// Diretorio para metadados de sessao persistidos em disco.
+    pub sessions_dir: PathBuf,
 }
 
 impl Default for AppConfig {
@@ -30,6 +32,7 @@ impl Default for AppConfig {
             ws_pong_timeout_secs: 10,
             process_start_timeout_secs: 30,
             cases_dir: PathBuf::from(format!("{home}/casos")),
+            sessions_dir: PathBuf::from("/tmp/ccui-sessions"),
         }
     }
 }

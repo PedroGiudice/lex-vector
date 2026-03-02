@@ -5,8 +5,11 @@ use ccui_backend::config::AppConfig;
 use ccui_backend::session::{SessionManager, SessionMetadata};
 use ccui_backend::tmux::TmuxDriver;
 
-fn test_config(_tmp: &tempfile::TempDir) -> AppConfig {
-    AppConfig::default()
+fn test_config(tmp: &tempfile::TempDir) -> AppConfig {
+    AppConfig {
+        sessions_dir: tmp.path().join("sessions"),
+        ..AppConfig::default()
+    }
 }
 
 #[tokio::test]
@@ -19,7 +22,7 @@ async fn create_session_writes_metadata_file() {
     let session_id = mgr.create_session(None).await.unwrap();
 
     // Arquivo JSON deve existir
-    let meta_path = std::path::PathBuf::from("/tmp/ccui-sessions")
+    let meta_path = tmp.path().join("sessions")
         .join(format!("{session_id}.json"));
     assert!(meta_path.exists(), "arquivo de metadados nao foi criado");
 
@@ -41,7 +44,7 @@ async fn destroy_session_removes_metadata_file() {
     let mgr = SessionManager::new(config, tmux);
 
     let session_id = mgr.create_session(None).await.unwrap();
-    let meta_path = std::path::PathBuf::from("/tmp/ccui-sessions")
+    let meta_path = tmp.path().join("sessions")
         .join(format!("{session_id}.json"));
     assert!(meta_path.exists());
 
@@ -100,7 +103,7 @@ async fn recover_sessions_from_disk_ignores_dead_sessions() {
     );
 
     // Arquivo deve ter sido removido
-    let meta_path = std::path::PathBuf::from("/tmp/ccui-sessions")
+    let meta_path = tmp.path().join("sessions")
         .join(format!("{session_id}.json"));
     assert!(
         !meta_path.exists(),
@@ -122,6 +125,7 @@ async fn recover_sessions_from_disk_empty_dir() {
 
 #[tokio::test]
 async fn create_session_with_case_id_persists_it() {
+    let tmp = tempfile::tempdir().unwrap();
     let cases_tmp = tempfile::tempdir().unwrap();
     // Cria diretorio do caso
     let case_dir = cases_tmp.path().join("caso-teste");
@@ -129,6 +133,7 @@ async fn create_session_with_case_id_persists_it() {
 
     let config = AppConfig {
         cases_dir: cases_tmp.path().to_path_buf(),
+        sessions_dir: tmp.path().join("sessions"),
         ..AppConfig::default()
     };
     let tmux = TmuxDriver::new();
@@ -136,7 +141,7 @@ async fn create_session_with_case_id_persists_it() {
 
     let session_id = mgr.create_session(Some("caso-teste")).await.unwrap();
 
-    let meta_path = std::path::PathBuf::from("/tmp/ccui-sessions")
+    let meta_path = tmp.path().join("sessions")
         .join(format!("{session_id}.json"));
     let content = tokio::fs::read_to_string(&meta_path).await.unwrap();
     let metadata: SessionMetadata = serde_json::from_str(&content).unwrap();
