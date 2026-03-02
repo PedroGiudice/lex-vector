@@ -103,7 +103,8 @@ export function StartupGate({ children }: Props) {
 
   const handleCopyKey = useCallback(async () => {
     try {
-      await navigator.clipboard.writeText(pubKey);
+      const { writeText } = await import("@tauri-apps/plugin-clipboard-manager");
+      await writeText(pubKey);
     } catch {
       // Fallback: selecionar texto manualmente
     }

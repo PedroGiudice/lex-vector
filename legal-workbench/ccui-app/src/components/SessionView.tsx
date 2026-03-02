@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState, useEffect } from "react";
+import { useTauriStore } from "../hooks/useTauriStore";
 import {
   MessageSquare,
   Files,
@@ -142,7 +143,7 @@ function SessionsList() {
               className="text-[11px] truncate"
               style={{ fontFamily: "var(--font-mono)", color: "var(--text-primary)" }}
             >
-              {s.case_id ?? s.session_id.slice(0, 8)}
+              {s.case_id ?? s.session_id?.slice(0, 8) ?? "sessao"}
             </span>
             {s.created_at && (
               <span className="text-[9px]" style={{ fontFamily: "var(--font-mono)", color: "var(--text-muted)" }}>
@@ -249,14 +250,8 @@ export const SessionView: React.FC<SessionViewProps> = ({ onClose }) => {
   const { messages, isStreaming, sendMessage } = useChat();
   const { agents: wsAgents } = useAgents();
 
-  const [viewMode, setViewMode] = useState<ViewMode>(() => {
-    const saved = localStorage.getItem(MODE_STORAGE_KEY);
-    return saved === "developer" ? "developer" : "client";
-  });
-  const [layoutMode, setLayoutMode] = useState<LayoutMode>(() => {
-    const saved = localStorage.getItem(LAYOUT_STORAGE_KEY);
-    return saved === "split" ? "split" : "tab";
-  });
+  const [viewMode, setViewMode] = useTauriStore<ViewMode>(MODE_STORAGE_KEY, "client");
+  const [layoutMode, setLayoutMode] = useTauriStore<LayoutMode>(LAYOUT_STORAGE_KEY, "tab");
   const [inputText, setInputText] = useState("");
   const [sidebarTab, setSidebarTab] = useState<SidebarTab>("sessions");
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -270,16 +265,12 @@ export const SessionView: React.FC<SessionViewProps> = ({ onClose }) => {
 
   const handleModeChange = useCallback((mode: ViewMode) => {
     setViewMode(mode);
-    localStorage.setItem(MODE_STORAGE_KEY, mode);
-  }, []);
+  }, [setViewMode]);
 
   const toggleLayout = useCallback(() => {
-    setLayoutMode((prev) => {
-      const next = prev === "tab" ? "split" : "tab";
-      localStorage.setItem(LAYOUT_STORAGE_KEY, next);
-      return next;
-    });
-  }, []);
+    const next = layoutMode === "tab" ? "split" : "tab";
+    setLayoutMode(next);
+  }, [layoutMode, setLayoutMode]);
 
   const handleSend = useCallback(() => {
     const text = inputText.trim();

@@ -6,6 +6,8 @@
   "permissions": [
     "core:default",
     "opener:default",
+    "store:default",
+    "clipboard-manager:allow-write-text",
     "mcp-bridge:default",
     "shell:allow-stdin-write",
     "shell:allow-kill",

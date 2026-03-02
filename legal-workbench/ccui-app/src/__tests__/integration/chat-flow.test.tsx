@@ -72,7 +72,7 @@ vi.mock("../../components/StartupGate", () => ({
   StartupGate: ({ children }: { children: React.ReactNode }) => children,
 }));
 
-// Mock localStorage
+// Mock useTauriStore -- usa localStorage como fallback (ambiente de teste)
 const storage: Record<string, string> = {};
 vi.stubGlobal("localStorage", {
   getItem: (key: string) => storage[key] ?? null,
