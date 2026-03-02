@@ -1,9 +1,20 @@
-import React, { useCallback, useRef, useState } from "react";
-import { LogOut, Send, Briefcase } from "lucide-react";
+import { useCallback, useRef, useState, useEffect } from "react";
+import {
+  MessageSquare,
+  Files,
+  Search,
+  Settings,
+  Send,
+  Briefcase,
+  Wifi,
+  WifiOff,
+  Activity,
+  GitBranch,
+  Clock,
+} from "lucide-react";
 import { useSession } from "../contexts/SessionContext";
 import { useWebSocket } from "../contexts/WebSocketContext";
 import { useChat } from "../hooks/useChat";
-import { ConnectionStatus } from "./ConnectionStatus";
 import { ModeToggle } from "./ModeToggle";
 import type { ViewMode } from "./ModeToggle";
 import { ChatView } from "./ChatView";
@@ -12,11 +23,77 @@ interface SessionViewProps {
   onClose: () => void;
 }
 
+type SidebarTab = "sessions" | "files" | "search" | "settings";
+
 const MODE_STORAGE_KEY = "ccui-view-mode";
 
+/* -- Icon Strip Button -- */
+function IconBtn({
+  icon: Icon,
+  active,
+  onClick,
+  tooltip,
+}: {
+  icon: typeof MessageSquare;
+  active: boolean;
+  onClick: () => void;
+  tooltip: string;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      title={tooltip}
+      aria-label={tooltip}
+      className="relative w-full flex justify-center items-center py-3 transition-all duration-200"
+      style={{ color: active ? "var(--accent)" : "var(--text-muted)" }}
+    >
+      <Icon className="w-[17px] h-[17px]" strokeWidth={1.4} />
+      {active && (
+        <span
+          className="absolute left-0 top-1.5 bottom-1.5 w-0.5 rounded-r-full"
+          style={{ background: "var(--accent)" }}
+        />
+      )}
+    </button>
+  );
+}
+
+/* -- Agent Tab -- */
+function AgentTab({
+  name,
+  color,
+  active,
+  onClick,
+}: {
+  name: string;
+  color: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className="flex items-center gap-2 px-3 py-1.5 text-[12px] transition-all duration-150"
+      style={{
+        fontFamily: "var(--font-mono)",
+        background: active ? "var(--bg-cards)" : "transparent",
+        borderRadius: "var(--radius-md)",
+        color: active ? "var(--text-primary)" : "var(--text-muted)",
+      }}
+    >
+      <span
+        className="w-2 h-2 rounded-full"
+        style={{ background: color }}
+      />
+      {name}
+    </button>
+  );
+}
+
+/* -- Main -- */
 export const SessionView: React.FC<SessionViewProps> = ({ onClose }) => {
   const { caseId, sessionId, reset } = useSession();
-  const { status, retryCount, maxRetries, send, retryManual } = useWebSocket();
+  const { status, send } = useWebSocket();
   const { messages, isStreaming, sendMessage } = useChat();
 
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
@@ -24,6 +101,9 @@ export const SessionView: React.FC<SessionViewProps> = ({ onClose }) => {
     return saved === "developer" ? "developer" : "client";
   });
   const [inputText, setInputText] = useState("");
+  const [sidebarTab, setSidebarTab] = useState<SidebarTab>("sessions");
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [activeAgent, setActiveAgent] = useState("Main");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const handleModeChange = useCallback((mode: ViewMode) => {
@@ -54,131 +134,240 @@ export const SessionView: React.FC<SessionViewProps> = ({ onClose }) => {
     onClose();
   }, [sessionId, send, reset, onClose]);
 
+  // Cmd+B para toggle sidebar
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "b") {
+        e.preventDefault();
+        setSidebarOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
+
   const isConnected = status === "connected";
   const canSend = isConnected && !!sessionId && !!inputText.trim();
 
+  // Clock
+  const [time, setTime] = useState(() =>
+    new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
+  );
+  useEffect(() => {
+    const iv = setInterval(() => {
+      setTime(new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }));
+    }, 30_000);
+    return () => clearInterval(iv);
+  }, []);
+
+  // Mock agents (will come from WS agent_joined/left)
+  const agents = [
+    { name: "Main (legal-team)", color: "var(--agent-terracota)" },
+    { name: "researcher", color: "var(--agent-oliva)" },
+    { name: "case-analyst", color: "var(--agent-teal)" },
+    { name: "strategist", color: "var(--agent-malva)" },
+  ];
+
   return (
-    <div
-      className="flex flex-col h-screen anim-fade-in"
-      style={{ background: "var(--bg-base)", color: "var(--text-primary)" }}
-    >
-      {/* Header */}
+    <div className="flex flex-col h-screen" style={{ background: "var(--bg-base)" }}>
+      {/* Header with agent tabs */}
       <header
-        className="flex items-center justify-between px-5 py-3 border-b shrink-0"
-        style={{ borderColor: "var(--border)", background: "var(--bg-surface)" }}
+        className="flex items-center shrink-0 px-2"
+        style={{
+          height: 40,
+          background: "var(--bg-header)",
+          borderBottom: "1px solid var(--bg-borders)",
+        }}
       >
-        {/* Caso ativo */}
-        <div className="flex items-center gap-2.5 min-w-0">
-          <Briefcase
-            className="w-3.5 h-3.5 shrink-0"
-            style={{ color: "var(--accent)" }}
-          />
-          <span className="text-[11px] font-medium tracking-[0.08em] uppercase text-[var(--text-secondary)] shrink-0">
-            Caso
-          </span>
-          <span
-            className="text-sm font-semibold text-[var(--text-primary)] truncate"
-            title={caseId ?? ""}
-          >
-            {caseId ?? "\u2014"}
-          </span>
+        {/* Spacer for icon strip width */}
+        <div style={{ width: "var(--icon-strip)" }} className="shrink-0" />
+        {sidebarOpen && <div style={{ width: "var(--side-panel)" }} className="shrink-0" />}
+
+        {/* Agent tabs */}
+        <div className="flex items-center gap-1 flex-1">
+          {agents.map((a) => (
+            <AgentTab
+              key={a.name}
+              name={a.name}
+              color={a.color}
+              active={activeAgent === a.name}
+              onClick={() => setActiveAgent(a.name)}
+            />
+          ))}
         </div>
 
-        {/* Controles direita */}
-        <div className="flex items-center gap-1 shrink-0">
+        {/* Mode toggle + close */}
+        <div className="flex items-center gap-2 shrink-0 pr-2">
           <ModeToggle mode={viewMode} onChange={handleModeChange} />
-          <div
-            className="w-px h-4 mx-1"
-            style={{ background: "var(--border-mid)" }}
-          />
-          <ConnectionStatus
-            status={status}
-            retryCount={retryCount}
-            maxRetries={maxRetries}
-            onRetry={retryManual}
-          />
-          <div
-            className="w-px h-4 mx-1"
-            style={{ background: "var(--border-mid)" }}
-          />
           <button
             onClick={handleClose}
-            title="Encerrar sessao"
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs transition-colors duration-150"
-            style={{ color: "var(--text-secondary)" }}
-            onMouseEnter={(e) =>
-              (e.currentTarget.style.color = "var(--text-primary)")
-            }
-            onMouseLeave={(e) =>
-              (e.currentTarget.style.color = "var(--text-secondary)")
-            }
+            className="text-[11px] px-2 py-1 transition-colors"
+            style={{ fontFamily: "var(--font-mono)", color: "var(--text-muted)" }}
           >
-            <LogOut className="w-3.5 h-3.5" />
-            <span>Encerrar</span>
+            Encerrar
           </button>
         </div>
       </header>
 
-      {/* Chat area */}
-      <ChatView messages={messages} isStreaming={isStreaming} viewMode={viewMode} />
-
-      {/* Input */}
-      <div
-        className="shrink-0 border-t p-4"
-        style={{ borderColor: "var(--border)", background: "var(--bg-surface)" }}
-      >
-        <div
-          className="flex items-end gap-3 rounded-lg border px-4 py-3 transition-colors duration-150"
+      {/* Body: icon strip + sidebar + chat */}
+      <div className="flex flex-1 overflow-hidden">
+        {/* Icon strip */}
+        <aside
+          className="shrink-0 flex flex-col items-center py-2"
           style={{
-            borderColor: "var(--border-mid)",
-            background: "var(--bg-elevated)",
+            width: "var(--icon-strip)",
+            background: "var(--bg-header)",
+            borderRight: "1px solid var(--bg-borders)",
           }}
-          onFocusCapture={(e) =>
-            ((e.currentTarget as HTMLDivElement).style.borderColor =
-              "rgba(217,119,87,0.45)")
-          }
-          onBlurCapture={(e) =>
-            ((e.currentTarget as HTMLDivElement).style.borderColor =
-              "var(--border-mid)")
-          }
         >
-          <textarea
-            ref={textareaRef}
-            value={inputText}
-            onChange={(e) => setInputText(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={
-              !isConnected
-                ? "Aguardando conexao..."
-                : "Instruir o Claude..."
-            }
-            rows={1}
-            className="flex-1 resize-none bg-transparent text-sm leading-relaxed outline-none
-                       max-h-36 overflow-y-auto placeholder-[var(--text-muted)]"
+          <IconBtn icon={MessageSquare} active={sidebarTab === "sessions"} onClick={() => { setSidebarTab("sessions"); setSidebarOpen(true); }} tooltip="Sessoes" />
+          <IconBtn icon={Files} active={sidebarTab === "files"} onClick={() => { setSidebarTab("files"); setSidebarOpen(true); }} tooltip="Arquivos" />
+          <IconBtn icon={Search} active={sidebarTab === "search"} onClick={() => { setSidebarTab("search"); setSidebarOpen(true); }} tooltip="Busca" />
+          <div className="flex-1" />
+          <IconBtn icon={Settings} active={sidebarTab === "settings"} onClick={() => { setSidebarTab("settings"); setSidebarOpen(true); }} tooltip="Configuracoes" />
+        </aside>
+
+        {/* Side panel */}
+        {sidebarOpen && (
+          <aside
+            className="shrink-0 flex flex-col anim-fade-in"
             style={{
-              color: "var(--text-primary)",
-              fontFamily: "var(--font-ui)",
-            }}
-            disabled={!isConnected || !sessionId}
-          />
-          <button
-            onClick={handleSend}
-            disabled={!canSend}
-            title="Enviar (Enter)"
-            className="flex items-center justify-center w-7 h-7 rounded-md
-                       transition-all duration-150 shrink-0"
-            style={{
-              color: canSend ? "var(--accent)" : "var(--text-muted)",
-              background: canSend ? "var(--accent-dim)" : "transparent",
+              width: "var(--side-panel)",
+              background: "var(--bg-header)",
+              borderRight: "1px solid var(--bg-borders)",
             }}
           >
-            <Send className="w-3.5 h-3.5" />
-          </button>
-        </div>
-        <p className="mt-1.5 text-[10px] text-right" style={{ color: "var(--text-muted)" }}>
-          Enter para enviar · Shift+Enter para nova linha
-        </p>
+            <div className="px-3 py-2.5" style={{ borderBottom: "1px solid var(--bg-borders)" }}>
+              <span
+                className="text-[9px] tracking-[0.15em] uppercase"
+                style={{ fontFamily: "var(--font-mono)", color: "var(--text-muted)" }}
+              >
+                {sidebarTab === "sessions" ? "SESSOES" : sidebarTab === "files" ? "ARQUIVOS" : sidebarTab.toUpperCase()}
+              </span>
+            </div>
+            <div className="flex-1 flex items-center justify-center">
+              <span className="text-[10px]" style={{ fontFamily: "var(--font-mono)", color: "var(--text-muted)" }}>
+                Em breve
+              </span>
+            </div>
+          </aside>
+        )}
+
+        {/* Chat area */}
+        <main className="flex-1 flex flex-col overflow-hidden">
+          {/* Case info bar */}
+          <div
+            className="flex items-center gap-2 px-4 py-1.5 shrink-0"
+            style={{ borderBottom: "1px solid var(--bg-borders)", background: "var(--bg-panels)" }}
+          >
+            <Briefcase className="w-3 h-3" style={{ color: "var(--accent)" }} />
+            <span className="text-[11px] tracking-[0.06em] uppercase" style={{ fontFamily: "var(--font-mono)", color: "var(--text-muted)" }}>
+              Caso
+            </span>
+            <span className="text-[13px] font-medium" style={{ fontFamily: "var(--font-mono)", color: "var(--text-primary)" }}>
+              {caseId ?? "--"}
+            </span>
+          </div>
+
+          {/* Messages */}
+          <ChatView messages={messages} isStreaming={isStreaming} viewMode={viewMode} />
+
+          {/* Input */}
+          <div className="shrink-0 px-4 py-3" style={{ borderTop: "1px solid var(--bg-borders)", background: "var(--bg-panels)" }}>
+            <div className="max-w-[var(--chat-max-width)] mx-auto">
+              <div
+                className="flex items-end gap-3 px-4 py-3 transition-colors"
+                style={{
+                  background: "var(--bg-cards)",
+                  border: "1px solid var(--bg-borders)",
+                  borderRadius: "var(--radius-lg)",
+                }}
+                onFocusCapture={(e) => (e.currentTarget.style.borderColor = "var(--accent)")}
+                onBlurCapture={(e) => (e.currentTarget.style.borderColor = "var(--bg-borders)")}
+              >
+                <textarea
+                  ref={textareaRef}
+                  value={inputText}
+                  onChange={(e) => setInputText(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder={!isConnected ? "Aguardando conexao..." : "Instruir o Claude..."}
+                  rows={1}
+                  className="flex-1 resize-none bg-transparent text-sm outline-none max-h-36 overflow-y-auto"
+                  style={{
+                    color: "var(--text-primary)",
+                    fontFamily: "var(--font-ui)",
+                    lineHeight: "var(--lh-body)",
+                  }}
+                  disabled={!isConnected || !sessionId}
+                />
+                <button
+                  onClick={handleSend}
+                  disabled={!canSend}
+                  title="Enviar (Enter)"
+                  className="flex items-center justify-center w-7 h-7 rounded-md shrink-0 transition-all"
+                  style={{
+                    color: canSend ? "var(--accent)" : "var(--text-muted)",
+                    background: canSend ? "var(--accent-dim)" : "transparent",
+                  }}
+                >
+                  <Send className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+          </div>
+        </main>
       </div>
+
+      {/* Status bar */}
+      <footer
+        className="shrink-0 flex items-center justify-between px-3"
+        style={{
+          height: 24,
+          background: "var(--bg-header)",
+          borderTop: "1px solid var(--bg-borders)",
+        }}
+      >
+        <div className="flex items-center gap-5">
+          <div className="flex items-center gap-1.5">
+            {isConnected ? (
+              <Wifi className="w-2.5 h-2.5" style={{ color: "var(--agent-oliva)" }} />
+            ) : (
+              <WifiOff className="w-2.5 h-2.5" style={{ color: "#8a3028" }} />
+            )}
+            <span
+              className="text-[9px] tracking-[0.1em]"
+              style={{ fontFamily: "var(--font-mono)", color: isConnected ? "var(--agent-oliva)" : "#8a3028" }}
+            >
+              {isConnected ? "ONLINE" : "OFFLINE"}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            <Activity className="w-2.5 h-2.5" style={{ color: "var(--accent)" }} />
+            <span className="text-[9px]" style={{ fontFamily: "var(--font-mono)", color: "var(--accent)" }}>
+              Opus 4.5
+            </span>
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            <GitBranch className="w-2.5 h-2.5" style={{ color: "var(--text-muted)" }} />
+            <span className="text-[9px]" style={{ fontFamily: "var(--font-mono)", color: "var(--text-muted)" }}>
+              main
+            </span>
+          </div>
+
+          <span className="text-[9px]" style={{ fontFamily: "var(--font-mono)", color: "var(--text-muted)" }}>
+            {agents.length} agentes ativos
+          </span>
+        </div>
+
+        <div className="flex items-center gap-1.5">
+          <Clock className="w-2.5 h-2.5" style={{ color: "var(--text-muted)" }} />
+          <span className="text-[9px]" style={{ fontFamily: "var(--font-mono)", color: "var(--text-muted)" }}>
+            {time}
+          </span>
+        </div>
+      </footer>
     </div>
   );
 };

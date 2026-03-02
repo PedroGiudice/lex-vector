@@ -76,6 +76,10 @@ export interface CaseInfo {
   ready: boolean;
   doc_count: number;
   last_modified: string;
+  title?: string;
+  parties?: string;
+  tags?: string[];
+  progress?: number;
 }
 
 export interface SessionInfo {
