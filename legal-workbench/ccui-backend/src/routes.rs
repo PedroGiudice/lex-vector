@@ -9,7 +9,7 @@ use axum::{
     },
     http::StatusCode,
     response::IntoResponse,
-    routing::get,
+    routing::{get, patch},
     Json, Router,
 };
 use serde_json::json;
@@ -69,6 +69,10 @@ pub fn create_router(state: AppState) -> Router {
         .route("/ws", get(ws_upgrade))
         .route("/api/sessions", get(list_sessions))
         .route("/api/cases", get(list_cases))
+        .route(
+            "/api/sessions/{id}",
+            patch(rename_session).delete(delete_session),
+        )
         .route("/api/sessions/{id}/channels", get(list_channels))
         .layer(CorsLayer::permissive())
         .with_state(Arc::new(state))
@@ -94,10 +98,70 @@ async fn list_sessions(State(state): State<Arc<AppState>>) -> impl IntoResponse 
                 "session_id": s.id,
                 "case_id": s.case_id,
                 "created_at": s.created_at,
+                "name": s.name,
             })
         })
         .collect();
     Json(json!({ "sessions": objects }))
+}
+
+/// Payload para `PATCH /api/sessions/{id}`.
+#[derive(serde::Deserialize)]
+struct RenameSessionPayload {
+    name: Option<String>,
+}
+
+/// `PATCH /api/sessions/{id}` -- renomeia uma sessao.
+async fn rename_session(
+    Path(session_id): Path<String>,
+    State(state): State<Arc<AppState>>,
+    Json(payload): Json<RenameSessionPayload>,
+) -> impl IntoResponse {
+    match state
+        .session_mgr
+        .rename_session(&session_id, payload.name)
+        .await
+    {
+        Ok(info) => Json(json!({
+            "session_id": info.id,
+            "case_id": info.case_id,
+            "created_at": info.created_at,
+            "name": info.name,
+        }))
+        .into_response(),
+        Err(crate::error::AppError::SessionNotFound { .. }) => (
+            StatusCode::NOT_FOUND,
+            Json(json!({ "error": "sessao nao encontrada" })),
+        )
+            .into_response(),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({ "error": e.to_string() })),
+        )
+            .into_response(),
+    }
+}
+
+/// `DELETE /api/sessions/{id}` -- encerra e remove uma sessao.
+async fn delete_session(
+    Path(session_id): Path<String>,
+    State(state): State<Arc<AppState>>,
+) -> impl IntoResponse {
+    // Mata o processo Claude Code se existir.
+    let _ = state.process_proxy.kill_process(&session_id).await;
+    match state.session_mgr.destroy_session(&session_id).await {
+        Ok(()) => StatusCode::NO_CONTENT.into_response(),
+        Err(crate::error::AppError::SessionNotFound { .. }) => (
+            StatusCode::NOT_FOUND,
+            Json(json!({ "error": "sessao nao encontrada" })),
+        )
+            .into_response(),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({ "error": e.to_string() })),
+        )
+            .into_response(),
+    }
 }
 
 /// `GET /api/sessions/{id}/channels` -- lista canais ativos de uma sessao.

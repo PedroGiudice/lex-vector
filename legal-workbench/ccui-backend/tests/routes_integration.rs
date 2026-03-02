@@ -264,6 +264,150 @@ async fn channels_returns_ok_for_valid_session() {
 }
 
 // ---------------------------------------------------------------------------
+// PATCH /api/sessions/{id} -- rename
+// ---------------------------------------------------------------------------
+
+#[tokio::test]
+async fn rename_session_returns_updated_name() {
+    use axum::body::Body;
+    use hyper::Request;
+    use tower::ServiceExt;
+
+    let config = AppConfig::default();
+    let state = AppState::new(config);
+    state.session_mgr.insert_fake_session("rename-me").await;
+
+    let app = create_router(state);
+
+    let request = Request::builder()
+        .method("PATCH")
+        .uri("/api/sessions/rename-me")
+        .header("content-type", "application/json")
+        .body(Body::from(r#"{"name":"Caso Importante"}"#))
+        .unwrap();
+
+    let response = app.oneshot(request).await.unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body_bytes = response.into_body().collect().await.unwrap().to_bytes();
+    let parsed: serde_json::Value = serde_json::from_slice(&body_bytes).unwrap();
+
+    assert_eq!(parsed["session_id"].as_str(), Some("rename-me"));
+    assert_eq!(parsed["name"].as_str(), Some("Caso Importante"));
+}
+
+#[tokio::test]
+async fn rename_session_returns_404_for_unknown() {
+    use axum::body::Body;
+    use hyper::Request;
+    use tower::ServiceExt;
+
+    let config = AppConfig::default();
+    let state = AppState::new(config);
+    let app = create_router(state);
+
+    let request = Request::builder()
+        .method("PATCH")
+        .uri("/api/sessions/nope")
+        .header("content-type", "application/json")
+        .body(Body::from(r#"{"name":"test"}"#))
+        .unwrap();
+
+    let response = app.oneshot(request).await.unwrap();
+    assert_eq!(response.status(), StatusCode::NOT_FOUND);
+}
+
+#[tokio::test]
+async fn rename_session_clears_name_with_null() {
+    use axum::body::Body;
+    use hyper::Request;
+    use tower::ServiceExt;
+
+    let config = AppConfig::default();
+    let state = AppState::new(config);
+    state.session_mgr.insert_fake_session("clear-me").await;
+
+    let app = create_router(state);
+
+    let request = Request::builder()
+        .method("PATCH")
+        .uri("/api/sessions/clear-me")
+        .header("content-type", "application/json")
+        .body(Body::from(r#"{"name":null}"#))
+        .unwrap();
+
+    let response = app.oneshot(request).await.unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body_bytes = response.into_body().collect().await.unwrap().to_bytes();
+    let parsed: serde_json::Value = serde_json::from_slice(&body_bytes).unwrap();
+    assert!(parsed["name"].is_null());
+}
+
+// ---------------------------------------------------------------------------
+// DELETE /api/sessions/{id}
+// ---------------------------------------------------------------------------
+
+#[tokio::test]
+async fn delete_session_returns_404_for_unknown() {
+    use axum::body::Body;
+    use hyper::Request;
+    use tower::ServiceExt;
+
+    let config = AppConfig::default();
+    let state = AppState::new(config);
+    let app = create_router(state);
+
+    let request = Request::builder()
+        .method("DELETE")
+        .uri("/api/sessions/ghost")
+        .body(Body::empty())
+        .unwrap();
+
+    let response = app.oneshot(request).await.unwrap();
+    assert_eq!(response.status(), StatusCode::NOT_FOUND);
+}
+
+// ---------------------------------------------------------------------------
+// GET /api/sessions inclui name
+// ---------------------------------------------------------------------------
+
+#[tokio::test]
+async fn list_sessions_includes_name_field() {
+    use axum::body::Body;
+    use hyper::Request;
+    use tower::ServiceExt;
+
+    let config = AppConfig::default();
+    let state = AppState::new(config);
+    state.session_mgr.insert_fake_session("named-s").await;
+
+    // Renomear a sessao
+    state
+        .session_mgr
+        .rename_session("named-s", Some("Meu Caso".to_owned()))
+        .await
+        .unwrap();
+
+    let app = create_router(state);
+
+    let request = Request::builder()
+        .uri("/api/sessions")
+        .body(Body::empty())
+        .unwrap();
+
+    let response = app.oneshot(request).await.unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body_bytes = response.into_body().collect().await.unwrap().to_bytes();
+    let parsed: serde_json::Value = serde_json::from_slice(&body_bytes).unwrap();
+
+    let sessions = parsed["sessions"].as_array().unwrap();
+    assert_eq!(sessions.len(), 1);
+    assert_eq!(sessions[0]["name"].as_str(), Some("Meu Caso"));
+}
+
+// ---------------------------------------------------------------------------
 // Testes WebSocket via tokio-tungstenite
 // ---------------------------------------------------------------------------
 

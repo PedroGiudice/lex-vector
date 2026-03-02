@@ -24,6 +24,8 @@ pub struct SessionInfo {
     pub case_id: Option<String>,
     /// Timestamp de criacao em ISO 8601 (RFC 3339).
     pub created_at: Option<String>,
+    /// Nome amigavel da sessao, definido pelo usuario.
+    pub name: Option<String>,
 }
 
 /// Metadados de sessao persistidos em disco como JSON.
@@ -34,6 +36,8 @@ pub struct SessionMetadata {
     pub working_dir: Option<String>,
     pub case_id: Option<String>,
     pub created_at: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
 }
 
 impl SessionMetadata {
@@ -46,6 +50,7 @@ impl SessionMetadata {
             working_dir: info.working_dir.clone(),
             case_id: info.case_id.clone(),
             created_at: chrono::Utc::now().to_rfc3339(),
+            name: info.name.clone(),
         }
     }
 
@@ -58,6 +63,7 @@ impl SessionMetadata {
             working_dir: self.working_dir,
             case_id: self.case_id,
             created_at: Some(self.created_at),
+            name: self.name,
         }
     }
 }
@@ -124,6 +130,7 @@ impl SessionManager {
             working_dir,
             case_id: case_id.map(String::from),
             created_at: Some(chrono::Utc::now().to_rfc3339()),
+            name: None,
         };
 
         self.write_session_metadata(&info).await?;
@@ -162,6 +169,32 @@ impl SessionManager {
         self.sessions.read().await.get(session_id).cloned()
     }
 
+    /// Renomeia uma sessao existente.
+    ///
+    /// Atualiza o nome tanto no mapa em memoria quanto no arquivo JSON em disco.
+    ///
+    /// # Errors
+    ///
+    /// Retorna `AppError::SessionNotFound` se o id nao existir no mapa.
+    /// Retorna `AppError::Io` ou `AppError::Json` se a persistencia falhar.
+    pub async fn rename_session(
+        &self,
+        session_id: &str,
+        name: Option<String>,
+    ) -> Result<SessionInfo, AppError> {
+        let mut map = self.sessions.write().await;
+        let info = map
+            .get_mut(session_id)
+            .ok_or_else(|| AppError::SessionNotFound {
+                id: session_id.to_owned(),
+            })?;
+        info.name = name;
+        let info_clone = info.clone();
+        drop(map);
+        self.write_session_metadata(&info_clone).await?;
+        Ok(info_clone)
+    }
+
     /// Descobre sessoes tmux orfas (criadas fora desta instancia) e as registra.
     ///
     /// Sessoes ja presentes no mapa sao ignoradas.
@@ -194,6 +227,7 @@ impl SessionManager {
                 working_dir: None,
                 case_id: None,
                 created_at: None,
+                name: None,
             };
 
             map.insert(session_id.to_owned(), info);
@@ -294,6 +328,7 @@ impl SessionManager {
             working_dir: None,
             case_id: None,
             created_at: None,
+            name: None,
         };
         self.sessions
             .write()
