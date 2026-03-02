@@ -11,10 +11,17 @@ import {
   Activity,
   GitBranch,
   Clock,
+  Columns,
+  Layers,
+  FolderOpen,
+  FileText,
+  Loader2,
 } from "lucide-react";
 import { useSession } from "../contexts/SessionContext";
 import { useWebSocket } from "../contexts/WebSocketContext";
 import { useChat } from "../hooks/useChat";
+import { useAgents } from "../hooks/useAgents";
+import { useSessions } from "../hooks/useCcuiApi";
 import { ModeToggle } from "./ModeToggle";
 import type { ViewMode } from "./ModeToggle";
 import { ChatView } from "./ChatView";
@@ -24,8 +31,10 @@ interface SessionViewProps {
 }
 
 type SidebarTab = "sessions" | "files" | "search" | "settings";
+type LayoutMode = "tab" | "split";
 
 const MODE_STORAGE_KEY = "ccui-view-mode";
+const LAYOUT_STORAGE_KEY = "ccui-layout-mode";
 
 /* -- Icon Strip Button -- */
 function IconBtn({
@@ -90,15 +99,163 @@ function AgentTab({
   );
 }
 
+/* -- Sessions List (sidebar) -- */
+function SessionsList() {
+  const { sessions, loading, fetchSessions } = useSessions();
+
+  useEffect(() => {
+    fetchSessions();
+  }, [fetchSessions]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center gap-2 px-3 py-4">
+        <Loader2 className="w-3 h-3 animate-spin" style={{ color: "var(--text-muted)" }} />
+        <span className="text-[11px]" style={{ fontFamily: "var(--font-mono)", color: "var(--text-muted)" }}>
+          Carregando...
+        </span>
+      </div>
+    );
+  }
+
+  if (sessions.length === 0) {
+    return (
+      <div className="px-3 py-4">
+        <span className="text-[11px]" style={{ fontFamily: "var(--font-mono)", color: "var(--text-muted)" }}>
+          Nenhuma sessao ativa
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-0.5 p-1.5">
+      {sessions.map((s) => (
+        <div
+          key={s.session_id}
+          className="flex items-center gap-2 px-2.5 py-2 rounded-md cursor-default"
+          style={{ background: "var(--bg-cards)" }}
+        >
+          <MessageSquare className="w-3 h-3 shrink-0" style={{ color: "var(--accent)" }} />
+          <div className="flex flex-col min-w-0">
+            <span
+              className="text-[11px] truncate"
+              style={{ fontFamily: "var(--font-mono)", color: "var(--text-primary)" }}
+            >
+              {s.case_id ?? s.session_id.slice(0, 8)}
+            </span>
+            {s.created_at && (
+              <span className="text-[9px]" style={{ fontFamily: "var(--font-mono)", color: "var(--text-muted)" }}>
+                {new Date(s.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+              </span>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* -- File Tree (sidebar) -- */
+function FileTree({ caseId }: { caseId: string | null }) {
+  if (!caseId) {
+    return (
+      <div className="px-3 py-4">
+        <span className="text-[11px]" style={{ fontFamily: "var(--font-mono)", color: "var(--text-muted)" }}>
+          Selecione um caso
+        </span>
+      </div>
+    );
+  }
+
+  // Placeholder - seria populado via endpoint REST do backend
+  return (
+    <div className="flex flex-col gap-0.5 p-1.5">
+      <div className="flex items-center gap-2 px-2.5 py-1.5">
+        <FolderOpen className="w-3 h-3" style={{ color: "var(--accent)" }} />
+        <span className="text-[11px]" style={{ fontFamily: "var(--font-mono)", color: "var(--text-primary)" }}>
+          {caseId}
+        </span>
+      </div>
+      {["base/", "embeddings/", "metadata/"].map((dir) => (
+        <div key={dir} className="flex items-center gap-2 px-2.5 py-1 ml-4">
+          <FolderOpen className="w-3 h-3" style={{ color: "var(--text-muted)" }} />
+          <span className="text-[11px]" style={{ fontFamily: "var(--font-mono)", color: "var(--text-secondary)" }}>
+            {dir}
+          </span>
+        </div>
+      ))}
+      <div className="flex items-center gap-2 px-2.5 py-1 ml-4">
+        <FileText className="w-3 h-3" style={{ color: "var(--text-muted)" }} />
+        <span className="text-[11px]" style={{ fontFamily: "var(--font-mono)", color: "var(--text-secondary)" }}>
+          CLAUDE.md
+        </span>
+      </div>
+    </div>
+  );
+}
+
+/* -- Split Panel (agentes secundarios) -- */
+function SplitPanel({
+  agents,
+  activeAgent,
+}: {
+  agents: { name: string; color: string }[];
+  activeAgent: string;
+}) {
+  const secondaryAgents = agents.filter((a) => a.name !== activeAgent);
+
+  if (secondaryAgents.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <span className="text-[11px]" style={{ fontFamily: "var(--font-mono)", color: "var(--text-muted)" }}>
+          Sem agentes secundarios
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col h-full divide-y" style={{ borderColor: "var(--bg-borders)" }}>
+      {secondaryAgents.map((agent) => (
+        <div key={agent.name} className="flex-1 flex flex-col min-h-0">
+          <div
+            className="flex items-center gap-2 px-3 py-1.5 shrink-0"
+            style={{ borderBottom: "1px solid var(--bg-borders)" }}
+          >
+            <span className="w-2 h-2 rounded-full" style={{ background: agent.color }} />
+            <span
+              className="text-[11px]"
+              style={{ fontFamily: "var(--font-mono)", color: "var(--text-secondary)" }}
+            >
+              {agent.name}
+            </span>
+          </div>
+          <div className="flex-1 overflow-y-auto px-3 py-2">
+            <span className="text-[10px]" style={{ fontFamily: "var(--font-mono)", color: "var(--text-muted)" }}>
+              Output do agente
+            </span>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 /* -- Main -- */
 export const SessionView: React.FC<SessionViewProps> = ({ onClose }) => {
   const { caseId, sessionId, reset } = useSession();
   const { status, send } = useWebSocket();
   const { messages, isStreaming, sendMessage } = useChat();
+  const { agents: wsAgents } = useAgents();
 
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
     const saved = localStorage.getItem(MODE_STORAGE_KEY);
     return saved === "developer" ? "developer" : "client";
+  });
+  const [layoutMode, setLayoutMode] = useState<LayoutMode>(() => {
+    const saved = localStorage.getItem(LAYOUT_STORAGE_KEY);
+    return saved === "split" ? "split" : "tab";
   });
   const [inputText, setInputText] = useState("");
   const [sidebarTab, setSidebarTab] = useState<SidebarTab>("sessions");
@@ -106,9 +263,22 @@ export const SessionView: React.FC<SessionViewProps> = ({ onClose }) => {
   const [activeAgent, setActiveAgent] = useState("Main");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  // Agentes: usar WS reais se disponivel, senao fallback "Main"
+  const displayAgents = wsAgents.length > 0
+    ? wsAgents.map((a) => ({ name: a.name, color: a.color }))
+    : [{ name: "Main", color: "var(--agent-terracota)" }];
+
   const handleModeChange = useCallback((mode: ViewMode) => {
     setViewMode(mode);
     localStorage.setItem(MODE_STORAGE_KEY, mode);
+  }, []);
+
+  const toggleLayout = useCallback(() => {
+    setLayoutMode((prev) => {
+      const next = prev === "tab" ? "split" : "tab";
+      localStorage.setItem(LAYOUT_STORAGE_KEY, next);
+      return next;
+    });
   }, []);
 
   const handleSend = useCallback(() => {
@@ -134,17 +304,23 @@ export const SessionView: React.FC<SessionViewProps> = ({ onClose }) => {
     onClose();
   }, [sessionId, send, reset, onClose]);
 
-  // Cmd+B para toggle sidebar
+  // Keyboard shortcuts
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
+      // Cmd+B: toggle sidebar
       if ((e.metaKey || e.ctrlKey) && e.key === "b") {
         e.preventDefault();
         setSidebarOpen((prev) => !prev);
       }
+      // Ctrl+\: toggle tab/split
+      if (e.ctrlKey && e.key === "\\") {
+        e.preventDefault();
+        toggleLayout();
+      }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, []);
+  }, [toggleLayout]);
 
   const isConnected = status === "connected";
   const canSend = isConnected && !!sessionId && !!inputText.trim();
@@ -159,14 +335,6 @@ export const SessionView: React.FC<SessionViewProps> = ({ onClose }) => {
     }, 30_000);
     return () => clearInterval(iv);
   }, []);
-
-  // Mock agents (will come from WS agent_joined/left)
-  const agents = [
-    { name: "Main (legal-team)", color: "var(--agent-terracota)" },
-    { name: "researcher", color: "var(--agent-oliva)" },
-    { name: "case-analyst", color: "var(--agent-teal)" },
-    { name: "strategist", color: "var(--agent-malva)" },
-  ];
 
   return (
     <div className="flex flex-col h-screen" style={{ background: "var(--bg-base)" }}>
@@ -185,7 +353,7 @@ export const SessionView: React.FC<SessionViewProps> = ({ onClose }) => {
 
         {/* Agent tabs */}
         <div className="flex items-center gap-1 flex-1">
-          {agents.map((a) => (
+          {displayAgents.map((a) => (
             <AgentTab
               key={a.name}
               name={a.name}
@@ -196,8 +364,24 @@ export const SessionView: React.FC<SessionViewProps> = ({ onClose }) => {
           ))}
         </div>
 
-        {/* Mode toggle + close */}
+        {/* Layout toggle + Mode toggle + close */}
         <div className="flex items-center gap-2 shrink-0 pr-2">
+          <button
+            onClick={toggleLayout}
+            title={layoutMode === "tab" ? "Modo split (Ctrl+\\)" : "Modo tab (Ctrl+\\)"}
+            aria-label={layoutMode === "tab" ? "Ativar split view" : "Ativar tab view"}
+            className="flex items-center justify-center w-7 h-7 rounded-md transition-colors"
+            style={{
+              color: layoutMode === "split" ? "var(--accent)" : "var(--text-muted)",
+              background: layoutMode === "split" ? "var(--accent-dim)" : "transparent",
+            }}
+          >
+            {layoutMode === "split" ? (
+              <Columns className="w-3.5 h-3.5" />
+            ) : (
+              <Layers className="w-3.5 h-3.5" />
+            )}
+          </button>
           <ModeToggle mode={viewMode} onChange={handleModeChange} />
           <button
             onClick={handleClose}
@@ -209,7 +393,7 @@ export const SessionView: React.FC<SessionViewProps> = ({ onClose }) => {
         </div>
       </header>
 
-      {/* Body: icon strip + sidebar + chat */}
+      {/* Body: icon strip + sidebar + chat + split panel */}
       <div className="flex flex-1 overflow-hidden">
         {/* Icon strip */}
         <aside
@@ -230,7 +414,7 @@ export const SessionView: React.FC<SessionViewProps> = ({ onClose }) => {
         {/* Side panel */}
         {sidebarOpen && (
           <aside
-            className="shrink-0 flex flex-col anim-fade-in"
+            className="shrink-0 flex flex-col anim-fade-in overflow-hidden"
             style={{
               width: "var(--side-panel)",
               background: "var(--bg-header)",
@@ -245,16 +429,29 @@ export const SessionView: React.FC<SessionViewProps> = ({ onClose }) => {
                 {sidebarTab === "sessions" ? "SESSOES" : sidebarTab === "files" ? "ARQUIVOS" : sidebarTab.toUpperCase()}
               </span>
             </div>
-            <div className="flex-1 flex items-center justify-center">
-              <span className="text-[10px]" style={{ fontFamily: "var(--font-mono)", color: "var(--text-muted)" }}>
-                Em breve
-              </span>
+            <div className="flex-1 overflow-y-auto">
+              {sidebarTab === "sessions" && <SessionsList />}
+              {sidebarTab === "files" && <FileTree caseId={caseId} />}
+              {sidebarTab === "search" && (
+                <div className="px-3 py-4">
+                  <span className="text-[10px]" style={{ fontFamily: "var(--font-mono)", color: "var(--text-muted)" }}>
+                    Busca em breve
+                  </span>
+                </div>
+              )}
+              {sidebarTab === "settings" && (
+                <div className="px-3 py-4">
+                  <span className="text-[10px]" style={{ fontFamily: "var(--font-mono)", color: "var(--text-muted)" }}>
+                    Configuracoes em breve
+                  </span>
+                </div>
+              )}
             </div>
           </aside>
         )}
 
         {/* Chat area */}
-        <main className="flex-1 flex flex-col overflow-hidden">
+        <main className="flex-1 flex flex-col overflow-hidden" style={{ minWidth: 0 }}>
           {/* Case info bar */}
           <div
             className="flex items-center gap-2 px-4 py-1.5 shrink-0"
@@ -269,8 +466,26 @@ export const SessionView: React.FC<SessionViewProps> = ({ onClose }) => {
             </span>
           </div>
 
-          {/* Messages */}
-          <ChatView messages={messages} isStreaming={isStreaming} viewMode={viewMode} />
+          {/* Messages area: tab mode = full, split mode = 70% + detail panel */}
+          <div className="flex flex-1 overflow-hidden">
+            <div className={layoutMode === "split" ? "flex-[7] min-w-0" : "flex-1"}>
+              <ChatView messages={messages} isStreaming={isStreaming} viewMode={viewMode} />
+            </div>
+
+            {/* Split panel */}
+            {layoutMode === "split" && (
+              <aside
+                className="shrink-0 overflow-hidden anim-fade-in"
+                style={{
+                  width: "var(--detail-panel)",
+                  borderLeft: "1px solid var(--bg-borders)",
+                  background: "var(--bg-panels)",
+                }}
+              >
+                <SplitPanel agents={displayAgents} activeAgent={activeAgent} />
+              </aside>
+            )}
+          </div>
 
           {/* Input */}
           <div className="shrink-0 px-4 py-3" style={{ borderTop: "1px solid var(--bg-borders)", background: "var(--bg-panels)" }}>
@@ -357,8 +572,14 @@ export const SessionView: React.FC<SessionViewProps> = ({ onClose }) => {
           </div>
 
           <span className="text-[9px]" style={{ fontFamily: "var(--font-mono)", color: "var(--text-muted)" }}>
-            {agents.length} agentes ativos
+            {displayAgents.length} agente{displayAgents.length !== 1 ? "s" : ""} ativo{displayAgents.length !== 1 ? "s" : ""}
           </span>
+
+          {layoutMode === "split" && (
+            <span className="text-[9px]" style={{ fontFamily: "var(--font-mono)", color: "var(--text-muted)" }}>
+              SPLIT
+            </span>
+          )}
         </div>
 
         <div className="flex items-center gap-1.5">

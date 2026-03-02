@@ -1,5 +1,28 @@
-@import "tailwindcss";
 @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap');
+@import "tailwindcss";
+
+/* ---- MonaspiceAr Nerd Font Mono (local) ---- */
+@font-face {
+  font-family: "MonaspiceAr Nerd Font Mono";
+  src: url("/fonts/MonaspiceArNerdFontMono-Regular.otf") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "MonaspiceAr Nerd Font Mono";
+  src: url("/fonts/MonaspiceArNerdFontMono-Bold.otf") format("opentype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "MonaspiceAr Nerd Font Mono";
+  src: url("/fonts/MonaspiceArNerdFontMono-Italic.otf") format("opentype");
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
 
 /* ---- Claude Terroso: Design Tokens ---- */
 /* Fonte de verdade: Penpot Design System + docs/plans/2026-03-02-ccui-claude-terroso-design.md */

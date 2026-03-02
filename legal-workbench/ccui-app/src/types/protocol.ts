@@ -58,6 +58,9 @@ export type ServerMessage =
   | { type: "chat_start"; message_id: string; session_id: string }
   | { type: "chat_delta"; message_id: string; session_id: string; part: MessagePart }
   | { type: "chat_end"; message_id: string; session_id: string }
+  | { type: "agent_joined"; name: string; color: string; model: string; pane_id: string }
+  | { type: "agent_left"; name: string }
+  | { type: "agent_crashed"; name: string }
   | { type: "error"; message: string }
   | { type: "pong" };
 
