@@ -51,8 +51,15 @@ export function useCases() {
     setLoading(true);
     setError(null);
     try {
-      const data = await apiFetch<{ cases: CaseInfo[] }>("/api/cases");
-      setCases(data.cases);
+      const data = await apiFetch<{ cases: unknown[] }>("/api/cases");
+      const normalizeCase = (c: Record<string, unknown>): CaseInfo => ({
+        ...(c as unknown as CaseInfo),
+        last_modified:
+          typeof c.last_modified === "number"
+            ? new Date(c.last_modified * 1000).toISOString()
+            : (c.last_modified as string),
+      });
+      setCases((data.cases ?? []).map((c) => normalizeCase(c as Record<string, unknown>)));
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Falha ao carregar casos";
       setError(msg);
@@ -75,8 +82,13 @@ export function useSessions() {
     setLoading(true);
     setError(null);
     try {
-      const data = await apiFetch<{ sessions: SessionInfo[] }>("/api/sessions");
-      setSessions(data.sessions);
+      const data = await apiFetch<{ sessions: (string | SessionInfo)[] }>("/api/sessions");
+      const raw = data.sessions ?? [];
+      setSessions(
+        raw.map((s) =>
+          typeof s === "string" ? { session_id: s } : s
+        )
+      );
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Falha ao carregar sessoes";
       setError(msg);

@@ -83,12 +83,21 @@ async fn health() -> &'static str {
     "ok"
 }
 
-/// `GET /api/sessions` -- lista IDs das sessoes ativas.
+/// `GET /api/sessions` -- lista sessoes ativas com metadados.
 #[allow(clippy::missing_errors_doc)]
 async fn list_sessions(State(state): State<Arc<AppState>>) -> impl IntoResponse {
     let sessions = state.session_mgr.list_sessions().await;
-    let ids: Vec<&str> = sessions.iter().map(|s| s.id.as_str()).collect();
-    Json(json!({ "sessions": ids }))
+    let objects: Vec<serde_json::Value> = sessions
+        .iter()
+        .map(|s| {
+            json!({
+                "session_id": s.id,
+                "case_id": s.case_id,
+                "created_at": s.created_at,
+            })
+        })
+        .collect();
+    Json(json!({ "sessions": objects }))
 }
 
 /// `GET /api/sessions/{id}/channels` -- lista canais ativos de uma sessao.
@@ -136,13 +145,11 @@ async fn list_cases(State(state): State<Arc<AppState>>) -> impl IntoResponse {
                 .map(|rd| rd.flatten().filter(|e| e.path().is_file()).count())
                 .unwrap_or(0);
 
-            let last_modified = std::fs::metadata(&path)
+            let last_modified: Option<String> = std::fs::metadata(&path)
                 .and_then(|m| m.modified())
                 .ok()
                 .map(|t| {
-                    t.duration_since(std::time::UNIX_EPOCH)
-                        .unwrap_or_default()
-                        .as_secs()
+                    chrono::DateTime::<chrono::Utc>::from(t).to_rfc3339()
                 });
 
             // Sessoes ativas apontando para este caso

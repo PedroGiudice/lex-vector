@@ -22,6 +22,8 @@ pub struct SessionInfo {
     pub working_dir: Option<String>,
     /// ID do caso juridico associado.
     pub case_id: Option<String>,
+    /// Timestamp de criacao em ISO 8601 (RFC 3339).
+    pub created_at: Option<String>,
 }
 
 /// Metadados de sessao persistidos em disco como JSON.
@@ -55,6 +57,7 @@ impl SessionMetadata {
             tmux_session: self.tmux_session,
             working_dir: self.working_dir,
             case_id: self.case_id,
+            created_at: Some(self.created_at),
         }
     }
 }
@@ -120,6 +123,7 @@ impl SessionManager {
             tmux_session,
             working_dir,
             case_id: case_id.map(String::from),
+            created_at: Some(chrono::Utc::now().to_rfc3339()),
         };
 
         self.write_session_metadata(&info).await?;
@@ -189,6 +193,7 @@ impl SessionManager {
                 tmux_session: tmux_session.clone(),
                 working_dir: None,
                 case_id: None,
+                created_at: None,
             };
 
             map.insert(session_id.to_owned(), info);
@@ -289,6 +294,7 @@ impl SessionManager {
             tmux_session: format!("fake-{session_id}"),
             working_dir: None,
             case_id: None,
+            created_at: None,
         };
         self.sessions
             .write()
