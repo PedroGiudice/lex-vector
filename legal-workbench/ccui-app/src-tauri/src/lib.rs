@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 use tauri_plugin_shell::process::CommandChild;
 
@@ -147,6 +147,57 @@ async fn check_tunnel() -> Result<bool, String> {
     check_health().await
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct FileEntry {
+    pub name: String,
+    pub path: String,
+    pub size: u64,
+    pub is_dir: bool,
+}
+
+fn collect_entries(dir: &Path, depth: u8, max_depth: u8) -> Result<Vec<FileEntry>, String> {
+    let mut entries = Vec::new();
+    let read_dir = std::fs::read_dir(dir)
+        .map_err(|e| format!("falha ao ler diretorio {}: {e}", dir.display()))?;
+
+    for entry in read_dir {
+        let entry = entry.map_err(|e| format!("falha ao ler entrada: {e}"))?;
+        let metadata = entry
+            .metadata()
+            .map_err(|e| format!("falha ao ler metadata de {}: {e}", entry.path().display()))?;
+        let is_dir = metadata.is_dir();
+        let file_entry = FileEntry {
+            name: entry.file_name().to_string_lossy().into_owned(),
+            path: entry.path().to_string_lossy().into_owned(),
+            size: metadata.len(),
+            is_dir,
+        };
+        entries.push(file_entry);
+
+        if is_dir && depth < max_depth {
+            let children = collect_entries(&entry.path(), depth + 1, max_depth)?;
+            entries.extend(children);
+        }
+    }
+
+    entries.sort_by(|a, b| a.name.cmp(&b.name));
+    Ok(entries)
+}
+
+/// Lista arquivos de um caso juridico. Busca em `/home/opc/juridico-data/cases/{case_id}/`.
+/// Recursivo ate 2 niveis de profundidade.
+#[tauri::command]
+async fn list_case_files(case_id: String) -> Result<Vec<FileEntry>, String> {
+    let base = PathBuf::from("/home/opc/juridico-data/cases").join(&case_id);
+    if !base.exists() {
+        return Err(format!("diretorio do caso nao encontrado: {}", base.display()));
+    }
+    if !base.is_dir() {
+        return Err(format!("caminho nao e um diretorio: {}", base.display()));
+    }
+    collect_entries(&base, 0, 2)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let mut builder = tauri::Builder::default()
@@ -154,6 +205,9 @@ pub fn run() {
         .plugin(tauri_plugin_store::Builder::default().build())
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_fs::init())
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_notification::init())
         .manage(TunnelState(Mutex::new(None)));
 
     builder = builder.plugin(tauri_plugin_mcp_bridge::init());
@@ -167,6 +221,7 @@ pub fn run() {
             open_tunnel,
             close_tunnel,
             check_tunnel,
+            list_case_files,
         ])
         .run(tauri::generate_context!())
         .expect("erro ao iniciar ccui-app");

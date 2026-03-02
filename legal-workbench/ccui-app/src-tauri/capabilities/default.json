@@ -9,6 +9,9 @@
     "store:default",
     "clipboard-manager:allow-write-text",
     "mcp-bridge:default",
+    "fs:default",
+    "dialog:default",
+    "notification:default",
     "shell:allow-stdin-write",
     "shell:allow-kill",
     {
