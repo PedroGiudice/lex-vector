@@ -21,6 +21,7 @@ interface SessionState {
 type SessionAction =
   | { type: "SET_CASE"; caseId: string }
   | { type: "SESSION_CREATED"; sessionId: string; caseId?: string }
+  | { type: "SESSION_RECONNECTED"; sessionId: string; caseId?: string; name?: string }
   | { type: "RESET" };
 
 function reducer(state: SessionState, action: SessionAction): SessionState {
@@ -29,6 +30,13 @@ function reducer(state: SessionState, action: SessionAction): SessionState {
       return { ...state, caseId: action.caseId };
 
     case "SESSION_CREATED":
+      return {
+        ...state,
+        sessionId: action.sessionId,
+        caseId: action.caseId ?? state.caseId,
+      };
+
+    case "SESSION_RECONNECTED":
       return {
         ...state,
         sessionId: action.sessionId,
@@ -46,6 +54,7 @@ function reducer(state: SessionState, action: SessionAction): SessionState {
 interface SessionContextValue extends SessionState {
   selectCase: (caseId: string) => void;
   createSession: (caseId: string) => void;
+  reconnectSession: (sessionId: string) => void;
   reset: () => void;
 }
 
@@ -69,6 +78,15 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
           });
           break;
 
+        case "session_reconnected":
+          dispatch({
+            type: "SESSION_RECONNECTED",
+            sessionId: msg.session_id,
+            caseId: msg.case_id,
+            name: msg.name,
+          });
+          break;
+
         case "session_ended":
           dispatch({ type: "RESET" });
           break;
@@ -88,13 +106,20 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     [send]
   );
 
+  const reconnectSession = useCallback(
+    (sessionId: string) => {
+      send({ type: "reconnect_session", session_id: sessionId });
+    },
+    [send]
+  );
+
   const reset = useCallback(() => {
     dispatch({ type: "RESET" });
   }, []);
 
   return (
     <SessionContext.Provider
-      value={{ ...state, selectCase, createSession, reset }}
+      value={{ ...state, selectCase, createSession, reconnectSession, reset }}
     >
       {children}
     </SessionContext.Provider>

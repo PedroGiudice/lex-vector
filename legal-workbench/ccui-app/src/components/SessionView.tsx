@@ -331,7 +331,7 @@ function SplitPanel({
 
 /* -- Main -- */
 export const SessionView: React.FC<SessionViewProps> = ({ onClose }) => {
-  const { caseId, sessionId, createSession, reset } = useSession();
+  const { caseId, sessionId, reconnectSession, reset } = useSession();
   const { status, send } = useWebSocket();
   const { messages, isStreaming, sendMessage } = useChat();
   const { agents: wsAgents } = useAgents();
@@ -374,13 +374,13 @@ export const SessionView: React.FC<SessionViewProps> = ({ onClose }) => {
     }
   };
 
-  const handleSwitchSession = useCallback((targetSessionId: string, targetCaseId?: string) => {
-    if (sessionId) {
-      send({ type: "destroy_session", session_id: sessionId });
-    }
-    // Por enquanto, reconectar passa session_id como case_id (backend implementara reconnect depois)
-    createSession(targetCaseId ?? targetSessionId);
-  }, [sessionId, send, createSession]);
+  const handleSwitchSession = useCallback((targetSessionId: string, _targetCaseId?: string) => {
+    // Se ja esta na sessao clicada, nao fazer nada
+    if (targetSessionId === sessionId) return;
+
+    // Reconectar na sessao existente (sem destruir a atual)
+    reconnectSession(targetSessionId);
+  }, [sessionId, reconnectSession]);
 
   const handleClose = useCallback(() => {
     if (sessionId) {
@@ -435,7 +435,10 @@ export const SessionView: React.FC<SessionViewProps> = ({ onClose }) => {
       >
         {/* Spacer for icon strip width */}
         <div style={{ width: "var(--icon-strip)" }} className="shrink-0" />
-        {sidebarOpen && <div style={{ width: "var(--side-panel)" }} className="shrink-0" />}
+        <div
+          className="shrink-0 transition-all duration-150 ease-in-out"
+          style={{ width: sidebarOpen ? "var(--side-panel)" : 0 }}
+        />
 
         {/* Agent tabs */}
         <div className="flex items-center gap-1 flex-1">
@@ -498,15 +501,17 @@ export const SessionView: React.FC<SessionViewProps> = ({ onClose }) => {
         </aside>
 
         {/* Side panel */}
-        {sidebarOpen && (
-          <aside
-            className="shrink-0 flex flex-col anim-fade-in overflow-hidden"
-            style={{
-              width: "var(--side-panel)",
-              background: "var(--bg-header)",
-              borderRight: "1px solid var(--bg-borders)",
-            }}
-          >
+        <aside
+          className="shrink-0 flex flex-col overflow-hidden transition-all duration-150 ease-in-out"
+          style={{
+            width: sidebarOpen ? "var(--side-panel)" : 0,
+            opacity: sidebarOpen ? 1 : 0,
+            transform: sidebarOpen ? "translateX(0)" : "translateX(-16px)",
+            background: "var(--bg-header)",
+            borderRight: sidebarOpen ? "1px solid var(--bg-borders)" : "none",
+            pointerEvents: sidebarOpen ? "auto" : "none",
+          }}
+        >
             <div className="px-3 py-2.5" style={{ borderBottom: "1px solid var(--bg-borders)" }}>
               <span
                 className="text-[9px] tracking-[0.15em] uppercase"
@@ -534,7 +539,6 @@ export const SessionView: React.FC<SessionViewProps> = ({ onClose }) => {
               )}
             </div>
           </aside>
-        )}
 
         {/* Chat area */}
         <main className="flex-1 flex flex-col overflow-hidden" style={{ minWidth: 0 }}>
@@ -559,18 +563,18 @@ export const SessionView: React.FC<SessionViewProps> = ({ onClose }) => {
             </div>
 
             {/* Split panel */}
-            {layoutMode === "split" && (
-              <aside
-                className="shrink-0 overflow-hidden anim-fade-in"
-                style={{
-                  width: "var(--detail-panel)",
-                  borderLeft: "1px solid var(--bg-borders)",
-                  background: "var(--bg-panels)",
-                }}
-              >
-                <SplitPanel agents={displayAgents} activeAgent={activeAgent} />
-              </aside>
-            )}
+            <aside
+              className="shrink-0 overflow-hidden transition-all duration-150 ease-in-out"
+              style={{
+                width: layoutMode === "split" ? "var(--detail-panel)" : 0,
+                opacity: layoutMode === "split" ? 1 : 0,
+                borderLeft: layoutMode === "split" ? "1px solid var(--bg-borders)" : "none",
+                background: "var(--bg-panels)",
+                pointerEvents: layoutMode === "split" ? "auto" : "none",
+              }}
+            >
+              <SplitPanel agents={displayAgents} activeAgent={activeAgent} />
+            </aside>
           </div>
 
           {/* Input */}

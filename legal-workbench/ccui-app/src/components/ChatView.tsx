@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from "react";
 import type { ChatMessage, MessagePart } from "../types/protocol";
 import { getClientIntent } from "../utils/getClientIntent";
 import { MarkdownRenderer } from "./MarkdownRenderer";
+import { ApertureSpinnerMini } from "./ApertureSpinner";
 
 interface ChatViewProps {
   messages: ChatMessage[];
@@ -202,14 +203,11 @@ const MessageBubble: React.FC<{
 const StreamingIndicator: React.FC = () => (
   <div
     data-testid="streaming-indicator"
-    className="flex items-center gap-2 py-2 text-[12px]"
+    className="flex items-center gap-2.5 py-3 text-[12px]"
     style={{ fontFamily: "var(--font-mono)", color: "var(--text-muted)" }}
   >
-    <span
-      className="w-1.5 h-1.5 rounded-full animate-pulse"
-      style={{ background: "var(--accent)" }}
-    />
-    Analisando...
+    <ApertureSpinnerMini size={20} />
+    <span>Pensando...</span>
   </div>
 );
 

@@ -10,6 +10,7 @@ export type ClientMessage =
   | { type: "input"; channel: string; text: string }
   | { type: "chat_input"; session_id: string; text: string }
   | { type: "resize"; channel: string; cols: number; rows: number }
+  | { type: "reconnect_session"; session_id: string }
   | { type: "destroy_session"; session_id: string }
   | { type: "ping" };
 
@@ -53,6 +54,7 @@ export interface ChatMessage {
 export type ServerMessage =
   | { type: "output"; channel: string; data: string }
   | { type: "session_created"; session_id: string; case_id?: string }
+  | { type: "session_reconnected"; session_id: string; case_id?: string; name?: string }
   | { type: "session_ended"; session_id: string }
   | { type: "chat_init"; session_id: string; model: string; claude_session_id: string }
   | { type: "chat_start"; message_id: string; session_id: string }
