@@ -31,6 +31,10 @@ pub enum ClientMessage {
     #[serde(rename = "destroy_session")]
     DestroySession { session_id: String },
 
+    /// Reconecta a uma sessao existente (re-attach ao output stream).
+    #[serde(rename = "reconnect_session")]
+    ReconnectSession { session_id: String },
+
     /// Envia prompt para o Claude via stream-json input.
     #[serde(rename = "chat_input")]
     ChatInput { session_id: String, text: String },
@@ -105,6 +109,16 @@ pub enum ServerMessage {
         session_id: String,
         model: String,
         claude_session_id: String,
+    },
+
+    /// Confirmacao de reconexao a sessao existente.
+    #[serde(rename = "session_reconnected")]
+    SessionReconnected {
+        session_id: String,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        case_id: Option<String>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        name: Option<String>,
     },
 
     /// Erro generico.

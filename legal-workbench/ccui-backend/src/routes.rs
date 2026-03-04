@@ -270,13 +270,17 @@ async fn handle_ws(mut socket: WebSocket, state: Arc<AppState>) {
                     Some(Ok(Message::Text(text))) => {
                         match serde_json::from_str::<ClientMessage>(&text) {
                             Ok(msg) => {
-                                // Captura session_id ao criar sessao
-                                if let ClientMessage::CreateSession { .. } = &msg {
-                                    handle_client_message_tracked(
-                                        &mut socket, &state, msg, &mut current_session_id
-                                    ).await;
-                                } else {
-                                    handle_client_message(&mut socket, &state, msg).await;
+                                // Captura session_id ao criar ou reconectar sessao.
+                                match &msg {
+                                    ClientMessage::CreateSession { .. }
+                                    | ClientMessage::ReconnectSession { .. } => {
+                                        handle_client_message_tracked(
+                                            &mut socket, &state, msg, &mut current_session_id
+                                        ).await;
+                                    }
+                                    _ => {
+                                        handle_client_message(&mut socket, &state, msg).await;
+                                    }
                                 }
                             }
                             Err(e) => {
@@ -340,43 +344,103 @@ async fn handle_client_message_tracked(
     msg: ClientMessage,
     current_session_id: &mut Option<String>,
 ) {
-    if let ClientMessage::CreateSession { ref case_id } = msg {
-        match state.session_mgr.create_session(case_id.as_deref()).await {
-            Ok(session_id) => {
-                info!(session_id = %session_id, "sessao criada");
-                *current_session_id = Some(session_id.clone());
+    match msg {
+        ClientMessage::CreateSession { ref case_id } => {
+            match state.session_mgr.create_session(case_id.as_deref()).await {
+                Ok(session_id) => {
+                    info!(session_id = %session_id, "sessao criada");
+                    *current_session_id = Some(session_id.clone());
 
-                // Auto-start Claude Code via ProcessProxy (headless)
-                if let Some(info) = state.session_mgr.get_session(&session_id).await {
-                    if let Err(e) = state
-                        .process_proxy
-                        .spawn_process(
-                            &session_id,
-                            info.working_dir.as_deref(),
-                            None,
-                        )
-                        .await
-                    {
-                        warn!(session_id = %session_id, "falha ao spawnar Claude: {e}");
+                    // Auto-start Claude Code via ProcessProxy (headless)
+                    if let Some(info) = state.session_mgr.get_session(&session_id).await {
+                        if let Err(e) = state
+                            .process_proxy
+                            .spawn_process(
+                                &session_id,
+                                info.working_dir.as_deref(),
+                                None,
+                            )
+                            .await
+                        {
+                            warn!(session_id = %session_id, "falha ao spawnar Claude: {e}");
+                        }
                     }
-                }
 
-                let _ = state.broadcast_tx.send(ServerMessage::SessionCreated {
-                    session_id,
-                    case_id: case_id.clone(),
-                });
+                    let _ = state.broadcast_tx.send(ServerMessage::SessionCreated {
+                        session_id,
+                        case_id: case_id.clone(),
+                    });
+                }
+                Err(e) => {
+                    warn!("falha ao criar sessao: {e}");
+                    send_server_msg(
+                        socket,
+                        &ServerMessage::Error {
+                            message: e.to_string(),
+                        },
+                    )
+                    .await;
+                }
             }
-            Err(e) => {
-                warn!("falha ao criar sessao: {e}");
+        }
+
+        ClientMessage::ReconnectSession { session_id } => {
+            let Some(info) = state.session_mgr.get_session(&session_id).await else {
+                warn!(session_id = %session_id, "reconexao falhou: sessao nao encontrada");
                 send_server_msg(
                     socket,
                     &ServerMessage::Error {
-                        message: e.to_string(),
+                        message: format!("sessao {session_id} nao encontrada"),
                     },
                 )
                 .await;
+                return;
+            };
+
+            // Verifica se a sessao tmux ainda esta viva.
+            if !state.session_mgr.is_session_alive(&session_id).await {
+                warn!(session_id = %session_id, "reconexao falhou: tmux morto");
+                send_server_msg(
+                    socket,
+                    &ServerMessage::Error {
+                        message: format!("sessao {session_id} nao esta mais ativa (tmux morto)"),
+                    },
+                )
+                .await;
+                return;
             }
+
+            info!(session_id = %session_id, "reconexao a sessao existente");
+            *current_session_id = Some(session_id.clone());
+
+            // Se nao ha processo Claude ativo, re-spawna.
+            let active = state.process_proxy.list_sessions().await;
+            if !active.contains(&session_id) {
+                if let Err(e) = state
+                    .process_proxy
+                    .spawn_process(
+                        &session_id,
+                        info.working_dir.as_deref(),
+                        None,
+                    )
+                    .await
+                {
+                    warn!(session_id = %session_id, "falha ao re-spawnar Claude: {e}");
+                }
+            }
+
+            send_server_msg(
+                socket,
+                &ServerMessage::SessionReconnected {
+                    session_id,
+                    case_id: info.case_id,
+                    name: info.name,
+                },
+            )
+            .await;
         }
+
+        _ => unreachable!("handle_client_message_tracked so recebe CreateSession/ReconnectSession"),
     }
 }
 
@@ -401,8 +465,8 @@ async fn handle_client_message(socket: &mut WebSocket, state: &AppState, msg: Cl
             send_server_msg(socket, &ServerMessage::Pong).await;
         }
 
-        // CreateSession e tratado por handle_client_message_tracked no loop WS.
-        ClientMessage::CreateSession { .. } => {
+        // CreateSession e ReconnectSession sao tratados por handle_client_message_tracked.
+        ClientMessage::CreateSession { .. } | ClientMessage::ReconnectSession { .. } => {
             unreachable!("roteado via handle_client_message_tracked")
         }
 

@@ -169,6 +169,35 @@ impl SessionManager {
         self.sessions.read().await.get(session_id).cloned()
     }
 
+    /// Verifica se a sessao tmux subjacente ainda esta viva.
+    ///
+    /// Retorna `false` se a sessao nao existir no mapa ou se o tmux nao a reconhecer.
+    pub async fn is_session_alive(&self, session_id: &str) -> bool {
+        let info = self.sessions.read().await.get(session_id).cloned();
+        match info {
+            Some(info) => self.tmux.session_exists(&info.tmux_session).await,
+            None => false,
+        }
+    }
+
+    /// Remove sessoes cujo tmux pane morreu (zumbis).
+    ///
+    /// Retorna os IDs das sessoes removidas.
+    pub async fn cleanup_dead_sessions(&self) -> Vec<String> {
+        let sessions: Vec<SessionInfo> = self.sessions.read().await.values().cloned().collect();
+        let mut removed = Vec::new();
+
+        for info in sessions {
+            if !self.tmux.session_exists(&info.tmux_session).await {
+                self.sessions.write().await.remove(&info.id);
+                self.delete_session_metadata(&info.id).await;
+                removed.push(info.id);
+            }
+        }
+
+        removed
+    }
+
     /// Renomeia uma sessao existente.
     ///
     /// Atualiza o nome tanto no mapa em memoria quanto no arquivo JSON em disco.

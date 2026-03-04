@@ -511,6 +511,95 @@ async fn ws_create_and_destroy_session() {
 }
 
 #[tokio::test]
+async fn ws_reconnect_session() {
+    let (addr, _handle) = spawn_test_server().await;
+    let url = format!("ws://{addr}/ws");
+
+    let (mut ws, _) = connect_async(&url)
+        .await
+        .expect("falha ao conectar WebSocket");
+
+    // Criar sessao primeiro
+    ws.send(WsMessage::Text(r#"{"type":"create_session"}"#.into()))
+        .await
+        .unwrap();
+
+    let msg = ws.next().await.expect("sem resposta").unwrap();
+    let text = match msg {
+        WsMessage::Text(t) => t.to_string(),
+        other => panic!("esperava Text, recebeu: {other:?}"),
+    };
+    let parsed: serde_json::Value = serde_json::from_str(&text).unwrap();
+    assert_eq!(parsed["type"].as_str(), Some("session_created"));
+    let session_id = parsed["session_id"].as_str().unwrap().to_string();
+
+    // Reconectar a sessao existente
+    let reconnect_msg = serde_json::json!({
+        "type": "reconnect_session",
+        "session_id": session_id
+    })
+    .to_string();
+    ws.send(WsMessage::Text(reconnect_msg.into()))
+        .await
+        .unwrap();
+
+    let resp = ws.next().await.expect("sem resposta a reconnect").unwrap();
+    let resp_text = match resp {
+        WsMessage::Text(t) => t.to_string(),
+        other => panic!("esperava Text, recebeu: {other:?}"),
+    };
+    let resp_parsed: serde_json::Value = serde_json::from_str(&resp_text).unwrap();
+    assert_eq!(
+        resp_parsed["type"].as_str(),
+        Some("session_reconnected"),
+        "esperava session_reconnected, recebeu: {resp_text}"
+    );
+    assert_eq!(resp_parsed["session_id"].as_str(), Some(session_id.as_str()));
+
+    // Cleanup
+    let destroy_msg = serde_json::json!({
+        "type": "destroy_session",
+        "session_id": session_id
+    })
+    .to_string();
+    ws.send(WsMessage::Text(destroy_msg.into())).await.unwrap();
+    ws.close(None).await.ok();
+}
+
+#[tokio::test]
+async fn ws_reconnect_nonexistent_session_returns_error() {
+    let (addr, _handle) = spawn_test_server().await;
+    let url = format!("ws://{addr}/ws");
+
+    let (mut ws, _) = connect_async(&url)
+        .await
+        .expect("falha ao conectar WebSocket");
+
+    let reconnect_msg = serde_json::json!({
+        "type": "reconnect_session",
+        "session_id": "inexistente"
+    })
+    .to_string();
+    ws.send(WsMessage::Text(reconnect_msg.into()))
+        .await
+        .unwrap();
+
+    let msg = ws.next().await.expect("sem resposta").unwrap();
+    let text = match msg {
+        WsMessage::Text(t) => t.to_string(),
+        other => panic!("esperava Text, recebeu: {other:?}"),
+    };
+    let parsed: serde_json::Value = serde_json::from_str(&text).unwrap();
+    assert_eq!(
+        parsed["type"].as_str(),
+        Some("error"),
+        "esperava error para sessao inexistente, recebeu: {text}"
+    );
+
+    ws.close(None).await.ok();
+}
+
+#[tokio::test]
 async fn ws_invalid_message_returns_error() {
     let (addr, _handle) = spawn_test_server().await;
     let url = format!("ws://{addr}/ws");
