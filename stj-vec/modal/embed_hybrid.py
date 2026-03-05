@@ -1,10 +1,9 @@
-"""Modal Class para gerar sparse embeddings BGE-M3 via FlagEmbedding.
-
-Dense embeddings ja existem (gerados por TEI). Este script gera apenas
-os lexical weights (sparse) que TEI nao suporta pra BGE-M3.
+"""Modal Class para gerar embeddings BGE-M3 via FlagEmbedding (dense + sparse).
 
 Output por source:
-  /embeddings/{source}.sparse.json -- sparse weights [{token: weight, ...}, ...]
+  /embeddings/{source}.npz          -- dense embeddings (float32, 1024d)
+  /embeddings/{source}.json         -- chunk IDs (lista de hex strings)
+  /embeddings/{source}.sparse.json  -- sparse weights [{token: weight, ...}, ...]
 """
 
 import json
@@ -53,15 +52,16 @@ class HybridEmbedder:
         print("Modelo carregado.")
 
     @modal.method()
-    def embed_source(self, source_name: str, batch_size: int = BATCH_SIZE) -> dict:
-        """Processa 1 source JSONL, gera .sparse.json no Volume (sparse only)."""
+    def embed_source(self, source_name: str, batch_size: int = BATCH_SIZE,
+                     dense: bool = True, sparse: bool = True) -> dict:
+        """Processa 1 source JSONL, gera dense (.npz + .json) e/ou sparse (.sparse.json)."""
         import os
         import time
 
+        import numpy as np
         import torch
 
         input_path = f"/data/chunks/{source_name}.jsonl"
-        out_sparse = f"/data/embeddings/{source_name}.sparse.json"
 
         chunk_ids = []
         texts = []
@@ -77,34 +77,38 @@ class HybridEmbedder:
         torch.cuda.reset_peak_memory_stats()
         t0 = time.perf_counter()
 
-        # FlagEmbedding: sparse only (dense ja existe via TEI)
         output = self.model.encode(
             texts,
             batch_size=batch_size,
             max_length=512,
-            return_dense=False,
-            return_sparse=True,
+            return_dense=dense,
+            return_sparse=sparse,
             return_colbert_vecs=False,
         )
 
-        # Sparse weights: converter token_ids (int) pra string e filtrar pesos baixos
-        sparse_list = []
-        for weights_dict in output["lexical_weights"]:
-            filtered = {
-                str(k): float(v)
-                for k, v in weights_dict.items()
-                if float(v) >= MIN_SPARSE_WEIGHT
-            }
-            sparse_list.append(filtered)
-
         os.makedirs("/data/embeddings", exist_ok=True)
 
-        with open(out_sparse, "w") as f:
-            json.dump(sparse_list, f)
+        # Dense: salvar .npz + .json (IDs)
+        if dense and "dense_vecs" in output:
+            embeddings = np.array(output["dense_vecs"], dtype=np.float32)
+            np.savez_compressed(
+                f"/data/embeddings/{source_name}.npz", embeddings=embeddings
+            )
+            with open(f"/data/embeddings/{source_name}.json", "w") as f:
+                json.dump(chunk_ids, f)
 
-        # NAO fazer commit aqui -- commit concorrente de multiplos containers
-        # causa contention no volume e serializa a execucao.
-        # O commit e feito em batch no final via flush_volume().
+        # Sparse: salvar .sparse.json
+        if sparse and "lexical_weights" in output:
+            sparse_list = []
+            for weights_dict in output["lexical_weights"]:
+                filtered = {
+                    str(k): float(v)
+                    for k, v in weights_dict.items()
+                    if float(v) >= MIN_SPARSE_WEIGHT
+                }
+                sparse_list.append(filtered)
+            with open(f"/data/embeddings/{source_name}.sparse.json", "w") as f:
+                json.dump(sparse_list, f)
 
         elapsed = time.perf_counter() - t0
         vram_peak_gb = torch.cuda.max_memory_allocated() / (1024**3)
@@ -113,7 +117,7 @@ class HybridEmbedder:
 
         print(
             f"[CALIBRATION] source={source_name} chunks={len(chunk_ids)} "
-            f"batch={batch_size} max_length=512"
+            f"batch={batch_size} max_length=512 dense={dense} sparse={sparse}"
         )
         print(
             f"[CALIBRATION] VRAM peak: {vram_peak_gb:.1f}GB / {vram_total_gb:.1f}GB "
@@ -126,9 +130,8 @@ class HybridEmbedder:
         return {
             "source": source_name,
             "count": len(chunk_ids),
-            "sparse_avg_tokens": round(
-                sum(len(s) for s in sparse_list) / len(sparse_list), 1
-            ),
+            "dense": dense,
+            "sparse": sparse,
             "status": "done",
             "vram_peak_gb": round(vram_peak_gb, 2),
             "vram_total_gb": round(vram_total_gb, 2),
@@ -174,7 +177,7 @@ def flush_volume() -> str:
     timeout=120,
 )
 def list_pending_sources() -> list[str]:
-    """Lista sources que nao tem .sparse.json (precisam de re-embedding hybrid)."""
+    """Lista sources que nao tem dense+sparse completo."""
     import os
 
     chunks_dir = "/data/chunks"
@@ -186,18 +189,19 @@ def list_pending_sources() -> list[str]:
     chunk_sources = {
         f.replace(".jsonl", "") for f in os.listdir(chunks_dir) if f.endswith(".jsonl")
     }
-    # Pendente = nao tem .sparse.json (mesmo que tenha .npz do dense-only)
-    done_sources = (
-        {
-            f.replace(".sparse.json", "")
-            for f in os.listdir(embeddings_dir)
-            if f.endswith(".sparse.json")
-        }
-        if os.path.exists(embeddings_dir)
-        else set()
-    )
 
-    return sorted(chunk_sources - done_sources)
+    if not os.path.exists(embeddings_dir):
+        return sorted(chunk_sources)
+
+    emb_files = set(os.listdir(embeddings_dir))
+    pending = []
+    for src in chunk_sources:
+        has_dense = f"{src}.npz" in emb_files and f"{src}.json" in emb_files
+        has_sparse = f"{src}.sparse.json" in emb_files
+        if not (has_dense and has_sparse):
+            pending.append(src)
+
+    return sorted(pending)
 
 
 @app.local_entrypoint()
@@ -206,7 +210,7 @@ def main(
     all_pending: bool = False,
     batch_size: int = BATCH_SIZE,
 ):
-    """Entrypoint: processar 1 source ou todos pendentes (sparse only)."""
+    """Entrypoint: processar 1 source ou todos pendentes (dense + sparse)."""
     embedder = HybridEmbedder()
 
     if source:
@@ -215,12 +219,10 @@ def main(
         print(f"Done: {result}")
     elif all_pending:
         sources = list_pending_sources.remote()
-        print(f"{len(sources)} sources pendentes (hybrid)")
+        print(f"{len(sources)} sources pendentes (dense + sparse)")
         if not sources:
             return
 
-        # .spawn() forca despacho PARALELO imediato de todas as chamadas.
-        # .map() pode serializar por afinidade de container ou backpressure.
         handles = []
         for s in sources:
             handle = embedder.embed_source.spawn(s, batch_size)
@@ -232,18 +234,16 @@ def main(
         for i, handle in enumerate(handles, 1):
             result = handle.get()
             print(
-                f"  [{i}/{total_handles}] {result['source']}: {result['count']} chunks, "
-                f"sparse avg {result.get('sparse_avg_tokens', '?')} tokens -> "
-                f"{result['status']}"
+                f"  [{i}/{total_handles}] {result['source']}: {result['count']} chunks "
+                f"-> {result['status']}"
             )
             results.append(result)
 
-        # Commit unico apos todos os containers terminarem
         flush_volume.remote()
         print("Volume committed.")
 
         total = sum(r["count"] for r in results)
-        print(f"\nTotal: {total} sparse embeddings para {len(results)} sources")
+        print(f"\nTotal: {total} embeddings para {len(results)} sources")
     else:
         print("Uso: modal run embed_hybrid.py --source 202203")
         print("  ou: modal run embed_hybrid.py --all-pending")
