@@ -110,6 +110,9 @@ class HybridEmbedder:
             with open(f"/data/embeddings/{source_name}.sparse.json", "w") as f:
                 json.dump(sparse_list, f)
 
+        # Commit do volume DENTRO do container que escreveu os arquivos
+        volume_data.commit()
+
         elapsed = time.perf_counter() - t0
         vram_peak_gb = torch.cuda.max_memory_allocated() / (1024**3)
         vram_total_gb = torch.cuda.get_device_properties(0).total_memory / (1024**3)
