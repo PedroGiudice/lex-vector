@@ -1,0 +1,126 @@
+@import "tailwindcss";
+
+/* ========================================
+   DESIGN TOKENS
+   ======================================== */
+@theme {
+  --color-bg-base: #1a1b1e;
+  --color-bg-surface: #212226;
+  --color-bg-card: #27282d;
+  --color-bg-card-hover: #2f3036;
+  --color-bg-input: #1e1f23;
+  --color-text-primary: #e8e6e3;
+  --color-text-secondary: #a09d96;
+  --color-text-muted: #6b6862;
+  --color-accent: #5b8def;
+  --color-accent-soft: rgba(91, 141, 239, 0.12);
+  --color-accent-hover: #7aa3f5;
+  --color-score-high: #4ade80;
+  --color-score-mid: #facc15;
+  --color-score-low: #6b6862;
+  --color-border-subtle: rgba(255, 255, 255, 0.06);
+  --color-border-card: rgba(255, 255, 255, 0.08);
+  --color-border-focus: rgba(91, 141, 239, 0.45);
+  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.3), 0 1px 3px rgba(0, 0, 0, 0.2);
+  --shadow-card-hover: 0 4px 16px rgba(0, 0, 0, 0.4), 0 2px 6px rgba(0, 0, 0, 0.25);
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
+}
+
+/* ========================================
+   RESET & BASE
+   ======================================== */
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--color-bg-base);
+  color: var(--color-text-primary);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ========================================
+   SCROLLBAR
+   ======================================== */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border-card);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-accent-soft);
+}
+
+/* ========================================
+   ANIMATIONS
+   ======================================== */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes score-fill {
+  from { width: 0; }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ========================================
+   UTILITY CLASSES
+   ======================================== */
+.font-mono {
+  font-family: var(--font-mono);
+}
+
+.card {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border-card);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.card:hover {
+  box-shadow: var(--shadow-card-hover);
+  border-color: var(--color-accent-soft);
+}
+
+.view-enter {
+  animation: fade-in 0.15s ease-out;
+}
+
+::selection {
+  background: rgba(91, 141, 239, 0.3);
+  color: var(--color-text-primary);
+}
