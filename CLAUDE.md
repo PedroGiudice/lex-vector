@@ -53,6 +53,7 @@ Adicione entrada quando: usuario corrigir erro seu, erro grosseiro, ou erro repe
 | 2026-03-05 | Estimativas teoricas de RAM/storage sem validar | WebSearch e WebFetch ANTES de estimar recursos |
 | 2026-03-05 | Nao usei WebSearch para validar sizing de Qdrant | WebSearch e WebFetch sao ferramentas poderosas -- usar ANTES de estimar |
 | 2026-03-05 | Assumi VRAM do Marker sem dados ("~4-6GB pico numa T4") | NAO assumir metricas de hardware sem medir ou pesquisar primeiro |
+| 2026-03-05 | Adicionei volume_data.commit() dentro de container paralelo no Modal | NUNCA commit() dentro de containers .spawn() -- causa race condition (last-write-wins). Commit apenas via flush_volume() no final |
 
 ---
 

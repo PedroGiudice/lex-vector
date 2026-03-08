@@ -110,8 +110,9 @@ class HybridEmbedder:
             with open(f"/data/embeddings/{source_name}.sparse.json", "w") as f:
                 json.dump(sparse_list, f)
 
-        # Commit do volume DENTRO do container que escreveu os arquivos
-        volume_data.commit()
+        # NAO fazer commit aqui -- commit concorrente de multiplos containers
+        # causa contention no volume e perda de dados (last-write-wins).
+        # O commit e feito em batch no final via flush_volume().
 
         elapsed = time.perf_counter() - t0
         vram_peak_gb = torch.cuda.max_memory_allocated() / (1024**3)
