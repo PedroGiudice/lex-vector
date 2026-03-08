@@ -1,0 +1,24 @@
+[server]
+port = 8421
+static_dir = "frontend/dist"
+cors_origins = ["http://localhost:5173"]
+
+[model]
+dir = "models/bge-m3-onnx"
+threads = 8
+
+[qdrant]
+url = "http://localhost:6334"
+collection = "stj"
+dense_top_k = 200
+sparse_top_k = 200
+rrf_k = 60
+
+[sqlite]
+path = "db/stj-vec.db"
+pool_size = 4
+
+[search]
+max_results = 50
+default_limit = 20
+overfetch_factor = 3
