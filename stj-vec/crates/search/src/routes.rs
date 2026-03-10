@@ -105,7 +105,7 @@ pub async fn search_handler(
                 classe: meta.classe.clone(),
                 ministro: meta.ministro.clone(),
                 orgao_julgador: meta.orgao_julgador.clone(),
-                data_julgamento: meta.data_julgamento.clone(),
+                data_publicacao: meta.data_publicacao.clone(),
                 tipo: meta.tipo.clone(),
                 assuntos: meta.assuntos.clone(),
                 scores: Scores {

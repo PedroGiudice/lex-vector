@@ -68,7 +68,7 @@ impl MetadataStore {
         let sql = format!(
             "SELECT c.id, c.content, c.chunk_index, c.doc_id,
                     d.processo, d.classe, d.ministro, d.orgao_julgador,
-                    d.data_julgamento, d.tipo, d.assuntos
+                    d.data_publicacao, d.tipo, d.assuntos
              FROM chunks c
              JOIN documents d ON c.doc_id = d.id
              WHERE c.id IN ({})",
@@ -87,12 +87,12 @@ impl MetadataStore {
                 content: row.get(1)?,
                 chunk_index: row.get(2)?,
                 doc_id: row.get(3)?,
-                processo: row.get(4)?,
-                classe: row.get(5)?,
-                ministro: row.get(6)?,
-                orgao_julgador: row.get(7)?,
-                data_julgamento: row.get::<_, Option<String>>(8)?.unwrap_or_default(),
-                tipo: row.get(9)?,
+                processo: row.get::<_, Option<String>>(4)?.unwrap_or_default(),
+                classe: row.get::<_, Option<String>>(5)?.unwrap_or_default(),
+                ministro: row.get::<_, Option<String>>(6)?.unwrap_or_default(),
+                orgao_julgador: row.get::<_, Option<String>>(7)?.unwrap_or_default(),
+                data_publicacao: row.get::<_, Option<String>>(8)?.unwrap_or_default(),
+                tipo: row.get::<_, Option<String>>(9)?.unwrap_or_default(),
                 assuntos: row.get::<_, Option<String>>(10)?.unwrap_or_default(),
             })
         })?;
@@ -115,20 +115,19 @@ impl MetadataStore {
         // Buscar metadados do documento
         let doc = conn.query_row(
             "SELECT id, processo, classe, ministro, orgao_julgador,
-                    data_julgamento, data_publicacao, tipo, assuntos
+                    data_publicacao, tipo, assuntos
              FROM documents WHERE id = ?",
             [doc_id],
             |row| {
                 Ok(DocumentMeta {
                     id: row.get(0)?,
-                    processo: row.get(1)?,
-                    classe: row.get(2)?,
-                    ministro: row.get(3)?,
-                    orgao_julgador: row.get(4)?,
-                    data_julgamento: row.get::<_, Option<String>>(5)?.unwrap_or_default(),
-                    data_publicacao: row.get::<_, Option<String>>(6)?.unwrap_or_default(),
-                    tipo: row.get(7)?,
-                    assuntos: row.get::<_, Option<String>>(8)?.unwrap_or_default(),
+                    processo: row.get::<_, Option<String>>(1)?.unwrap_or_default(),
+                    classe: row.get::<_, Option<String>>(2)?.unwrap_or_default(),
+                    ministro: row.get::<_, Option<String>>(3)?.unwrap_or_default(),
+                    orgao_julgador: row.get::<_, Option<String>>(4)?.unwrap_or_default(),
+                    data_publicacao: row.get::<_, Option<String>>(5)?.unwrap_or_default(),
+                    tipo: row.get::<_, Option<String>>(6)?.unwrap_or_default(),
+                    assuntos: row.get::<_, Option<String>>(7)?.unwrap_or_default(),
                 })
             },
         )?;
@@ -223,11 +222,11 @@ impl MetadataStore {
             params.push(Box::new(orgao.clone()));
         }
         if let Some(ref data_from) = filters.data_from {
-            sql.push_str(" AND d.data_julgamento >= ?");
+            sql.push_str(" AND d.data_publicacao >= ?");
             params.push(Box::new(data_from.clone()));
         }
         if let Some(ref data_to) = filters.data_to {
-            sql.push_str(" AND d.data_julgamento <= ?");
+            sql.push_str(" AND d.data_publicacao <= ?");
             params.push(Box::new(data_to.clone()));
         }
 
