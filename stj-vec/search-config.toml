@@ -22,3 +22,13 @@ pool_size = 4
 max_results = 50
 default_limit = 20
 overfetch_factor = 3
+dense_weight = 1.0
+sparse_weight = 1.0
+
+[preprocessing]
+enabled = true
+extract_metadata = true
+remove_stopwords = true
+expand_query = true
+expansions_file = "config/expansao_juridica.json"
+max_expansion_tokens = 200

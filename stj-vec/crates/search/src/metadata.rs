@@ -217,6 +217,10 @@ impl MetadataStore {
             sql.push_str(" AND d.classe = ?");
             params.push(Box::new(classe.clone()));
         }
+        if let Some(ref processo_like) = filters.processo_like {
+            sql.push_str(" AND d.processo LIKE ?");
+            params.push(Box::new(processo_like.clone()));
+        }
         if let Some(ref orgao) = filters.orgao_julgador {
             sql.push_str(" AND d.orgao_julgador = ?");
             params.push(Box::new(orgao.clone()));

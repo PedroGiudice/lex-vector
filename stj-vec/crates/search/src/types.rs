@@ -1,10 +1,24 @@
 use serde::{Deserialize, Serialize};
 
+use crate::query_preprocessor::{Extraction, ExtractedFilters};
+
 #[derive(Debug, Deserialize)]
 pub struct SearchRequest {
     pub query: String,
     pub limit: Option<usize>,
     pub filters: Option<SearchFilters>,
+    pub rrf_k: Option<f64>,
+    pub dense_weight: Option<f64>,
+    pub sparse_weight: Option<f64>,
+    pub preprocessing: Option<PreprocessingOptions>,
+}
+
+/// Opcoes de preprocessing por request (override do config global).
+#[derive(Debug, Deserialize)]
+pub struct PreprocessingOptions {
+    pub extract_metadata: Option<bool>,
+    pub remove_stopwords: Option<bool>,
+    pub expand_query: Option<bool>,
 }
 
 #[derive(Debug, Deserialize, Default, Clone)]
@@ -15,6 +29,9 @@ pub struct SearchFilters {
     pub orgao_julgador: Option<String>,
     pub data_from: Option<String>,
     pub data_to: Option<String>,
+    /// Filtro LIKE no campo processo (ex: "REsp%"). Nao vem do JSON, preenchido pelo preprocessing.
+    #[serde(skip)]
+    pub processo_like: Option<String>,
 }
 
 impl SearchFilters {
@@ -25,6 +42,27 @@ impl SearchFilters {
             && self.orgao_julgador.is_none()
             && self.data_from.is_none()
             && self.data_to.is_none()
+            && self.processo_like.is_none()
+    }
+
+    /// Merge filtros extraidos do preprocessing.
+    /// Filtros explicitos do request tem prioridade sobre extraidos.
+    pub fn merge_extracted(&mut self, extracted: &ExtractedFilters) {
+        if self.classe.is_none() {
+            if let Some(ref classe) = extracted.classe {
+                // Filtro por prefixo de processo (campo classe no SQLite pode estar vazio)
+                self.processo_like = Some(format!("{classe}%"));
+            }
+        }
+        if self.ministro.is_none() {
+            self.ministro.clone_from(&extracted.ministro);
+        }
+        if self.data_from.is_none() {
+            self.data_from.clone_from(&extracted.ano_from);
+        }
+        if self.data_to.is_none() {
+            self.data_to.clone_from(&extracted.ano_to);
+        }
     }
 }
 
@@ -61,6 +99,14 @@ pub struct Scores {
 
 #[derive(Debug, Serialize)]
 pub struct QueryInfo {
+    pub original_query: String,
+    pub processed_query: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub extracted_filters: Option<ExtractedFilters>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub extractions: Vec<Extraction>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub expanded_terms: Vec<String>,
     pub embedding_ms: u64,
     pub search_ms: u64,
     pub metadata_ms: u64,

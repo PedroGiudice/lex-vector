@@ -2828,6 +2828,7 @@ dependencies = [
  "ndarray",
  "ort",
  "qdrant-client",
+ "regex",
  "rusqlite",
  "serde",
  "serde_json",

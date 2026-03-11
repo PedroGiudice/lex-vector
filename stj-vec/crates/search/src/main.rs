@@ -33,7 +33,7 @@ async fn main() -> anyhow::Result<()> {
     // 1. Carregar configuracao
     let config_str = std::fs::read_to_string(&cli.config)
         .map_err(|e| anyhow::anyhow!("falha ao ler config {}: {e}", cli.config.display()))?;
-    let config: SearchConfig = toml::from_str(&config_str)?;
+    let mut config: SearchConfig = toml::from_str(&config_str)?;
     tracing::info!(config = ?cli.config, "configuracao carregada");
 
     // 2. Abrir SQLite (read-only)
@@ -51,10 +51,18 @@ async fn main() -> anyhow::Result<()> {
         config.qdrant.dense_top_k,
         config.qdrant.sparse_top_k,
         config.qdrant.rrf_k,
+        config.search.dense_weight,
+        config.search.sparse_weight,
     )
     .await?;
 
-    // 5. Cache de filtros
+    // 5. Carregar dicionario de expansao
+    let config_base_dir = cli.config.parent().unwrap_or(Path::new("."));
+    config
+        .preprocessing
+        .load_expansion_dict(config_base_dir)?;
+
+    // 6. Cache de filtros
     let filters_cache = metadata.get_filter_values()?;
     tracing::info!(
         ministros = filters_cache.ministros.len(),
@@ -63,7 +71,7 @@ async fn main() -> anyhow::Result<()> {
         "filtros cacheados"
     );
 
-    // 6. Montar estado e router
+    // 7. Montar estado e router
     let state = AppState {
         embedder: Arc::new(embedder),
         searcher: Arc::new(searcher),

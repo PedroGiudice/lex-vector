@@ -1,4 +1,8 @@
+use std::path::Path;
+
 use serde::Deserialize;
+
+use crate::query_preprocessor::ExpansionDictionary;
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct SearchConfig {
@@ -7,6 +11,8 @@ pub struct SearchConfig {
     pub qdrant: QdrantConfig,
     pub sqlite: SqliteConfig,
     pub search: SearchDefaults,
+    #[serde(default)]
+    pub preprocessing: PreprocessingConfig,
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -51,6 +57,71 @@ pub struct SearchDefaults {
     pub default_limit: usize,
     #[serde(default = "default_overfetch")]
     pub overfetch_factor: usize,
+    #[serde(default = "default_weight")]
+    pub dense_weight: f64,
+    #[serde(default = "default_weight")]
+    pub sparse_weight: f64,
+}
+
+/// Configuracao do preprocessing de queries.
+#[derive(Debug, Deserialize, Clone)]
+pub struct PreprocessingConfig {
+    #[serde(default = "default_true")]
+    pub enabled: bool,
+    #[serde(default = "default_true")]
+    pub extract_metadata: bool,
+    #[serde(default = "default_true")]
+    pub remove_stopwords: bool,
+    #[serde(default = "default_true")]
+    pub expand_query: bool,
+    #[serde(default)]
+    pub expansions_file: Option<String>,
+    #[serde(default = "default_max_expansion_tokens")]
+    pub max_expansion_tokens: usize,
+    /// Dicionario carregado em runtime (nao vem do TOML).
+    #[serde(skip)]
+    pub expansion_dict: Option<ExpansionDictionary>,
+}
+
+impl Default for PreprocessingConfig {
+    fn default() -> Self {
+        Self {
+            enabled: true,
+            extract_metadata: true,
+            remove_stopwords: true,
+            expand_query: true,
+            expansions_file: None,
+            max_expansion_tokens: 200,
+            expansion_dict: None,
+        }
+    }
+}
+
+impl PreprocessingConfig {
+    /// Carrega o dicionario de expansao do arquivo configurado.
+    pub fn load_expansion_dict(&mut self, base_dir: &Path) -> anyhow::Result<()> {
+        if !self.expand_query {
+            return Ok(());
+        }
+        if let Some(ref file) = self.expansions_file {
+            let path = base_dir.join(file);
+            if path.exists() {
+                let dict = ExpansionDictionary::load(&path)?;
+                tracing::info!(
+                    path = %path.display(),
+                    terms = dict.expansions.len(),
+                    "dicionario de expansao carregado"
+                );
+                self.expansion_dict = Some(dict);
+            } else {
+                tracing::warn!(
+                    path = %path.display(),
+                    "arquivo de expansao nao encontrado, expansao desabilitada"
+                );
+            }
+        }
+        Ok(())
+    }
 }
 
 fn default_threads() -> usize {
@@ -73,6 +144,15 @@ fn default_limit() -> usize {
 }
 fn default_overfetch() -> usize {
     3
+}
+fn default_weight() -> f64 {
+    1.0
+}
+fn default_true() -> bool {
+    true
+}
+fn default_max_expansion_tokens() -> usize {
+    200
 }
 
 #[cfg(test)]
@@ -103,5 +183,8 @@ path = "db/stj-vec.db"
         assert_eq!(config.model.threads, 8); // default
         assert_eq!(config.qdrant.dense_top_k, 200); // default
         assert_eq!(config.search.default_limit, 20); // default
+        assert!((config.search.dense_weight - 1.0).abs() < f64::EPSILON); // default
+        assert!((config.search.sparse_weight - 1.0).abs() < f64::EPSILON); // default
+        assert!(config.preprocessing.enabled); // default
     }
 }

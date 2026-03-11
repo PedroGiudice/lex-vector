@@ -9,6 +9,7 @@ use crate::config::SearchConfig;
 use crate::embedder::OnnxEmbedder;
 use crate::error::SearchError;
 use crate::metadata::MetadataStore;
+use crate::query_preprocessor::{self, PreprocessedQuery};
 use crate::searcher::QdrantSearcher;
 use crate::types::{
     FiltersResponse, HealthResponse, QueryInfo, Scores, SearchRequest,
@@ -28,29 +29,41 @@ pub struct AppState {
 
 /// POST /api/search
 ///
-/// Pipeline completo: embed query -> busca Qdrant -> metadados SQLite -> filtros -> resposta.
+/// Pipeline: preprocessing -> embed query -> busca Qdrant -> metadados SQLite -> filtros -> resposta.
 pub async fn search_handler(
     State(state): State<AppState>,
     Json(req): Json<SearchRequest>,
 ) -> Result<impl IntoResponse, SearchError> {
     let total_start = Instant::now();
+    let original_query = req.query.clone();
     let limit = req
         .limit
         .unwrap_or(state.config.search.default_limit)
         .min(state.config.search.max_results);
 
+    // 0. Preprocessing
+    let preprocessed = run_preprocessing(&state, &req);
+
+    // Merge filtros extraidos com filtros explicitos do request
+    let mut merged_filters = req.filters.clone().unwrap_or_default();
+    if !preprocessed.extracted_filters.is_empty() {
+        merged_filters.merge_extracted(&preprocessed.extracted_filters);
+    }
+
+    let has_filters = !merged_filters.is_empty();
+
     // Overfetch para compensar filtros pos-busca
-    let overfetch_limit = if req.filters.as_ref().is_some_and(|f| !f.is_empty()) {
+    let overfetch_limit = if has_filters {
         limit * state.config.search.overfetch_factor
     } else {
         limit
     };
 
-    // 1. Embedding
+    // 1. Embedding (usa semantic_query preprocessada)
     let embed_start = Instant::now();
     let embedding = state
         .embedder
-        .embed(&req.query)
+        .embed(&preprocessed.semantic_query)
         .map_err(SearchError::Embedding)?;
     let embedding_ms = embed_start.elapsed().as_millis() as u64;
 
@@ -58,7 +71,14 @@ pub async fn search_handler(
     let search_start = Instant::now();
     let ranked = state
         .searcher
-        .search(&embedding.dense, &embedding.sparse, overfetch_limit)
+        .search(
+            &embedding.dense,
+            &embedding.sparse,
+            overfetch_limit,
+            req.rrf_k,
+            req.dense_weight,
+            req.sparse_weight,
+        )
         .await
         .map_err(SearchError::Embedding)?;
     let search_ms = search_start.elapsed().as_millis() as u64;
@@ -70,16 +90,12 @@ pub async fn search_handler(
     // 3. Extrair chunk_ids
     let chunk_ids: Vec<String> = ranked.iter().map(|r| r.chunk_id.clone()).collect();
 
-    // 4. Filtros (se presentes)
-    let filtered_ids = if let Some(ref filters) = req.filters {
-        if !filters.is_empty() {
-            state
-                .metadata
-                .filter_chunk_ids(&chunk_ids, filters)
-                .map_err(SearchError::Embedding)?
-        } else {
-            chunk_ids.clone()
-        }
+    // 4. Filtros
+    let filtered_ids = if has_filters {
+        state
+            .metadata
+            .filter_chunk_ids(&chunk_ids, &merged_filters)
+            .map_err(SearchError::Embedding)?
     } else {
         chunk_ids.clone()
     };
@@ -125,9 +141,20 @@ pub async fn search_handler(
     let post_filter_count = results.len();
     let total_ms = total_start.elapsed().as_millis() as u64;
 
+    let extracted_filters = if preprocessed.extracted_filters.is_empty() {
+        None
+    } else {
+        Some(preprocessed.extracted_filters)
+    };
+
     Ok(Json(SearchResponse {
         results,
         query_info: QueryInfo {
+            original_query,
+            processed_query: preprocessed.semantic_query,
+            extracted_filters,
+            extractions: preprocessed.extractions,
+            expanded_terms: preprocessed.expanded_terms,
             embedding_ms,
             search_ms,
             metadata_ms,
@@ -138,6 +165,37 @@ pub async fn search_handler(
             post_filter_count,
         },
     }))
+}
+
+/// Executa o preprocessing da query, respeitando config global e overrides por request.
+fn run_preprocessing(state: &AppState, req: &SearchRequest) -> PreprocessedQuery {
+    let cfg = &state.config.preprocessing;
+
+    if !cfg.enabled {
+        return PreprocessedQuery {
+            semantic_query: req.query.clone(),
+            extracted_filters: Default::default(),
+            extractions: Vec::new(),
+            expanded_terms: Vec::new(),
+        };
+    }
+
+    // Aplicar overrides do request sobre o config global
+    let mut effective_config = cfg.clone();
+    if let Some(ref opts) = req.preprocessing {
+        if let Some(v) = opts.extract_metadata {
+            effective_config.extract_metadata = v;
+        }
+        if let Some(v) = opts.remove_stopwords {
+            effective_config.remove_stopwords = v;
+        }
+        if let Some(v) = opts.expand_query {
+            effective_config.expand_query = v;
+        }
+    }
+
+    let ministros = &state.filters_cache.ministros;
+    query_preprocessor::preprocess(&req.query, &effective_config, ministros)
 }
 
 /// GET /api/document/:doc_id

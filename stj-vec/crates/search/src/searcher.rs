@@ -21,18 +21,21 @@ pub struct RankedResult {
 /// Funde resultados de busca densa e esparsa via Reciprocal Rank Fusion.
 ///
 /// `dense` e `sparse` sao pares `(chunk_id, score)` ordenados por relevancia decrescente.
+/// `dense_weight` e `sparse_weight` permitem ajustar a importancia relativa de cada busca.
 /// Retorna ate `limit` resultados ordenados por RRF score decrescente.
 pub fn fuse_rrf(
     dense: &[(String, f32)],
     sparse: &[(String, f32)],
     limit: usize,
     rrf_k: f64,
+    dense_weight: f64,
+    sparse_weight: f64,
 ) -> Vec<RankedResult> {
     let mut scores: HashMap<String, RankedResult> = HashMap::new();
 
     for (rank_0, (id, score)) in dense.iter().enumerate() {
         let rank = rank_0 + 1;
-        let rrf_contrib = 1.0 / (rrf_k + rank as f64);
+        let rrf_contrib = dense_weight / (rrf_k + rank as f64);
         let entry = scores.entry(id.clone()).or_insert_with(|| RankedResult {
             chunk_id: id.clone(),
             dense_score: 0.0,
@@ -48,7 +51,7 @@ pub fn fuse_rrf(
 
     for (rank_0, (id, score)) in sparse.iter().enumerate() {
         let rank = rank_0 + 1;
-        let rrf_contrib = 1.0 / (rrf_k + rank as f64);
+        let rrf_contrib = sparse_weight / (rrf_k + rank as f64);
         let entry = scores.entry(id.clone()).or_insert_with(|| RankedResult {
             chunk_id: id.clone(),
             dense_score: 0.0,
@@ -75,6 +78,8 @@ pub struct QdrantSearcher {
     dense_top_k: u64,
     sparse_top_k: u64,
     rrf_k: f64,
+    dense_weight: f64,
+    sparse_weight: f64,
 }
 
 impl QdrantSearcher {
@@ -85,6 +90,8 @@ impl QdrantSearcher {
         dense_top_k: u64,
         sparse_top_k: u64,
         rrf_k: f64,
+        dense_weight: f64,
+        sparse_weight: f64,
     ) -> anyhow::Result<Self> {
         let client = Qdrant::from_url(url)
             .build()
@@ -116,15 +123,22 @@ impl QdrantSearcher {
             dense_top_k,
             sparse_top_k,
             rrf_k,
+            dense_weight,
+            sparse_weight,
         })
     }
 
     /// Executa busca hibrida: dense + sparse em paralelo, fusao RRF local.
+    ///
+    /// Os overrides opcionais permitem ajustar rrf_k e pesos por request.
     pub async fn search(
         &self,
         dense_vec: &[f32],
         sparse: &HashMap<u32, f32>,
         limit: usize,
+        rrf_k_override: Option<f64>,
+        dense_weight_override: Option<f64>,
+        sparse_weight_override: Option<f64>,
     ) -> anyhow::Result<Vec<RankedResult>> {
         // Preparar busca densa
         let dense_request = SearchPointsBuilder::new(
@@ -167,7 +181,11 @@ impl QdrantSearcher {
         let dense_hits = extract_hits(&dense_response.result);
         let sparse_hits = extract_hits(&sparse_response.result);
 
-        Ok(fuse_rrf(&dense_hits, &sparse_hits, limit, self.rrf_k))
+        let rrf_k = rrf_k_override.unwrap_or(self.rrf_k);
+        let dw = dense_weight_override.unwrap_or(self.dense_weight);
+        let sw = sparse_weight_override.unwrap_or(self.sparse_weight);
+
+        Ok(fuse_rrf(&dense_hits, &sparse_hits, limit, rrf_k, dw, sw))
     }
 
     /// Retorna o numero de pontos na colecao (para health check).
@@ -226,7 +244,7 @@ mod tests {
             ("a".to_string(), 10.0),
         ];
 
-        let results = fuse_rrf(&dense, &sparse, 10, 60.0);
+        let results = fuse_rrf(&dense, &sparse, 10, 60.0, 1.0, 1.0);
 
         // "b" tem RRF = 1/(60+2) + 1/(60+1) = 1/62 + 1/61
         // "a" tem RRF = 1/(60+1) + 1/(60+3) = 1/61 + 1/63
@@ -249,7 +267,7 @@ mod tests {
         ];
         let sparse: Vec<(String, f32)> = vec![];
 
-        let results = fuse_rrf(&dense, &sparse, 10, 60.0);
+        let results = fuse_rrf(&dense, &sparse, 10, 60.0, 1.0, 1.0);
         assert_eq!(results.len(), 2);
         assert_eq!(results[0].chunk_id, "x");
         assert_eq!(results[0].sparse_rank, 0); // ausente no lado esparso
@@ -268,8 +286,33 @@ mod tests {
             ("e".to_string(), 12.0),
         ];
 
-        let results = fuse_rrf(&dense, &sparse, 3, 60.0);
+        let results = fuse_rrf(&dense, &sparse, 3, 60.0, 1.0, 1.0);
         assert_eq!(results.len(), 3);
+    }
+
+    #[test]
+    fn test_rrf_weighted_dense_bias() {
+        // Com dense_weight=2.0, o rank denso vale o dobro
+        let dense = vec![
+            ("a".to_string(), 0.9),
+            ("b".to_string(), 0.85),
+        ];
+        let sparse = vec![
+            ("b".to_string(), 15.0),
+            ("a".to_string(), 10.0),
+        ];
+
+        // Pesos iguais: "b" vence (rank 2+1 vs 1+2 -- empata, mas b tem melhor soma)
+        let equal = fuse_rrf(&dense, &sparse, 10, 60.0, 1.0, 1.0);
+        // "b": dense_weight/(60+2) + sparse_weight/(60+1) = 1/62 + 1/61
+        // "a": 1/61 + 1/63
+        assert_eq!(equal[0].chunk_id, "b");
+
+        // Dense bias 2.0: "a" pode vencer
+        // "a": 2/61 + 1/63 = 0.03279 + 0.01587 = 0.04866
+        // "b": 2/62 + 1/61 = 0.03226 + 0.01639 = 0.04865
+        let biased = fuse_rrf(&dense, &sparse, 10, 60.0, 2.0, 1.0);
+        assert_eq!(biased[0].chunk_id, "a");
     }
 
     #[tokio::test]
@@ -281,6 +324,8 @@ mod tests {
             10,
             10,
             60.0,
+            1.0,
+            1.0,
         )
         .await
         .expect("falha ao conectar ao Qdrant");
@@ -291,7 +336,7 @@ mod tests {
         sparse.insert(42u32, 1.0f32);
         sparse.insert(100, 0.5);
 
-        let results = searcher.search(&dense, &sparse, 5).await;
+        let results = searcher.search(&dense, &sparse, 5, None, None, None).await;
         assert!(results.is_ok(), "busca falhou: {:?}", results.err());
     }
 }

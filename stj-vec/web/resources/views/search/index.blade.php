@@ -84,11 +84,14 @@
         <span class="ml-2">Buscando...</span>
     </div>
 
-    {{-- Info da query --}}
-    <div id="query-info" class="hidden mt-6 bg-white rounded-lg border border-gray-200 p-3 text-xs text-gray-500 flex gap-4 flex-wrap"></div>
+    {{-- Preprocessing: filtros detectados e termos expandidos --}}
+    <div id="query-preprocessing" class="hidden mt-6 bg-gray-50 rounded-lg border border-gray-200 px-4 py-3 text-sm text-gray-600 space-y-1"></div>
+
+    {{-- Info da query (metricas de performance) --}}
+    <div id="query-info" class="hidden mt-3 bg-white rounded-lg border border-gray-200 p-3 text-xs text-gray-500 flex gap-4 flex-wrap"></div>
 
     {{-- Resultados --}}
-    <div id="results" class="mt-6 space-y-4"></div>
+    <div id="results" class="mt-6 space-y-0"></div>
 </div>
 
 <script>
@@ -96,6 +99,7 @@ const form = document.getElementById('search-form');
 const loading = document.getElementById('loading');
 const results = document.getElementById('results');
 const queryInfo = document.getElementById('query-info');
+const queryPreprocessing = document.getElementById('query-preprocessing');
 const btnSearch = document.getElementById('btn-search');
 
 form.addEventListener('submit', async (e) => {
@@ -121,6 +125,7 @@ form.addEventListener('submit', async (e) => {
     loading.classList.remove('hidden');
     results.innerHTML = '';
     queryInfo.classList.add('hidden');
+    queryPreprocessing.classList.add('hidden');
     btnSearch.disabled = true;
 
     try {
@@ -142,6 +147,43 @@ form.addEventListener('submit', async (e) => {
         }
 
         if (data.query_info) {
+            // Bloco de preprocessing: filtros detectados e termos expandidos
+            const preprocessingParts = [];
+
+            if (data.query_info.processed_query && data.query_info.processed_query !== data.query_info.original_query) {
+                preprocessingParts.push(`<span>Consulta processada: <strong>${escapeHtml(data.query_info.processed_query)}</strong></span>`);
+            }
+
+            if (data.query_info.extracted_filters) {
+                const ef = data.query_info.extracted_filters;
+                const filterLabels = [];
+                if (ef.classe) filterLabels.push(`Classe ${ef.classe}`);
+                if (ef.ministro) filterLabels.push(`Min. ${ef.ministro}`);
+                if (ef.processo) filterLabels.push(`Processo ${ef.processo}`);
+                if (ef.ano_from && ef.ano_to) {
+                    const yearFrom = ef.ano_from.substring(0, 4);
+                    const yearTo = ef.ano_to.substring(0, 4);
+                    filterLabels.push(yearFrom === yearTo ? `Ano ${yearFrom}` : `Periodo ${yearFrom}-${yearTo}`);
+                } else if (ef.ano_from) {
+                    filterLabels.push(`A partir de ${ef.ano_from.substring(0, 4)}`);
+                } else if (ef.ano_to) {
+                    filterLabels.push(`Ate ${ef.ano_to.substring(0, 4)}`);
+                }
+                if (filterLabels.length > 0) {
+                    preprocessingParts.push(`<span>Filtros detectados: <strong>${filterLabels.join(', ')}</strong></span>`);
+                }
+            }
+
+            if (data.query_info.expanded_terms && data.query_info.expanded_terms.length > 0) {
+                preprocessingParts.push(`<span>Termos expandidos: <strong>${data.query_info.expanded_terms.map(t => escapeHtml(t)).join(', ')}</strong></span>`);
+            }
+
+            if (preprocessingParts.length > 0) {
+                queryPreprocessing.innerHTML = preprocessingParts.join('');
+                queryPreprocessing.classList.remove('hidden');
+            }
+
+            // Metricas de performance
             queryInfo.innerHTML = `
                 <span>Embedding: ${data.query_info.embedding_ms}ms</span>
                 <span>Busca: ${data.query_info.search_ms}ms</span>
@@ -160,7 +202,7 @@ form.addEventListener('submit', async (e) => {
         }
 
         results.innerHTML = data.results.map((item, i) => `
-            <div class="bg-white rounded-lg border border-gray-200 p-5 hover:border-gray-300 transition">
+            <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-5 hover:shadow-md transition ${i > 0 ? 'mt-3' : ''}">
                 <div class="flex justify-between items-start mb-2">
                     <div class="flex gap-2 text-xs text-gray-500 flex-wrap">
                         <span class="bg-blue-50 text-blue-700 px-2 py-0.5 rounded">${item.classe}</span>
