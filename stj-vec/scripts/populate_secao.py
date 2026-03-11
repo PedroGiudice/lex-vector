@@ -6,16 +6,24 @@ usa SQL para encontrar APENAS os chunks com marcadores (via LIKE), e depois
 propaga por ranges de chunk_index usando batch UPDATEs.
 
 Fases:
-  1. Buscar chunks com marcadores via SQL LIKE (sem ler content em Python)
+  1. Buscar chunks com marcadores via SQL LIKE (ou carregar cache)
   2. Construir ranges de propagacao (secao, doc_id, start_idx, end_idx)
-  3. Executar range UPDATEs em batch
+  3. Executar range UPDATEs em batch com commit intermediario
+
+Uso:
+  python3 scripts/populate_secao.py              # Executa tudo (usa cache se existir)
+  python3 scripts/populate_secao.py --no-cache   # Forca re-scan da Fase 1
+  python3 scripts/populate_secao.py --reset      # Reseta secao antes de popular
 """
 
+import json
 import sqlite3
 import time
 import sys
+from pathlib import Path
 
 DB_PATH = "db/stj-vec.db"
+CACHE_PATH = "db/secao_markers_cache.json"
 
 # Marcadores de secao buscados via SQL LIKE.
 # Cada secao tem variantes com \r e \n (PDFs extraidos pelo Marker).
@@ -89,6 +97,30 @@ def find_marker_chunks(conn):
     return doc_markers
 
 
+def save_cache(doc_markers):
+    """Salvar marcadores em JSON para re-uso."""
+    # Converter para formato serializavel: {doc_id: [[idx, secao], ...]}
+    data = {doc_id: markers for doc_id, markers in doc_markers.items()}
+    with open(CACHE_PATH, "w") as f:
+        json.dump(data, f)
+    size_mb = Path(CACHE_PATH).stat().st_size / 1024 / 1024
+    print(f"  Cache salvo: {CACHE_PATH} ({size_mb:.1f} MB)", flush=True)
+
+
+def load_cache():
+    """Carregar marcadores do cache."""
+    with open(CACHE_PATH) as f:
+        data = json.load(f)
+    # Converter listas de volta para tuplas
+    doc_markers = {}
+    total = 0
+    for doc_id, markers in data.items():
+        doc_markers[doc_id] = [(m[0], m[1]) for m in markers]
+        total += len(markers)
+    print(f"  Cache carregado: {total:,} marcadores em {len(doc_markers):,} docs", flush=True)
+    return doc_markers
+
+
 def get_max_chunk_indexes(conn, doc_ids):
     """Buscar max chunk_index por documento."""
     result = {}
@@ -110,10 +142,13 @@ def build_range_updates(doc_markers, max_indexes):
         if max_idx is None:
             continue
 
-        # Deduplicar: mesmo chunk_index -> ultimo marcador vence
+        # Deduplicar: mesmo chunk_index -> primeiro marcador vence
+        # (o marcador no inicio do chunk define a secao; marcadores
+        # que aparecem depois no content sao da secao seguinte)
         seen = {}
         for idx, sec in markers:
-            seen[idx] = sec
+            if idx not in seen:
+                seen[idx] = sec
         sorted_markers = sorted(seen.items())
 
         for i, (start_idx, secao) in enumerate(sorted_markers):
@@ -129,35 +164,61 @@ def build_range_updates(doc_markers, max_indexes):
 
 
 def apply_updates(conn, updates, batch_size=50000):
-    """Fase 3: Executar range UPDATEs em batch."""
-    for i in range(0, len(updates), batch_size):
+    """Fase 3: Executar range UPDATEs em batch com commit intermediario."""
+    total = len(updates)
+    t0 = time.time()
+    for i in range(0, total, batch_size):
         batch = updates[i : i + batch_size]
         conn.executemany(
             "UPDATE chunks SET secao = ? WHERE doc_id = ? AND chunk_index >= ? AND chunk_index <= ?",
             batch,
         )
+        conn.commit()
         done = i + len(batch)
-        if done % 200000 == 0 or done >= len(updates):
-            print(f"  {done:,}/{len(updates):,} ranges aplicados", flush=True)
-    conn.commit()
+        elapsed = time.time() - t0
+        rate = done / elapsed if elapsed > 0 else 0
+        eta = (total - done) / rate if rate > 0 else 0
+        print(
+            f"  {done:,}/{total:,} ranges ({done*100/total:.1f}%) "
+            f"[{elapsed:.0f}s elapsed, ~{eta:.0f}s remaining]",
+            flush=True,
+        )
 
 
 def main():
+    use_cache = "--no-cache" not in sys.argv
+    do_reset = "--reset" in sys.argv
+
     conn = sqlite3.connect(DB_PATH)
     conn.execute("PRAGMA journal_mode=WAL")
     conn.execute("PRAGMA synchronous=NORMAL")
     conn.execute("PRAGMA cache_size=-2000000")
 
-    # Reset
-    print("Resetando secao...", flush=True)
-    conn.execute("UPDATE chunks SET secao = NULL WHERE secao IS NOT NULL")
-    conn.commit()
+    # Reset (apenas se pedido)
+    if do_reset:
+        print("Resetando secao...", flush=True)
+        t = time.time()
+        conn.execute("UPDATE chunks SET secao = NULL WHERE secao IS NOT NULL")
+        conn.commit()
+        print(f"  ({time.time() - t:.0f}s)", flush=True)
+    else:
+        print("Skip reset (use --reset para forcar)", flush=True)
 
-    # Fase 1
-    print("\nFase 1: Buscando chunks com marcadores...", flush=True)
-    t0 = time.time()
-    doc_markers = find_marker_chunks(conn)
-    print(f"  ({time.time() - t0:.0f}s)", flush=True)
+    # Fase 1: marcadores (com cache)
+    cache_exists = Path(CACHE_PATH).exists()
+    if use_cache and cache_exists:
+        print(f"\nFase 1: Carregando cache ({CACHE_PATH})...", flush=True)
+        t0 = time.time()
+        doc_markers = load_cache()
+        print(f"  ({time.time() - t0:.1f}s)", flush=True)
+    else:
+        print("\nFase 1: Buscando chunks com marcadores...", flush=True)
+        t0 = time.time()
+        doc_markers = find_marker_chunks(conn)
+        print(f"  ({time.time() - t0:.0f}s)", flush=True)
+        # Salvar cache
+        print("  Salvando cache...", flush=True)
+        save_cache(doc_markers)
 
     # Max chunk indexes
     print("\nObtendo max chunk_index...", flush=True)
@@ -167,14 +228,13 @@ def main():
 
     # Fase 2
     print("\nFase 2: Construindo range updates...", flush=True)
+    t2 = time.time()
     updates = build_range_updates(doc_markers, max_indexes)
-    print(f"  {len(updates):,} ranges", flush=True)
+    print(f"  {len(updates):,} ranges ({time.time() - t2:.1f}s)", flush=True)
 
     # Fase 3
     print("\nFase 3: Aplicando updates...", flush=True)
-    t2 = time.time()
     apply_updates(conn, updates)
-    print(f"  ({time.time() - t2:.0f}s)", flush=True)
 
     # Verificacao
     print("\n=== RESULTADO ===", flush=True)

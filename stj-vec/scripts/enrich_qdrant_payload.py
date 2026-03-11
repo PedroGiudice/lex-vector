@@ -35,14 +35,15 @@ def load_chunk_metadata(db_path: str) -> list[dict]:
 
     cur = conn.execute(
         """
-        SELECT c.id, c.doc_id, c.chunk_index, c.secao, d.classe, d.tipo
+        SELECT c.id, c.doc_id, c.chunk_index, c.secao,
+               d.classe, d.tipo, d.orgao_julgador, d.data_julgamento
         FROM chunks c
         JOIN documents d ON c.doc_id = d.id
     """
     )
 
     rows = []
-    for chunk_id, doc_id, chunk_index, secao, classe, tipo in cur:
+    for chunk_id, doc_id, chunk_index, secao, classe, tipo, orgao, data_julg in cur:
         payload = {
             "doc_id": doc_id,
             "chunk_index": chunk_index or 0,
@@ -53,6 +54,10 @@ def load_chunk_metadata(db_path: str) -> list[dict]:
             payload["classe"] = classe
         if tipo:
             payload["tipo"] = tipo
+        if orgao:
+            payload["orgao_julgador"] = orgao
+        if data_julg:
+            payload["data_julgamento"] = data_julg
 
         rows.append(
             {
@@ -102,6 +107,8 @@ def create_payload_indexes(qdrant_url: str, collection: str):
         "secao": PayloadSchemaType.KEYWORD,
         "classe": PayloadSchemaType.KEYWORD,
         "tipo": PayloadSchemaType.KEYWORD,
+        "orgao_julgador": PayloadSchemaType.KEYWORD,
+        "data_julgamento": PayloadSchemaType.KEYWORD,
     }
 
     for field, schema in indexes.items():
