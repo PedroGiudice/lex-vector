@@ -68,7 +68,7 @@ impl MetadataStore {
         let sql = format!(
             "SELECT c.id, c.content, c.chunk_index, c.doc_id,
                     d.processo, d.classe, d.ministro, d.orgao_julgador,
-                    d.data_publicacao, d.tipo, d.assuntos
+                    d.data_publicacao, d.tipo, d.assuntos, c.secao
              FROM chunks c
              JOIN documents d ON c.doc_id = d.id
              WHERE c.id IN ({})",
@@ -94,6 +94,7 @@ impl MetadataStore {
                 data_publicacao: row.get::<_, Option<String>>(8)?.unwrap_or_default(),
                 tipo: row.get::<_, Option<String>>(9)?.unwrap_or_default(),
                 assuntos: row.get::<_, Option<String>>(10)?.unwrap_or_default(),
+                secao: row.get::<_, Option<String>>(11)?,
             })
         })?;
 
@@ -243,6 +244,40 @@ impl MetadataStore {
             .collect::<Result<Vec<_>, _>>()?;
 
         Ok(filtered)
+    }
+
+    /// Busca chunks adjacentes ao chunk dado, para expansao de contexto.
+    ///
+    /// Retorna tuplas `(chunk_index, content, secao)` dos chunks vizinhos
+    /// dentro de `window` posicoes, excluindo o chunk central.
+    pub fn get_adjacent_chunks(
+        &self,
+        doc_id: &str,
+        chunk_index: i64,
+        window: usize,
+    ) -> anyhow::Result<Vec<(i64, String, Option<String>)>> {
+        let _permit = self
+            .semaphore
+            .try_acquire()
+            .map_err(|_| anyhow::anyhow!("pool de conexoes SQLite esgotado"))?;
+
+        let conn = open_readonly(&self.path)?;
+        let from = (chunk_index - window as i64).max(0);
+        let to = chunk_index + window as i64;
+
+        let mut stmt = conn.prepare(
+            "SELECT chunk_index, content, secao FROM chunks
+             WHERE doc_id = ? AND chunk_index >= ? AND chunk_index <= ?
+             AND chunk_index != ?
+             ORDER BY chunk_index",
+        )?;
+
+        let rows = stmt.query_map(
+            rusqlite::params![doc_id, from, to, chunk_index],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+        )?;
+
+        rows.collect::<Result<Vec<_>, _>>().map_err(Into::into)
     }
 
     /// Conta total de documentos no banco.

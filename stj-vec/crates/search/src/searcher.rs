@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use qdrant_client::qdrant::{
-    value, SearchPointsBuilder, SparseIndices,
+    value, Filter, SearchPointsBuilder, SparseIndices,
 };
 use qdrant_client::Qdrant;
 
@@ -139,15 +139,20 @@ impl QdrantSearcher {
         rrf_k_override: Option<f64>,
         dense_weight_override: Option<f64>,
         sparse_weight_override: Option<f64>,
+        filter: Option<Filter>,
     ) -> anyhow::Result<Vec<RankedResult>> {
         // Preparar busca densa
-        let dense_request = SearchPointsBuilder::new(
+        let mut dense_request = SearchPointsBuilder::new(
             &self.collection,
             dense_vec.to_vec(),
             self.dense_top_k,
         )
         .vector_name("dense")
         .with_payload(true);
+
+        if let Some(ref f) = filter {
+            dense_request = dense_request.filter(f.clone());
+        }
 
         // Preparar busca esparsa: separar indices e valores
         let mut indices: Vec<u32> = Vec::with_capacity(sparse.len());
@@ -157,7 +162,7 @@ impl QdrantSearcher {
             values.push(val);
         }
 
-        let sparse_request = SearchPointsBuilder::new(
+        let mut sparse_request = SearchPointsBuilder::new(
             &self.collection,
             values,
             self.sparse_top_k,
@@ -165,6 +170,10 @@ impl QdrantSearcher {
         .vector_name("sparse")
         .sparse_indices(SparseIndices { data: indices })
         .with_payload(true);
+
+        if let Some(ref f) = filter {
+            sparse_request = sparse_request.filter(f.clone());
+        }
 
         // Executar ambas as buscas em paralelo
         let (dense_result, sparse_result) = tokio::join!(
@@ -302,11 +311,13 @@ mod tests {
             ("a".to_string(), 10.0),
         ];
 
-        // Pesos iguais: "b" vence (rank 2+1 vs 1+2 -- empata, mas b tem melhor soma)
+        // Pesos iguais: "a" e "b" empatam (ranks simetricos: 1+2 vs 2+1)
+        // a: 1/(60+1) + 1/(60+2) = 1/61 + 1/62 = 0.03252
+        // b: 1/(60+2) + 1/(60+1) = 1/62 + 1/61 = 0.03252
         let equal = fuse_rrf(&dense, &sparse, 10, 60.0, 1.0, 1.0);
-        // "b": dense_weight/(60+2) + sparse_weight/(60+1) = 1/62 + 1/61
-        // "a": 1/61 + 1/63
-        assert_eq!(equal[0].chunk_id, "b");
+        let top_two: Vec<&str> = equal.iter().take(2).map(|r| r.chunk_id.as_str()).collect();
+        assert!(top_two.contains(&"a") && top_two.contains(&"b"),
+            "ambos devem estar no top 2 com scores identicos");
 
         // Dense bias 2.0: "a" pode vencer
         // "a": 2/61 + 1/63 = 0.03279 + 0.01587 = 0.04866
@@ -336,7 +347,7 @@ mod tests {
         sparse.insert(42u32, 1.0f32);
         sparse.insert(100, 0.5);
 
-        let results = searcher.search(&dense, &sparse, 5, None, None, None).await;
+        let results = searcher.search(&dense, &sparse, 5, None, None, None, None).await;
         assert!(results.is_ok(), "busca falhou: {:?}", results.err());
     }
 }

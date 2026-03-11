@@ -13,6 +13,7 @@ pub struct SearchConfig {
     pub search: SearchDefaults,
     #[serde(default)]
     pub preprocessing: PreprocessingConfig,
+    pub reranker: Option<RerankerConfig>,
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -122,6 +123,30 @@ impl PreprocessingConfig {
         }
         Ok(())
     }
+}
+
+/// Configuracao do reranker ONNX (cross-encoder).
+#[derive(Debug, Deserialize, Clone)]
+pub struct RerankerConfig {
+    #[serde(default)]
+    pub enabled: bool,
+    pub model_dir: Option<String>,
+    #[serde(default = "default_reranker_threads")]
+    pub threads: usize,
+    #[serde(default = "default_rerank_top_k")]
+    pub top_k: usize,
+    #[serde(default = "default_rerank_return")]
+    pub return_top: usize,
+}
+
+fn default_reranker_threads() -> usize {
+    4
+}
+fn default_rerank_top_k() -> usize {
+    20
+}
+fn default_rerank_return() -> usize {
+    10
 }
 
 fn default_threads() -> usize {

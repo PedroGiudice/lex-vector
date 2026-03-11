@@ -12,6 +12,7 @@ use tower_http::services::{ServeDir, ServeFile};
 use stj_vec_search::config::SearchConfig;
 use stj_vec_search::embedder::OnnxEmbedder;
 use stj_vec_search::metadata::MetadataStore;
+use stj_vec_search::reranker::OnnxReranker;
 use stj_vec_search::routes::{
     self, AppState,
 };
@@ -62,7 +63,22 @@ async fn main() -> anyhow::Result<()> {
         .preprocessing
         .load_expansion_dict(config_base_dir)?;
 
-    // 6. Cache de filtros
+    // 6. Reranker (opcional)
+    let reranker = if let Some(ref rcfg) = config.reranker {
+        if rcfg.enabled {
+            let dir = rcfg
+                .model_dir
+                .as_deref()
+                .unwrap_or("models/bge-reranker-v2-m3-onnx");
+            Some(Arc::new(OnnxReranker::load(Path::new(dir), rcfg.threads)?))
+        } else {
+            None
+        }
+    } else {
+        None
+    };
+
+    // 7. Cache de filtros
     let filters_cache = metadata.get_filter_values()?;
     tracing::info!(
         ministros = filters_cache.ministros.len(),
@@ -71,7 +87,7 @@ async fn main() -> anyhow::Result<()> {
         "filtros cacheados"
     );
 
-    // 7. Montar estado e router
+    // 8. Montar estado e router
     let state = AppState {
         embedder: Arc::new(embedder),
         searcher: Arc::new(searcher),
@@ -79,6 +95,7 @@ async fn main() -> anyhow::Result<()> {
         filters_cache: Arc::new(filters_cache),
         config: config.clone(),
         start_time: Instant::now(),
+        reranker,
     };
 
     // CORS

@@ -32,3 +32,10 @@ remove_stopwords = true
 expand_query = true
 expansions_file = "config/expansao_juridica.json"
 max_expansion_tokens = 200
+
+[reranker]
+enabled = false
+model_dir = "models/bge-reranker-v2-m3-onnx"
+threads = 4
+top_k = 20
+return_top = 10

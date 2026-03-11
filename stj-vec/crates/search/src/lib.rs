@@ -1,8 +1,10 @@
 pub mod config;
 pub mod embedder;
 pub mod error;
+pub mod filter_builder;
 pub mod metadata;
 pub mod query_preprocessor;
+pub mod reranker;
 pub mod routes;
 pub mod searcher;
 pub mod types;

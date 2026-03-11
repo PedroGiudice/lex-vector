@@ -8,11 +8,13 @@ use axum::Json;
 use crate::config::SearchConfig;
 use crate::embedder::OnnxEmbedder;
 use crate::error::SearchError;
+use crate::filter_builder;
 use crate::metadata::MetadataStore;
 use crate::query_preprocessor::{self, PreprocessedQuery};
+use crate::reranker::OnnxReranker;
 use crate::searcher::QdrantSearcher;
 use crate::types::{
-    FiltersResponse, HealthResponse, QueryInfo, Scores, SearchRequest,
+    ContextChunk, FiltersResponse, HealthResponse, QueryInfo, Scores, SearchRequest,
     SearchResponse, SearchResultItem,
 };
 
@@ -25,11 +27,13 @@ pub struct AppState {
     pub filters_cache: Arc<FiltersResponse>,
     pub config: SearchConfig,
     pub start_time: Instant,
+    pub reranker: Option<Arc<OnnxReranker>>,
 }
 
 /// POST /api/search
 ///
-/// Pipeline: preprocessing -> embed query -> busca Qdrant -> metadados SQLite -> filtros -> resposta.
+/// Pipeline: preprocessing -> embed query -> busca Qdrant (com filtros pre-busca)
+/// -> metadados SQLite -> filtros residuais -> reranking -> expansao de contexto -> resposta.
 pub async fn search_handler(
     State(state): State<AppState>,
     Json(req): Json<SearchRequest>,
@@ -50,10 +54,12 @@ pub async fn search_handler(
         merged_filters.merge_extracted(&preprocessed.extracted_filters);
     }
 
-    let has_filters = !merged_filters.is_empty();
+    // Construir filtro Qdrant (pre-busca) a partir dos campos suportados
+    let qdrant_filter = filter_builder::build_qdrant_filter(&merged_filters);
+    let has_residual = filter_builder::has_residual_filters(&merged_filters);
 
-    // Overfetch para compensar filtros pos-busca
-    let overfetch_limit = if has_filters {
+    // Overfetch: necessario apenas se ha filtros residuais (pos-busca no SQLite)
+    let overfetch_limit = if has_residual {
         limit * state.config.search.overfetch_factor
     } else {
         limit
@@ -67,7 +73,7 @@ pub async fn search_handler(
         .map_err(SearchError::Embedding)?;
     let embedding_ms = embed_start.elapsed().as_millis() as u64;
 
-    // 2. Busca Qdrant
+    // 2. Busca Qdrant (com filtro pre-busca quando disponivel)
     let search_start = Instant::now();
     let ranked = state
         .searcher
@@ -78,6 +84,7 @@ pub async fn search_handler(
             req.rrf_k,
             req.dense_weight,
             req.sparse_weight,
+            qdrant_filter,
         )
         .await
         .map_err(SearchError::Embedding)?;
@@ -90,8 +97,8 @@ pub async fn search_handler(
     // 3. Extrair chunk_ids
     let chunk_ids: Vec<String> = ranked.iter().map(|r| r.chunk_id.clone()).collect();
 
-    // 4. Filtros
-    let filtered_ids = if has_filters {
+    // 4. Filtros residuais (SQLite) -- apenas campos nao suportados no Qdrant
+    let filtered_ids = if has_residual {
         state
             .metadata
             .filter_chunk_ids(&chunk_ids, &merged_filters)
@@ -124,17 +131,98 @@ pub async fn search_handler(
                 data_publicacao: meta.data_publicacao.clone(),
                 tipo: meta.tipo.clone(),
                 assuntos: meta.assuntos.clone(),
+                secao: meta.secao.clone(),
                 scores: Scores {
                     dense: ranked_item.dense_score,
                     sparse: ranked_item.sparse_score,
                     rrf: ranked_item.rrf_score,
                     dense_rank: ranked_item.dense_rank,
                     sparse_rank: ranked_item.sparse_rank,
+                    rerank_score: None,
                 },
+                context_chunks: None,
             });
             if results.len() >= limit {
                 break;
             }
+        }
+    }
+
+    // 7. Reranking (opcional, apos RRF, antes de expansao de contexto)
+    let mut rerank_ms: Option<u64> = None;
+    let rerank_enabled = req
+        .rerank
+        .unwrap_or_else(|| state.config.reranker.as_ref().map_or(false, |r| r.enabled));
+
+    if rerank_enabled {
+        if let Some(ref reranker) = state.reranker {
+            let rcfg = state.config.reranker.as_ref().expect("reranker config presente quando reranker carregado");
+            let top_k = rcfg.top_k.min(results.len());
+            if top_k > 0 {
+                let passages: Vec<&str> = results[..top_k]
+                    .iter()
+                    .map(|r| r.content.as_str())
+                    .collect();
+
+                let rerank_start = Instant::now();
+                match reranker.rerank(&preprocessed.semantic_query, &passages) {
+                    Ok(scores) => {
+                        let mut scored: Vec<_> = results
+                            .drain(..top_k)
+                            .zip(scores.iter())
+                            .collect();
+                        scored.sort_by(|a, b| {
+                            b.1.partial_cmp(a.1)
+                                .unwrap_or(std::cmp::Ordering::Equal)
+                        });
+
+                        let mut reranked: Vec<SearchResultItem> = scored
+                            .into_iter()
+                            .take(rcfg.return_top)
+                            .map(|(mut item, &score)| {
+                                item.scores.rerank_score = Some(score);
+                                item
+                            })
+                            .collect();
+
+                        // Anexar resultados restantes (nao rerankeados) apos os rerankeados
+                        reranked.append(&mut results);
+                        results = reranked;
+
+                        let elapsed = rerank_start.elapsed().as_millis() as u64;
+                        rerank_ms = Some(elapsed);
+                        tracing::debug!(
+                            top_k,
+                            rerank_ms = elapsed,
+                            "reranking concluido"
+                        );
+                    }
+                    Err(e) => {
+                        tracing::warn!(error = %e, "reranking falhou, mantendo ordem RRF");
+                    }
+                }
+            }
+        }
+    }
+
+    // 8. Expansao de contexto (chunks adjacentes)
+    if req.expand_context.unwrap_or(false) {
+        let window = req.context_window.unwrap_or(1);
+        for result in &mut results {
+            let adjacent = state
+                .metadata
+                .get_adjacent_chunks(&result.doc_id, result.chunk_index, window)
+                .unwrap_or_default();
+            result.context_chunks = Some(
+                adjacent
+                    .into_iter()
+                    .map(|(idx, content, secao)| ContextChunk {
+                        chunk_index: idx,
+                        content,
+                        secao,
+                    })
+                    .collect(),
+            );
         }
     }
 
@@ -158,6 +246,7 @@ pub async fn search_handler(
             embedding_ms,
             search_ms,
             metadata_ms,
+            rerank_ms,
             total_ms,
             dense_candidates,
             sparse_candidates,

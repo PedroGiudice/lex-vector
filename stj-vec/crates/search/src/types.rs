@@ -11,6 +11,9 @@ pub struct SearchRequest {
     pub dense_weight: Option<f64>,
     pub sparse_weight: Option<f64>,
     pub preprocessing: Option<PreprocessingOptions>,
+    pub expand_context: Option<bool>,
+    pub context_window: Option<usize>,
+    pub rerank: Option<bool>,
 }
 
 /// Opcoes de preprocessing por request (override do config global).
@@ -29,6 +32,7 @@ pub struct SearchFilters {
     pub orgao_julgador: Option<String>,
     pub data_from: Option<String>,
     pub data_to: Option<String>,
+    pub secao: Option<String>,
     /// Filtro LIKE no campo processo (ex: "REsp%"). Nao vem do JSON, preenchido pelo preprocessing.
     #[serde(skip)]
     pub processo_like: Option<String>,
@@ -42,6 +46,7 @@ impl SearchFilters {
             && self.orgao_julgador.is_none()
             && self.data_from.is_none()
             && self.data_to.is_none()
+            && self.secao.is_none()
             && self.processo_like.is_none()
     }
 
@@ -85,7 +90,18 @@ pub struct SearchResultItem {
     pub data_publicacao: String,
     pub tipo: String,
     pub assuntos: String,
+    pub secao: Option<String>,
     pub scores: Scores,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub context_chunks: Option<Vec<ContextChunk>>,
+}
+
+/// Chunk adjacente retornado na expansao de contexto.
+#[derive(Debug, Serialize)]
+pub struct ContextChunk {
+    pub chunk_index: i64,
+    pub content: String,
+    pub secao: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -95,6 +111,8 @@ pub struct Scores {
     pub rrf: f64,
     pub dense_rank: usize,
     pub sparse_rank: usize,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub rerank_score: Option<f32>,
 }
 
 #[derive(Debug, Serialize)]
@@ -110,6 +128,8 @@ pub struct QueryInfo {
     pub embedding_ms: u64,
     pub search_ms: u64,
     pub metadata_ms: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub rerank_ms: Option<u64>,
     pub total_ms: u64,
     pub dense_candidates: usize,
     pub sparse_candidates: usize,
@@ -178,6 +198,7 @@ pub struct ChunkWithMetadata {
     pub data_publicacao: String,
     pub tipo: String,
     pub assuntos: String,
+    pub secao: Option<String>,
 }
 
 #[cfg(test)]
@@ -215,6 +236,7 @@ mod tests {
             rrf: 0.0328,
             dense_rank: 3,
             sparse_rank: 7,
+            rerank_score: None,
         };
         let json = serde_json::to_string(&scores).unwrap();
         assert!(json.contains("dense_rank"));
