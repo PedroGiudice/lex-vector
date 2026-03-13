@@ -540,7 +540,12 @@ fn scan_base_dir(base: &Path) -> Result<Vec<PathBuf>> {
     Ok(files)
 }
 
-/// Le conteudo de arquivo, extraindo campo "texto" de JSONs quando presente.
+/// Labels de blocos Chandra que sao relevantes para embedding.
+/// Page-Header, Page-Footer e outros blocos de ruido sao descartados.
+const CHANDRA_RELEVANT_LABELS: &[&str] = &["Text", "Section-Header"];
+
+/// Le conteudo de arquivo, extraindo campo "texto" de JSONs quando presente,
+/// ou blocos relevantes do formato Chandra (blocks com labels).
 fn read_file_content(path: &Path) -> Result<String> {
     let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("");
     let raw = std::fs::read_to_string(path)
@@ -548,6 +553,11 @@ fn read_file_content(path: &Path) -> Result<String> {
 
     if ext == "json" {
         if let Ok(val) = serde_json::from_str::<serde_json::Value>(&raw) {
+            // Formato Chandra: { "blocks": [...], "metadata": {...} }
+            if let Some(blocks) = val.get("blocks").and_then(|v| v.as_array()) {
+                return Ok(extract_chandra_blocks(blocks));
+            }
+            // Formato legado: { "texto": "..." }
             if let Some(texto) = val.get("texto").and_then(|v| v.as_str()) {
                 return Ok(texto.to_string());
             }
@@ -555,6 +565,33 @@ fn read_file_content(path: &Path) -> Result<String> {
     }
 
     Ok(strip_html(&raw))
+}
+
+/// Extrai e concatena blocos relevantes do formato Chandra.
+///
+/// Cada bloco relevante e prefixado com `[Label]` para preservar
+/// contexto semantico no embedding (ex: `[Section-Header] RELATORIO`).
+/// Blocos com labels de ruido (Page-Header, Page-Footer) sao descartados.
+fn extract_chandra_blocks(blocks: &[serde_json::Value]) -> String {
+    let mut parts: Vec<String> = Vec::new();
+
+    for block in blocks {
+        let label = block.get("label").and_then(|v| v.as_str()).unwrap_or("");
+        let content = block.get("content").and_then(|v| v.as_str()).unwrap_or("");
+
+        if content.trim().is_empty() {
+            continue;
+        }
+
+        if !CHANDRA_RELEVANT_LABELS.contains(&label) {
+            continue;
+        }
+
+        // Prefixar com label para contexto semantico no embedding
+        parts.push(format!("[{label}] {}", content.trim()));
+    }
+
+    parts.join("\n\n")
 }
 
 /// Caminho relativo a partir do base dir.
@@ -566,4 +603,103 @@ fn rel_path(base: &Path, abs: &Path) -> String {
 /// Gera `doc_id` deterministico a partir do caminho relativo.
 fn doc_id_from_rel(rel: &str) -> String {
     format!("{:x}", md5::compute(rel.as_bytes()))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::io::Write;
+    use tempfile::NamedTempFile;
+
+    #[test]
+    fn test_extract_chandra_blocks_filters_noise() {
+        let blocks: Vec<serde_json::Value> = serde_json::from_str(r#"[
+            {"label": "Section-Header", "content": "RELATORIO", "page": 1},
+            {"label": "Text", "content": "Trata-se de recurso especial.", "page": 1},
+            {"label": "Page-Header", "content": "fls. 531", "page": 1},
+            {"label": "Page-Footer", "content": "Assinado digitalmente", "page": 1},
+            {"label": "Table", "content": "<table>dados</table>", "page": 2}
+        ]"#).unwrap();
+
+        let result = extract_chandra_blocks(&blocks);
+
+        assert!(result.contains("[Section-Header] RELATORIO"));
+        assert!(result.contains("[Text] Trata-se de recurso especial."));
+        assert!(!result.contains("fls. 531"), "Page-Header deve ser filtrado");
+        assert!(!result.contains("Assinado digitalmente"), "Page-Footer deve ser filtrado");
+        assert!(!result.contains("Table"), "Table deve ser filtrado");
+    }
+
+    #[test]
+    fn test_extract_chandra_blocks_skips_empty_content() {
+        let blocks: Vec<serde_json::Value> = serde_json::from_str(r#"[
+            {"label": "Text", "content": "  ", "page": 1},
+            {"label": "Text", "content": "Conteudo real.", "page": 1}
+        ]"#).unwrap();
+
+        let result = extract_chandra_blocks(&blocks);
+
+        assert_eq!(result, "[Text] Conteudo real.");
+    }
+
+    #[test]
+    fn test_extract_chandra_blocks_preserves_order() {
+        let blocks: Vec<serde_json::Value> = serde_json::from_str(r#"[
+            {"label": "Section-Header", "content": "VOTO", "page": 1},
+            {"label": "Text", "content": "Primeiro paragrafo.", "page": 1},
+            {"label": "Text", "content": "Segundo paragrafo.", "page": 1}
+        ]"#).unwrap();
+
+        let result = extract_chandra_blocks(&blocks);
+        let lines: Vec<&str> = result.split("\n\n").collect();
+
+        assert_eq!(lines.len(), 3);
+        assert_eq!(lines[0], "[Section-Header] VOTO");
+        assert_eq!(lines[1], "[Text] Primeiro paragrafo.");
+        assert_eq!(lines[2], "[Text] Segundo paragrafo.");
+    }
+
+    #[test]
+    fn test_read_file_content_chandra_format() {
+        let json = r#"{
+            "blocks": [
+                {"label": "Section-Header", "content": "EMENTA", "page": 1},
+                {"label": "Text", "content": "Direito processual civil.", "page": 1},
+                {"label": "Page-Header", "content": "STJ", "page": 1}
+            ],
+            "metadata": {"model": "chandra", "total_pages": 1}
+        }"#;
+
+        let mut tmp = NamedTempFile::with_suffix(".json").unwrap();
+        tmp.write_all(json.as_bytes()).unwrap();
+        tmp.flush().unwrap();
+
+        let result = read_file_content(tmp.path()).unwrap();
+
+        assert!(result.contains("[Section-Header] EMENTA"));
+        assert!(result.contains("[Text] Direito processual civil."));
+        assert!(!result.contains("STJ"), "Page-Header filtrado");
+    }
+
+    #[test]
+    fn test_read_file_content_legacy_texto_format() {
+        let json = r#"{"texto": "Conteudo juridico legado."}"#;
+
+        let mut tmp = NamedTempFile::with_suffix(".json").unwrap();
+        tmp.write_all(json.as_bytes()).unwrap();
+        tmp.flush().unwrap();
+
+        let result = read_file_content(tmp.path()).unwrap();
+        assert_eq!(result, "Conteudo juridico legado.");
+    }
+
+    #[test]
+    fn test_read_file_content_plain_text() {
+        let mut tmp = NamedTempFile::with_suffix(".txt").unwrap();
+        tmp.write_all(b"Texto puro sem JSON.").unwrap();
+        tmp.flush().unwrap();
+
+        let result = read_file_content(tmp.path()).unwrap();
+        assert_eq!(result, "Texto puro sem JSON.");
+    }
 }
