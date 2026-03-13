@@ -759,7 +759,7 @@ mod tests {
             data_julgamento: None,
             assuntos: Some("11806".into()),
             teor: Some("Dando provimento".into()),
-            tipo: Some("ACORDAO".into()),
+            tipo: Some("ACÓRDÃO".into()),
             chunk_count: 0,
             source_file: Some("202403".into()),
         };

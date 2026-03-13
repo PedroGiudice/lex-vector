@@ -29,6 +29,6 @@ sparse_weight = 1.0
 enabled = true
 extract_metadata = true
 remove_stopwords = true
-expand_query = true
+expand_query = false
 expansions_file = "config/expansao_juridica.json"
 max_expansion_tokens = 200

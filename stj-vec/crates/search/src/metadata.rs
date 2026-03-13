@@ -211,7 +211,9 @@ impl MetadataStore {
         }
         if let Some(ref tipo) = filters.tipo {
             sql.push_str(" AND d.tipo = ?");
-            params.push(Box::new(tipo.clone()));
+            // Normalizar: ACORDAO -> ACÓRDÃO, DECISAO -> DECISÃO
+            let tipo_normalized = normalize_tipo(tipo);
+            params.push(Box::new(tipo_normalized));
         }
         if let Some(ref classe) = filters.classe {
             sql.push_str(" AND d.classe = ?");
@@ -273,6 +275,16 @@ fn open_readonly(path: &str) -> anyhow::Result<Connection> {
         OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NO_MUTEX,
     )?;
     Ok(conn)
+}
+
+/// Normaliza valores de tipo de documento para os acentos corretos da base.
+/// Aceita variantes sem acento (ex: ACORDAO -> ACÓRDÃO) para robustez.
+fn normalize_tipo(tipo: &str) -> String {
+    match tipo.to_uppercase().as_str() {
+        "ACORDAO" => "ACÓRDÃO".to_string(),
+        "DECISAO" => "DECISÃO".to_string(),
+        other => other.to_string(),
+    }
 }
 
 /// Executa query que retorna uma coluna de strings.
