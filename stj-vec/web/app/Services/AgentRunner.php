@@ -26,20 +26,30 @@ class AgentRunner implements AgentRunnerInterface
 
         Storage::disk('local')->makeDirectory('searches');
 
-        $escapedQuery = escapeshellarg($query);
         $resultAbsPath = storage_path("app/searches/{$searchId}.result.json");
+        $pidFile = storage_path("app/searches/{$searchId}.pid");
 
-        $command = sprintf(
-            '%s --agent %s -p %s --output-format json --model %s --dangerously-skip-permissions --no-session-persistence > %s 2>/dev/null &',
+        $command = implode(' ', [
             escapeshellarg($this->claudeBin),
-            escapeshellarg($this->agentPath),
-            $escapedQuery,
-            escapeshellarg($this->model),
-            escapeshellarg($resultAbsPath)
+            '--agent', escapeshellarg($this->agentPath),
+            '-p', escapeshellarg($query),
+            '--output-format', 'json',
+            '--model', escapeshellarg($this->model),
+            '--dangerously-skip-permissions',
+            '--no-session-persistence',
+        ]);
+
+        $wrapper = sprintf(
+            '(%s > %s 2>/dev/null) & echo $! > %s',
+            $command,
+            escapeshellarg($resultAbsPath),
+            escapeshellarg($pidFile)
         );
 
-        $shellResult = Process::run("bash -c '{$command} echo \$!'");
-        $pid = trim($shellResult->output());
+        Process::run(['bash', '-c', $wrapper]);
+
+        $pid = file_exists($pidFile) ? trim(file_get_contents($pidFile)) : '';
+        @unlink($pidFile);
 
         Storage::disk('local')->put($metaPath, json_encode([
             'pid' => $pid,
@@ -50,15 +60,7 @@ class AgentRunner implements AgentRunnerInterface
 
     public function isComplete(string $searchId): bool
     {
-        $resultPath = $this->resultPath($searchId);
-
-        if (! Storage::disk('local')->exists($resultPath)) {
-            return false;
-        }
-
-        $content = Storage::disk('local')->get($resultPath);
-
-        return strlen($content) > 10;
+        return $this->getResult($searchId) !== null;
     }
 
     /**
@@ -66,14 +68,20 @@ class AgentRunner implements AgentRunnerInterface
      */
     public function getResult(string $searchId): ?array
     {
-        if (! $this->isComplete($searchId)) {
+        $resultPath = $this->resultPath($searchId);
+
+        if (! Storage::disk('local')->exists($resultPath)) {
             return null;
         }
 
-        $content = Storage::disk('local')->get($this->resultPath($searchId));
-
+        $content = Storage::disk('local')->get($resultPath);
         $decoded = json_decode($content, true);
+
         if (json_last_error() !== JSON_ERROR_NONE) {
+            return null;
+        }
+
+        if (! isset($decoded['results'])) {
             return null;
         }
 
@@ -86,8 +94,9 @@ class AgentRunner implements AgentRunnerInterface
 
         if (Storage::disk('local')->exists($metaPath)) {
             $meta = json_decode(Storage::disk('local')->get($metaPath), true);
-            if (! empty($meta['pid'])) {
-                Process::run("kill {$meta['pid']} 2>/dev/null");
+            $pid = (int) ($meta['pid'] ?? 0);
+            if ($pid > 0) {
+                Process::run(['kill', (string) $pid]);
             }
         }
 

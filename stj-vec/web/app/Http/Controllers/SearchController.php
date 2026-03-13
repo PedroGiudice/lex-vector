@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
+use App\Http\Requests\SearchRequest;
 use Illuminate\Support\Facades\Http;
 
 class SearchController extends Controller
@@ -25,29 +25,9 @@ class SearchController extends Controller
         return view('search.index', compact('filters'));
     }
 
-    public function search(Request $request): \Illuminate\Http\JsonResponse
+    public function search(SearchRequest $request): \Illuminate\Http\JsonResponse
     {
-        $validated = $request->validate([
-            'query' => 'required|string|min:3|max:500',
-            'limit' => 'nullable|integer|min:1|max:100',
-            'filters.ministro' => 'nullable|string',
-            'filters.tipo' => 'nullable|string',
-            'filters.classe' => 'nullable|string',
-            'filters.orgao_julgador' => 'nullable|string',
-            'filters.data_from' => 'nullable|date_format:Y-m-d',
-            'filters.data_to' => 'nullable|date_format:Y-m-d',
-        ]);
-
-        $payload = ['query' => $validated['query']];
-
-        if (isset($validated['limit'])) {
-            $payload['limit'] = $validated['limit'];
-        }
-
-        $filters = array_filter($validated['filters'] ?? []);
-        if (! empty($filters)) {
-            $payload['filters'] = $filters;
-        }
+        $payload = $request->toPayload();
 
         $response = Http::timeout(30)->post("{$this->rustBaseUrl}/api/search", $payload);
 

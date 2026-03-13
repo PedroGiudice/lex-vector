@@ -196,7 +196,7 @@ form.addEventListener('submit', async (e) => {
         const data = await response.json();
 
         if (!response.ok) {
-            results.innerHTML = `<div class="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">${data.error || 'Erro na busca'}</div>`;
+            results.innerHTML = `<div class="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">${escapeHtml(data.error || 'Erro na busca')}</div>`;
             return;
         }
 
@@ -253,30 +253,39 @@ form.addEventListener('submit', async (e) => {
             return;
         }
 
-        results.innerHTML = data.results.map((item, i) => `
+        results.innerHTML = data.results.map((item, i) => {
+            const tipo = escapeHtml(item.tipo || '');
+            const classe = escapeHtml(item.classe || '');
+            const processo = escapeHtml(item.processo || '');
+            const ministro = escapeHtml(item.ministro || '');
+            const orgao = escapeHtml(item.orgao_julgador || '');
+            const dataPub = escapeHtml(item.data_publicacao || '');
+            const tipoClass = (item.tipo === 'ACORDAO' || item.tipo === 'ACÓRDÃO') ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700';
+
+            return `
             <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-5 hover:shadow-md transition ${i > 0 ? 'mt-3' : ''}">
                 <div class="flex justify-between items-start mb-2">
                     <div class="flex gap-2 text-xs flex-wrap">
-                        ${item.tipo ? `<span class="px-2 py-0.5 rounded ${item.tipo === 'ACORDAO' || item.tipo === 'ACÓRDÃO' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'}">${item.tipo}</span>` : ''}
-                        ${item.classe ? `<span class="bg-gray-100 text-gray-600 px-2 py-0.5 rounded">${item.classe}</span>` : ''}
-                        <span class="text-gray-700 font-medium">${item.processo}</span>
+                        ${tipo ? `<span class="px-2 py-0.5 rounded ${tipoClass}">${tipo}</span>` : ''}
+                        ${classe ? `<span class="bg-gray-100 text-gray-600 px-2 py-0.5 rounded">${classe}</span>` : ''}
+                        <span class="text-gray-700 font-medium">${processo}</span>
                     </div>
                     <span class="text-xs font-mono ${item.scores.rrf >= 0.7 ? 'text-green-600' : item.scores.rrf >= 0.4 ? 'text-yellow-600' : 'text-gray-400'} whitespace-nowrap ml-2">${item.scores.rrf.toFixed(4)}</span>
                 </div>
                 <p class="text-sm text-gray-700 leading-relaxed mb-3">${highlightTerms(item.content, query)}</p>
                 <div class="flex justify-between items-center text-xs text-gray-400">
                     <div class="flex gap-3">
-                        <span>${item.ministro || ''}</span>
-                        <span>${item.orgao_julgador || ''}</span>
-                        <span>${item.data_publicacao || ''}</span>
+                        <span>${ministro}</span>
+                        <span>${orgao}</span>
+                        <span>${dataPub}</span>
                     </div>
                     <div class="flex gap-2 font-mono">
                         <span>d:${item.scores.dense.toFixed(3)}</span>
                         <span>s:${item.scores.sparse.toFixed(1)}</span>
                     </div>
                 </div>
-            </div>
-        `).join('');
+            </div>`;
+        }).join('');
 
     } catch (err) {
         results.innerHTML = `<div class="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">Erro de conexao: ${err.message}</div>`;
