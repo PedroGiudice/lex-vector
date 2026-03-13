@@ -39,4 +39,11 @@ return [
         'url' => env('STJ_SEARCH_URL', 'http://localhost:8421'),
     ],
 
+    'agent' => [
+        'path' => env('AGENT_PATH', '/home/opc/.claude/agents/query-decomposer.md'),
+        'claude_bin' => env('CLAUDE_BIN', '/home/opc/.local/bin/claude'),
+        'model' => env('AGENT_MODEL', 'sonnet'),
+        'timeout' => (int) env('AGENT_TIMEOUT', 600),
+    ],
+
 ];

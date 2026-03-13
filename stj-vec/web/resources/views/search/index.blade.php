@@ -3,98 +3,148 @@
 @section('title', 'Busca - STJ-Vec')
 
 @section('content')
-<div id="app">
-    {{-- Formulario de busca --}}
-    <form id="search-form" class="space-y-4">
-        <div class="flex gap-3">
-            <input
-                type="text"
-                id="query"
-                name="query"
-                placeholder="Ex: dano moral bancario, revisao contratual, responsabilidade civil objetiva..."
-                class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
-                required
-                minlength="3"
-                autofocus
-            >
-            <button
-                type="submit"
-                id="btn-search"
-                class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium"
-            >
-                Buscar
-            </button>
-        </div>
-
-        {{-- Filtros colapsaveis --}}
-        <details class="bg-white rounded-lg border border-gray-200 p-4">
-            <summary class="cursor-pointer text-sm font-medium text-gray-600">Filtros avancados</summary>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-                <div>
-                    <label class="block text-sm text-gray-600 mb-1">Ministro</label>
-                    <select name="filters[ministro]" class="w-full px-3 py-2 border rounded-md text-sm">
-                        <option value="">Todos</option>
-                        @foreach($filters['ministros'] ?? [] as $m)
-                            <option value="{{ $m }}">{{ $m }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-sm text-gray-600 mb-1">Tipo</label>
-                    <select name="filters[tipo]" class="w-full px-3 py-2 border rounded-md text-sm">
-                        <option value="">Todos</option>
-                        @foreach($filters['tipos'] ?? [] as $t)
-                            <option value="{{ $t }}">{{ $t }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-sm text-gray-600 mb-1">Classe</label>
-                    <select name="filters[classe]" class="w-full px-3 py-2 border rounded-md text-sm">
-                        <option value="">Todos</option>
-                        @foreach($filters['classes'] ?? [] as $c)
-                            <option value="{{ $c }}">{{ $c }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-sm text-gray-600 mb-1">Orgao Julgador</label>
-                    <select name="filters[orgao_julgador]" class="w-full px-3 py-2 border rounded-md text-sm">
-                        <option value="">Todos</option>
-                        @foreach($filters['orgaos_julgadores'] ?? [] as $o)
-                            <option value="{{ $o }}">{{ $o }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-sm text-gray-600 mb-1">Data de</label>
-                    <input type="date" name="filters[data_from]" class="w-full px-3 py-2 border rounded-md text-sm">
-                </div>
-                <div>
-                    <label class="block text-sm text-gray-600 mb-1">Data ate</label>
-                    <input type="date" name="filters[data_to]" class="w-full px-3 py-2 border rounded-md text-sm">
-                </div>
-            </div>
-        </details>
-    </form>
-
-    {{-- Indicador de carregamento --}}
-    <div id="loading" class="hidden mt-8 text-center text-gray-500">
-        <div class="inline-block animate-spin rounded-full h-6 w-6 border-2 border-gray-300 border-t-blue-600"></div>
-        <span class="ml-2">Buscando...</span>
+<div>
+    {{-- Tabs --}}
+    <div class="flex border-b border-gray-200 mb-6" id="search-tabs">
+        <button
+            onclick="switchTab('direct')"
+            id="tab-direct"
+            class="px-6 py-3 text-sm font-medium border-b-2 transition-colors border-navy-600 text-navy-900"
+        >
+            Busca Direta
+        </button>
+        <button
+            onclick="switchTab('decomposed')"
+            id="tab-decomposed"
+            class="px-6 py-3 text-sm font-medium border-b-2 transition-colors border-transparent text-gray-500 hover:text-gray-700"
+        >
+            Busca Decomposta
+        </button>
     </div>
 
-    {{-- Preprocessing: filtros detectados e termos expandidos --}}
-    <div id="query-preprocessing" class="hidden mt-6 bg-gray-50 rounded-lg border border-gray-200 px-4 py-3 text-sm text-gray-600 space-y-1"></div>
+    {{-- Tab: Busca Direta --}}
+    <div id="panel-direct">
+        <div class="flex gap-6">
+            {{-- Sidebar de filtros --}}
+            <aside class="hidden lg:block w-64 flex-shrink-0">
+                <div class="bg-white rounded-lg border border-gray-200 p-4 sticky top-6">
+                    <h3 class="text-sm font-semibold text-gray-700 mb-3">Filtros</h3>
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-xs text-gray-500 mb-1">Tipo</label>
+                            <select id="filter-tipo" class="w-full px-2 py-1.5 border rounded text-sm">
+                                <option value="">Todos</option>
+                                @foreach($filters['tipos'] ?? [] as $t)
+                                    <option value="{{ $t }}">{{ $t }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-500 mb-1">Classe</label>
+                            <select id="filter-classe" class="w-full px-2 py-1.5 border rounded text-sm">
+                                <option value="">Todas</option>
+                                @foreach($filters['classes'] ?? [] as $c)
+                                    <option value="{{ $c }}">{{ $c }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-500 mb-1">Ministro</label>
+                            <select id="filter-ministro" class="w-full px-2 py-1.5 border rounded text-sm">
+                                <option value="">Todos</option>
+                                @foreach($filters['ministros'] ?? [] as $m)
+                                    <option value="{{ $m }}">{{ $m }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-500 mb-1">Orgao Julgador</label>
+                            <select id="filter-orgao" class="w-full px-2 py-1.5 border rounded text-sm">
+                                <option value="">Todos</option>
+                                @foreach($filters['orgaos_julgadores'] ?? [] as $o)
+                                    <option value="{{ $o }}">{{ $o }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-500 mb-1">Data de</label>
+                            <input type="date" id="filter-data-from" class="w-full px-2 py-1.5 border rounded text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-500 mb-1">Data ate</label>
+                            <input type="date" id="filter-data-to" class="w-full px-2 py-1.5 border rounded text-sm">
+                        </div>
+                    </div>
+                </div>
+            </aside>
 
-    {{-- Info da query (metricas de performance) --}}
-    <div id="query-info" class="hidden mt-3 bg-white rounded-lg border border-gray-200 p-3 text-xs text-gray-500 flex gap-4 flex-wrap"></div>
+            {{-- Conteudo principal --}}
+            <div class="flex-1 min-w-0">
+                <form id="search-form" class="mb-6">
+                    <div class="flex gap-3">
+                        <input
+                            type="text"
+                            id="query"
+                            name="query"
+                            placeholder="Ex: dano moral bancario, revisao contratual, responsabilidade civil objetiva..."
+                            class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy-500 focus:border-navy-500 text-gray-800 placeholder-gray-400"
+                            required
+                            minlength="3"
+                            autofocus
+                        >
+                        <button
+                            type="submit"
+                            id="btn-search"
+                            class="px-6 py-3 bg-navy-900 text-white rounded-lg hover:bg-navy-800 transition-colors font-medium"
+                        >
+                            Buscar
+                        </button>
+                    </div>
+                </form>
 
-    {{-- Resultados --}}
-    <div id="results" class="mt-6 space-y-0"></div>
+                <div id="loading" class="hidden mt-8 text-center text-gray-500">
+                    <div class="inline-block animate-spin rounded-full h-6 w-6 border-2 border-gray-300 border-t-navy-600"></div>
+                    <span class="ml-2">Buscando...</span>
+                </div>
+
+                <div id="query-preprocessing" class="hidden mt-4 bg-navy-50 rounded-lg border border-navy-200 px-4 py-3 text-sm text-navy-700 space-y-1"></div>
+                <div id="query-info" class="hidden mt-3 bg-white rounded-lg border border-gray-200 p-3 text-xs text-gray-500 flex gap-4 flex-wrap"></div>
+                <div id="results" class="mt-4 space-y-0"></div>
+            </div>
+        </div>
+    </div>
+
+    {{-- Tab: Busca Decomposta --}}
+    <div id="panel-decomposed" class="hidden">
+        <div class="max-w-4xl mx-auto">
+            <div class="mb-4 text-sm text-gray-500">
+                O agente decompoe sua query em sub-buscas por angulo juridico,
+                explorando facetas distintas do tema. Resultados agrupados por perspectiva.
+            </div>
+            <livewire:decomposed-search />
+        </div>
+    </div>
 </div>
 
 <script>
+function switchTab(tab) {
+    const tabs = ['direct', 'decomposed'];
+    tabs.forEach(t => {
+        const panel = document.getElementById('panel-' + t);
+        const btn = document.getElementById('tab-' + t);
+        if (t === tab) {
+            panel.classList.remove('hidden');
+            btn.classList.add('border-navy-600', 'text-navy-900');
+            btn.classList.remove('border-transparent', 'text-gray-500');
+        } else {
+            panel.classList.add('hidden');
+            btn.classList.remove('border-navy-600', 'text-navy-900');
+            btn.classList.add('border-transparent', 'text-gray-500');
+        }
+    });
+}
+
+// Busca direta (vanilla JS)
 const form = document.getElementById('search-form');
 const loading = document.getElementById('loading');
 const results = document.getElementById('results');
@@ -104,22 +154,26 @@ const btnSearch = document.getElementById('btn-search');
 
 form.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const formData = new FormData(form);
-    const query = formData.get('query')?.trim();
+    const query = document.getElementById('query').value.trim();
     if (!query || query.length < 3) return;
 
     const payload = { query };
 
-    const limit = formData.get('limit');
-    if (limit) payload.limit = parseInt(limit);
-
     const filters = {};
-    for (const [key, value] of formData.entries()) {
-        const match = key.match(/^filters\[(\w+)\]$/);
-        if (match && value) {
-            filters[match[1]] = value;
-        }
-    }
+    const tipo = document.getElementById('filter-tipo').value;
+    const classe = document.getElementById('filter-classe').value;
+    const ministro = document.getElementById('filter-ministro').value;
+    const orgao = document.getElementById('filter-orgao').value;
+    const dataFrom = document.getElementById('filter-data-from').value;
+    const dataTo = document.getElementById('filter-data-to').value;
+
+    if (tipo) filters.tipo = tipo;
+    if (classe) filters.classe = classe;
+    if (ministro) filters.ministro = ministro;
+    if (orgao) filters.orgao_julgador = orgao;
+    if (dataFrom) filters.data_from = dataFrom;
+    if (dataTo) filters.data_to = dataTo;
+
     if (Object.keys(filters).length > 0) payload.filters = filters;
 
     loading.classList.remove('hidden');
@@ -147,7 +201,6 @@ form.addEventListener('submit', async (e) => {
         }
 
         if (data.query_info) {
-            // Bloco de preprocessing: filtros detectados e termos expandidos
             const preprocessingParts = [];
 
             if (data.query_info.processed_query && data.query_info.processed_query !== data.query_info.original_query) {
@@ -183,7 +236,6 @@ form.addEventListener('submit', async (e) => {
                 queryPreprocessing.classList.remove('hidden');
             }
 
-            // Metricas de performance
             queryInfo.innerHTML = `
                 <span>Embedding: ${data.query_info.embedding_ms}ms</span>
                 <span>Busca: ${data.query_info.search_ms}ms</span>
@@ -204,23 +256,23 @@ form.addEventListener('submit', async (e) => {
         results.innerHTML = data.results.map((item, i) => `
             <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-5 hover:shadow-md transition ${i > 0 ? 'mt-3' : ''}">
                 <div class="flex justify-between items-start mb-2">
-                    <div class="flex gap-2 text-xs text-gray-500 flex-wrap">
-                        <span class="bg-blue-50 text-blue-700 px-2 py-0.5 rounded">${item.classe}</span>
-                        <span class="bg-green-50 text-green-700 px-2 py-0.5 rounded">${item.tipo}</span>
-                        <span>${item.processo}</span>
+                    <div class="flex gap-2 text-xs flex-wrap">
+                        ${item.tipo ? `<span class="px-2 py-0.5 rounded ${item.tipo === 'ACORDAO' || item.tipo === 'ACÓRDÃO' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'}">${item.tipo}</span>` : ''}
+                        ${item.classe ? `<span class="bg-gray-100 text-gray-600 px-2 py-0.5 rounded">${item.classe}</span>` : ''}
+                        <span class="text-gray-700 font-medium">${item.processo}</span>
                     </div>
-                    <span class="text-xs text-gray-400 whitespace-nowrap ml-2">RRF: ${item.scores.rrf.toFixed(4)}</span>
+                    <span class="text-xs font-mono ${item.scores.rrf >= 0.7 ? 'text-green-600' : item.scores.rrf >= 0.4 ? 'text-yellow-600' : 'text-gray-400'} whitespace-nowrap ml-2">${item.scores.rrf.toFixed(4)}</span>
                 </div>
-                <p class="text-sm text-gray-800 leading-relaxed mb-3 whitespace-pre-wrap">${highlightTerms(item.content, query)}</p>
-                <div class="flex justify-between items-center text-xs text-gray-500">
+                <p class="text-sm text-gray-700 leading-relaxed mb-3">${highlightTerms(item.content, query)}</p>
+                <div class="flex justify-between items-center text-xs text-gray-400">
                     <div class="flex gap-3">
-                        <span>Min. ${item.ministro}</span>
-                        <span>${item.orgao_julgador}</span>
-                        <span>${item.data_publicacao}</span>
+                        <span>${item.ministro || ''}</span>
+                        <span>${item.orgao_julgador || ''}</span>
+                        <span>${item.data_publicacao || ''}</span>
                     </div>
-                    <div class="flex gap-2">
-                        <span title="Dense score">D: ${item.scores.dense.toFixed(3)}</span>
-                        <span title="Sparse score">S: ${item.scores.sparse.toFixed(1)}</span>
+                    <div class="flex gap-2 font-mono">
+                        <span>d:${item.scores.dense.toFixed(3)}</span>
+                        <span>s:${item.scores.sparse.toFixed(1)}</span>
                     </div>
                 </div>
             </div>
