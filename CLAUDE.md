@@ -12,7 +12,7 @@ Instrucoes operacionais para Claude Code neste repositorio.
 
 ### 1. Bun OBRIGATORIO para frontend (nunca npm/yarn)
 ```bash
-cd legal-workbench/ccui-app && bun install && bun run dev
+bun install && bun run dev
 ```
 
 ### 2. uv OBRIGATORIO para Python (nunca pip)
@@ -22,10 +22,6 @@ cd legal-workbench/ferramentas/legal-text-extractor && uv sync
 
 ### 3. Testes antes de commit
 ```bash
-# ccui-backend
-cd legal-workbench/ccui-backend && cargo test -- --test-threads=1
-cargo clippy -- -W clippy::pedantic
-
 # ferramentas (pre-commit executa ruff + pytest)
 cd legal-workbench/ferramentas/legal-text-extractor && uv run pytest
 ```
@@ -62,12 +58,9 @@ Adicione entrada quando: usuario corrigir erro seu, erro grosseiro, ou erro repe
 ```
 lex-vector/
 ├── legal-workbench/           # Projeto principal
-│   ├── ccui-app/              # [ATIVO] Desktop Tauri (React 19 + Vite 6 + Tauri 2.3)
-│   ├── ccui-backend/          # [ATIVO] Backend Rust (axum 0.8 + tokio + tmux)
-│   ├── frontend/              # [LEGADO] Next.js 15 (substituido por ccui-app)
 │   ├── ferramentas/           # Python tools
 │   │   └── legal-text-extractor/  # LTE (Marker + Gemini)
-│   ├── docker/                # Docker Compose (redis, lte, ccui-backend)
+│   ├── docker/                # Docker Compose (redis, lte)
 │   └── docs/                  # Documentacao
 ├── stj-vec/                   # Busca vetorial STJ (SQLite metadados + Qdrant busca hibrida)
 ├── .claude/                   # Config Claude Code (agents, hooks, skills)
