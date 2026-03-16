@@ -60,6 +60,10 @@ class DecomposedSearch extends Component
         $runner = app(AgentRunnerInterface::class);
 
         if (! $runner->isComplete($this->searchId)) {
+            if ($runner->isProcessDead($this->searchId)) {
+                $this->status = 'error';
+            }
+
             return;
         }
 

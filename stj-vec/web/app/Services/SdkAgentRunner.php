@@ -82,6 +82,24 @@ class SdkAgentRunner implements AgentRunnerInterface
         return $decoded;
     }
 
+    public function isProcessDead(string $searchId): bool
+    {
+        $metaPath = $this->metaPath($searchId);
+
+        if (! Storage::disk('local')->exists($metaPath)) {
+            return true;
+        }
+
+        $meta = json_decode(Storage::disk('local')->get($metaPath), true);
+        $pid = (int) ($meta['pid'] ?? 0);
+
+        if ($pid <= 0) {
+            return true;
+        }
+
+        return ! posix_kill($pid, 0);
+    }
+
     public function cancel(string $searchId): void
     {
         $metaPath = $this->metaPath($searchId);

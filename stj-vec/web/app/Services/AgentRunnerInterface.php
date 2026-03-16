@@ -22,6 +22,11 @@ interface AgentRunnerInterface
     public function getResult(string $searchId): ?array;
 
     /**
+     * Check if the background process has died without producing a result.
+     */
+    public function isProcessDead(string $searchId): bool;
+
+    /**
      * Cancel a running search by killing its process.
      */
     public function cancel(string $searchId): void;
