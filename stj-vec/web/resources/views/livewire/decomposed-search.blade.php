@@ -1,26 +1,34 @@
 <div>
     {{-- Search Form --}}
     <form wire:submit="startSearch" class="mb-6">
-        <flux:input.group>
-            <flux:input
+        <div class="flex gap-3">
+            <input
                 type="text"
                 wire:model="query"
                 placeholder="Ex: dano moral negativacao indevida banco"
+                class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy-500 focus:border-navy-500 text-gray-800 placeholder-gray-400"
                 @if($status === 'searching') disabled @endif
                 minlength="3"
                 maxlength="500"
                 required
-            />
+            >
             @if($status === 'searching')
-                <flux:button type="button" wire:click="cancelSearch" variant="danger">
+                <button
+                    type="button"
+                    wire:click="cancelSearch"
+                    class="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
+                >
                     Cancelar
-                </flux:button>
+                </button>
             @else
-                <flux:button type="submit" variant="primary">
+                <button
+                    type="submit"
+                    class="px-6 py-3 bg-navy-900 text-white rounded-lg hover:bg-navy-800 transition-colors font-medium"
+                >
                     Decompor e Buscar
-                </flux:button>
+                </button>
             @endif
-        </flux:input.group>
+        </div>
         @error('query')
             <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
         @enderror
@@ -33,7 +41,7 @@
              x-init="interval = setInterval(() => seconds++, 1000)"
              x-on:livewire:navigating.window="clearInterval(interval)"
              class="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
-            <flux:icon.loading class="size-10 mx-auto mb-4 text-navy-600" />
+            <div class="inline-block animate-spin rounded-full h-10 w-10 border-4 border-navy-200 border-t-navy-600 mb-4"></div>
             <p class="text-lg font-medium text-gray-700">Analisando angulos juridicos...</p>
             <p class="text-sm text-gray-500 mt-2">
                 O agente esta decompondo sua query em sub-buscas por angulo.
@@ -48,22 +56,22 @@
     {{-- Timeout State --}}
     @if($status === 'timeout')
         <div class="bg-amber-50 border border-amber-200 rounded-lg p-6">
-            <flux:heading size="sm" class="text-amber-800">Tempo limite excedido</flux:heading>
+            <h3 class="text-lg font-medium text-amber-800">Tempo limite excedido</h3>
             <p class="text-amber-700 mt-1">A busca demorou mais de 10 minutos. Tente com uma query mais especifica ou use a busca direta.</p>
-            <flux:button wire:click="cancelSearch" variant="filled" size="sm" class="mt-3">
+            <button wire:click="cancelSearch" class="mt-3 px-4 py-2 bg-amber-600 text-white rounded hover:bg-amber-700 text-sm">
                 Tentar novamente
-            </flux:button>
+            </button>
         </div>
     @endif
 
     {{-- Error State --}}
     @if($status === 'error')
         <div class="bg-red-50 border border-red-200 rounded-lg p-6">
-            <flux:heading size="sm" class="text-red-800">Erro na busca</flux:heading>
+            <h3 class="text-lg font-medium text-red-800">Erro na busca</h3>
             <p class="text-red-700 mt-1">O agente retornou um resultado invalido. Tente novamente.</p>
-            <flux:button wire:click="cancelSearch" variant="danger" size="sm" class="mt-3">
+            <button wire:click="cancelSearch" class="mt-3 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 text-sm">
                 Tentar novamente
-            </flux:button>
+            </button>
         </div>
     @endif
 
@@ -72,21 +80,20 @@
         {{-- Decomposition chips --}}
         <div class="mb-6 flex flex-wrap gap-2">
             @foreach($decomposition['angles'] ?? [] as $angle)
-                <flux:badge color="indigo" size="sm">
+                <span class="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-navy-100 text-navy-800">
                     {{ $angle['angle'] }}
-                    <flux:badge.close class="pointer-events-none opacity-0 w-0" />
-                    <span class="ml-1 text-xs opacity-70">({{ $angle['results_count'] }})</span>
-                </flux:badge>
+                    <span class="ml-1.5 text-xs text-navy-500">({{ $angle['results_count'] }})</span>
+                </span>
             @endforeach
         </div>
 
         {{-- Summary --}}
-        <p class="mb-4 text-sm text-gray-500">
+        <div class="mb-4 text-sm text-gray-500">
             {{ count($results ?? []) }} resultados em {{ $decomposition['rounds'] ?? '?' }} rounds
             @if($elapsedSeconds > 0)
                 -- {{ floor($elapsedSeconds / 60) }}m{{ $elapsedSeconds % 60 }}s
             @endif
-        </p>
+        </div>
 
         {{-- Grouped results by angle --}}
         @php
@@ -96,10 +103,10 @@
 
         @foreach($grouped as $via => $items)
             <div class="mb-8">
-                <flux:heading size="lg" class="mb-3 border-b border-gray-200 pb-2">
+                <h3 class="text-lg font-semibold text-navy-900 mb-3 border-b border-gray-200 pb-2">
                     {{ $angleMap[$via]['angle'] ?? $via }}
                     <span class="text-sm font-normal text-gray-500 ml-2">({{ count($items) }} resultados)</span>
-                </flux:heading>
+                </h3>
 
                 <div class="space-y-3">
                     @foreach($items as $item)
@@ -107,12 +114,15 @@
                             <div class="flex items-start justify-between mb-2">
                                 <div class="flex items-center gap-2 flex-wrap">
                                     @if(!empty($item['tipo']))
-                                        <flux:badge size="sm" :color="($item['tipo'] === 'ACORDAO' || $item['tipo'] === 'ACÓRDÃO') ? 'blue' : 'amber'">
+                                        <span class="inline-flex px-2 py-0.5 text-xs font-medium rounded
+                                            {{ $item['tipo'] === 'ACORDAO' || $item['tipo'] === 'ACÓRDÃO' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700' }}">
                                             {{ $item['tipo'] }}
-                                        </flux:badge>
+                                        </span>
                                     @endif
                                     @if(!empty($item['classe']))
-                                        <flux:badge size="sm" color="zinc">{{ $item['classe'] }}</flux:badge>
+                                        <span class="inline-flex px-2 py-0.5 text-xs font-medium rounded bg-gray-100 text-gray-600">
+                                            {{ $item['classe'] }}
+                                        </span>
                                     @endif
                                     @if(!empty($item['processo']))
                                         @if(!empty($item['doc_id']))

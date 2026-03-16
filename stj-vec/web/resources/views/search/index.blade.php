@@ -3,63 +3,77 @@
 @section('title', 'Busca - STJ-Vec')
 
 @section('content')
-<div x-data="{ tab: 'direct' }">
+<div>
     {{-- Tabs --}}
-    <div class="flex border-b border-gray-200 mb-6">
+    <div class="flex border-b border-gray-200 mb-6" id="search-tabs">
         <button
-            @click="tab = 'direct'"
-            :class="tab === 'direct' ? 'border-navy-600 text-navy-900' : 'border-transparent text-gray-500 hover:text-gray-700'"
-            class="px-6 py-3 text-sm font-medium border-b-2 transition-colors"
+            onclick="switchTab('direct')"
+            id="tab-direct"
+            class="px-6 py-3 text-sm font-medium border-b-2 transition-colors border-navy-600 text-navy-900"
         >
             Busca Direta
         </button>
         <button
-            @click="tab = 'decomposed'"
-            :class="tab === 'decomposed' ? 'border-navy-600 text-navy-900' : 'border-transparent text-gray-500 hover:text-gray-700'"
-            class="px-6 py-3 text-sm font-medium border-b-2 transition-colors"
+            onclick="switchTab('decomposed')"
+            id="tab-decomposed"
+            class="px-6 py-3 text-sm font-medium border-b-2 transition-colors border-transparent text-gray-500 hover:text-gray-700"
         >
             Busca Decomposta
         </button>
     </div>
 
     {{-- Tab: Busca Direta --}}
-    <div x-show="tab === 'direct'" x-cloak>
+    <div id="panel-direct">
         <div class="flex gap-6">
             {{-- Sidebar de filtros --}}
             <aside class="hidden lg:block w-64 flex-shrink-0">
-                <div class="bg-white rounded-lg border border-gray-200 p-4 sticky top-6 space-y-4">
-                    <flux:heading size="sm">Filtros</flux:heading>
-                    <flux:select id="filter-tipo" placeholder="Tipo" size="sm">
-                        <flux:select.option value="">Todos</flux:select.option>
-                        @foreach($filters['tipos'] ?? [] as $t)
-                            <flux:select.option value="{{ $t }}">{{ $t }}</flux:select.option>
-                        @endforeach
-                    </flux:select>
-                    <flux:select id="filter-classe" placeholder="Classe" size="sm">
-                        <flux:select.option value="">Todas</flux:select.option>
-                        @foreach($filters['classes'] ?? [] as $c)
-                            <flux:select.option value="{{ $c }}">{{ $c }}</flux:select.option>
-                        @endforeach
-                    </flux:select>
-                    <flux:select id="filter-ministro" placeholder="Ministro" size="sm">
-                        <flux:select.option value="">Todos</flux:select.option>
-                        @foreach($filters['ministros'] ?? [] as $m)
-                            <flux:select.option value="{{ $m }}">{{ $m }}</flux:select.option>
-                        @endforeach
-                    </flux:select>
-                    <flux:select id="filter-orgao" placeholder="Orgao Julgador" size="sm">
-                        <flux:select.option value="">Todos</flux:select.option>
-                        @foreach($filters['orgaos_julgadores'] ?? [] as $o)
-                            <flux:select.option value="{{ $o }}">{{ $o }}</flux:select.option>
-                        @endforeach
-                    </flux:select>
-                    <div>
-                        <flux:label size="sm">Data de</flux:label>
-                        <flux:input type="date" id="filter-data-from" size="sm" />
-                    </div>
-                    <div>
-                        <flux:label size="sm">Data ate</flux:label>
-                        <flux:input type="date" id="filter-data-to" size="sm" />
+                <div class="bg-white rounded-lg border border-gray-200 p-4 sticky top-6">
+                    <h3 class="text-sm font-semibold text-gray-700 mb-3">Filtros</h3>
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-xs text-gray-500 mb-1">Tipo</label>
+                            <select id="filter-tipo" class="w-full px-2 py-1.5 border rounded text-sm">
+                                <option value="">Todos</option>
+                                @foreach($filters['tipos'] ?? [] as $t)
+                                    <option value="{{ $t }}">{{ $t }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-500 mb-1">Classe</label>
+                            <select id="filter-classe" class="w-full px-2 py-1.5 border rounded text-sm">
+                                <option value="">Todas</option>
+                                @foreach($filters['classes'] ?? [] as $c)
+                                    <option value="{{ $c }}">{{ $c }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-500 mb-1">Ministro</label>
+                            <select id="filter-ministro" class="w-full px-2 py-1.5 border rounded text-sm">
+                                <option value="">Todos</option>
+                                @foreach($filters['ministros'] ?? [] as $m)
+                                    <option value="{{ $m }}">{{ $m }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-500 mb-1">Orgao Julgador</label>
+                            <select id="filter-orgao" class="w-full px-2 py-1.5 border rounded text-sm">
+                                <option value="">Todos</option>
+                                @foreach($filters['orgaos_julgadores'] ?? [] as $o)
+                                    <option value="{{ $o }}">{{ $o }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-500 mb-1">Data de</label>
+                            <input type="date" id="filter-data-from" class="w-full px-2 py-1.5 border rounded text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-500 mb-1">Data ate</label>
+                            <input type="date" id="filter-data-to" class="w-full px-2 py-1.5 border rounded text-sm">
+                        </div>
                     </div>
                 </div>
             </aside>
@@ -67,19 +81,25 @@
             {{-- Conteudo principal --}}
             <div class="flex-1 min-w-0">
                 <form id="search-form" class="mb-6">
-                    <flux:input.group>
-                        <flux:input
+                    <div class="flex gap-3">
+                        <input
                             type="text"
                             id="query"
                             name="query"
                             placeholder="Ex: dano moral bancario, revisao contratual, responsabilidade civil objetiva..."
+                            class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy-500 focus:border-navy-500 text-gray-800 placeholder-gray-400"
                             required
+                            minlength="3"
                             autofocus
-                        />
-                        <flux:button type="submit" id="btn-search" variant="primary">
+                        >
+                        <button
+                            type="submit"
+                            id="btn-search"
+                            class="px-6 py-3 bg-navy-900 text-white rounded-lg hover:bg-navy-800 transition-colors font-medium"
+                        >
                             Buscar
-                        </flux:button>
-                    </flux:input.group>
+                        </button>
+                    </div>
                 </form>
 
                 <div id="loading" class="hidden mt-8 text-center text-gray-500">
@@ -95,18 +115,35 @@
     </div>
 
     {{-- Tab: Busca Decomposta --}}
-    <div x-show="tab === 'decomposed'" x-cloak>
+    <div id="panel-decomposed" class="hidden">
         <div class="max-w-4xl mx-auto">
-            <p class="mb-4 text-sm text-gray-500">
+            <div class="mb-4 text-sm text-gray-500">
                 O agente decompoe sua query em sub-buscas por angulo juridico,
                 explorando facetas distintas do tema. Resultados agrupados por perspectiva.
-            </p>
+            </div>
             <livewire:decomposed-search />
         </div>
     </div>
 </div>
 
 <script>
+function switchTab(tab) {
+    const tabs = ['direct', 'decomposed'];
+    tabs.forEach(t => {
+        const panel = document.getElementById('panel-' + t);
+        const btn = document.getElementById('tab-' + t);
+        if (t === tab) {
+            panel.classList.remove('hidden');
+            btn.classList.add('border-navy-600', 'text-navy-900');
+            btn.classList.remove('border-transparent', 'text-gray-500');
+        } else {
+            panel.classList.add('hidden');
+            btn.classList.remove('border-navy-600', 'text-navy-900');
+            btn.classList.add('border-transparent', 'text-gray-500');
+        }
+    });
+}
+
 // Busca direta (vanilla JS)
 const form = document.getElementById('search-form');
 const loading = document.getElementById('loading');
@@ -123,12 +160,12 @@ form.addEventListener('submit', async (e) => {
     const payload = { query };
 
     const filters = {};
-    const tipo = document.getElementById('filter-tipo')?.value;
-    const classe = document.getElementById('filter-classe')?.value;
-    const ministro = document.getElementById('filter-ministro')?.value;
-    const orgao = document.getElementById('filter-orgao')?.value;
-    const dataFrom = document.getElementById('filter-data-from')?.value;
-    const dataTo = document.getElementById('filter-data-to')?.value;
+    const tipo = document.getElementById('filter-tipo').value;
+    const classe = document.getElementById('filter-classe').value;
+    const ministro = document.getElementById('filter-ministro').value;
+    const orgao = document.getElementById('filter-orgao').value;
+    const dataFrom = document.getElementById('filter-data-from').value;
+    const dataTo = document.getElementById('filter-data-to').value;
 
     if (tipo) filters.tipo = tipo;
     if (classe) filters.classe = classe;
@@ -231,8 +268,8 @@ form.addEventListener('submit', async (e) => {
             <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-5 hover:shadow-md transition ${i > 0 ? 'mt-3' : ''}">
                 <div class="flex justify-between items-start mb-2">
                     <div class="flex gap-2 text-xs flex-wrap">
-                        ${tipo ? `<span class="px-2 py-0.5 rounded font-medium ${tipoClass}">${tipo}</span>` : ''}
-                        ${classe ? `<span class="bg-gray-100 text-gray-600 px-2 py-0.5 rounded font-medium">${classe}</span>` : ''}
+                        ${tipo ? `<span class="px-2 py-0.5 rounded ${tipoClass}">${tipo}</span>` : ''}
+                        ${classe ? `<span class="bg-gray-100 text-gray-600 px-2 py-0.5 rounded">${classe}</span>` : ''}
                         <a href="${docUrl}" class="text-navy-700 font-medium hover:text-navy-500 hover:underline">${processo}</a>
                     </div>
                     <span class="text-xs font-mono ${item.scores.rrf >= 0.025 ? 'text-green-600' : item.scores.rrf >= 0.015 ? 'text-yellow-600' : 'text-gray-400'} whitespace-nowrap ml-2">#${i + 1} <span class="opacity-60">${item.scores.rrf.toFixed(4)}</span></span>
