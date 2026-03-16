@@ -36,15 +36,19 @@
 
     {{-- Searching State --}}
     @if($status === 'searching')
-        <div wire:poll.3s="checkResult" class="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
+        <div wire:poll.3s="checkResult"
+             x-data="{ seconds: {{ $elapsedSeconds }}, interval: null }"
+             x-init="interval = setInterval(() => seconds++, 1000)"
+             x-on:livewire:navigating.window="clearInterval(interval)"
+             class="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
             <div class="inline-block animate-spin rounded-full h-10 w-10 border-4 border-navy-200 border-t-navy-600 mb-4"></div>
             <p class="text-lg font-medium text-gray-700">Analisando angulos juridicos...</p>
             <p class="text-sm text-gray-500 mt-2">
                 O agente esta decompondo sua query em sub-buscas por angulo.
-                Isso pode levar de 2 a 7 minutos.
+                Isso pode levar de 20 a 60 segundos.
             </p>
-            <p class="text-2xl font-mono text-navy-600 mt-4">
-                {{ floor($elapsedSeconds / 60) }}:{{ str_pad($elapsedSeconds % 60, 2, '0', STR_PAD_LEFT) }}
+            <p class="text-2xl font-mono text-navy-600 mt-4"
+               x-text="Math.floor(seconds / 60) + ':' + String(seconds % 60).padStart(2, '0')">
             </p>
         </div>
     @endif
