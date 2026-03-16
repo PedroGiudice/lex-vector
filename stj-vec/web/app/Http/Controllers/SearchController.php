@@ -41,7 +41,27 @@ class SearchController extends Controller
         return response()->json($response->json());
     }
 
-    public function document(string $docId): \Illuminate\Http\JsonResponse
+    public function document(string $docId): \Illuminate\View\View|\Illuminate\Http\Response
+    {
+        $response = Http::timeout(10)->get("{$this->rustBaseUrl}/api/document/{$docId}");
+
+        if (! $response->successful()) {
+            abort($response->status());
+        }
+
+        $document = $response->json();
+
+        $chunks = collect($document['chunks'] ?? [])
+            ->sortBy('chunk_index')
+            ->values();
+
+        return view('search.document', [
+            'document' => $document,
+            'chunks' => $chunks,
+        ]);
+    }
+
+    public function documentApi(string $docId): \Illuminate\Http\JsonResponse
     {
         $response = Http::timeout(10)->get("{$this->rustBaseUrl}/api/document/{$docId}");
 

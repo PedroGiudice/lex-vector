@@ -121,7 +121,11 @@
                                         </span>
                                     @endif
                                     @if(!empty($item['processo']))
-                                        <span class="text-sm text-gray-700 font-medium">{{ $item['processo'] }}</span>
+                                        @if(!empty($item['doc_id']))
+                                            <a href="{{ route('search.document', $item['doc_id']) }}" class="text-sm text-navy-700 font-medium hover:text-navy-500 hover:underline">{{ $item['processo'] }}</a>
+                                        @else
+                                            <span class="text-sm text-gray-700 font-medium">{{ $item['processo'] }}</span>
+                                        @endif
                                     @endif
                                 </div>
                                 @if(!empty($item['scores']['rrf']))
@@ -148,10 +152,13 @@
                                     <span>{{ $item['data_publicacao'] }}</span>
                                 @endif
                                 @if(!empty($item['scores']['dense']) && !empty($item['scores']['sparse']))
-                                    <span class="ml-auto font-mono">
+                                    <span class="font-mono">
                                         d:{{ number_format($item['scores']['dense'], 2) }}
                                         s:{{ number_format($item['scores']['sparse'], 2) }}
                                     </span>
+                                @endif
+                                @if(!empty($item['doc_id']))
+                                    <a href="{{ route('search.document', $item['doc_id']) }}" class="ml-auto text-navy-500 hover:text-navy-700 hover:underline">Ver inteiro teor</a>
                                 @endif
                             </div>
                         </div>

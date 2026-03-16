@@ -262,13 +262,15 @@ form.addEventListener('submit', async (e) => {
             const dataPub = escapeHtml(item.data_publicacao || '');
             const tipoClass = (item.tipo === 'ACORDAO' || item.tipo === 'ACÓRDÃO') ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700';
 
+            const docUrl = item.doc_id ? `/document/${encodeURIComponent(item.doc_id)}` : '#';
+
             return `
             <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-5 hover:shadow-md transition ${i > 0 ? 'mt-3' : ''}">
                 <div class="flex justify-between items-start mb-2">
                     <div class="flex gap-2 text-xs flex-wrap">
                         ${tipo ? `<span class="px-2 py-0.5 rounded ${tipoClass}">${tipo}</span>` : ''}
                         ${classe ? `<span class="bg-gray-100 text-gray-600 px-2 py-0.5 rounded">${classe}</span>` : ''}
-                        <span class="text-gray-700 font-medium">${processo}</span>
+                        <a href="${docUrl}" class="text-navy-700 font-medium hover:text-navy-500 hover:underline">${processo}</a>
                     </div>
                     <span class="text-xs font-mono ${item.scores.rrf >= 0.7 ? 'text-green-600' : item.scores.rrf >= 0.4 ? 'text-yellow-600' : 'text-gray-400'} whitespace-nowrap ml-2">${item.scores.rrf.toFixed(4)}</span>
                 </div>
@@ -282,6 +284,7 @@ form.addEventListener('submit', async (e) => {
                     <div class="flex gap-2 font-mono">
                         <span>d:${item.scores.dense.toFixed(3)}</span>
                         <span>s:${item.scores.sparse.toFixed(1)}</span>
+                        <a href="${docUrl}" class="text-navy-500 hover:text-navy-700 hover:underline ml-2">Ver inteiro teor</a>
                     </div>
                 </div>
             </div>`;
