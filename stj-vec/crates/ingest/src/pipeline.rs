@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result};
 use indicatif::{ProgressBar, ProgressStyle};
-use tracing::info;
+use tracing::{info, warn};
 
 use stj_vec_core::chunker::chunk_legal_text;
 use stj_vec_core::config::AppConfig;
@@ -176,7 +176,9 @@ impl Pipeline {
     }
 }
 
+
 /// Converte epoch milliseconds para "YYYY-MM-DD".
+#[cfg(test)]
 fn epoch_ms_to_date(ms: i64) -> String {
     let secs = ms / 1000;
     let dt = chrono::DateTime::from_timestamp(secs, 0).unwrap_or_default();
@@ -188,10 +190,22 @@ fn load_metadata(
     metadata_dir: &Path,
     source_name: &str,
 ) -> Result<HashMap<i64, StjMetadata>> {
-    let path = metadata_dir.join(format!("metadados{source_name}.json"));
-    if !path.exists() {
+    let path_with_ext = metadata_dir.join(format!("metadados{source_name}.json"));
+    let path_without_ext = metadata_dir.join(format!("metadados{source_name}"));
+
+    let path = if path_with_ext.exists() {
+        path_with_ext
+    } else if path_without_ext.exists() {
+        path_without_ext
+    } else {
+        warn!(
+            source = source_name,
+            dir = %metadata_dir.display(),
+            "arquivo de metadados nao encontrado (tentou .json e sem extensao)"
+        );
         return Ok(HashMap::new());
-    }
+    };
+
     let content = std::fs::read_to_string(&path)
         .with_context(|| format!("falha ao ler metadata {}", path.display()))?;
     let items: Vec<StjMetadata> = serde_json::from_str(&content)

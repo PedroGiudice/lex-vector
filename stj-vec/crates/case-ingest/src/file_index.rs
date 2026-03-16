@@ -5,6 +5,7 @@ use rusqlite::Connection;
 
 /// Record representing a tracked file in the index.
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct FileRecord {
     pub path: String,
     pub mtime: i64,
@@ -19,6 +20,7 @@ pub struct FileIndex<'a> {
     conn: &'a Connection,
 }
 
+#[allow(dead_code)]
 impl<'a> FileIndex<'a> {
     /// Creates a new `FileIndex`, initializing the table if it does not exist.
     ///

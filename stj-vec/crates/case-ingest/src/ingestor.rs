@@ -165,6 +165,7 @@ impl Ingestor {
     /// # Errors
     ///
     /// Retorna erro se falhar ao ler arquivos, chunkar, embedar ou persistir.
+    #[allow(dead_code)]
     pub async fn init(&self, embedder: &dyn Embedder) -> Result<(usize, usize)> {
         self.init_with_strategy(embedder, false, false).await
     }
