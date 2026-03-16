@@ -24,6 +24,7 @@ class SdkAgentRunner implements AgentRunnerInterface
         Storage::disk('local')->makeDirectory('searches');
 
         $resultAbsPath = Storage::disk('local')->path("searches/{$searchId}.result.json");
+        $stderrPath = Storage::disk('local')->path("searches/{$searchId}.stderr.log");
         $pidFile = Storage::disk('local')->path("searches/{$searchId}.pid");
 
         $command = implode(' ', [
@@ -34,9 +35,10 @@ class SdkAgentRunner implements AgentRunnerInterface
         ]);
 
         $wrapper = sprintf(
-            '(%s > %s 2>/dev/null) & echo $! > %s',
+            '(%s > %s 2> %s) & echo $! > %s',
             $command,
             escapeshellarg($resultAbsPath),
+            escapeshellarg($stderrPath),
             escapeshellarg($pidFile)
         );
 
@@ -69,6 +71,11 @@ class SdkAgentRunner implements AgentRunnerInterface
         }
 
         $content = Storage::disk('local')->get($resultPath);
+
+        if (empty(trim($content))) {
+            return null;
+        }
+
         $decoded = json_decode($content, true);
 
         if (json_last_error() !== JSON_ERROR_NONE) {

@@ -27,6 +27,7 @@ class AgentRunner implements AgentRunnerInterface
         Storage::disk('local')->makeDirectory('searches');
 
         $resultAbsPath = Storage::disk('local')->path("searches/{$searchId}.result.json");
+        $stderrPath = Storage::disk('local')->path("searches/{$searchId}.stderr.log");
         $pidFile = Storage::disk('local')->path("searches/{$searchId}.pid");
 
         $command = implode(' ', [
@@ -40,9 +41,10 @@ class AgentRunner implements AgentRunnerInterface
         ]);
 
         $wrapper = sprintf(
-            '(%s > %s 2>/dev/null) & echo $! > %s',
+            '(%s > %s 2> %s) & echo $! > %s',
             $command,
             escapeshellarg($resultAbsPath),
+            escapeshellarg($stderrPath),
             escapeshellarg($pidFile)
         );
 
@@ -64,6 +66,10 @@ class AgentRunner implements AgentRunnerInterface
     }
 
     /**
+     * Parse result file. The CLI --output-format json wraps agent output
+     * in an envelope: {type, result: "...", ...}. The actual decomposition
+     * JSON is inside the `result` string and needs a second parse.
+     *
      * @return array<string, mixed>|null
      */
     public function getResult(string $searchId): ?array
@@ -75,17 +81,31 @@ class AgentRunner implements AgentRunnerInterface
         }
 
         $content = Storage::disk('local')->get($resultPath);
+
+        if (empty(trim($content))) {
+            return null;
+        }
+
         $decoded = json_decode($content, true);
 
         if (json_last_error() !== JSON_ERROR_NONE) {
             return null;
         }
 
-        if (! isset($decoded['results'])) {
-            return null;
+        // Direct format (has 'results' key at top level)
+        if (isset($decoded['results'])) {
+            return $decoded;
         }
 
-        return $decoded;
+        // CLI envelope format: {type, result: "<json-string>", ...}
+        if (isset($decoded['result']) && is_string($decoded['result'])) {
+            $inner = json_decode($decoded['result'], true);
+            if (json_last_error() === JSON_ERROR_NONE && isset($inner['results'])) {
+                return $inner;
+            }
+        }
+
+        return null;
     }
 
     public function isProcessDead(string $searchId): bool
