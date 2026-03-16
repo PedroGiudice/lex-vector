@@ -26,8 +26,8 @@ class AgentRunner implements AgentRunnerInterface
 
         Storage::disk('local')->makeDirectory('searches');
 
-        $resultAbsPath = storage_path("app/searches/{$searchId}.result.json");
-        $pidFile = storage_path("app/searches/{$searchId}.pid");
+        $resultAbsPath = Storage::disk('local')->path("searches/{$searchId}.result.json");
+        $pidFile = Storage::disk('local')->path("searches/{$searchId}.pid");
 
         $command = implode(' ', [
             escapeshellarg($this->claudeBin),
