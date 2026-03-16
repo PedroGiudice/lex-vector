@@ -17,6 +17,7 @@ class DecomposedSearchTest extends TestCase
         $mock->shouldReceive('isComplete')->andReturn($complete);
         $mock->shouldReceive('getResult')->andReturn($result);
         $mock->shouldReceive('cancel')->andReturnNull();
+        $mock->shouldReceive('isProcessDead')->andReturn(false);
 
         $this->app->instance(AgentRunnerInterface::class, $mock);
     }
