@@ -7,6 +7,9 @@ pub struct AppConfig {
     pub chunking: ChunkingConfig,
     pub embedding: EmbeddingConfig,
     pub server: ServerConfig,
+    /// Configuracao CKAN (opcional -- necessaria apenas para download/enrich)
+    #[serde(default)]
+    pub ckan: Option<CkanConfig>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -14,6 +17,62 @@ pub struct DataConfig {
     pub integras_dir: String,
     pub metadata_dir: String,
     pub db_path: String,
+    /// Diretorio dos JSONs de espelhos de acordaos (por orgao julgador)
+    #[serde(default)]
+    pub espelhos_dir: Option<String>,
+}
+
+/// Configuracao do portal CKAN do STJ (dados abertos)
+#[derive(Debug, Clone, Deserialize)]
+pub struct CkanConfig {
+    /// URL base da API CKAN
+    #[serde(default = "CkanConfig::default_base_url")]
+    pub base_url: String,
+    /// Dataset ID das integras
+    #[serde(default = "CkanConfig::default_integras_dataset")]
+    pub integras_dataset: String,
+    /// Lista de dataset IDs dos espelhos (um por orgao julgador)
+    #[serde(default = "CkanConfig::default_espelhos_datasets")]
+    pub espelhos_datasets: Vec<String>,
+    /// Timeout em segundos para downloads
+    #[serde(default = "CkanConfig::default_timeout")]
+    pub download_timeout_secs: u64,
+    /// Maximo de downloads simultaneos
+    #[serde(default = "CkanConfig::default_max_concurrent")]
+    pub max_concurrent_downloads: usize,
+}
+
+impl CkanConfig {
+    fn default_base_url() -> String {
+        "https://dadosabertos.web.stj.jus.br".into()
+    }
+
+    fn default_integras_dataset() -> String {
+        "integras-de-decisoes-terminativas-e-acordaos-do-diario-da-justica".into()
+    }
+
+    fn default_espelhos_datasets() -> Vec<String> {
+        vec![
+            "espelhos-de-acordaos-corte-especial".into(),
+            "espelhos-de-acordaos-primeira-secao".into(),
+            "espelhos-de-acordaos-segunda-secao".into(),
+            "espelhos-de-acordaos-terceira-secao".into(),
+            "espelhos-de-acordaos-primeira-turma".into(),
+            "espelhos-de-acordaos-segunda-turma".into(),
+            "espelhos-de-acordaos-terceira-turma".into(),
+            "espelhos-de-acordaos-quarta-turma".into(),
+            "espelhos-de-acordaos-quinta-turma".into(),
+            "espelhos-de-acordaos-sexta-turma".into(),
+        ]
+    }
+
+    fn default_timeout() -> u64 {
+        300
+    }
+
+    fn default_max_concurrent() -> usize {
+        2
+    }
 }
 
 #[derive(Debug, Clone, Deserialize)]

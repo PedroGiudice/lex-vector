@@ -38,8 +38,7 @@ impl Pipeline {
         let all = scan_integras_dir(&self.integras_dir)?;
         let new = find_new_sources(&all, &self.storage)?;
         for s in &new {
-            self.storage
-                .set_ingest_status(&s.name, "pending", 0, 0)?;
+            self.storage.set_ingest_status(&s.name, "pending", 0, 0)?;
         }
         info!(total = all.len(), new = new.len(), "scan complete");
         Ok(all)
@@ -94,8 +93,7 @@ impl Pipeline {
                 let content = std::fs::read_to_string(&file_path)
                     .with_context(|| format!("falha ao ler {}", file_path.display()))?;
 
-                let chunk_output =
-                    chunk_legal_text(&content, &stem, &self.config.chunking);
+                let chunk_output = chunk_legal_text(&content, &stem, &self.config.chunking);
 
                 // Buscar metadata pelo seqDocumento (nome do arquivo sem .txt)
                 let seq: Option<i64> = stem.parse().ok();
@@ -107,11 +105,9 @@ impl Pipeline {
                         .and_then(|m| m.processo.as_deref())
                         .map(|s| s.trim().to_string()),
                     classe: None,
-                    ministro: meta
-                        .and_then(|m| m.ministro.clone()),
+                    ministro: meta.and_then(|m| m.ministro.clone()),
                     orgao_julgador: None,
-                    data_publicacao: meta
-                        .and_then(|m| m.data_publicacao.clone()),
+                    data_publicacao: meta.and_then(|m| m.data_publicacao.clone()),
                     data_julgamento: None,
                     assuntos: meta.and_then(|m| m.assuntos.clone()),
                     teor: meta.and_then(|m| m.teor.clone()),
@@ -176,7 +172,6 @@ impl Pipeline {
     }
 }
 
-
 /// Converte epoch milliseconds para "YYYY-MM-DD".
 #[cfg(test)]
 fn epoch_ms_to_date(ms: i64) -> String {
@@ -186,10 +181,7 @@ fn epoch_ms_to_date(ms: i64) -> String {
 }
 
 /// Carrega metadata JSON de um source.
-fn load_metadata(
-    metadata_dir: &Path,
-    source_name: &str,
-) -> Result<HashMap<i64, StjMetadata>> {
+fn load_metadata(metadata_dir: &Path, source_name: &str) -> Result<HashMap<i64, StjMetadata>> {
     let path_with_ext = metadata_dir.join(format!("metadados{source_name}.json"));
     let path_without_ext = metadata_dir.join(format!("metadados{source_name}"));
 
@@ -247,18 +239,16 @@ mod tests {
             {"seqDocumento": 1, "processo": "REsp 123  ", "ministro": "NANCY", "tipoDocumento": "ACORDAO"},
             {"seqDocumento": 2, "processo": "AREsp 456", "ministro": "SALOMAO", "tipoDocumento": "DECISAO"}
         ]);
-        fs::write(
-            metadata.join("metadados202203.json"),
-            meta_json.to_string(),
-        )
-        .unwrap();
+        fs::write(metadata.join("metadados202203.json"), meta_json.to_string()).unwrap();
 
         let config = AppConfig {
             data: stj_vec_core::config::DataConfig {
                 integras_dir: integras.to_str().unwrap().into(),
                 metadata_dir: metadata.to_str().unwrap().into(),
                 db_path: dir.path().join("test.db").to_str().unwrap().into(),
+                espelhos_dir: None,
             },
+            ckan: None,
             chunking: stj_vec_core::config::ChunkingConfig {
                 max_tokens: 512,
                 overlap_tokens: 64,

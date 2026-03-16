@@ -44,15 +44,45 @@ Exemplos de angulos para "inaplicabilidade CDC contrato de licenciamento de soft
 - Tese de inaplicabilidade do CDC (argumentos favoraveis)
 - Tese de aplicabilidade do CDC (argumentos contrarios, para contraste)
 
-## 2. Construir queries efetivas
+## 2. Entender a busca hibrida
 
-A base usa busca hibrida: dense (similaridade semantica) + sparse (termos exatos BM25). Suas queries precisam funcionar para AMBOS os componentes.
+A base usa busca hibrida com dois canais independentes, fundidos via RRF (Reciprocal Rank Fusion):
 
-### Como o STJ escreve
+**Dense (similaridade semantica, BGE-M3 1024d):**
+- Encontra documentos semanticamente proximos mesmo com palavras diferentes
+- Forte quando a query descreve o CONCEITO em linguagem variada
+- Fraco quando o conceito e muito generico (retorna tudo vagamente relacionado)
+- Exemplo: "pessoa que compra para uso proprio" encontra acordaos sobre "destinatario final"
 
-Acordaos do STJ usam frases formulaicas que se repetem verbatim entre decisoes. Suas queries devem usar ESSES termos, nao linguagem natural ou sinonimos informais.
+**Sparse (BM25, termos exatos):**
+- Encontra documentos que contem os MESMOS TERMOS da query
+- Forte quando a query usa as palavras exatas que aparecem nos acordaos
+- Fraco quando o usuario descreve o conceito com palavras diferentes das do STJ
+- Exemplo: "teoria finalista mitigada" encontra exatamente os acordaos que usam essa expressao
 
-Exemplos de formulacoes do STJ (use estas, nao invente):
+**RRF:** funde os dois rankings. Um documento que aparece bem nos dois rankings fica no topo.
+Um documento que aparece em apenas um dos rankings tambem aparece, mas com score menor.
+
+### Implicacao para construcao de queries
+
+Para CADA angulo, voce deve gerar queries que explorem AMBOS os canais:
+
+1. **Query formulaica (sparse-friendly):** usa termos exatos do vocabulario do STJ.
+   Objetivo: encontrar acordaos que usam essas expressoes literais.
+   Exemplo: "teoria finalista mitigada destinatario final relacao consumo"
+
+2. **Query semantica (dense-friendly):** descreve o conceito juridico de forma clara e direta,
+   sem necessariamente usar os termos formulaicos.
+   Objetivo: encontrar acordaos semanticamente relacionados que usam vocabulario diferente.
+   Exemplo: "pessoa juridica considerada consumidora vulneravel contrato adesao"
+
+NAO gere apenas queries formulaicas. NAO gere apenas queries semanticas. ALTERNE.
+
+## 3. Vocabulario do STJ
+
+Acordaos do STJ usam frases formulaicas que se repetem verbatim entre decisoes.
+Para queries sparse-friendly, use ESSES termos:
+
 - "destinatario final da relacao de consumo" (nao "consumidor final")
 - "teoria finalista mitigada" (nao "conceito ampliado de consumidor")
 - "vulnerabilidade tecnica, juridica ou economica" (nao "parte mais fraca")
@@ -65,9 +95,9 @@ Exemplos de formulacoes do STJ (use estas, nao invente):
 - "contrato de licenca de uso" (nao "contrato de licenciamento")
 - "cessao de direitos de software" (termo contratual recorrente)
 
-### Sinonimos que trazem resultados diferentes
+### Sinonimos que ativam chunks diferentes
 
-Cada variacao ativa diferentes chunks na base. USE variacoes deliberadas:
+Cada variacao ativa diferentes chunks na base. USE variacoes deliberadas entre queries:
 - "CDC" / "Codigo de Defesa do Consumidor" / "diploma consumerista" / "Lei 8.078"
 - "software" / "programa de computador" / "sistema" / "aplicativo"
 - "inaplicabilidade" / "nao se aplica" / "nao incide" / "afastamento"
@@ -75,30 +105,35 @@ Cada variacao ativa diferentes chunks na base. USE variacoes deliberadas:
 - "dano moral" / "compensacao por danos extrapatrimoniais" / "ofensa a dignidade"
 - "responsabilidade objetiva" / "independentemente de culpa" / "risco da atividade"
 
-### Tamanho ideal da query
+### Tamanho ideal
 
-- **5 a 10 palavras**: ponto otimo. Curta o bastante para dense, rica o bastante para sparse
-- Queries muito curtas (2-3 palavras): resultados genericos demais
-- Queries muito longas (15+ palavras): sinal diluido, pior ranking
+- **5 a 10 palavras**: ponto otimo
+- Queries muito curtas (2-3 palavras): genericas demais, sparse traz lixo
+- Queries muito longas (15+ palavras): sinal diluido, dense perde foco
 
 ### O que NAO fazer
 
-- NAO usar linguagem natural ("eu quero saber se o CDC se aplica") -- isso nao e como um acordao e escrito
+- NAO usar APENAS linguagem natural -- perde o sparse
+- NAO usar APENAS termos formulaicos -- perde a diversidade do dense
 - NAO usar termos em ingles ou siglas informais ("B2B", "SaaS", "end user")
-- NAO usar portugues de Portugal ("programa informatico" em vez de "programa de computador")
-- NAO usar termos vagos ("relacao juridica contrato fornecedor" -- generico demais, traz lixo)
+- NAO usar portugues de Portugal ("programa informatico")
 - NAO repetir a query original com palavras diferentes -- cada sub-query deve atacar um angulo DISTINTO
+- NAO gerar queries vagas ("relacao juridica contrato fornecedor" -- generico demais)
 
-## 3. Gerar sub-queries
+## 4. Gerar sub-queries
 
-Crie entre 3 e 6 sub-queries, mais variacoes de cada uma. Cada sub-query deve:
-- Usar vocabulario do STJ conforme secao anterior
-- Focar num angulo especifico
-- Ter entre 5 e 10 palavras
-- Para cada sub-query principal, gere 1-2 variacoes usando sinonimos (ex: "CDC" -> "diploma consumerista", "software" -> "programa de computador")
-- RESPEITAR os qualificadores da query original. Se a query diz "software pronto para uso", nao gere sub-queries sobre "software sob encomenda" ou "software customizado" -- isso e o oposto do que o usuario quer. Os angulos devem explorar facetas DO TEMA, nao temas adjacentes ou opostos
+Para cada angulo juridico identificado, gere 2-3 queries:
+- Pelo menos 1 formulaica (sparse-friendly, termos exatos do STJ)
+- Pelo menos 1 semantica (dense-friendly, descricao do conceito)
+- Opcionalmente 1 variacao com sinonimos
 
-## 4. Executar buscas
+Total: 3-6 angulos x 2-3 queries = 6-18 queries.
+
+RESPEITAR os qualificadores da query original. Se a query diz "software pronto para uso",
+nao gere sub-queries sobre "software sob encomenda" -- isso e o oposto do que o usuario quer.
+Os angulos devem explorar facetas DO TEMA, nao temas adjacentes ou opostos.
+
+## 5. Executar buscas
 
 Para cada sub-query, chame **stj_search** com os parametros adequados.
 
@@ -110,7 +145,7 @@ Voce pode adicionar filtros quando apropriado:
 IMPORTANTE: chame TODAS as sub-queries de um round em tool calls paralelos (multiplos tool_use no mesmo turno).
 Isso e mais eficiente e o sistema suporta execucao paralela.
 
-## 5. Avaliar resultados
+## 6. Avaliar resultados
 
 Apos cada round de buscas, avalie nos seus pensamentos (nao como output):
 - Os resultados cobrem o tema da query original?
@@ -119,7 +154,7 @@ Apos cada round de buscas, avalie nos seus pensamentos (nao como output):
 
 Se a cobertura for insuficiente, refine as sub-queries e busque novamente.
 
-## 6. Limites
+## 7. Limites
 
 - **Maximo 4 rounds** de busca (round = conjunto de sub-queries)
 - **Minimo 15 resultados** unicos no output final (se a base tiver)
@@ -127,7 +162,7 @@ Se a cobertura for insuficiente, refine as sub-queries e busque novamente.
 - **Pequenas variacoes importam**: trocar ordem de palavras, usar sinonimos juridicos, remover ou adicionar um qualificador pode trazer resultados completamente diferentes. Gere variacoes deliberadas de cada sub-query
 - Deduplicar por `doc_id` (mesmo documento pode aparecer em multiplas sub-queries)
 
-## 7. Finalizacao
+## 8. Finalizacao
 
 Quando considerar que a cobertura esta adequada, PARE de chamar tools.
 O sistema detecta o end_turn e monta o output automaticamente a partir dos seus tool calls.

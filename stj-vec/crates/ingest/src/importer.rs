@@ -58,10 +58,7 @@ pub fn import_embeddings_from_modal(
         }
 
         // Inserir em batch
-        let pairs: Vec<(String, Vec<f32>)> = chunk_ids
-            .into_iter()
-            .zip(embeddings)
-            .collect();
+        let pairs: Vec<(String, Vec<f32>)> = chunk_ids.into_iter().zip(embeddings).collect();
 
         let count = pairs.len();
         storage.insert_embeddings_batch(&pairs)?;
@@ -87,8 +84,8 @@ pub fn import_embeddings_from_modal(
 /// Le array de embeddings de um arquivo .npz (numpy compressed).
 /// Espera key "embeddings" com shape (N, dim) e dtype float32.
 fn read_npz_embeddings(path: &Path) -> Result<Vec<Vec<f32>>> {
-    let file = std::fs::File::open(path)
-        .with_context(|| format!("falha ao abrir {}", path.display()))?;
+    let file =
+        std::fs::File::open(path).with_context(|| format!("falha ao abrir {}", path.display()))?;
 
     let mut archive = zip::ZipArchive::new(file)
         .with_context(|| format!("falha ao ler npz {}", path.display()))?;

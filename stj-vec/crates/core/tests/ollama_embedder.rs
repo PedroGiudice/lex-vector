@@ -18,7 +18,10 @@ async fn test_ollama_embedder_embed() {
     let result = embedder.embed("direito constitucional brasileiro").await;
     let vec = result.expect("embed deve retornar Ok");
     assert_eq!(vec.len(), DIM);
-    assert!(vec.iter().any(|&v| v != 0.0), "embedding nao deve ser todo zero");
+    assert!(
+        vec.iter().any(|&v| v != 0.0),
+        "embedding nao deve ser todo zero"
+    );
 }
 
 #[tokio::test]

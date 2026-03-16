@@ -81,8 +81,8 @@ impl TeiEmbedder {
     /// Cria embedder TEI com defaults: localhost:8080, 1024d, 120s timeout, batch 32.
     #[must_use]
     pub fn default_local() -> Self {
-        let url = std::env::var("TEI_URL")
-            .unwrap_or_else(|_| "http://127.0.0.1:8080/embed".to_string());
+        let url =
+            std::env::var("TEI_URL").unwrap_or_else(|_| "http://127.0.0.1:8080/embed".to_string());
         let batch_size: usize = std::env::var("TEI_BATCH_SIZE")
             .ok()
             .and_then(|v| v.parse().ok())

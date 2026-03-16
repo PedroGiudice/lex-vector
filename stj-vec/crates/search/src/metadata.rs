@@ -58,7 +58,9 @@ impl MetadataStore {
             return Ok(HashMap::new());
         }
 
-        let _permit = self.semaphore.try_acquire()
+        let _permit = self
+            .semaphore
+            .try_acquire()
             .map_err(|_| anyhow::anyhow!("pool de conexoes SQLite esgotado"))?;
 
         let conn = open_readonly(&self.path)?;
@@ -107,7 +109,9 @@ impl MetadataStore {
 
     /// Busca todos os chunks de um documento pelo doc_id.
     pub fn get_document_chunks(&self, doc_id: &str) -> anyhow::Result<DocumentResponse> {
-        let _permit = self.semaphore.try_acquire()
+        let _permit = self
+            .semaphore
+            .try_acquire()
             .map_err(|_| anyhow::anyhow!("pool de conexoes SQLite esgotado"))?;
 
         let conn = open_readonly(&self.path)?;
@@ -159,14 +163,25 @@ impl MetadataStore {
 
     /// Retorna valores unicos para os filtros (ministros, classes, tipos, orgaos).
     pub fn get_filter_values(&self) -> anyhow::Result<FiltersResponse> {
-        let _permit = self.semaphore.try_acquire()
+        let _permit = self
+            .semaphore
+            .try_acquire()
             .map_err(|_| anyhow::anyhow!("pool de conexoes SQLite esgotado"))?;
 
         let conn = open_readonly(&self.path)?;
 
-        let ministros = query_distinct(&conn, "SELECT DISTINCT ministro FROM documents WHERE ministro IS NOT NULL ORDER BY ministro")?;
-        let classes = query_distinct(&conn, "SELECT DISTINCT classe FROM documents WHERE classe IS NOT NULL ORDER BY classe")?;
-        let tipos = query_distinct(&conn, "SELECT DISTINCT tipo FROM documents WHERE tipo IS NOT NULL ORDER BY tipo")?;
+        let ministros = query_distinct(
+            &conn,
+            "SELECT DISTINCT ministro FROM documents WHERE ministro IS NOT NULL ORDER BY ministro",
+        )?;
+        let classes = query_distinct(
+            &conn,
+            "SELECT DISTINCT classe FROM documents WHERE classe IS NOT NULL ORDER BY classe",
+        )?;
+        let tipos = query_distinct(
+            &conn,
+            "SELECT DISTINCT tipo FROM documents WHERE tipo IS NOT NULL ORDER BY tipo",
+        )?;
         let orgaos = query_distinct(&conn, "SELECT DISTINCT orgao_julgador FROM documents WHERE orgao_julgador IS NOT NULL ORDER BY orgao_julgador")?;
 
         Ok(FiltersResponse {
@@ -189,7 +204,9 @@ impl MetadataStore {
             return Ok(chunk_ids.to_vec());
         }
 
-        let _permit = self.semaphore.try_acquire()
+        let _permit = self
+            .semaphore
+            .try_acquire()
             .map_err(|_| anyhow::anyhow!("pool de conexoes SQLite esgotado"))?;
 
         let conn = open_readonly(&self.path)?;
@@ -249,7 +266,9 @@ impl MetadataStore {
 
     /// Conta total de documentos no banco.
     pub fn document_count(&self) -> anyhow::Result<u64> {
-        let _permit = self.semaphore.try_acquire()
+        let _permit = self
+            .semaphore
+            .try_acquire()
             .map_err(|_| anyhow::anyhow!("pool de conexoes SQLite esgotado"))?;
 
         let conn = open_readonly(&self.path)?;
@@ -310,8 +329,7 @@ mod tests {
     #[test]
     #[ignore]
     fn test_get_filter_values() {
-        let store = MetadataStore::open("db/stj-vec.db", 2)
-            .expect("falha ao abrir banco");
+        let store = MetadataStore::open("db/stj-vec.db", 2).expect("falha ao abrir banco");
         let filters = store.get_filter_values().expect("falha ao buscar filtros");
         assert!(!filters.ministros.is_empty(), "ministros vazio");
         assert!(!filters.tipos.is_empty(), "tipos vazio");

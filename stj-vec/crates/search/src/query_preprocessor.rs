@@ -62,8 +62,12 @@ pub struct ExpansionDictionary {
 
 impl ExpansionDictionary {
     pub fn load(path: &Path) -> anyhow::Result<Self> {
-        let content = std::fs::read_to_string(path)
-            .map_err(|e| anyhow::anyhow!("falha ao ler dicionario de expansao {}: {e}", path.display()))?;
+        let content = std::fs::read_to_string(path).map_err(|e| {
+            anyhow::anyhow!(
+                "falha ao ler dicionario de expansao {}: {e}",
+                path.display()
+            )
+        })?;
         let dict: Self = serde_json::from_str(&content)
             .map_err(|e| anyhow::anyhow!("JSON invalido no dicionario de expansao: {e}"))?;
         Ok(dict)
@@ -72,20 +76,26 @@ impl ExpansionDictionary {
 
 /// Siglas de classes processuais do STJ.
 const CLASSES: &[&str] = &[
-    "REsp", "AREsp", "HC", "RHC", "MS", "RMS", "Rcl", "CC", "AgInt",
-    "EDcl", "EAREsp", "EREsp", "APn", "AR", "Pet", "RO", "Inq", "MC", "PUIL",
-    "AgRg",
+    "REsp", "AREsp", "HC", "RHC", "MS", "RMS", "Rcl", "CC", "AgInt", "EDcl", "EAREsp", "EREsp",
+    "APn", "AR", "Pet", "RO", "Inq", "MC", "PUIL", "AgRg",
 ];
 
 /// Stopwords juridicas que nao agregam valor semantico ao embedding.
 const STOPWORDS: &[&str] = &[
-    "jurisprudencia", "jurisprudência",
-    "entendimento", "posicionamento",
-    "acordao", "acórdão",
-    "decisao", "decisão",
-    "julgado", "julgados",
-    "precedente", "precedentes",
-    "tribunal", "corte",
+    "jurisprudencia",
+    "jurisprudência",
+    "entendimento",
+    "posicionamento",
+    "acordao",
+    "acórdão",
+    "decisao",
+    "decisão",
+    "julgado",
+    "julgados",
+    "precedente",
+    "precedentes",
+    "tribunal",
+    "corte",
 ];
 
 /// Executa o pipeline completo de preprocessing na query.
@@ -335,11 +345,7 @@ fn remove_stopwords(text: &str) -> String {
 }
 
 /// Expande termos da query usando o dicionario. Retorna lista de termos expandidos.
-fn expand_query(
-    text: &str,
-    dict: &ExpansionDictionary,
-    max_tokens: usize,
-) -> Vec<String> {
+fn expand_query(text: &str, dict: &ExpansionDictionary, max_tokens: usize) -> Vec<String> {
     let text_lower = text.to_lowercase();
     let mut expanded = Vec::new();
     let base_token_count = text.split_whitespace().count();
@@ -402,16 +408,16 @@ fn remove_accents(s: &str) -> String {
         .map(|c| match c {
             '\u{00E1}' | '\u{00E0}' | '\u{00E2}' | '\u{00E3}' => 'A', // a com acentos -> A
             '\u{00C1}' | '\u{00C0}' | '\u{00C2}' | '\u{00C3}' => 'A', // A com acentos
-            '\u{00E9}' | '\u{00E8}' | '\u{00EA}' => 'E',               // e com acentos -> E
-            '\u{00C9}' | '\u{00C8}' | '\u{00CA}' => 'E',               // E com acentos
-            '\u{00ED}' | '\u{00EC}' | '\u{00EE}' => 'I',               // i com acentos -> I
-            '\u{00CD}' | '\u{00CC}' | '\u{00CE}' => 'I',               // I com acentos
+            '\u{00E9}' | '\u{00E8}' | '\u{00EA}' => 'E',              // e com acentos -> E
+            '\u{00C9}' | '\u{00C8}' | '\u{00CA}' => 'E',              // E com acentos
+            '\u{00ED}' | '\u{00EC}' | '\u{00EE}' => 'I',              // i com acentos -> I
+            '\u{00CD}' | '\u{00CC}' | '\u{00CE}' => 'I',              // I com acentos
             '\u{00F3}' | '\u{00F2}' | '\u{00F4}' | '\u{00F5}' => 'O', // o com acentos -> O
             '\u{00D3}' | '\u{00D2}' | '\u{00D4}' | '\u{00D5}' => 'O', // O com acentos
-            '\u{00FA}' | '\u{00F9}' | '\u{00FB}' => 'U',               // u com acentos -> U
-            '\u{00DA}' | '\u{00D9}' | '\u{00DB}' => 'U',               // U com acentos
-            '\u{00E7}' => 'C',                                          // c cedilha
-            '\u{00C7}' => 'C',                                          // C cedilha
+            '\u{00FA}' | '\u{00F9}' | '\u{00FB}' => 'U',              // u com acentos -> U
+            '\u{00DA}' | '\u{00D9}' | '\u{00DB}' => 'U',              // U com acentos
+            '\u{00E7}' => 'C',                                        // c cedilha
+            '\u{00C7}' => 'C',                                        // C cedilha
             other => other,
         })
         .collect()
@@ -566,7 +572,10 @@ mod tests {
     fn test_expansion_cdc() {
         let config = config_with_dict();
         let result = preprocess("CDC dano moral", &config, &[]);
-        assert!(result.expanded_terms.iter().any(|t| t.contains("Consumidor")));
+        assert!(result
+            .expanded_terms
+            .iter()
+            .any(|t| t.contains("Consumidor")));
     }
 
     #[test]
@@ -581,12 +590,10 @@ mod tests {
             .as_deref()
             .is_some_and(|p| p.contains("12345")));
         // CC foi removido pela extracao de processo, nao deve expandir
-        assert!(
-            !result
-                .expanded_terms
-                .iter()
-                .any(|t| t.contains("Codigo Civil"))
-        );
+        assert!(!result
+            .expanded_terms
+            .iter()
+            .any(|t| t.contains("Codigo Civil")));
     }
 
     #[test]
@@ -655,7 +662,7 @@ mod tests {
         assert_eq!(remove_accents("Rogerio"), "Rogerio");
         assert_eq!(remove_accents("Salomão"), "SalomAo"); // ã -> A, o sem acento fica
         assert_eq!(remove_accents("Rogério"), "RogErio"); // é -> E
-        // Usado junto com to_uppercase em extract_ministro
+                                                          // Usado junto com to_uppercase em extract_ministro
         assert_eq!(remove_accents(&"Salomão".to_uppercase()), "SALOMAO");
     }
 
@@ -682,7 +689,11 @@ mod tests {
     #[test]
     fn test_multiple_stopwords() {
         let config = default_config();
-        let result = preprocess("jurisprudencia sobre precedente de dano moral", &config, &[]);
+        let result = preprocess(
+            "jurisprudencia sobre precedente de dano moral",
+            &config,
+            &[],
+        );
         assert!(!result.semantic_query.contains("jurisprudencia"));
         assert!(!result.semantic_query.contains("precedente"));
         assert!(result.semantic_query.contains("dano moral"));
@@ -692,8 +703,14 @@ mod tests {
     fn test_expansion_limit() {
         let mut expansions = HashMap::new();
         // Criar expansao que excederia 200 tokens
-        let big_expansion = (0..100).map(|i| format!("token{i}")).collect::<Vec<_>>().join(" ");
-        expansions.insert("teste".to_string(), vec![big_expansion.clone(), big_expansion]);
+        let big_expansion = (0..100)
+            .map(|i| format!("token{i}"))
+            .collect::<Vec<_>>()
+            .join(" ");
+        expansions.insert(
+            "teste".to_string(),
+            vec![big_expansion.clone(), big_expansion],
+        );
 
         let dict = ExpansionDictionary {
             version: 1,

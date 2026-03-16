@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Benchmark SDK Agent: Old vs New Prompt</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Inter', system-ui, sans-serif; background: #f1f5f9; color: #1e293b; padding: 24px; }
+  h1 { font-size: 1.5rem; margin-bottom: 8px; color: #1B365D; }
+  h2 { font-size: 1.2rem; margin: 24px 0 12px; color: #334155; border-bottom: 2px solid #e2e8f0; padding-bottom: 6px; }
+  h3 { font-size: 1rem; margin: 16px 0 8px; color: #475569; }
+  .subtitle { color: #64748b; font-size: 0.875rem; margin-bottom: 24px; }
+  .pair { margin-bottom: 48px; }
+  .columns { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .column { background: white; border-radius: 8px; padding: 16px; border: 1px solid #e2e8f0; }
+  .column.old { border-left: 4px solid #94a3b8; }
+  .column.new { border-left: 4px solid #2563eb; }
+  .meta { display: flex; gap: 16px; flex-wrap: wrap; font-size: 0.75rem; color: #64748b; margin-bottom: 12px; }
+  .meta span { background: #f8fafc; padding: 2px 8px; border-radius: 4px; }
+  .angle { font-size: 0.8rem; padding: 4px 0; border-bottom: 1px solid #f1f5f9; }
+  .angle .count { color: #94a3b8; font-size: 0.7rem; }
+  .angle.semantic { color: #2563eb; }
+  .angle.formulaic { color: #475569; }
+  .stats-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; margin: 8px 0; }
+  .stats-table th, .stats-table td { padding: 4px 8px; text-align: left; border-bottom: 1px solid #f1f5f9; }
+  .stats-table th { color: #64748b; font-weight: 500; }
+  .result-card { background: #fafbfc; border: 1px solid #e8ecf0; border-radius: 6px; padding: 10px; margin: 6px 0; font-size: 0.8rem; }
+  .result-card .badges { display: flex; gap: 4px; margin-bottom: 4px; }
+  .badge { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 0.7rem; font-weight: 500; }
+  .badge-blue { background: #dbeafe; color: #1d4ed8; }
+  .badge-amber { background: #fef3c7; color: #b45309; }
+  .badge-gray { background: #f1f5f9; color: #64748b; }
+  .rrf { float: right; font-family: monospace; font-size: 0.7rem; color: #94a3b8; }
+  .preview { color: #475569; line-height: 1.4; margin: 4px 0; }
+  .footer { color: #94a3b8; font-size: 0.7rem; }
+  .improvement { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; padding: 12px; margin: 12px 0; }
+  .improvement strong { color: #16a34a; }
+  .degradation { background: #fef2f2; border: 1px solid #fecaca; border-radius: 6px; padding: 12px; margin: 12px 0; }
+  .degradation strong { color: #dc2626; }
+</style>
+</head>
+<body>
+<h1>Benchmark: Prompt Antigo vs Estrategia Dual Dense/Sparse</h1>
+<p class="subtitle">Comparacao A/B do agente SDK com prompt original (so formulaico) vs prompt com estrategia dual (formulaico + semantico)</p>
+<div class="pair"><h2>Inversao onus prova CDC</h2>
+<div class="degradation"><strong>Dense+Sparse: -2</strong> (30 &rarr; 28). Overlap de docs: 27/50 antigos. 23 docs novos encontrados.</div>
+<div class="columns">
+<div class="column old"><h3>Prompt Antigo</h3>
+<div class="meta"><span>22.7s</span><span>10 tools</span><span>3 iter</span><span>130,463 in</span><span>828 out</span></div>
+<table class="stats-table"><tr><th>Canal</th><th>Count</th><th>%</th></tr>
+<tr><td>Dense+Sparse</td><td>30</td><td>60%</td></tr>
+<tr><td>Dense-only</td><td>9</td><td>18%</td></tr>
+<tr><td>Sparse-only</td><td>11</td><td>22%</td></tr>
+</table>
+<h3>Angulos (10)</h3>
+<div class="angle"><span class="count">[10]</span> inversão ônus prova relação consumo hipossuficiência</div>
+<div class="angle"><span class="count">[10]</span> inversão ônus da prova CDC vulnerabilidade consumidor</div>
+<div class="angle"><span class="count">[10]</span> hipossuficiência técnica inversão ônus prova diploma consumerista</div>
+<div class="angle"><span class="count">[10]</span> inversão ônus probatório verossimilhança alegação consumidor</div>
+<div class="angle"><span class="count">[10]</span> ônus da prova facilitação defesa consumidor hipossuficiente</div>
+<div class="angle"><span class="count">[10]</span> inversão ônus prova ope judicis ope legis Código Defesa Consumidor</div>
+<div class="angle"><span class="count">[10]</span> inversão ônus prova regra instrução julgamento momento saneamento</div>
+<div class="angle"><span class="count">[10]</span> carga dinâmica ônus prova relação consumo fornecedor CDC</div>
+<div class="angle"><span class="count">[10]</span> hipossuficiência informacional consumidor inversão ônus prova acesso documentos</div>
+<div class="angle"><span class="count">[10]</span> inversão ônus prova não automática relação consumo requisitos alternativos</div>
+<h3>Top 10 Resultados</h3>
+<div class="result-card">
+<span class="rrf">0.0308 (d:4 s:6)</span>
+<div class="badges"><span class="badge badge-amber">DECISÃO</span><span class="badge badge-gray">RESP</span><span class="badge badge-gray">REsp 2217323</span></div>
+<p class="preview">que seria necessário ao convencimento do magistrado acerca da necessidade da perícia pretendida.
+..
+O Magistrado como destinatário da prova tem o poder-dever de dispensar a feitura daquelas provas que...</p>
+<div class="footer">Min. HUMBERTO MARTINS</div>
+</div>
+<div class="result-card">
+<span class="rrf">0.0306 (d:9 s:2)</span>
+<div class="badges"><span class="badge badge-amber">DECISÃO</span><span class="badge badge-gray">ARESP</span><span class="badge badge-gray">AREsp 2147336</span></div>
+<p class="preview">VIII, do Código de Defesa do Consumidor.
+Sem razão o agravante.
+No caso, a ação civil pública foi fartamente preparada com documentação que demonstra a discussão a respeito de ofensa a direitos do con...</p>
+<div class="footer">Min. MARCO AURÉLIO BELLIZZE</div>
+</div>
+<div class="result-card">
+<span class="rrf">0.0295 (d:5 s:11)</span>
+<div class="badges"><span class="badge badge-amber">DECISÃO</span><span class="badge badge-gray">AGINT</span></div>
+<p class="preview">prova do fato contrário" (e-STJ fl. 624).
+Contudo, o tribunal de origem entendeu pelo cabimento da inversão do ônus da prova à luz do Código de Defesa do Consumidor com fundamento na hipossuficiência ...</p>
+</div>
+<div class="result-card">
+<span class="rrf">0.0279 (d:25 s:2)</span>
+<div class="badges"><span class="badge badge-blue">ACÓRDÃO</span><span class="badge badge-gray">AGINT</span></div>
+<p class="preview">os no original):
+Desse modo, constatando-se uma das hipóteses previstas no art. 6º, VIII, do Código de Defesa do Consumidor - verossimilhança das alegações ou hipossuficiência do titular do direito - ...</p>
+</div>
+<div class="result-card">
+<span class="rrf">0.0272 (d:2 s:30)</span>
+<div class="badges"><span class="badge badge-amber">DECISÃO</span><span class="badge badge-gray">ARESP</span><span class="badge badge-gray">AREsp 2007132</span></div>
+<p class="preview">Defesa do Consumidor, que a inversão do ônus da prova visa à facilitação da defesa dos direitos do consumidor, quando, a critério do juiz, for verossímil a alegação ou quando for ele hipossuficiente, ...</p>
+<div class="footer">Min. MARCO AURÉLIO BELLIZZE</div>
+</div>
+<div class="result-card">
+<span class="rrf">0.0271 (d:33 s:1)</span>
+<div class="badges"><span class="badge badge-amber">DECISÃO</span><span class="badge badge-gray">ARESP</span><span class="badge badge-gray">AREsp 2129336</span></div>
+<p class="preview">rovar a causa debendi, sendo os cheques prescritos suficientes para o ajuizamento da ação.
+Porém, discutida a causa subjacente em sede de embargos monitórios e invertido o ônus da prova, deve ser opor...</p>
+<div class="footer">Min. MARCO AURÉLIO BELLIZZE</div>
+</div>
+<div class="result-card">
+<span class="rrf">0.0257 (d:15 s:21)</span>
+<div class="badges"><span class="badge badge-amber">DECISÃO</span><span class="badge badge-gray">ARESP</span><span class="badge badge-gray">AREsp 2030821</span></div>
+<p class="preview">5/06/2014, DJe 16/06/2014 - ementa parcial).
+Ainda sobre a temática atinente à inversão do ônus da prova determinada pelo magistrado, impende mencionar que seria prescindível a abertura de vista à VAL...</p>
+<div class="footer">Min. HUMBERTO MARTINS</div>
+</div>
+<div class="result-card">
+<span class="rrf">0.0246 (d:37 s:10)</span>
+<div class="badges"><span class="badge badge-amber">DECISÃO</span><span class="badge badge-gray">RESP</span></div>
+<p class="preview">e refere à alegada violação aos arts. 10 e 357 do Código de Processo Civil, não entendo que esteja configurada, uma vez que não há ilegalidade na determinação de inversão do ônus da prova, antes do de...</p>
+</div>
+<div class="result-card">
+<span class="rrf">0.0243 (d:15 s:31)</span>
+<div class="badges"><span class="badge badge-blue">ACÓRDÃO</span><span class="badge badge-gray">AGINT</span></div>
+<p class="preview">não teve acesso ao material contratado e, em razão disso, deixou de efetuar o pagamento das parcelas referentes ao curso, contudo, as gravações e conversas anexadas ao referido processo não são capaze...</p>
+</div>
+<div class="result-card">
+<span class="rrf">0.0239 (d:36 s:14)</span>
+<div class="badges"><span class="badge badge-amber">DECISÃO</span><span class="badge badge-gray">ARESP</span><span class="badge badge-gray">AREsp 2385138</span></div>
+<p class="preview">a inversão ope judicis (art. 6º, inciso VIII, do CDC) e inversão ope legis (arts.12, § 3º, e art. 14, § 3º, do CDC). Precedentes.
+..
+(REsp n. 1.306.167/RS, relator Ministro Luis Felipe Salomão, Quarta...</p>
+<div class="footer">Min. MARCO AURÉLIO BELLIZZE</div>
+</div>
+</div>
+<div class="column new"><h3>Estrategia Dual</h3>
+<div class="meta"><span>21.5s</span><span>11 tools</span><span>4 iter</span><span>190,280 in</span><span>866 out</span></div>
+<table class="stats-table"><tr><th>Canal</th><th>Count</th><th>%</th></tr>
+<tr><td>Dense+Sparse</td><td>28</td><td>56%</td></tr>
+<tr><td>Dense-only</td><td>9</td><td>18%</td></tr>
+<tr><td>Sparse-only</td><td>13</td><td>26%</td></tr>
+</table>
+<h3>Angulos (11)</h3>
+<div class="angle"><span class="count">[10]</span> inversão ônus da prova relação de consumo hipossuficiência</div>
+<div class="angle"><span class="count">[10]</span> inversão ônus prova CDC hipossuficiência técnica vulnerabilidade</div>
+<div class="angle"><span class="count">[10]</span> ônus da prova consumidor hipossuficiente diploma consumerista inversão</div>
+<div class="angle"><span class="count">[10]</span> inversão do ônus da prova verossimilhança alegação consumidor</div>
+<div class="angle"><span class="count">[10]</span> inversão ônus prova não automática medida excepcional requisitos CDC</div>
+<div class="angle"><span class="count">[10]</span> carga dinâmica ônus prova relação consumerista facilidade obtenção prova contrário</div>
+<div class="angle"><span class="count">[10]</span> vulnerabilidade técnica jurídica econômica consumidor prova facilitação defesa juízo</div>
+<div class="angle"><span class="count">[10]</span> inversão ônus prova momento processual decisão saneamento julgamento</div>
+<div class="angle"><span class="count">[10]</span> inversão ônus prova regra instrução não regra julgamento fase saneamento</div>
+<div class="angle"><span class="count">[10]</span> inversão ope judicis ope legis CDC responsabilidade fornecedor prova excludente</div>
+<div class="angle"><span class="count">[10]</span> hipossuficiência informacional consumidor acesso documentos poder fornecedor inversão prova</div>
+<h3>Top 10 Resultados</h3>
+<div class="result-card">
+<span class="rrf">0.0315 (d:6 s:1)</span>
+<div class="badges"><span class="badge badge-amber">DECISÃO</span><span class="badge badge-gray">ARESP</span><span class="badge badge-gray">AREsp 2147336</span></div>
+<p class="preview">VIII, do Código de Defesa do Consumidor.
+Sem razão o agravante.
+No caso, a ação civil pública foi fartamente preparada com documentação que demonstra a discussão a respeito de ofensa a direitos do con...</p>
+<div class="footer">Min. MARCO AURÉLIO BELLIZZE</div>
+</div>
+<div class="result-card">
+<span class="rrf">0.0313 (d:2 s:6)</span>
+<div class="badges"><span class="badge badge-amber">DECISÃO</span><span class="badge badge-gray">RESP</span><span class="badge badge-gray">REsp 2217323</span></div>
+<p class="preview">que seria necessário ao convencimento do magistrado acerca da necessidade da perícia pretendida.
+..
+O Magistrado como destinatário da prova tem o poder-dever de dispensar a feitura daquelas provas que...</p>
+<div class="footer">Min. HUMBERTO MARTINS</div>
+</div>
+<div class="result-card">
+<span class="rrf">0.0295 (d:11 s:5)</span>
+<div class="badges"><span class="badge badge-amber">DECISÃO</span><span class="badge badge-gray">ARESP</span><span class="badge badge-gray">AREsp 2030821</span></div>
+<p class="preview">5/06/2014, DJe 16/06/2014 - ementa parcial).
+Ainda sobre a temática atinente à inversão do ônus da prova determinada pelo magistrado, impende mencionar que seria prescindível a abertura de vista à VAL...</p>
+<div class="footer">Min. HUMBERTO MARTINS</div>
+</div>
+<div class="result-card">
+<span class="rrf">0.0276 (d:29 s:1)</span>
+<div class="badges"><span class="badge badge-blue">ACÓRDÃO</span><span class="badge badge-gray">AGINT</span><span class="badge badge-gray">AREsp 2800035</span></div>
+<p class="preview">à alegação de que seria necessária a presença de ambos os requisitos (verossimilhança das alegações e hipossuficiência) para deferimento da inversão do ônus probatório, entendo que deve ser mantido o ...</p>
+<div class="footer">Min. TEODORO SILVA SANTOS</div>
+</div>
+<div class="result-card">
+<span class="rrf">0.0275 (d:9 s:17)</span>
+<div class="badges"><span class="badge badge-blue">ACÓRDÃO</span><span class="badge badge-gray">AGINT</span><span class="badge badge-gray">AREsp 2861398</span></div>
+<p class="preview">facilidade de obtenção da prova do fato contrário, poderá o juiz atribuir o ônus da prova de modo diverso, desde que o faça por decisão fundamentada, caso em que deverá dar à parte a oportunidade de s...</p>
+<div class="footer">Min. MOURA RIBEIRO</div>
+</div>
+<div class="result-card">
+<span class="rrf">0.0246 (d:35 s:11)</span>
+<div class="badges"><span class="badge badge-amber">DECISÃO</span><span class="badge badge-gray">AGINT</span><span class="badge badge-gray">AREsp 2709371</span></div>
+<p class="preview">prova do fato contrário" (e-STJ fl. 624).
+Contudo, o tribunal de origem entendeu pelo cabimento da inversão do ônus da prova à luz do Código de Defesa do Consumidor com fundamento na hipossuficiência ...</p>
+<div class="footer">Min. RICARDO VILLAS BÔAS CUEVA</div>
+</div>
+<div class="result-card">
+<span class="rrf">0.0241 (d:62 s:3)</span>
+<div class="badges"><span class="badge badge-amber">DECISÃO</span><span class="badge badge-gray">RESP</span><span class="badge badge-gray">AREsp 2770577</span></div>
+<p class="preview">373, §2º do CPC, devendo o presente recurso ser conhecido e provido para reforma o acórdão recorrido e indeferir a inversão da prova (fls. 111-112).
+É o relatório.
+Decido.
+Quanto à controvérsia, o Tri...</p>
+<div class="footer">Min. HERMAN BENJAMIN</div>
+</div>
+<div class="result-card">
+<span class="rrf">0.0241 (d:62 s:3)</span>
+<div class="badges"><span class="badge badge-amber">DECISÃO</span><span class="badge badge-gray">ARESP</span><span class="badge badge-gray">AREsp 2129336</span></div>
+<p class="preview">rovar a causa debendi, sendo os cheques prescritos suficientes para o ajuizamento da ação.
+Porém, discutida a causa subjacente em sede de embargos monitórios e invertido o ônus da prova, deve ser opor...</p>
+<div class="footer">Min. MARCO AURÉLIO BELLIZZE</div>
+</div>
+<div class="result-card">
+<span class="rrf">0.0240 (d:28 s:19)</span>
+<div class="badges"><span class="badge badge-amber">DECISÃO</span><span class="badge badge-gray">RESP</span><span class="badge badge-gray">AREsp 2911538</span></div>
+<p class="preview">e refere à alegada violação aos arts. 10 e 357 do Código de Processo Civil, não entendo que esteja configurada, uma vez que não há ilegalidade na determinação de inversão do ônus da prova, antes do de...</p>
+<div class="footer">Min. MARIA ISABEL GALLOTTI</div>
+</div>
+<div class="result-card">
+<span class="rrf">0.0231 (d:69 s:5)</span>
+<div class="badges"><span class="badge badge-blue">ACÓRDÃO</span><span class="badge badge-gray">AGINT</span><span class="badge badge-gray">AREsp 2562721</span></div>
+<p class="preview">autos que o Tribunal de origem concluiu que (fl. 490):
+No caso, diferente do que alegado pelo apelante, foi determinado ao réu a apresentação dos contratos, sob pena de aplicação do art. 400 do CPC, q...</p>
+<div class="footer">Min. ANTONIO CARLOS FERREIRA</div>
+</div>
+</div>
+</div></div>
+<div class="pair"><h2>Agravo instrumento taxatividade mitigada</h2>
+<div class="improvement"><strong>Dense+Sparse: +2</strong> (16 &rarr; 18). Overlap de docs: 18/50 antigos. 32 docs novos encontrados.</div>
+<div class="columns">
+<div class="column old"><h3>Prompt Antigo</h3>
+<div class="meta"><span>55.0s</span><span>14 tools</span><span>4 iter</span><span>170,659 in</span><span>1,076 out</span></div>
+<table class="stats-table"><tr><th>Canal</th><th>Count</th><th>%</th></tr>
+<tr><td>Dense+Sparse</td><td>16</td><td>32%</td></tr>
+<tr><td>Dense-only</td><td>17</td><td>34%</td></tr>
+<tr><td>Sparse-only</td><td>17</td><td>34%</td></tr>
+</table>
+<h3>Angulos (14)</h3>
+<div class="angle"><span class="count">[10]</span> agravo de instrumento taxatividade mitigada rol CPC</div>
+<div class="angle"><span class="count">[10]</span> taxatividade mitigada hipóteses cabimento agravo instrumento</div>
+<div class="angle"><span class="count">[10]</span> rol exaustivo agravo instrumento urgência decisão interlocutória</div>
+<div class="angle"><span class="count">[0]</span> interposição agravo instrumento fora rol taxativo CPC 2015</div>
+<div class="angle"><span class="count">[10]</span> decisão interlocutória irrecorrível imediato preclusão apelação</div>
+<div class="angle"><span class="count">[0]</span> tese taxatividade mitigada EREsp repetitivo agravo instrumento</div>
+<div class="angle"><span class="count">[0]</span> Tema 988 REsp 1696396 1704520 Corte Especial Nancy Andrighi</div>
+<div class="angle"><span class="count">[10]</span> agravo instrumento não cabimento hipótese não prevista lei urgência ausente</div>
+<div class="angle"><span class="count">[10]</span> modulação efeitos tese taxatividade mitigada recurso repetitivo transição</div>
+<div class="angle"><span class="count">[10]</span> agravo instrumento parágrafo único art 1015 recuperação judicial falência</div>
+<div class="angle"><span class="count">[0]</span> recorribilidade imediata interlocutória fase conhecimento regime CPC 2015</div>
+<div class="angle"><span class="count">[10]</span> impugnação diferida apelação contrarrazões decisão interlocutória não agravável</div>
+<div class="angle"><span class="count">[10]</span> agravo instrumento indeferimento produção prova não cabimento taxatividade</div>
+<div class="angle"><span class="count">[10]</span> Corte Especial recurso representativo controvérsia natureza jurídica rol decisão interlocutória</div>
+<h3>Top 10 Resultados</h3>
+<div class="result-card">
+<span class="rrf">0.0279 (d:20 s:5)</span>
+<div class="badges"><span class="badge badge-amber">DECISÃO</span><span class="badge badge-gray">ARESP</span><span class="badge badge-gray">AREsp 2261336</span></div>
+<p class="preview">interposição de agravo de instrumento quando verificada a urgência decorrente da inutilidade do julgamento da questão no recurso de apelação.
+Nesse sentido, Tema em Recurso Repetitivo n. 988 do Superi...</p>
+<div class="footer">Min. MARIA ISABEL GALLOTTI</div>
+</div>
+<div class="result-card">
+<span class="rrf">0.0251 (d:7 s:38)</span>
+<div class="badges"><span class="badge badge-amber">DECISÃO</span><span class="badge badge-gray">RESP</span><span class="badge badge-gray">REsp 2154172</span></div>
+<p class="preview">cessos recuperacionais e falimentares deve ser interpretada como o reconhecimento de que, naquelas hipóteses, estava presumidamente presente o risco de causar à parte lesão grave e de difícil reparaçã...</p>
+<div class="footer">Min. DANIELA TEIXEIRA</div>
+</div>
+<div class="result-card">
+<span class="rrf">0.0236 (d:4 s:66)</span>
+<div class="badges"><span class="badge badge-blue">ACÓRDÃO</span><span class="badge badge-gray">AGINT</span></div>
+<p class="preview">de que "o rol do art. 1.015 do CPC é de taxatividade mitigada, por isso admite a interposição de agravo de instrumento quando verificada a urgência decorrente da inutilidade do julgamento da questão n...</p>
+</div>
+<div class="result-card">
+<span class="rrf">0.0221 (d:72 s:9)</span>
+<div class="badges"><span class="badge badge-amber">DECISÃO</span><span class="badge badge-gray">RMS</span><span class="badge badge-gray">RMS 53469</span></div>
+<p class="preview">fixa-se a seguinte tese jurídica: O rol do art. 1.015 do CPC é de taxatividade mitigada, por isso admite a interposição de agravo de instrumento quando verificada a urgência decorrente da inutilidade ...</p>
+<div class="footer">Min. MARCO BUZZI</div>
+</div>
+<div class="result-card">
+<span class="rrf">0.0218 (d:124 s:1)</span>
+<div class="badges"><span class="badge badge-amber">DECISÃO</span><span class="badge badge-gray">ARESP</span><span class="badge badge-gray">AREsp 2331439</span></div>
+<p class="preview">rnarão indiscutíveis pela preclusão se não interposto, de imediato, o recurso de agravo de instrumento, devendo todas as demais interlocutórias aguardar a prolação da sentença para serem impugnadas na...</p>
+<div class="footer">Min. RAUL ARAÚJO</div>
+</div>
+<div class="result-card">
+<span class="rrf">0.0215 (d:87 s:8)</span>
+<div class="badges"><span class="badge badge-amber">DECISÃO</span><span class="badge badge-gray">ARESP</span><span class="badge badge-gray">AREsp 2088673</span></div>
+<p class="preview">a até momento futuro - prolação da sentença - ocasião em que as questões, até então imunes, deverão ser impugnadas pela parte no recurso de apelação ou em suas contrarrazões, sob pena de, a partir des...</p>
+<div class="footer">Min. PAULO DE TARSO SANSEVERINO</div>
+</div>
+<div class="result-card">
+<span class="rrf">0.0204 (d:189 s:1)</span>
+<div class="badges"><span class="badge badge-blue">ACÓRDÃO</span><span class="badge badge-gray">AGINT</span></div>
+<p class="preview">fixa-se a seguinte tese jurídica: O rol do art. 1.015 do CPC é de taxatividade mitigada, por isso admite a interposição de agravo de instrumento quando verificada a urgência decorrente da inutilidade ...</p>
+</div>
+<div class="result-card">
+<span class="rrf">0.0190 (d:20 s:94)</span>
+<div class="badges"><span class="badge badge-blue">ACÓRDÃO</span><span class="badge badge-gray">AGINT</span></div>
+<p class="preview">17).
+Assim, descabida a interposição do presente agravo de instrumento. Corroborando o entendimento ora esposado: TRF 3ª Região, 3ª T., AI 0016275-43.2016.4.03.0000, Rel. Des. Fed. Carlos Muta, j. 20/...</p>
+</div>
+<div class="result-card">
+<span class="rrf">0.0184 (d:160 s:12)</span>
+<div class="badges"><span class="badge badge-blue">ACÓRDÃO</span><span class="badge badge-gray">ARESP</span><span class="badge badge-gray">AREsp 1481210</span></div>
+<p class="preview">ficação de adequação ao tema 988 dos recursos repetitivos. Diante disso passo a novo exame de admissibilidade que segue.No caso dos autos, cinge-se a controvérsia dos autos sobre as hipóteses de cabi...</p>
+<div class="footer">Min. SÉRGIO KUKINA</div>
+</div>
+<div class="result-card">
+<span class="rrf">0.0184 (d:23 s:97)</span>
+<div class="badges"><span class="badge badge-blue">ACÓRDÃO</span><span class="badge badge-gray">ARESP</span><span class="badge badge-gray">AREsp 3054056</span></div>
+<p class="preview">NTERNO EM AGRAVO DE INSTRUMENTO. DECISÃO INTERLOCUTÓRIA QUE INDEFERE PRODUÇÃO DE PROVA ORAL. ROL TAXATIVO DO ART. 1.015 DO CPC. INEXISTÊNCIA DE URGÊNCIA OU IRREVERSIBILIDADE. TAXATIVIDADE MITIGADA NÃO...</p>
+<div class="footer">Min. JOÃO OTÁVIO DE NORONHA</div>
+</div>
+</div>
+<div class="column new"><h3>Estrategia Dual</h3>
+<div class="meta"><span>25.7s</span><span>11 tools</span><span>4 iter</span><span>167,433 in</span><span>878 out</span></div>
+<table class="stats-table"><tr><th>Canal</th><th>Count</th><th>%</th></tr>
+<tr><td>Dense+Sparse</td><td>18</td><td>36%</td></tr>
+<tr><td>Dense-only</td><td>14</td><td>28%</td></tr>
+<tr><td>Sparse-only</td><td>18</td><td>36%</td></tr>
+</table>
+<h3>Angulos (11)</h3>
+<div class="angle"><span class="count">[10]</span> taxatividade mitigada rol agravo de instrumento</div>
+<div class="angle"><span class="count">[10]</span> agravo de instrumento hipóteses cabimento rol taxativo CPC</div>
+<div class="angle"><span class="count">[10]</span> taxatividade mitigada urgência decisão interlocutória impugnação</div>
+<div class="angle"><span class="count">[10]</span> ampliação rol artigo 1015 decisão interlocutória recorribilidade imediata</div>
+<div class="angle"><span class="count">[0]</span> Tema 988 REsp 1704520 Corte Especial Nancy Andrighi repetitivo</div>
+<div class="angle"><span class="count">[10]</span> inutilidade julgamento apelação agravo instrumento urgência preclusão</div>
+<div class="angle"><span class="count">[10]</span> agravo instrumento decisão interlocutória fora rol ilegitimidade passiva prescrição saneamento</div>
+<div class="angle"><span class="count">[10]</span> mandado segurança impugnação decisão interlocutória vedação tema repetitivo 988</div>
+<div class="angle"><span class="count">[10]</span> modulação efeitos taxatividade mitigada decisão interlocutória antes publicação acórdão</div>
+<div class="angle"><span class="count">[10]</span> agravo instrumento recuperação judicial falência decisões interlocutórias parágrafo único 1015</div>
+<div class="angle"><span class="count">[2]</span> EREsp embargos divergência taxatividade mitigada agravo instrumento segunda seção</div>
+<h3>Top 10 Resultados</h3>
+<div class="result-card">
+<span class="rrf">0.0325 (d:1 s:2)</span>
+<div class="badges"><span class="badge badge-amber">DECISÃO</span><span class="badge badge-gray">RMS</span><span class="badge badge-gray">RMS 66002</span></div>
+<p class="preview">O EXAME DA QUESTÃO APENAS EM APELAÇÃO. VIA ADEQUADA APÓS TEMA REPETITIVO 988. AGRAVO DE INSTRUMENTO. EXCEPCIONAL UTILIZAÇÃO DO MANDADO DE SEGURANÇA COMO MEIO DE IMPUGNAR DECISÕES INTERLOCUTÓRIAS APÓS ...</p>
+<div class="footer">Min. RICARDO VILLAS BÔAS CUEVA</div>
+</div>
+<div class="result-card">
+<span class="rrf">0.0298 (d:13 s:2)</span>
+<div class="badges"><span class="badge badge-blue">ACÓRDÃO</span><span class="badge badge-gray">AGINT</span><span class="badge badge-gray">AREsp 2698594</span></div>
+<p class="preview">fase de conhecimento do procedimento comum e dos procedimentos especiais, exceção feita ao inventário, pretendeu o legislador salvaguardar apenas as "situações que, realmente, não podem aguardar redis...</p>
+<div class="footer">Min. RAUL ARAÚJO</div>
+</div>
+<div class="result-card">
+<span class="rrf">0.0280 (d:6 s:18)</span>
+<div class="badges"><span class="badge badge-blue">ACÓRDÃO</span><span class="badge badge-gray">ERESP</span><span class="badge badge-gray">EREsp 1814657</span></div>
+<p class="preview">decisões interlocutórias proferidas após a publicação do acórdão que a fixou, ou seja, 19/12/2018. .. No caso, a decisão interlocutória foi proferida em março de 2017 (e-STJ Fl. 66), portanto, antes...</p>
+<div class="footer">Min. JORGE MUSSI</div>
+</div>
+<div class="result-card">
+<span class="rrf">0.0274 (d:3 s:27)</span>
+<div class="badges"><span class="badge badge-amber">DECISÃO</span><span class="badge badge-gray">RESP</span><span class="badge badge-gray">REsp 2154172</span></div>
+<p class="preview">cessos recuperacionais e falimentares deve ser interpretada como o reconhecimento de que, naquelas hipóteses, estava presumidamente presente o risco de causar à parte lesão grave e de difícil reparaçã...</p>
+<div class="footer">Min. DANIELA TEIXEIRA</div>
+</div>
+<div class="result-card">
+<span class="rrf">0.0265 (d:8 s:25)</span>
+<div class="badges"><span class="badge badge-amber">DECISÃO</span><span class="badge badge-gray">RESP</span><span class="badge badge-gray">REsp 1905866</span></div>
+<p class="preview">eça e dê regular prosseguimento ao agravo de instrumento no que tange à competência. 9- Recurso Especial conhecido e provido. (STJ; REsp 1.704.520; Proc. 2017/0271924-6; MT; Corte Especial; Relª Minª ...</p>
+<div class="footer">Min. MARIA ISABEL GALLOTTI</div>
+</div>
+<div class="result-card">
+<span class="rrf">0.0258 (d:6 s:34)</span>
+<div class="badges"><span class="badge badge-amber">DECISÃO</span><span class="badge badge-gray">ARESP</span><span class="badge badge-gray">AREsp 2940152</span></div>
+<p class="preview">ia exigida pelo Tema 988/STJ para a mitigação da taxatividade,.
+Nesse contexto, não se verifica o vício de omissão invocado pelos recorrentes, mas, sim, mera discordância quanto ao enquadramento juríd...</p>
+<div class="footer">Min. HUMBERTO MARTINS</div>
+</div>
+<div class="result-card">
+<span class="rrf">0.0246 (d:14 s:30)</span>
+<div class="badges"><span class="badge badge-amber">DECISÃO</span><span class="badge badge-gray">RMS</span><span class="badge badge-gray">RMS 61045</span></div>
+<p class="preview">ÃO INTERLOCUTÓRIA. COMPETÊNCIA TERRITORIAL. INDEFERIMENTO DA INICIAL. LEI 12.016/2009. IMPETRAÇÃO ANTES DO JULGAMENTO DO RESP 1.696.396/MT. CABIMENTO. MODULAÇÃO DA TESE DA TAXATIVIDADE MITIGADA. VIABI...</p>
+<div class="footer">Min. FRANCISCO FALCÃO</div>
+</div>
+<div class="result-card">
+<span class="rrf">0.0222 (d:41 s:21)</span>
+<div class="badges"><span class="badge badge-amber">DECISÃO</span><span class="badge badge-gray">ARESP</span><span class="badge badge-gray">AREsp 2088673</span></div>
+<p class="preview">fase de conhecimento do procedimento comum e dos procedimentos especiais, exceção feita ao inventário, pretendeu o legislador salvaguardar apenas as "situações que, realmente, não podem aguardar redis...</p>
+<div class="footer">Min. PAULO DE TARSO SANSEVERINO</div>
+</div>
+<div class="result-card">
+<span class="rrf">0.0211 (d:19 s:58)</span>
+<div class="badges"><span class="badge badge-blue">ACÓRDÃO</span><span class="badge badge-gray">AGINT</span><span class="badge badge-gray">AREsp 2824646</span></div>
+<p class="preview">de que "o rol do art. 1.015 do CPC é de taxatividade mitigada, por isso admite a interposição de agravo de instrumento quando verificada a urgência decorrente da inutilidade do julgamento da questão n...</p>
+<div class="footer">Min. RAUL ARAÚJO</div>
+</div>
+<div class="result-card">
+<span class="rrf">0.0197 (d:161 s:6)</span>
+<div class="badges"><span class="badge badge-blue">ACÓRDÃO</span><span class="badge badge-gray">AGINT</span><span class="badge badge-gray">AREsp 2819621</span></div>
+<p class="preview">fixa-se a seguinte tese jurídica: O rol do art. 1.015 do CPC é de taxatividade mitigada, por isso admite a interposição de agravo de instrumento quando verificada a urgência decorrente da inutilidade ...</p>
+<div class="footer">Min. RAUL ARAÚJO</div>
+</div>
+</div>
+</div></div>
+
+<div style="margin-top:32px; padding:16px; background:white; border-radius:8px; border:1px solid #e2e8f0;">
+<h3>Legenda</h3>
+<p style="font-size:0.8rem; color:#64748b; margin-top:8px;">
+<strong>Dense+Sparse:</strong> resultado aparece em ambos os rankings (maior confianca)<br>
+<strong>Dense-only:</strong> encontrado por similaridade semantica mas nao por termos exatos<br>
+<strong>Sparse-only:</strong> encontrado por termos exatos mas nao por similaridade semantica<br>
+<strong>RRF (d:X s:Y):</strong> score RRF com rank denso e rank esparso do resultado
+</p>
+</div>
+</body></html>

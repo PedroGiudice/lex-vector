@@ -6,7 +6,11 @@ use tracing_subscriber::EnvFilter;
 use stj_vec_ingest::pipeline::Pipeline;
 
 #[derive(Parser)]
-#[command(name = "stj-vec-ingest", version, about = "STJ vector ingestion pipeline")]
+#[command(
+    name = "stj-vec-ingest",
+    version,
+    about = "STJ vector ingestion pipeline"
+)]
 struct Cli {
     /// Path to config.toml
     #[arg(short, long, default_value = "config.toml")]
@@ -52,10 +56,7 @@ enum Commands {
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     tracing_subscriber::fmt()
-        .with_env_filter(
-            EnvFilter::from_default_env()
-                .add_directive("stj_vec=info".parse()?),
-        )
+        .with_env_filter(EnvFilter::from_default_env().add_directive("stj_vec=info".parse()?))
         .init();
 
     let cli = Cli::parse();
@@ -93,9 +94,14 @@ async fn main() -> anyhow::Result<()> {
         }
         Commands::ExportChunks { output, limit } => {
             let (sources, chunks) = stj_vec_ingest::exporter::export_chunks_for_modal(
-                pipeline.storage(), &output, limit,
+                pipeline.storage(),
+                &output,
+                limit,
             )?;
-            println!("Exported {chunks} chunks from {sources} sources to {}", output.display());
+            println!(
+                "Exported {chunks} chunks from {sources} sources to {}",
+                output.display()
+            );
             println!(
                 "Upload: modal volume put stj-vec-data {0}/ /chunks/ --force",
                 output.display()
@@ -103,7 +109,9 @@ async fn main() -> anyhow::Result<()> {
         }
         Commands::ImportEmbeddings { input, limit } => {
             let (sources, embeddings) = stj_vec_ingest::importer::import_embeddings_from_modal(
-                pipeline.storage(), &input, limit,
+                pipeline.storage(),
+                &input,
+                limit,
             )?;
             println!("Imported {embeddings} embeddings from {sources} sources");
         }

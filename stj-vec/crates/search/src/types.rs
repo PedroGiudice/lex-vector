@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::query_preprocessor::{Extraction, ExtractedFilters};
+use crate::query_preprocessor::{ExtractedFilters, Extraction};
 
 #[derive(Debug, Deserialize)]
 pub struct SearchRequest {

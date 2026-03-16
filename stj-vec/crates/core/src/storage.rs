@@ -268,10 +268,11 @@ impl Storage {
     /// Verifica se chunk existe
     pub fn chunk_exists(&self, id: &str) -> Result<bool> {
         let conn = self.lock()?;
-        let count: i64 =
-            conn.query_row("SELECT COUNT(*) FROM chunks WHERE id = ?", params![id], |row| {
-                row.get(0)
-            })?;
+        let count: i64 = conn.query_row(
+            "SELECT COUNT(*) FROM chunks WHERE id = ?",
+            params![id],
+            |row| row.get(0),
+        )?;
         Ok(count > 0)
     }
 
@@ -296,9 +297,8 @@ impl Storage {
             anyhow::bail!("embedding not configured (dim=0)");
         }
         let conn = self.lock()?;
-        let mut stmt = conn.prepare(
-            "INSERT OR REPLACE INTO vec_chunks (chunk_id, embedding) VALUES (?1, ?2)",
-        )?;
+        let mut stmt = conn
+            .prepare("INSERT OR REPLACE INTO vec_chunks (chunk_id, embedding) VALUES (?1, ?2)")?;
         for (chunk_id, embedding) in pairs {
             stmt.execute(params![chunk_id, embedding.as_bytes()])?;
         }
@@ -430,9 +430,8 @@ impl Storage {
     /// Insere chunks no indice FTS5
     pub fn insert_chunks_fts(&self, chunks: &[Chunk]) -> Result<()> {
         let conn = self.lock()?;
-        let mut stmt = conn.prepare(
-            "INSERT OR IGNORE INTO chunks_fts (chunk_id, content) VALUES (?1, ?2)",
-        )?;
+        let mut stmt =
+            conn.prepare("INSERT OR IGNORE INTO chunks_fts (chunk_id, content) VALUES (?1, ?2)")?;
         for chunk in chunks {
             stmt.execute(params![chunk.id, chunk.content])?;
         }
@@ -515,9 +514,7 @@ impl Storage {
         let mut results = Vec::new();
         for (id, rrf_score) in &ranked {
             if let Some(sr) = result_map.get(id.as_str()) {
-                if sr.score >= threshold
-                    || sparse_results.iter().any(|(sid, _)| sid == id)
-                {
+                if sr.score >= threshold || sparse_results.iter().any(|(sid, _)| sid == id) {
                     results.push(SearchResult {
                         score: *rrf_score,
                         chunk: sr.chunk.clone(),
@@ -653,9 +650,15 @@ impl Storage {
             params![source],
         )?;
         // Deletar documentos
-        conn.execute("DELETE FROM documents WHERE source_file = ?", params![source])?;
+        conn.execute(
+            "DELETE FROM documents WHERE source_file = ?",
+            params![source],
+        )?;
         // Resetar log
-        conn.execute("DELETE FROM ingest_log WHERE source_file = ?", params![source])?;
+        conn.execute(
+            "DELETE FROM ingest_log WHERE source_file = ?",
+            params![source],
+        )?;
         Ok(())
     }
 
@@ -664,14 +667,94 @@ impl Storage {
     /// Lista IDs de documentos de um source.
     pub fn list_documents_by_source(&self, source: &str) -> Result<Vec<String>> {
         let conn = self.lock()?;
-        let mut stmt = conn.prepare(
-            "SELECT id FROM documents WHERE source_file = ? ORDER BY id",
-        )?;
+        let mut stmt =
+            conn.prepare("SELECT id FROM documents WHERE source_file = ? ORDER BY id")?;
         let ids = stmt
             .query_map(params![source], |row| row.get::<_, String>(0))?
             .filter_map(|r| r.ok())
             .collect();
         Ok(ids)
+    }
+
+    // === Enrich ===
+
+    /// Busca documentos cujo campo `processo` contem os digitos informados.
+    ///
+    /// Extrai apenas digitos de `documents.processo` e compara com `digits`.
+    /// Retorna tuplas `(id, processo, classe, orgao_julgador, data_julgamento, ministro)`.
+    pub fn find_documents_by_processo_digits(
+        &self,
+        digits: &str,
+    ) -> Result<
+        Vec<(
+            String,
+            String,
+            Option<String>,
+            Option<String>,
+            Option<String>,
+            Option<String>,
+        )>,
+    > {
+        let conn = self.lock()?;
+        // SQLite nao tem regex nativo, entao buscamos candidatos com LIKE
+        // e filtramos em Rust extraindo apenas digitos
+        let mut stmt = conn.prepare(
+            "SELECT id, processo, classe, orgao_julgador, data_julgamento, ministro
+             FROM documents WHERE processo IS NOT NULL AND processo != ''",
+        )?;
+
+        let rows = stmt
+            .query_map([], |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, Option<String>>(2)?,
+                    row.get::<_, Option<String>>(3)?,
+                    row.get::<_, Option<String>>(4)?,
+                    row.get::<_, Option<String>>(5)?,
+                ))
+            })?
+            .filter_map(|r| r.ok())
+            .filter(|(_, processo, _, _, _, _)| {
+                let proc_digits: String = processo.chars().filter(|c| c.is_ascii_digit()).collect();
+                proc_digits == digits
+            })
+            .collect();
+
+        Ok(rows)
+    }
+
+    /// UPDATE seletivo de metadados usando COALESCE (nao sobrescreve campos ja preenchidos).
+    ///
+    /// Para cada campo: se o documento ja tem valor preenchido, mantem. Se esta NULL/vazio
+    /// e o parametro fornece valor, atualiza. Se o parametro e `None`, mantem o original.
+    ///
+    /// Retorna `true` se alguma linha foi atualizada.
+    pub fn enrich_document(
+        &self,
+        doc_id: &str,
+        classe: Option<&str>,
+        orgao: Option<&str>,
+        data_julg: Option<&str>,
+        ministro: Option<&str>,
+    ) -> Result<bool> {
+        let conn = self.lock()?;
+        // COALESCE(NULLIF(campo, ''), ?N) -- se campo ja tem valor, usa ele.
+        // Se campo e NULL/'', tenta ?N. Se ?N tambem e NULL, fica NULL.
+        let rows = conn.execute(
+            "UPDATE documents SET
+                classe = COALESCE(NULLIF(classe, ''), ?1, classe),
+                orgao_julgador = COALESCE(NULLIF(orgao_julgador, ''), ?2, orgao_julgador),
+                data_julgamento = COALESCE(NULLIF(data_julgamento, ''), ?3, data_julgamento),
+                ministro = COALESCE(NULLIF(ministro, ''), ?4, ministro)
+             WHERE id = ?5
+               AND (classe IS NULL OR classe = ''
+                    OR orgao_julgador IS NULL OR orgao_julgador = ''
+                    OR data_julgamento IS NULL OR data_julgamento = ''
+                    OR ministro IS NULL OR ministro = '')",
+            params![classe, orgao, data_julg, ministro, doc_id,],
+        )?;
+        Ok(rows > 0)
     }
 
     // === Stats ===
@@ -780,8 +863,20 @@ mod tests {
         let storage = Storage::open(db_path.to_str().unwrap(), 0).unwrap();
 
         let chunks = vec![
-            Chunk { id: "c1".into(), doc_id: "d1".into(), chunk_index: 0, content: "primeiro chunk".into(), token_count: 2 },
-            Chunk { id: "c2".into(), doc_id: "d1".into(), chunk_index: 1, content: "segundo chunk".into(), token_count: 2 },
+            Chunk {
+                id: "c1".into(),
+                doc_id: "d1".into(),
+                chunk_index: 0,
+                content: "primeiro chunk".into(),
+                token_count: 2,
+            },
+            Chunk {
+                id: "c2".into(),
+                doc_id: "d1".into(),
+                chunk_index: 1,
+                content: "segundo chunk".into(),
+                token_count: 2,
+            },
         ];
         storage.insert_chunks(&chunks).unwrap();
 
@@ -800,11 +895,15 @@ mod tests {
         let db_path = dir.path().join("test.db");
         let storage = Storage::open(db_path.to_str().unwrap(), 0).unwrap();
 
-        storage.set_ingest_status("202203", "pending", 0, 0).unwrap();
+        storage
+            .set_ingest_status("202203", "pending", 0, 0)
+            .unwrap();
         let status = storage.get_ingest_status("202203").unwrap().unwrap();
         assert_eq!(status.status, "pending");
 
-        storage.set_ingest_status("202203", "chunked", 100, 500).unwrap();
+        storage
+            .set_ingest_status("202203", "chunked", 100, 500)
+            .unwrap();
         let status = storage.get_ingest_status("202203").unwrap().unwrap();
         assert_eq!(status.status, "chunked");
         assert_eq!(status.doc_count, 100);
@@ -823,16 +922,32 @@ mod tests {
         let storage = Storage::open(db_path.to_str().unwrap(), 0).unwrap();
 
         let doc = Document {
-            id: "d1".into(), processo: None, classe: None, ministro: None,
-            orgao_julgador: None, data_publicacao: None, data_julgamento: None,
-            assuntos: None, teor: None, tipo: None, chunk_count: 0,
+            id: "d1".into(),
+            processo: None,
+            classe: None,
+            ministro: None,
+            orgao_julgador: None,
+            data_publicacao: None,
+            data_julgamento: None,
+            assuntos: None,
+            teor: None,
+            tipo: None,
+            chunk_count: 0,
             source_file: Some("202203".into()),
         };
         storage.insert_document(&doc).unwrap();
-        storage.insert_chunks(&[
-            Chunk { id: "c1".into(), doc_id: "d1".into(), chunk_index: 0, content: "text".into(), token_count: 1 },
-        ]).unwrap();
-        storage.set_ingest_status("202203", "chunked", 1, 1).unwrap();
+        storage
+            .insert_chunks(&[Chunk {
+                id: "c1".into(),
+                doc_id: "d1".into(),
+                chunk_index: 0,
+                content: "text".into(),
+                token_count: 1,
+            }])
+            .unwrap();
+        storage
+            .set_ingest_status("202203", "chunked", 1, 1)
+            .unwrap();
 
         storage.reset_ingest("202203").unwrap();
         assert!(storage.get_document("d1").unwrap().is_none());
@@ -857,12 +972,20 @@ mod tests {
         let storage = Storage::open(db_path.to_str().unwrap(), 4).unwrap();
 
         // Inserir chunk primeiro
-        storage.insert_chunks(&[
-            Chunk { id: "c1".into(), doc_id: "d1".into(), chunk_index: 0, content: "text".into(), token_count: 1 },
-        ]).unwrap();
+        storage
+            .insert_chunks(&[Chunk {
+                id: "c1".into(),
+                doc_id: "d1".into(),
+                chunk_index: 0,
+                content: "text".into(),
+                token_count: 1,
+            }])
+            .unwrap();
 
         // Inserir embedding
-        storage.insert_embedding("c1", &[0.1, 0.2, 0.3, 0.4]).unwrap();
+        storage
+            .insert_embedding("c1", &[0.1, 0.2, 0.3, 0.4])
+            .unwrap();
 
         let stats = storage.stats().unwrap();
         assert_eq!(stats.embedding_count, 1);

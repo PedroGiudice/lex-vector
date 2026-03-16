@@ -143,8 +143,16 @@ impl Ingestor {
         let db_path = work_dir.join(DB_NAME);
         let base_dir = work_dir.join("base");
 
-        anyhow::ensure!(db_path.exists(), "knowledge.db nao encontrado em {}", work_dir.display());
-        anyhow::ensure!(base_dir.is_dir(), "diretorio base/ nao encontrado em {}", work_dir.display());
+        anyhow::ensure!(
+            db_path.exists(),
+            "knowledge.db nao encontrado em {}",
+            work_dir.display()
+        );
+        anyhow::ensure!(
+            base_dir.is_dir(),
+            "diretorio base/ nao encontrado em {}",
+            work_dir.display()
+        );
 
         let storage = Storage::open(
             db_path.to_str().context("db_path nao e UTF-8")?,
@@ -208,17 +216,25 @@ impl Ingestor {
             EmbedStrategy::ExportModal => {
                 let work_dir = self.db_path.parent().unwrap_or(Path::new("."));
                 let jsonl_path = export_chunks_jsonl(&all_chunks, work_dir)?;
-                eprintln!("[embed] {} chunks exportados para: {}", all_chunks.len(), jsonl_path.display());
+                eprintln!(
+                    "[embed] {} chunks exportados para: {}",
+                    all_chunks.len(),
+                    jsonl_path.display()
+                );
                 eprintln!("[embed] Batch grande demais para TEI local. Opcoes:");
                 eprintln!("  1. Forcar TEI local (lento): case-ingest init --cpu");
-                eprintln!("  2. Embedar via Modal GPU:    modal run embed_modal.py --input {} --db {}", jsonl_path.display(), self.db_path.display());
+                eprintln!(
+                    "  2. Embedar via Modal GPU:    modal run embed_modal.py --input {} --db {}",
+                    jsonl_path.display(),
+                    self.db_path.display()
+                );
                 eprintln!("[embed] Chunks ja estao no DB (docs + FTS5). Faltam apenas os embeddings dense.");
             }
         }
 
         // Atualizar file_index para todos os arquivos (uma unica conexao)
-        let conn = Connection::open(&self.db_path)
-            .context("falha ao abrir conexao para file_index")?;
+        let conn =
+            Connection::open(&self.db_path).context("falha ao abrir conexao para file_index")?;
         let idx = FileIndex::new(&conn)?;
         for file_path in &files {
             let rel = rel_path(&self.base_dir, file_path);
@@ -293,7 +309,9 @@ impl Ingestor {
     /// Embeda chunks localmente via TEI e persiste embeddings.
     async fn embed_chunks_local(&self, embedder: &dyn Embedder, chunks: &[Chunk]) -> Result<()> {
         let texts: Vec<String> = chunks.iter().map(|c| c.content.clone()).collect();
-        let embeddings = embedder.embed_batch(&texts).await
+        let embeddings = embedder
+            .embed_batch(&texts)
+            .await
             .context("falha ao gerar embeddings via TEI local")?;
 
         let pairs: Vec<(String, Vec<f32>)> = chunks
@@ -319,10 +337,8 @@ impl Ingestor {
         let idx = FileIndex::new(&conn)?;
         let records = idx.all()?;
 
-        let indexed: std::collections::HashMap<String, String> = records
-            .into_iter()
-            .map(|r| (r.path, r.hash_md5))
-            .collect();
+        let indexed: std::collections::HashMap<String, String> =
+            records.into_iter().map(|r| (r.path, r.hash_md5)).collect();
 
         let disk_files = scan_base_dir(&self.base_dir)?;
 
@@ -381,7 +397,8 @@ impl Ingestor {
         }
 
         // Chunk todos os novos + modificados
-        let files_to_process: Vec<&PathBuf> = modified_files.iter().chain(new_files.iter()).collect();
+        let files_to_process: Vec<&PathBuf> =
+            modified_files.iter().chain(new_files.iter()).collect();
         let mut all_chunks: Vec<Chunk> = Vec::new();
 
         for file_path in &files_to_process {
@@ -400,7 +417,11 @@ impl Ingestor {
                     let jsonl_path = export_chunks_jsonl(&all_chunks, work_dir)?;
                     eprintln!("[embed] Chunks exportados para: {}", jsonl_path.display());
                     eprintln!("[embed] Rode o comando Modal para embedar:");
-                    eprintln!("  modal run embed_modal.py --input {} --db {}", jsonl_path.display(), self.db_path.display());
+                    eprintln!(
+                        "  modal run embed_modal.py --input {} --db {}",
+                        jsonl_path.display(),
+                        self.db_path.display()
+                    );
                 }
             }
 
@@ -433,8 +454,8 @@ impl Ingestor {
             return Ok(());
         }
 
-        let case_ingest_bin = std::env::current_exe()
-            .unwrap_or_else(|_| PathBuf::from("case-ingest"));
+        let case_ingest_bin =
+            std::env::current_exe().unwrap_or_else(|_| PathBuf::from("case-ingest"));
 
         let config = serde_json::json!({
             "mcpServers": {
@@ -504,8 +525,7 @@ impl Ingestor {
 
 /// Cria tabela `file_index` via conexao separada.
 fn init_file_index_table(db_path: &Path) -> Result<()> {
-    let conn = Connection::open(db_path)
-        .context("falha ao abrir conexao para file_index init")?;
+    let conn = Connection::open(db_path).context("falha ao abrir conexao para file_index init")?;
     let _idx = FileIndex::new(&conn)?;
     Ok(())
 }
@@ -597,8 +617,10 @@ fn extract_chandra_blocks(blocks: &[serde_json::Value]) -> String {
 
 /// Caminho relativo a partir do base dir.
 fn rel_path(base: &Path, abs: &Path) -> String {
-    abs.strip_prefix(base)
-        .map_or_else(|_| abs.to_string_lossy().into_owned(), |p| p.to_string_lossy().into_owned())
+    abs.strip_prefix(base).map_or_else(
+        |_| abs.to_string_lossy().into_owned(),
+        |p| p.to_string_lossy().into_owned(),
+    )
 }
 
 /// Gera `doc_id` deterministico a partir do caminho relativo.
@@ -614,29 +636,41 @@ mod tests {
 
     #[test]
     fn test_extract_chandra_blocks_filters_noise() {
-        let blocks: Vec<serde_json::Value> = serde_json::from_str(r#"[
+        let blocks: Vec<serde_json::Value> = serde_json::from_str(
+            r#"[
             {"label": "Section-Header", "content": "RELATORIO", "page": 1},
             {"label": "Text", "content": "Trata-se de recurso especial.", "page": 1},
             {"label": "Page-Header", "content": "fls. 531", "page": 1},
             {"label": "Page-Footer", "content": "Assinado digitalmente", "page": 1},
             {"label": "Table", "content": "<table>dados</table>", "page": 2}
-        ]"#).unwrap();
+        ]"#,
+        )
+        .unwrap();
 
         let result = extract_chandra_blocks(&blocks);
 
         assert!(result.contains("[Section-Header] RELATORIO"));
         assert!(result.contains("[Text] Trata-se de recurso especial."));
-        assert!(!result.contains("fls. 531"), "Page-Header deve ser filtrado");
-        assert!(!result.contains("Assinado digitalmente"), "Page-Footer deve ser filtrado");
+        assert!(
+            !result.contains("fls. 531"),
+            "Page-Header deve ser filtrado"
+        );
+        assert!(
+            !result.contains("Assinado digitalmente"),
+            "Page-Footer deve ser filtrado"
+        );
         assert!(!result.contains("Table"), "Table deve ser filtrado");
     }
 
     #[test]
     fn test_extract_chandra_blocks_skips_empty_content() {
-        let blocks: Vec<serde_json::Value> = serde_json::from_str(r#"[
+        let blocks: Vec<serde_json::Value> = serde_json::from_str(
+            r#"[
             {"label": "Text", "content": "  ", "page": 1},
             {"label": "Text", "content": "Conteudo real.", "page": 1}
-        ]"#).unwrap();
+        ]"#,
+        )
+        .unwrap();
 
         let result = extract_chandra_blocks(&blocks);
 
@@ -645,11 +679,14 @@ mod tests {
 
     #[test]
     fn test_extract_chandra_blocks_preserves_order() {
-        let blocks: Vec<serde_json::Value> = serde_json::from_str(r#"[
+        let blocks: Vec<serde_json::Value> = serde_json::from_str(
+            r#"[
             {"label": "Section-Header", "content": "VOTO", "page": 1},
             {"label": "Text", "content": "Primeiro paragrafo.", "page": 1},
             {"label": "Text", "content": "Segundo paragrafo.", "page": 1}
-        ]"#).unwrap();
+        ]"#,
+        )
+        .unwrap();
 
         let result = extract_chandra_blocks(&blocks);
         let lines: Vec<&str> = result.split("\n\n").collect();

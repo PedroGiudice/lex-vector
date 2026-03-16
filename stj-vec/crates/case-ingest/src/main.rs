@@ -8,7 +8,10 @@ use ingestor::Ingestor;
 use stj_vec_core::embedder::{Embedder, TeiEmbedder};
 
 #[derive(Parser)]
-#[command(name = "case-ingest", about = "Ingestao de documentos por caso juridico")]
+#[command(
+    name = "case-ingest",
+    about = "Ingestao de documentos por caso juridico"
+)]
 struct Cli {
     #[command(subcommand)]
     command: Commands,
@@ -103,7 +106,9 @@ async fn main() -> anyhow::Result<()> {
             let embedder = TeiEmbedder::default_local();
             let query_vec = embedder.embed(&query).await?;
             let filters = stj_vec_core::types::SearchFilters::default();
-            let results = ing.storage.hybrid_search(&query_vec, &query, limit, 0.3, &filters)?;
+            let results = ing
+                .storage
+                .hybrid_search(&query_vec, &query, limit, 0.3, &filters)?;
             if results.is_empty() {
                 println!("Nenhum resultado encontrado.");
             } else {

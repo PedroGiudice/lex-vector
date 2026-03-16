@@ -192,7 +192,11 @@ mod tests {
 
     #[test]
     fn test_short_text_single_chunk() {
-        let result = chunk_legal_text("Texto curto de teste com conteudo suficiente para passar o filtro minimo de tokens.", "doc1", &default_config());
+        let result = chunk_legal_text(
+            "Texto curto de teste com conteudo suficiente para passar o filtro minimo de tokens.",
+            "doc1",
+            &default_config(),
+        );
         assert_eq!(result.chunks.len(), 1);
         assert_eq!(result.doc_id, "doc1");
         assert_eq!(result.chunks[0].chunk_index, 0);

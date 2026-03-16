@@ -12,9 +12,7 @@ use tower_http::services::{ServeDir, ServeFile};
 use stj_vec_search::config::SearchConfig;
 use stj_vec_search::embedder::OnnxEmbedder;
 use stj_vec_search::metadata::MetadataStore;
-use stj_vec_search::routes::{
-    self, AppState,
-};
+use stj_vec_search::routes::{self, AppState};
 use stj_vec_search::searcher::QdrantSearcher;
 
 #[derive(Parser)]
@@ -58,9 +56,7 @@ async fn main() -> anyhow::Result<()> {
 
     // 5. Carregar dicionario de expansao
     let config_base_dir = cli.config.parent().unwrap_or(Path::new("."));
-    config
-        .preprocessing
-        .load_expansion_dict(config_base_dir)?;
+    config.preprocessing.load_expansion_dict(config_base_dir)?;
 
     // 6. Cache de filtros
     let filters_cache = metadata.get_filter_values()?;
@@ -95,8 +91,7 @@ async fn main() -> anyhow::Result<()> {
     let static_dir = &config.server.static_dir;
     let app = if Path::new(static_dir).exists() {
         let index_path = format!("{static_dir}/index.html");
-        let serve_dir = ServeDir::new(static_dir)
-            .not_found_service(ServeFile::new(&index_path));
+        let serve_dir = ServeDir::new(static_dir).not_found_service(ServeFile::new(&index_path));
 
         Router::new()
             .nest("/api", api_routes)
@@ -131,10 +126,7 @@ fn build_cors(origins: &[String]) -> CorsLayer {
             .allow_methods(Any)
             .allow_headers(Any)
     } else {
-        let allowed: Vec<_> = origins
-            .iter()
-            .filter_map(|o| o.parse().ok())
-            .collect();
+        let allowed: Vec<_> = origins.iter().filter_map(|o| o.parse().ok()).collect();
         CorsLayer::new()
             .allow_origin(allowed)
             .allow_methods(Any)

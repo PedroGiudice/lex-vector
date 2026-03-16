@@ -2,6 +2,25 @@
 integras_dir = "/home/opc/juridico-data/stj/integras/textos"
 metadata_dir = "/home/opc/juridico-data/stj/integras/metadata"
 db_path = "db/stj-vec.db"
+espelhos_dir = "/home/opc/juridico-data/stj/espelhos"
+
+[ckan]
+base_url = "https://dadosabertos.web.stj.jus.br"
+integras_dataset = "integras-de-decisoes-terminativas-e-acordaos-do-diario-da-justica"
+espelhos_datasets = [
+    "espelhos-de-acordaos-corte-especial",
+    "espelhos-de-acordaos-primeira-secao",
+    "espelhos-de-acordaos-segunda-secao",
+    "espelhos-de-acordaos-terceira-secao",
+    "espelhos-de-acordaos-primeira-turma",
+    "espelhos-de-acordaos-segunda-turma",
+    "espelhos-de-acordaos-terceira-turma",
+    "espelhos-de-acordaos-quarta-turma",
+    "espelhos-de-acordaos-quinta-turma",
+    "espelhos-de-acordaos-sexta-turma",
+]
+download_timeout_secs = 300
+max_concurrent_downloads = 2
 
 [chunking]
 max_tokens = 512

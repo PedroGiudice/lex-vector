@@ -71,7 +71,12 @@ pub struct IngestStatus {
 pub struct StjMetadata {
     #[serde(alias = "seqDocumento", alias = "SeqDocumento")]
     pub seq_documento: i64,
-    #[serde(alias = "dataPublicacao", alias = "DataPublicacao", default, deserialize_with = "deserialize_date_flexible")]
+    #[serde(
+        alias = "dataPublicacao",
+        alias = "DataPublicacao",
+        default,
+        deserialize_with = "deserialize_date_flexible"
+    )]
     pub data_publicacao: Option<String>,
     #[serde(alias = "tipoDocumento", alias = "TipoDocumento")]
     pub tipo_documento: Option<String>,

@@ -25,7 +25,6 @@ fn default_limit() -> usize {
     10
 }
 
-
 pub async fn health() -> Json<HealthResponse> {
     Json(HealthResponse {
         status: "ok".into(),
@@ -48,9 +47,7 @@ pub async fn get_document(
     Path(id): Path<String>,
 ) -> impl IntoResponse {
     match state.storage.get_document(&id) {
-        Ok(Some(doc)) => {
-            (StatusCode::OK, Json(serde_json::to_value(doc).unwrap())).into_response()
-        }
+        Ok(Some(doc)) => (StatusCode::OK, Json(serde_json::to_value(doc).unwrap())).into_response(),
         Ok(None) => (
             StatusCode::NOT_FOUND,
             Json(serde_json::json!({"error": "document not found"})),
@@ -69,9 +66,7 @@ pub async fn get_document_chunks(
     Path(id): Path<String>,
 ) -> impl IntoResponse {
     match state.storage.get_chunks_by_doc(&id) {
-        Ok(chunks) => {
-            (StatusCode::OK, Json(serde_json::to_value(chunks).unwrap())).into_response()
-        }
+        Ok(chunks) => (StatusCode::OK, Json(serde_json::to_value(chunks).unwrap())).into_response(),
         Err(e) => (
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(serde_json::json!({"error": e.to_string()})),
@@ -101,10 +96,12 @@ pub async fn search(
         state.config.max_results
     };
 
-    match state
-        .storage
-        .search(&embedding, limit, state.config.default_threshold, &req.filters)
-    {
+    match state.storage.search(
+        &embedding,
+        limit,
+        state.config.default_threshold,
+        &req.filters,
+    ) {
         Ok(results) => {
             (StatusCode::OK, Json(serde_json::to_value(results).unwrap())).into_response()
         }

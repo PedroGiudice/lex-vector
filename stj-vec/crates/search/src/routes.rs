@@ -12,8 +12,8 @@ use crate::metadata::MetadataStore;
 use crate::query_preprocessor::{self, PreprocessedQuery};
 use crate::searcher::QdrantSearcher;
 use crate::types::{
-    FiltersResponse, HealthResponse, QueryInfo, Scores, SearchRequest,
-    SearchResponse, SearchResultItem,
+    FiltersResponse, HealthResponse, QueryInfo, Scores, SearchRequest, SearchResponse,
+    SearchResultItem,
 };
 
 /// Estado compartilhado da aplicacao.
@@ -203,31 +203,22 @@ pub async fn document_handler(
     State(state): State<AppState>,
     Path(doc_id): Path<String>,
 ) -> Result<impl IntoResponse, SearchError> {
-    let response = state
-        .metadata
-        .get_document_chunks(&doc_id)
-        .map_err(|e| {
-            if e.to_string().contains("no rows") {
-                SearchError::NotFound(format!("documento {doc_id} nao encontrado"))
-            } else {
-                SearchError::Embedding(e)
-            }
-        })?;
+    let response = state.metadata.get_document_chunks(&doc_id).map_err(|e| {
+        if e.to_string().contains("no rows") {
+            SearchError::NotFound(format!("documento {doc_id} nao encontrado"))
+        } else {
+            SearchError::Embedding(e)
+        }
+    })?;
 
     Ok(Json(response))
 }
 
 /// GET /api/health
-pub async fn health_handler(
-    State(state): State<AppState>,
-) -> impl IntoResponse {
+pub async fn health_handler(State(state): State<AppState>) -> impl IntoResponse {
     let qdrant_ok = state.searcher.health_check().await;
     let sqlite_ok = state.metadata.health_check();
-    let points = state
-        .searcher
-        .collection_point_count()
-        .await
-        .unwrap_or(0);
+    let points = state.searcher.collection_point_count().await.unwrap_or(0);
     let doc_count = state.metadata.document_count().unwrap_or(0);
     let uptime = state.start_time.elapsed().as_secs();
 
@@ -250,8 +241,6 @@ pub async fn health_handler(
 }
 
 /// GET /api/filters
-pub async fn filters_handler(
-    State(state): State<AppState>,
-) -> impl IntoResponse {
+pub async fn filters_handler(State(state): State<AppState>) -> impl IntoResponse {
     Json(state.filters_cache.as_ref().clone())
 }

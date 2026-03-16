@@ -36,10 +36,7 @@ struct Cli {
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     tracing_subscriber::fmt()
-        .with_env_filter(
-            EnvFilter::from_default_env()
-                .add_directive("stj_vec=info".parse()?),
-        )
+        .with_env_filter(EnvFilter::from_default_env().add_directive("stj_vec=info".parse()?))
         .init();
 
     let cli = Cli::parse();
@@ -87,8 +84,7 @@ async fn main() -> anyhow::Result<()> {
     let sock_storage = storage;
     let sock_handle = tokio::spawn(async move {
         let _ = std::fs::remove_file(&socket_path);
-        let listener = UnixListener::bind(&socket_path)
-            .expect("failed to bind unix socket");
+        let listener = UnixListener::bind(&socket_path).expect("failed to bind unix socket");
         tracing::info!("Socket listening on {}", socket_path.display());
 
         loop {
