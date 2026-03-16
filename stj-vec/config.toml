@@ -3,6 +3,7 @@ integras_dir = "/home/opc/juridico-data/stj/integras/textos"
 metadata_dir = "/home/opc/juridico-data/stj/integras/metadata"
 db_path = "db/stj-vec.db"
 espelhos_dir = "/home/opc/juridico-data/stj/espelhos"
+downloads_dir = "/home/opc/juridico-data/stj/downloads"
 
 [ckan]
 base_url = "https://dadosabertos.web.stj.jus.br"

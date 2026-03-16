@@ -3,6 +3,7 @@ use std::path::PathBuf;
 use stj_vec_core::config::AppConfig;
 use tracing_subscriber::EnvFilter;
 
+use stj_vec_ingest::download::DownloadSource;
 use stj_vec_ingest::pipeline::Pipeline;
 
 #[derive(Parser)]
@@ -49,6 +50,25 @@ enum Commands {
         #[arg(short, long, default_value = "/tmp/stj-vec-embeddings")]
         input: PathBuf,
         #[arg(short, long)]
+        limit: Option<usize>,
+    },
+    /// Baixa resources do CKAN (integras e/ou espelhos)
+    Download {
+        /// Fonte de dados para download
+        #[arg(long, value_enum)]
+        source: DownloadSource,
+        /// Limite de resources a baixar (para teste)
+        #[arg(long)]
+        limit: Option<usize>,
+    },
+    /// Extrai ZIPs de integras baixados
+    Extract,
+    /// Enriquece documentos com dados dos espelhos de acordaos
+    Enrich,
+    /// Pipeline completo: download + extract + scan + chunk + enrich
+    Update {
+        /// Limite de downloads por fonte
+        #[arg(long)]
         limit: Option<usize>,
     },
 }
@@ -114,6 +134,38 @@ async fn main() -> anyhow::Result<()> {
                 limit,
             )?;
             println!("Imported {embeddings} embeddings from {sources} sources");
+        }
+        Commands::Download { source, limit } => {
+            let summary = pipeline.download(&source, limit).await?;
+            println!(
+                "Download: {} baixados, {} pulados, {} falhas ({} bytes)",
+                summary.downloaded, summary.skipped, summary.failed, summary.bytes_downloaded
+            );
+        }
+        Commands::Extract => {
+            let summary = pipeline.extract_pending()?;
+            println!(
+                "Extracao: {} extraidos, {} pulados",
+                summary.extracted, summary.skipped
+            );
+        }
+        Commands::Enrich => {
+            let summary = pipeline.enrich()?;
+            println!(
+                "Enrich: {} arquivos, {} espelhos carregados",
+                summary.files_processed, summary.espelhos_loaded
+            );
+            println!(
+                "  {} matched, {} atualizados, {} sem match",
+                summary.matched, summary.updated, summary.unmatched
+            );
+        }
+        Commands::Update { limit } => {
+            pipeline.update(limit).await?;
+            let stats = pipeline.stats()?;
+            println!("Update concluido:");
+            println!("  Documents:  {}", stats.document_count);
+            println!("  Chunks:     {}", stats.chunk_count);
         }
     }
     Ok(())

@@ -20,6 +20,9 @@ pub struct DataConfig {
     /// Diretorio dos JSONs de espelhos de acordaos (por orgao julgador)
     #[serde(default)]
     pub espelhos_dir: Option<String>,
+    /// Diretorio para downloads brutos (ZIPs, manifests)
+    #[serde(default)]
+    pub downloads_dir: Option<String>,
 }
 
 /// Configuracao do portal CKAN do STJ (dados abertos)

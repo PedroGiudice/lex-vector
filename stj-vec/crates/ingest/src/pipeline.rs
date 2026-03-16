@@ -10,9 +10,12 @@ use stj_vec_core::config::AppConfig;
 use stj_vec_core::storage::Storage;
 use stj_vec_core::types::{Chunk, DbStats, Document, StjMetadata};
 
+use crate::download::{self, DownloadSource, DownloadSummary};
+use crate::enrich::{self, EnrichSummary};
 use crate::scanner::{find_new_sources, scan_integras_dir, SourceDir};
+use crate::unzip;
 
-/// Pipeline de ingestion: scan, chunk, embed.
+/// Pipeline de ingestion: scan, chunk, embed, download, enrich.
 pub struct Pipeline {
     storage: Storage,
     config: AppConfig,
@@ -170,6 +173,148 @@ impl Pipeline {
     pub fn reset(&self, source: &str) -> Result<()> {
         self.storage.reset_ingest(source)
     }
+
+    // -----------------------------------------------------------------------
+    // Novos metodos: download, enrich, update
+    // -----------------------------------------------------------------------
+
+    /// Baixa resources do CKAN conforme a fonte especificada.
+    pub async fn download(
+        &self,
+        source: &DownloadSource,
+        limit: Option<usize>,
+    ) -> Result<DownloadSummary> {
+        let ckan_config = self
+            .config
+            .ckan
+            .as_ref()
+            .context("secao [ckan] nao configurada no config.toml")?;
+
+        let client = download::create_client(ckan_config)?;
+        let mut total = DownloadSummary::default();
+
+        match source {
+            DownloadSource::Espelhos => {
+                let espelhos_dir = self.espelhos_dir()?;
+                let summary =
+                    download::download_espelhos(&client, ckan_config, &espelhos_dir, limit).await?;
+                total.merge(&summary);
+            }
+            DownloadSource::Integras => {
+                let downloads_dir = self.downloads_dir()?;
+                let summary =
+                    download::download_integras(&client, ckan_config, &downloads_dir, limit)
+                        .await?;
+                total.merge(&summary);
+            }
+            DownloadSource::All => {
+                let espelhos_dir = self.espelhos_dir()?;
+                let summary =
+                    download::download_espelhos(&client, ckan_config, &espelhos_dir, limit).await?;
+                total.merge(&summary);
+
+                let downloads_dir = self.downloads_dir()?;
+                let summary =
+                    download::download_integras(&client, ckan_config, &downloads_dir, limit)
+                        .await?;
+                total.merge(&summary);
+            }
+        }
+
+        Ok(total)
+    }
+
+    /// Extrai ZIPs de integras baixados e copia metadados.
+    pub fn extract_pending(&self) -> Result<unzip::ExtractSummary> {
+        let downloads_dir = self.downloads_dir()?;
+        unzip::extract_all_pending_zips(&downloads_dir, &self.integras_dir, &self.metadata_dir)
+    }
+
+    /// Enriquece documentos com dados dos espelhos de acordaos.
+    pub fn enrich(&self) -> Result<EnrichSummary> {
+        let espelhos_dir = self.espelhos_dir()?;
+        enrich::enrich_from_espelhos(&self.storage, &espelhos_dir)
+    }
+
+    /// Pipeline completo: download + extract + scan + chunk + enrich.
+    pub async fn update(&self, limit: Option<usize>) -> Result<()> {
+        info!("=== DOWNLOAD ===");
+        let dl_summary = self.download(&DownloadSource::All, limit).await?;
+        info!(
+            downloaded = dl_summary.downloaded,
+            skipped = dl_summary.skipped,
+            failed = dl_summary.failed,
+            bytes = dl_summary.bytes_downloaded,
+            "download concluido"
+        );
+
+        info!("=== EXTRACT ===");
+        let ext_summary = self.extract_pending()?;
+        info!(
+            extracted = ext_summary.extracted,
+            skipped = ext_summary.skipped,
+            "extracao concluida"
+        );
+
+        info!("=== SCAN ===");
+        let sources = self.scan()?;
+        info!(sources = sources.len(), "scan concluido");
+
+        info!("=== CHUNK ===");
+        self.chunk_pending()?;
+        info!("chunking concluido");
+
+        info!("=== ENRICH ===");
+        let enrich_summary = self.enrich()?;
+        info!(
+            matched = enrich_summary.matched,
+            updated = enrich_summary.updated,
+            unmatched = enrich_summary.unmatched,
+            "enriquecimento concluido"
+        );
+
+        let stats = self.stats()?;
+        info!(
+            docs = stats.document_count,
+            chunks = stats.chunk_count,
+            "pipeline update finalizado"
+        );
+
+        Ok(())
+    }
+
+    // -----------------------------------------------------------------------
+    // Helpers internos
+    // -----------------------------------------------------------------------
+
+    /// Retorna o diretorio de espelhos configurado.
+    fn espelhos_dir(&self) -> Result<PathBuf> {
+        self.config
+            .data
+            .espelhos_dir
+            .as_ref()
+            .map(PathBuf::from)
+            .context("espelhos_dir nao configurado em [data]")
+    }
+
+    /// Retorna o diretorio de downloads configurado.
+    fn downloads_dir(&self) -> Result<PathBuf> {
+        self.config
+            .data
+            .downloads_dir
+            .as_ref()
+            .map(PathBuf::from)
+            .context("downloads_dir nao configurado em [data]")
+    }
+}
+
+impl DownloadSummary {
+    fn merge(&mut self, other: &DownloadSummary) {
+        self.skipped += other.skipped;
+        self.downloaded += other.downloaded;
+        self.failed += other.failed;
+        self.bytes_downloaded += other.bytes_downloaded;
+    }
 }
 
 /// Converte epoch milliseconds para "YYYY-MM-DD".
@@ -247,6 +392,7 @@ mod tests {
                 metadata_dir: metadata.to_str().unwrap().into(),
                 db_path: dir.path().join("test.db").to_str().unwrap().into(),
                 espelhos_dir: None,
+                downloads_dir: None,
             },
             ckan: None,
             chunking: stj_vec_core::config::ChunkingConfig {
