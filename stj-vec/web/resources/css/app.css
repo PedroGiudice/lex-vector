@@ -1,6 +1,7 @@
 @import 'tailwindcss';
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../vendor/brandymedia/turbine-ui-core/**/*.php';
 @source '../../storage/framework/views/*.php';
 @source '../**/*.blade.php';
 @source '../**/*.js';
@@ -8,6 +9,7 @@
 @theme {
     --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
+    --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 
     --color-navy-50: #f0f4f8;
     --color-navy-100: #d9e2ec;
@@ -19,4 +21,68 @@
     --color-navy-700: #334e68;
     --color-navy-800: #243b53;
     --color-navy-900: #1B365D;
+}
+
+/* Surface hierarchy (light theme) */
+:root {
+    --surface-page: #f7f9fb;
+    --surface-card: #ffffff;
+    --surface-raised: #f0f4f8;
+    --surface-overlay: #e8eef4;
+    --border-subtle: rgba(27, 54, 93, 0.08);
+    --border-default: rgba(27, 54, 93, 0.12);
+    --text-primary: #1B365D;
+    --text-secondary: #486581;
+    --text-muted: #829ab1;
+    --text-ghost: #9fb3c8;
+    --accent-warm: #c8956c;
+    --accent-green: #16a34a;
+    --accent-amber: #d97706;
+    --highlight-bg: rgba(200, 149, 108, 0.12);
+}
+
+body {
+    background-color: var(--surface-page);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* Result card interaction states */
+.result-card {
+    border-left: 3px solid transparent;
+    transition: border-color 0.15s, box-shadow 0.15s, background-color 0.15s;
+}
+
+.result-card:hover {
+    border-left-color: var(--accent-warm);
+    box-shadow: 0 2px 8px rgba(27, 54, 93, 0.06);
+}
+
+/* Relevance bar */
+.relevance-bar {
+    height: 3px;
+    border-radius: 2px;
+    background-color: rgba(27, 54, 93, 0.06);
+    overflow: hidden;
+}
+
+.relevance-bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.3s ease;
+}
+
+/* Search highlight */
+mark.search-highlight {
+    background-color: var(--highlight-bg);
+    color: var(--text-primary);
+    padding: 0 2px;
+    border-radius: 2px;
+    font-weight: 500;
+}
+
+/* Angle group header */
+.angle-header {
+    border-left: 3px solid var(--accent-warm);
+    padding-left: 12px;
 }
