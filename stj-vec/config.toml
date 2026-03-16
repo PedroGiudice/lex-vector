@@ -42,8 +42,4 @@ url = "http://100.114.203.28:11434/api/embeddings"
 model = "bge-m3"
 timeout_secs = 10
 
-[server]
-socket = "/tmp/stj-vec.sock"
-port = 8421
-max_results = 20
-default_threshold = 0.3
+# Server de busca: configuracao em search-config.toml (crate search/Qdrant)

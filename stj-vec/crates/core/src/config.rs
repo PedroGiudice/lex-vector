@@ -6,7 +6,6 @@ pub struct AppConfig {
     pub data: DataConfig,
     pub chunking: ChunkingConfig,
     pub embedding: EmbeddingConfig,
-    pub server: ServerConfig,
     /// Configuracao CKAN (opcional -- necessaria apenas para download/enrich)
     #[serde(default)]
     pub ckan: Option<CkanConfig>,
@@ -107,13 +106,6 @@ pub struct OllamaConfig {
     pub timeout_secs: u64,
 }
 
-#[derive(Debug, Clone, Deserialize)]
-pub struct ServerConfig {
-    pub socket: String,
-    pub port: u16,
-    pub max_results: usize,
-    pub default_threshold: f64,
-}
 
 impl AppConfig {
     /// Carrega config de um arquivo TOML
@@ -162,17 +154,11 @@ url = "http://localhost:11434/api/embeddings"
 model = "bge-m3"
 timeout_secs = 10
 
-[server]
-socket = "/tmp/stj-vec.sock"
-port = 8421
-max_results = 20
-default_threshold = 0.3
 "#;
         let config: AppConfig = toml::from_str(toml_str).unwrap();
         assert_eq!(config.data.integras_dir, "/tmp/integras");
         assert_eq!(config.chunking.max_tokens, 512);
         assert_eq!(config.embedding.dim, 0);
         assert!(!config.embedding_enabled());
-        assert_eq!(config.server.port, 8421);
     }
 }

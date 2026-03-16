@@ -414,12 +414,6 @@ mod tests {
                     timeout_secs: 10,
                 },
             },
-            server: stj_vec_core::config::ServerConfig {
-                socket: String::new(),
-                port: 0,
-                max_results: 20,
-                default_threshold: 0.3,
-            },
         };
 
         let pipeline = Pipeline::new(config).unwrap();
