@@ -59,26 +59,20 @@ class DecomposedSearch extends Component
         }
 
         $runner = $this->runner();
-
-        if (! $runner->isComplete($this->searchId)) {
-            if ($runner->isProcessDead($this->searchId)) {
-                $this->status = 'error';
-            }
-
-            return;
-        }
-
         $result = $runner->getResult($this->searchId);
 
-        if ($result === null) {
-            $this->status = 'error';
+        if ($result !== null) {
+            $this->results = $result['results'] ?? [];
+            $this->decomposition = $result['decomposition'] ?? null;
+            $this->status = 'completed';
 
             return;
         }
 
-        $this->results = $result['results'] ?? [];
-        $this->decomposition = $result['decomposition'] ?? null;
-        $this->status = 'completed';
+        // No result yet -- check if the process died without producing output
+        if ($runner->isProcessDead($this->searchId)) {
+            $this->status = 'error';
+        }
     }
 
     public function cancelSearch(): void
