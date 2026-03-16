@@ -1,4 +1,17 @@
 <div>
+    {{-- Driver selector --}}
+    <div class="mb-3 flex items-center gap-3">
+        <span class="text-xs text-navy-400 font-medium">Motor:</span>
+        <label class="inline-flex items-center gap-1.5 cursor-pointer">
+            <input type="radio" wire:model="driver" value="cli" class="accent-navy-700" @if($status === 'searching') disabled @endif>
+            <span class="text-xs text-navy-600">CLI (claude agent)</span>
+        </label>
+        <label class="inline-flex items-center gap-1.5 cursor-pointer">
+            <input type="radio" wire:model="driver" value="sdk" class="accent-navy-700" @if($status === 'searching') disabled @endif>
+            <span class="text-xs text-navy-600">SDK (bun + anthropic)</span>
+        </label>
+    </div>
+
     {{-- Search Form --}}
     <form wire:submit="startSearch" class="mb-6">
         <div class="flex gap-2">

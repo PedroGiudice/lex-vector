@@ -12,6 +12,8 @@ class DecomposedSearch extends Component
     #[Validate('required|string|min:3|max:500')]
     public string $query = '';
 
+    public string $driver = 'cli';
+
     public ?string $searchId = null;
 
     public string $status = 'idle';
@@ -39,8 +41,7 @@ class DecomposedSearch extends Component
         $this->results = null;
         $this->decomposition = null;
 
-        $runner = app(AgentRunnerInterface::class);
-        $runner->start($this->searchId, $this->query);
+        $this->runner()->start($this->searchId, $this->query);
     }
 
     public function checkResult(): void
@@ -57,7 +58,7 @@ class DecomposedSearch extends Component
             return;
         }
 
-        $runner = app(AgentRunnerInterface::class);
+        $runner = $this->runner();
 
         if (! $runner->isComplete($this->searchId)) {
             if ($runner->isProcessDead($this->searchId)) {
@@ -83,11 +84,17 @@ class DecomposedSearch extends Component
     public function cancelSearch(): void
     {
         if ($this->searchId !== null) {
-            $runner = app(AgentRunnerInterface::class);
-            $runner->cancel($this->searchId);
+            $this->runner()->cancel($this->searchId);
         }
 
         $this->reset(['searchId', 'status', 'results', 'decomposition', 'startedAt', 'elapsedSeconds']);
+    }
+
+    private function runner(): AgentRunnerInterface
+    {
+        config(['services.agent.driver' => $this->driver]);
+
+        return app(AgentRunnerInterface::class);
     }
 
     public function render(): \Illuminate\View\View
