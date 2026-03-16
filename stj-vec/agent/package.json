@@ -1,0 +1,12 @@
+{
+  "name": "stj-vec-agent",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "decompose": "bun run src/decompose.ts"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "latest",
+    "zod": "4"
+  }
+}

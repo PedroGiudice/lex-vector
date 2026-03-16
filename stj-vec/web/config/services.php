@@ -44,6 +44,9 @@ return [
         'claude_bin' => env('CLAUDE_BIN', '/home/opc/.local/bin/claude'),
         'model' => env('AGENT_MODEL', 'sonnet'),
         'timeout' => (int) env('AGENT_TIMEOUT', 600),
+        'sdk_script' => env('AGENT_SDK_SCRIPT', '/home/opc/lex-vector/stj-vec/agent/src/decompose.ts'),
+        'bun_bin' => env('BUN_BIN', '/home/opc/.bun/bin/bun'),
+        'driver' => env('AGENT_DRIVER', 'cli'),
     ],
 
 ];
