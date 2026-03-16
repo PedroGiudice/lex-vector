@@ -272,7 +272,7 @@ form.addEventListener('submit', async (e) => {
                         ${classe ? `<span class="bg-gray-100 text-gray-600 px-2 py-0.5 rounded">${classe}</span>` : ''}
                         <a href="${docUrl}" class="text-navy-700 font-medium hover:text-navy-500 hover:underline">${processo}</a>
                     </div>
-                    <span class="text-xs font-mono ${item.scores.rrf >= 0.7 ? 'text-green-600' : item.scores.rrf >= 0.4 ? 'text-yellow-600' : 'text-gray-400'} whitespace-nowrap ml-2">${item.scores.rrf.toFixed(4)}</span>
+                    <span class="text-xs font-mono ${item.scores.rrf >= 0.025 ? 'text-green-600' : item.scores.rrf >= 0.015 ? 'text-yellow-600' : 'text-gray-400'} whitespace-nowrap ml-2">#${i + 1} <span class="opacity-60">${item.scores.rrf.toFixed(4)}</span></span>
                 </div>
                 <p class="text-sm text-gray-700 leading-relaxed mb-3">${highlightTerms(item.content, query)}</p>
                 <div class="flex justify-between items-center text-xs text-gray-400">

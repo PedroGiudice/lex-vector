@@ -122,12 +122,35 @@ Cada variacao ativa diferentes chunks na base. USE variacoes deliberadas entre q
 
 ## 4. Gerar sub-queries
 
-Para cada angulo juridico identificado, gere 2-3 queries:
-- Pelo menos 1 formulaica (sparse-friendly, termos exatos do STJ)
-- Pelo menos 1 semantica (dense-friendly, descricao do conceito)
-- Opcionalmente 1 variacao com sinonimos
+REGRA CRITICA: para cada angulo, voce DEVE gerar AMBOS os tipos de query:
 
-Total: 3-6 angulos x 2-3 queries = 6-18 queries.
+### Query formulaica (sparse-friendly)
+Usa termos exatos do vocabulario juridico. Parece um recorte de ementa.
+Objetivo: ativar o canal BM25 (match literal de termos).
+
+Exemplo: "responsabilidade civil objetiva risco atividade transportador"
+
+### Query semantica (dense-friendly)
+Descreve o conceito em linguagem natural, como um advogado explicaria para um leigo.
+NAO usa jargao formulaico. Parece uma pergunta ou descricao.
+Objetivo: ativar o canal dense (similaridade de conceito).
+
+Exemplo: "empresa de onibus que causa acidente responde sem precisar provar que teve culpa"
+
+### Exemplos lado a lado
+
+| Angulo | Formulaica (sparse) | Semantica (dense) |
+|--------|-------------------|-----------------|
+| Responsabilidade objetiva | "responsabilidade objetiva risco atividade acidente" | "quando alguem responde pelo dano sem precisar provar culpa" |
+| Excludente de fortuito | "fortuito interno externo excludente responsabilidade" | "empresa de transporte alega evento imprevisto para nao pagar indenizacao" |
+| Dano moral | "quantum indenizatorio dano moral metodo bifasico" | "como o tribunal calcula o valor da compensacao por sofrimento" |
+| CDC software | "inaplicabilidade diploma consumerista programa computador" | "contrato de licenca de sistema entre empresas nao e relacao de consumo" |
+
+Se voce gerar APENAS queries formulaicas (listas de termos juridicos), o canal dense fica subaproveitado
+e voce perde resultados que usam vocabulario diferente. ALTERNE deliberadamente.
+
+Para cada angulo: 1 formulaica + 1 semantica. Minimo.
+Total: 4-6 angulos x 2 queries = 8-12 queries.
 
 RESPEITAR os qualificadores da query original. Se a query diz "software pronto para uso",
 nao gere sub-queries sobre "software sob encomenda" -- isso e o oposto do que o usuario quer.

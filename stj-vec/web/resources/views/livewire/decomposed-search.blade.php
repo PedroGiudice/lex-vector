@@ -129,8 +129,8 @@
                                     @endif
                                 </div>
                                 @if(!empty($item['scores']['rrf']))
-                                    <span class="text-sm font-mono font-medium {{ $item['scores']['rrf'] >= 0.7 ? 'text-green-600' : ($item['scores']['rrf'] >= 0.4 ? 'text-yellow-600' : 'text-gray-500') }}">
-                                        {{ number_format($item['scores']['rrf'], 2) }}
+                                    <span class="text-sm font-mono font-medium {{ $item['scores']['rrf'] >= 0.025 ? 'text-green-600' : ($item['scores']['rrf'] >= 0.015 ? 'text-yellow-600' : 'text-gray-500') }}">
+                                        #{{ $loop->iteration }} <span class="opacity-60">{{ number_format($item['scores']['rrf'], 4) }}</span>
                                     </span>
                                 @endif
                             </div>
