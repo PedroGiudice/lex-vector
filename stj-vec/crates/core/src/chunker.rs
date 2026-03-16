@@ -56,6 +56,48 @@ pub fn estimate_tokens(text: &str) -> usize {
     text.len() / 4
 }
 
+/// Headers de secao em acordaos/decisoes do STJ.
+/// Quando encontrado, forca quebra de chunk para nao misturar secoes.
+const SECTION_HEADERS: &[&str] = &[
+    "EMENTA",
+    "ACÓRDÃO",
+    "ACORDÃO",
+    "RELATÓRIO",
+    "RELATORIO",
+    "VOTO",
+    "DECISÃO",
+    "DECISAO",
+    "DECIDO",
+];
+
+/// Prefixos numerados usados no formato estruturado novo do STJ.
+const NUMBERED_PREFIXES: &[&str] = &[
+    "I. ",
+    "II. ",
+    "III. ",
+    "IV. ",
+    "V. ",
+];
+
+/// Verifica se uma linha e um header de secao juridica.
+fn is_section_header(line: &str) -> bool {
+    let trimmed = line.trim().trim_end_matches('.');
+    if SECTION_HEADERS.iter().any(|h| trimmed.eq_ignore_ascii_case(h)) {
+        return true;
+    }
+    // "É O RELATÓRIO" e variantes
+    if trimmed.to_uppercase().starts_with("É O RELATÓRIO")
+        || trimmed.to_uppercase().starts_with("E O RELATORIO")
+    {
+        return true;
+    }
+    // Formato numerado: "I. CASO EM EXAME", "II. QUESTÃO EM DISCUSSÃO", etc.
+    let upper = trimmed.to_uppercase();
+    NUMBERED_PREFIXES
+        .iter()
+        .any(|prefix| upper.starts_with(prefix) && trimmed.len() < 60)
+}
+
 /// Converte texto juridico em chunks com overlap.
 ///
 /// 1. Strip HTML
@@ -100,9 +142,14 @@ pub fn chunk_legal_text(text: &str, doc_id: &str, config: &ChunkingConfig) -> Ch
     for para in &split_paras {
         let para_tokens = estimate_tokens(para);
         let current_tokens = estimate_tokens(&current_text);
+        let section_break = is_section_header(para);
 
-        // Se adicionar este paragrafo excede max_tokens, finalizar chunk atual
-        if current_tokens > 0 && current_tokens + para_tokens > config.max_tokens {
+        // Finalizar chunk atual se: excede max_tokens OU encontrou header de secao
+        let should_flush =
+            (current_tokens > 0 && current_tokens + para_tokens > config.max_tokens)
+                || (section_break && current_tokens > 0);
+
+        if should_flush {
             if estimate_tokens(&current_text) >= config.min_chunk_tokens {
                 let id = format!("{:x}", md5::compute(format!("{}-{}", doc_id, chunk_index)));
                 let token_count = estimate_tokens(&current_text);
@@ -115,15 +162,18 @@ pub fn chunk_legal_text(text: &str, doc_id: &str, config: &ChunkingConfig) -> Ch
                 chunk_index += 1;
             }
 
-            // Overlap: pegar o final do chunk anterior
-            let overlap_bytes = config.overlap_tokens * 4;
-            if current_text.len() > overlap_bytes {
-                let start = current_text.len() - overlap_bytes;
-                // Avançar até encontrar char boundary válido
-                let start = current_text.ceil_char_boundary(start);
-                current_text = current_text[start..].to_string();
+            if section_break {
+                // Sem overlap entre secoes -- corte limpo
+                current_text = String::new();
+            } else {
+                // Overlap: pegar o final do chunk anterior
+                let overlap_bytes = config.overlap_tokens * 4;
+                if current_text.len() > overlap_bytes {
+                    let start = current_text.len() - overlap_bytes;
+                    let start = current_text.ceil_char_boundary(start);
+                    current_text = current_text[start..].to_string();
+                }
             }
-            // Nao limpar current_text se for menor que overlap
         }
 
         if !current_text.is_empty() && !current_text.ends_with('\n') {
@@ -219,8 +269,9 @@ mod tests {
 
     #[test]
     fn test_real_stj_html() {
-        let text = "DECISÃO<br>Trata-se de agravo.<br>É o relatório.<br>DECIDO.";
+        let text = "DECISÃO<br>Trata-se de agravo interposto contra decisao que inadmitiu recurso especial fundamentado no art. 105 da CF.<br>É o relatório.<br>DECIDO.";
         let result = chunk_legal_text(text, "12345", &default_config());
+        assert!(!result.chunks.is_empty(), "should produce at least 1 chunk");
         assert!(!result.chunks[0].content.contains("<br>"));
         assert!(result.chunks[0].content.contains("DECISÃO"));
     }
@@ -242,5 +293,112 @@ mod tests {
         };
         let result = chunk_legal_text("Curto.", "doc1", &config);
         assert_eq!(result.chunks.len(), 0, "should discard tiny chunk");
+    }
+
+    #[test]
+    fn test_is_section_header() {
+        assert!(is_section_header("EMENTA"));
+        assert!(is_section_header("VOTO"));
+        assert!(is_section_header("DECISÃO"));
+        assert!(is_section_header("DECIDO."));
+        assert!(is_section_header("RELATÓRIO"));
+        assert!(is_section_header("ACÓRDÃO"));
+        assert!(is_section_header("I. CASO EM EXAME"));
+        assert!(is_section_header("II. QUESTÃO EM DISCUSSÃO"));
+        assert!(is_section_header("III. RAZÕES DE DECIDIR"));
+        assert!(is_section_header("IV. DISPOSITIVO E TESE"));
+        assert!(is_section_header("É o relatório. Segue a fundamentação"));
+        // Nao deve ser header
+        assert!(!is_section_header("O relator votou pela procedencia do recurso."));
+        assert!(!is_section_header("Este e um paragrafo normal de texto juridico com conteudo longo."));
+    }
+
+    #[test]
+    fn test_section_aware_chunking_no_cross_section() {
+        let config = ChunkingConfig {
+            max_tokens: 512,
+            overlap_tokens: 64,
+            min_chunk_tokens: 10,
+        };
+        // Simula texto com EMENTA seguida de VOTO -- devem estar em chunks separados
+        let text = format!(
+            "EMENTA\n{}\nVOTO\n{}",
+            "Trata-se de recurso especial interposto contra acordao do tribunal de origem. ".repeat(3),
+            "Acompanho o relator no entendimento de que o recurso merece provimento. ".repeat(3),
+        );
+        let result = chunk_legal_text(&text, "doc1", &config);
+        assert!(result.chunks.len() >= 2, "should have at least 2 chunks, got {}", result.chunks.len());
+
+        // Nenhum chunk deve conter EMENTA + VOTO juntos
+        for chunk in &result.chunks {
+            let has_ementa_content = chunk.content.contains("recurso especial");
+            let has_voto_content = chunk.content.contains("Acompanho o relator");
+            assert!(
+                !(has_ementa_content && has_voto_content),
+                "chunk should not mix EMENTA and VOTO content: {}",
+                &chunk.content[..chunk.content.len().min(100)]
+            );
+        }
+    }
+
+    #[test]
+    fn test_section_aware_real_stj_format() {
+        let config = ChunkingConfig {
+            max_tokens: 512,
+            overlap_tokens: 64,
+            min_chunk_tokens: 10,
+        };
+        let text = [
+            "DECISÃO",
+            "Trata-se de agravo interposto contra decisao que inadmitiu recurso especial.",
+            "O recorrente sustenta violacao ao art. 1.022 do CPC.",
+            "I. CASO EM EXAME",
+            "Agravo em recurso especial interposto contra acordao do tribunal de origem.",
+            "II. QUESTÃO EM DISCUSSÃO",
+            "Verificar se houve violacao ao art. 1.022 do CPC.",
+            "III. RAZÕES DE DECIDIR",
+            "O recurso nao merece prosperar pois o acordao recorrido analisou todas as questoes.",
+            "IV. DISPOSITIVO E TESE",
+            "Ante o exposto, nego provimento ao agravo.",
+        ]
+        .join("\n");
+
+        let result = chunk_legal_text(&text, "doc1", &config);
+        // Deve ter pelo menos 3 chunks (DECISAO, I+II, III+IV ou similar)
+        assert!(result.chunks.len() >= 2, "expected >= 2 chunks, got {}", result.chunks.len());
+
+        // DECISAO e RAZOES DE DECIDIR nao devem estar no mesmo chunk
+        for chunk in &result.chunks {
+            let has_decisao = chunk.content.starts_with("DECISÃO")
+                || chunk.content.contains("\nDECISÃO");
+            let has_razoes = chunk.content.contains("RAZÕES DE DECIDIR");
+            assert!(
+                !(has_decisao && has_razoes),
+                "DECISAO and RAZOES should be in separate chunks"
+            );
+        }
+    }
+
+    #[test]
+    fn test_section_break_no_overlap() {
+        let config = ChunkingConfig {
+            max_tokens: 100,
+            overlap_tokens: 20,
+            min_chunk_tokens: 10,
+        };
+        let text = format!(
+            "EMENTA\n{}\nVOTO\n{}",
+            "Conteudo da ementa com palavras suficientes para testar. ".repeat(2),
+            "Conteudo do voto com texto diferente para validar. ".repeat(2),
+        );
+        let result = chunk_legal_text(&text, "doc1", &config);
+        assert!(result.chunks.len() >= 2);
+
+        // O chunk do VOTO nao deve conter texto da EMENTA (sem overlap entre secoes)
+        let voto_chunk = result.chunks.iter().find(|c| c.content.contains("VOTO")).unwrap();
+        assert!(
+            !voto_chunk.content.contains("ementa"),
+            "VOTO chunk should not contain EMENTA text (no cross-section overlap)"
+        );
     }
 }

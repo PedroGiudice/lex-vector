@@ -30,13 +30,15 @@ CREATE TABLE IF NOT EXISTS documents (
     teor TEXT,
     tipo TEXT,
     chunk_count INTEGER DEFAULT 0,
-    source_file TEXT
+    source_file TEXT,
+    processo_digits TEXT
 );
 
 CREATE INDEX IF NOT EXISTS idx_docs_processo ON documents(processo);
 CREATE INDEX IF NOT EXISTS idx_docs_ministro ON documents(ministro);
 CREATE INDEX IF NOT EXISTS idx_docs_data ON documents(data_publicacao);
 CREATE INDEX IF NOT EXISTS idx_docs_tipo ON documents(tipo);
+CREATE INDEX IF NOT EXISTS idx_documents_processo_digits ON documents(processo_digits);
 
 CREATE TABLE IF NOT EXISTS chunks (
     id TEXT PRIMARY KEY,
@@ -153,10 +155,13 @@ impl Storage {
     /// Insere ou atualiza documento
     pub fn insert_document(&self, doc: &Document) -> Result<()> {
         let conn = self.lock()?;
+        let processo_digits: Option<String> = doc.processo.as_ref().map(|p| {
+            p.chars().filter(|c| c.is_ascii_digit()).collect()
+        });
         conn.execute(
             "INSERT OR REPLACE INTO documents (id, processo, classe, ministro, orgao_julgador,
-             data_publicacao, data_julgamento, assuntos, teor, tipo, chunk_count, source_file)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)",
+             data_publicacao, data_julgamento, assuntos, teor, tipo, chunk_count, source_file, processo_digits)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)",
             params![
                 doc.id,
                 doc.processo,
@@ -170,6 +175,7 @@ impl Storage {
                 doc.tipo,
                 doc.chunk_count,
                 doc.source_file,
+                processo_digits,
             ],
         )?;
         Ok(())
@@ -678,9 +684,9 @@ impl Storage {
 
     // === Enrich ===
 
-    /// Busca documentos cujo campo `processo` contem os digitos informados.
+    /// Busca documentos cujo campo `processo_digits` corresponde exatamente.
     ///
-    /// Extrai apenas digitos de `documents.processo` e compara com `digits`.
+    /// Usa indice `idx_documents_processo_digits` para busca O(log n).
     /// Retorna tuplas `(id, processo, classe, orgao_julgador, data_julgamento, ministro)`.
     pub fn find_documents_by_processo_digits(
         &self,
@@ -696,15 +702,13 @@ impl Storage {
         )>,
     > {
         let conn = self.lock()?;
-        // SQLite nao tem regex nativo, entao buscamos candidatos com LIKE
-        // e filtramos em Rust extraindo apenas digitos
         let mut stmt = conn.prepare(
             "SELECT id, processo, classe, orgao_julgador, data_julgamento, ministro
-             FROM documents WHERE processo IS NOT NULL AND processo != ''",
+             FROM documents WHERE processo_digits = ?1",
         )?;
 
         let rows = stmt
-            .query_map([], |row| {
+            .query_map([digits], |row| {
                 Ok((
                     row.get::<_, String>(0)?,
                     row.get::<_, String>(1)?,
@@ -715,10 +719,6 @@ impl Storage {
                 ))
             })?
             .filter_map(|r| r.ok())
-            .filter(|(_, processo, _, _, _, _)| {
-                let proc_digits: String = processo.chars().filter(|c| c.is_ascii_digit()).collect();
-                proc_digits == digits
-            })
             .collect();
 
         Ok(rows)
