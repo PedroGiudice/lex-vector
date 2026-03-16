@@ -6,8 +6,34 @@ import { fileURLToPath } from "url";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const RUST_API = process.env.STJ_SEARCH_URL ?? "http://localhost:8421";
 const MODEL = "claude-sonnet-4-6";
-const MAX_TOKENS = 16000;
+const MAX_TOKENS = 8000;
 const MAX_ITERATIONS = 15;
+
+// --- Types ---
+
+interface SearchCall {
+  query: string;
+  filters?: Record<string, string>;
+  limit?: number;
+}
+
+interface SearchResult {
+  doc_id: string;
+  processo?: string;
+  classe?: string;
+  ministro?: string;
+  data_publicacao?: string;
+  tipo?: string;
+  orgao_julgador?: string;
+  content?: string;
+  scores?: { dense: number; sparse: number; rrf: number };
+}
+
+interface CollectedAngle {
+  query: string;
+  filters?: Record<string, string>;
+  results: SearchResult[];
+}
 
 // --- Tool Definitions ---
 
@@ -19,7 +45,7 @@ const tools: Anthropic.Tool[] = [
     input_schema: {
       type: "object" as const,
       properties: {
-        query: { type: "string", description: "Query de busca" },
+        query: { type: "string", description: "Query de busca (5-10 palavras, vocabulario STJ)" },
         limit: { type: "integer", description: "Max resultados (default 10)" },
         filters: {
           type: "object",
@@ -66,14 +92,12 @@ async function executeTool(
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(input),
       });
-      if (!res.ok)
-        return JSON.stringify({ error: `HTTP ${res.status}` });
+      if (!res.ok) return JSON.stringify({ error: `HTTP ${res.status}` });
       return JSON.stringify(await res.json());
     }
     case "stj_filters": {
       const res = await fetch(`${RUST_API}/api/filters`);
-      if (!res.ok)
-        return JSON.stringify({ error: `HTTP ${res.status}` });
+      if (!res.ok) return JSON.stringify({ error: `HTTP ${res.status}` });
       return JSON.stringify(await res.json());
     }
     case "stj_document": {
@@ -81,8 +105,7 @@ async function executeTool(
       const res = await fetch(
         `${RUST_API}/api/document/${encodeURIComponent(docId)}`,
       );
-      if (!res.ok)
-        return JSON.stringify({ error: `HTTP ${res.status}` });
+      if (!res.ok) return JSON.stringify({ error: `HTTP ${res.status}` });
       return JSON.stringify(await res.json());
     }
     default:
@@ -93,41 +116,67 @@ async function executeTool(
 // --- System Prompt ---
 
 function loadSystemPrompt(): string {
-  const agentPath = resolve(
-    __dirname,
-    "../../..",
-    ".claude/agents/query-decomposer.md",
-  );
+  const promptPath = resolve(__dirname, "../prompts/decomposer.md");
   try {
-    const content = readFileSync(agentPath, "utf-8");
-    const match = content.match(/^---[\s\S]*?---\n([\s\S]*)$/);
-    return match ? match[1].trim() : content;
+    return readFileSync(promptPath, "utf-8");
   } catch {
-    return "Voce e um decompositor de queries juridicas para busca no STJ. Retorne JSON puro.";
+    return "Voce e um decompositor de queries juridicas. Use stj_search para buscar. Nao gere output final.";
   }
 }
 
-// --- Output ---
+// --- Result Collection ---
 
-function stripCodeFences(text: string): string {
-  return text.replace(/^```(?:json)?\s*\n?/i, "").replace(/\n?```\s*$/i, "").trim();
-}
-
-function tryParseJson(text: string): Record<string, unknown> | null {
-  const cleaned = stripCodeFences(text);
-  try {
-    return JSON.parse(cleaned);
-  } catch {
-    return null;
-  }
-}
-
-function emitResult(
-  data: Record<string, unknown>,
+function buildOutput(
+  originalQuery: string,
+  angles: CollectedAngle[],
   meta: Record<string, unknown>,
-): void {
-  const output = { ...data, _meta: meta };
-  console.log(JSON.stringify(output));
+): Record<string, unknown> {
+  // Deduplicate results by doc_id, keeping the highest RRF score
+  const seen = new Map<string, { result: SearchResult; foundVia: string }>();
+
+  for (const angle of angles) {
+    for (const r of angle.results) {
+      if (!r.doc_id) continue;
+      const existing = seen.get(r.doc_id);
+      const rrf = r.scores?.rrf ?? 0;
+      if (!existing || rrf > (existing.result.scores?.rrf ?? 0)) {
+        seen.set(r.doc_id, { result: r, foundVia: angle.query });
+      }
+    }
+  }
+
+  const deduped = Array.from(seen.values())
+    .sort((a, b) => (b.result.scores?.rrf ?? 0) - (a.result.scores?.rrf ?? 0))
+    .slice(0, 50);
+
+  return {
+    original_query: originalQuery,
+    decomposition: {
+      intent: "exploratoria",
+      angles: angles.map((a) => ({
+        query: a.query,
+        angle: a.query, // query IS the angle description in this mode
+        results_count: a.results.length,
+        filters: a.filters,
+      })),
+      rounds: meta.iterations,
+    },
+    results: deduped.map(({ result, foundVia }) => ({
+      doc_id: result.doc_id,
+      processo: result.processo ?? null,
+      classe: result.classe ?? null,
+      ministro: result.ministro ?? null,
+      data_publicacao: result.data_publicacao ?? null,
+      tipo: result.tipo ?? null,
+      orgao_julgador: result.orgao_julgador ?? null,
+      content_preview: (result.content ?? "").substring(0, 300),
+      scores: result.scores ?? { dense: 0, sparse: 0, rrf: 0 },
+      found_via: foundVia,
+    })),
+    total_results: deduped.length,
+    total_searches: angles.length,
+    _meta: meta,
+  };
 }
 
 // --- Main ---
@@ -144,6 +193,10 @@ async function main() {
   let totalInput = 0;
   let totalOutput = 0;
   let toolCalls = 0;
+  const collectedAngles: CollectedAngle[] = [];
+
+  // Map tool_use_id -> search input for correlating results
+  const pendingSearches = new Map<string, SearchCall>();
 
   const messages: Anthropic.MessageParam[] = [
     { role: "user", content: query },
@@ -151,7 +204,6 @@ async function main() {
 
   const systemPrompt = loadSystemPrompt();
 
-  // --- Agentic loop: tools ---
   for (let iteration = 1; iteration <= MAX_ITERATIONS; iteration++) {
     const response = await client.messages.create({
       model: MODEL,
@@ -164,111 +216,92 @@ async function main() {
     totalInput += response.usage.input_tokens;
     totalOutput += response.usage.output_tokens;
 
+    // end_turn: model is done searching. Build output from collected data.
     if (response.stop_reason === "end_turn") {
-      const text = response.content
-        .filter((b): b is Anthropic.TextBlock => b.type === "text")
-        .map((b) => b.text)
-        .join("");
-
       const elapsed = (Date.now() - startTime) / 1000;
-      const meta = {
+      const output = buildOutput(query, collectedAngles, {
         elapsed_seconds: elapsed,
         input_tokens: totalInput,
         output_tokens: totalOutput,
         tool_calls: toolCalls,
         iterations: iteration,
         model: MODEL,
-        runner: "sdk-ts",
-      };
-
-      // Try parsing as JSON
-      const parsed = tryParseJson(text);
-      if (parsed) {
-        emitResult(parsed, meta);
-        return;
-      } else {
-        // Not JSON -- model ignored the instruction.
-        // Append text as assistant, then do a structured output call.
-        messages.push({ role: "assistant", content: response.content });
-        messages.push({
-          role: "user",
-          content:
-            "Voce gerou texto narrativo. Releia o system prompt: sua saida DEVE ser JSON puro no schema especificado. Consolide todos os resultados das buscas que voce fez e retorne APENAS o JSON.",
-        });
-
-        const fixup = await client.messages.create({
-          model: MODEL,
-          max_tokens: MAX_TOKENS,
-          system: systemPrompt,
-          messages,
-        });
-
-        totalInput += fixup.usage.input_tokens;
-        totalOutput += fixup.usage.output_tokens;
-        meta.elapsed_seconds = (Date.now() - startTime) / 1000;
-        meta.input_tokens = totalInput;
-        meta.output_tokens = totalOutput;
-        meta.iterations = iteration + 1;
-
-        const fixupText = fixup.content
-          .filter((b): b is Anthropic.TextBlock => b.type === "text")
-          .map((b) => b.text)
-          .join("");
-
-        const fixupParsed = tryParseJson(fixupText);
-        if (fixupParsed) {
-          emitResult(fixupParsed, meta);
-        } else {
-          emitResult(
-            { error: "Model did not return valid JSON after retry", raw_output: fixupText.substring(0, 2000) },
-            meta,
-          );
-        }
-        return;
-      }
+        runner: "sdk-ts-v2",
+      });
+      console.log(JSON.stringify(output));
+      return;
     }
 
-    // Process tool_use
+    // Process tool_use blocks
     const toolUseBlocks = response.content.filter(
       (b): b is Anthropic.ToolUseBlock => b.type === "tool_use",
     );
 
     if (toolUseBlocks.length === 0) {
-      emitResult(
-        { error: "Unexpected stop_reason", stop_reason: response.stop_reason },
-        { elapsed_seconds: (Date.now() - startTime) / 1000, tool_calls: toolCalls },
+      console.log(
+        JSON.stringify({
+          error: "Unexpected stop_reason",
+          stop_reason: response.stop_reason,
+        }),
       );
       return;
     }
 
     messages.push({ role: "assistant", content: response.content });
 
+    // Execute tools, collect search inputs/results
     const toolResults: Anthropic.ToolResultBlockParam[] = [];
+
     for (const block of toolUseBlocks) {
       toolCalls++;
-      const result = await executeTool(
-        block.name,
-        block.input as Record<string, unknown>,
-      );
+      const input = block.input as Record<string, unknown>;
+      const resultStr = await executeTool(block.name, input);
+
+      // Track search calls for result collection
+      if (block.name === "stj_search") {
+        pendingSearches.set(block.id, {
+          query: (input.query as string) ?? "",
+          filters: input.filters as Record<string, string> | undefined,
+          limit: input.limit as number | undefined,
+        });
+
+        // Parse and collect results
+        try {
+          const parsed = JSON.parse(resultStr);
+          const results: SearchResult[] = parsed.results ?? [];
+          const searchCall = pendingSearches.get(block.id)!;
+          collectedAngles.push({
+            query: searchCall.query,
+            filters: searchCall.filters,
+            results,
+          });
+        } catch {
+          // Failed to parse -- skip collection, tool result still sent to model
+        }
+      }
+
       toolResults.push({
         type: "tool_result",
         tool_use_id: block.id,
-        content: result,
+        content: resultStr,
       });
     }
 
     messages.push({ role: "user", content: toolResults });
   }
 
-  emitResult(
-    { error: `Max iterations (${MAX_ITERATIONS}) reached` },
-    {
-      elapsed_seconds: (Date.now() - startTime) / 1000,
-      input_tokens: totalInput,
-      output_tokens: totalOutput,
-      tool_calls: toolCalls,
-    },
-  );
+  // Max iterations
+  const output = buildOutput(query, collectedAngles, {
+    elapsed_seconds: (Date.now() - startTime) / 1000,
+    input_tokens: totalInput,
+    output_tokens: totalOutput,
+    tool_calls: toolCalls,
+    iterations: MAX_ITERATIONS,
+    model: MODEL,
+    runner: "sdk-ts-v2",
+    warning: "max_iterations_reached",
+  });
+  console.log(JSON.stringify(output));
 }
 
 main().catch((err) => {
