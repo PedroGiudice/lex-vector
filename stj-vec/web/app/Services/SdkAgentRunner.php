@@ -27,6 +27,12 @@ class SdkAgentRunner implements AgentRunnerInterface
         $stderrPath = Storage::disk('local')->path("searches/{$searchId}.stderr.log");
         $pidFile = Storage::disk('local')->path("searches/{$searchId}.pid");
 
+        $envExports = '';
+        $apiKey = config('services.agent.anthropic_api_key');
+        if ($apiKey) {
+            $envExports = sprintf('ANTHROPIC_API_KEY=%s ', escapeshellarg($apiKey));
+        }
+
         $command = implode(' ', [
             escapeshellarg($this->bunBin),
             'run',
@@ -35,7 +41,8 @@ class SdkAgentRunner implements AgentRunnerInterface
         ]);
 
         $wrapper = sprintf(
-            '(%s > %s 2> %s) & echo $! > %s',
+            '(%s%s > %s 2> %s) & echo $! > %s',
+            $envExports,
             $command,
             escapeshellarg($resultAbsPath),
             escapeshellarg($stderrPath),
