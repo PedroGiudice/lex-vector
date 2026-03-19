@@ -79,8 +79,13 @@ class DecomposedSearch extends Component
         $result = $runner->getResult($this->searchId);
 
         if ($result !== null) {
-            $this->results = $result['results'] ?? [];
-            $this->decomposition = $result['decomposition'] ?? null;
+            if (isset($result['narrative'])) {
+                $this->results = [];
+                $this->decomposition = ['narrative' => $result['narrative']];
+            } else {
+                $this->results = $result['results'] ?? [];
+                $this->decomposition = $result['decomposition'] ?? null;
+            }
             $this->status = 'completed';
             $this->persistJobResult($result);
 

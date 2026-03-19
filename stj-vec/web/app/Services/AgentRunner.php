@@ -28,39 +28,49 @@ class AgentRunner implements AgentRunnerInterface
 
         $resultAbsPath = Storage::disk('local')->path("searches/{$searchId}.result.json");
         $stderrPath = Storage::disk('local')->path("searches/{$searchId}.stderr.log");
-        $pidFile = Storage::disk('local')->path("searches/{$searchId}.pid");
 
         $mcpTools = implode(',', [
-            'mcp__plugin_stj-vec-tools_stj-vec-tools__search',
-            'mcp__plugin_stj-vec-tools_stj-vec-tools__document',
-            'mcp__plugin_stj-vec-tools_stj-vec-tools__filters',
+            'mcp__stj-vec-tools__search',
+            'mcp__stj-vec-tools__document',
+            'mcp__stj-vec-tools__filters',
         ]);
+
+        $mcpConfig = json_encode([
+            'mcpServers' => [
+                'stj-vec-tools' => [
+                    'command' => 'node',
+                    'args' => ['/home/opc/.claude/plugins/marketplaces/opc-plugins/plugins/stj-vec-tools/server.mjs'],
+                ],
+            ],
+        ]);
+
+        $promptSuffix = "\n\nFORMATO OBRIGATORIO: responda EXCLUSIVAMENTE com um objeto JSON valido."
+            .' Comece com { e termine com }. Sem markdown, sem texto, sem code fences.'
+            .' Schema: {"original_query": "...", "decomposition": {"angles": [...]}, "results": [...], "total_results": N, "total_searches": N}';
 
         $command = implode(' ', [
             escapeshellarg($this->claudeBin),
             '--agent', escapeshellarg($this->agentPath),
-            '-p', escapeshellarg($query."\n\nFORMATO OBRIGATORIO: responda EXCLUSIVAMENTE com um objeto JSON valido. Comece com { e termine com }. Sem markdown, sem texto, sem code fences. Schema: {\"original_query\": \"...\", \"decomposition\": {\"angles\": [...]}, \"results\": [...], \"total_results\": N, \"total_searches\": N}"),
+            '-p', escapeshellarg($query.$promptSuffix),
             '--output-format', 'json',
             '--model', escapeshellarg($this->model),
             '--tools', escapeshellarg($mcpTools),
+            '--mcp-config', escapeshellarg($mcpConfig),
+            '--strict-mcp-config',
             '--dangerously-skip-permissions',
         ]);
 
         $projectRoot = dirname(base_path(), 2);
 
         $wrapper = sprintf(
-            '(cd %s && %s > %s 2> %s) & echo $! > %s',
+            'cd %s && nohup %s > %s 2> %s & echo $!',
             escapeshellarg($projectRoot),
             $command,
             escapeshellarg($resultAbsPath),
-            escapeshellarg($stderrPath),
-            escapeshellarg($pidFile)
+            escapeshellarg($stderrPath)
         );
 
-        Process::run(['bash', '-c', $wrapper]);
-
-        $pid = file_exists($pidFile) ? trim(file_get_contents($pidFile)) : '';
-        @unlink($pidFile);
+        $pid = trim((string) shell_exec('bash -c '.escapeshellarg($wrapper)));
 
         Storage::disk('local')->put($metaPath, json_encode([
             'pid' => $pid,
