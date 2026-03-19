@@ -48,7 +48,7 @@ class SdkAgentRunnerTest extends TestCase
 
     public function test_is_complete_returns_true_for_valid_result(): void
     {
-        $fixture = file_get_contents(base_path('tests/fixtures/agent-output-sample.json'));
+        $fixture = file_get_contents(base_path('tests/fixtures/sdk-output-sample.json'));
         Storage::disk('local')->put('searches/valid-uuid.result.json', $fixture);
 
         $runner = new SdkAgentRunner;
@@ -57,7 +57,7 @@ class SdkAgentRunnerTest extends TestCase
 
     public function test_get_result_parses_json(): void
     {
-        $fixture = file_get_contents(base_path('tests/fixtures/agent-output-sample.json'));
+        $fixture = file_get_contents(base_path('tests/fixtures/sdk-output-sample.json'));
         Storage::disk('local')->put('searches/parsed-uuid.result.json', $fixture);
 
         $runner = new SdkAgentRunner;

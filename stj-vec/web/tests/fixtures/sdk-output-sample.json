@@ -1,0 +1,123 @@
+{
+  "original_query": "dano moral negativacao indevida banco",
+  "decomposition": {
+    "intent": "exploratoria",
+    "angles": [
+      {
+        "query": "dano moral negativacao indevida cadastro restritivo",
+        "angle": "Inscricao indevida em cadastros restritivos",
+        "results_count": 8
+      },
+      {
+        "query": "responsabilidade objetiva instituicao financeira consumidor",
+        "angle": "Responsabilidade objetiva do banco",
+        "results_count": 7
+      },
+      {
+        "query": "compensacao danos extrapatrimoniais negativacao banco",
+        "angle": "Quantificacao da indenizacao",
+        "results_count": 6
+      },
+      {
+        "query": "dano moral presumido inscricao indevida SPC SERASA",
+        "angle": "Dano in re ipsa",
+        "results_count": 5
+      },
+      {
+        "query": "excludente responsabilidade culpa exclusiva consumidor",
+        "angle": "Excludentes de responsabilidade",
+        "results_count": 4
+      },
+      {
+        "query": "diploma consumerista relacao bancaria prestacao servico",
+        "angle": "Aplicabilidade do CDC",
+        "results_count": 10
+      }
+    ],
+    "rounds": 2
+  },
+  "results": [
+    {
+      "doc_id": "1234567",
+      "processo": "REsp 1.234.567/SP",
+      "classe": "REsp",
+      "ministro": "Min. Nancy Andrighi",
+      "data_publicacao": "2024-03-15",
+      "tipo": "ACORDAO",
+      "orgao_julgador": "TERCEIRA TURMA",
+      "content_preview": "RECURSO ESPECIAL. RESPONSABILIDADE CIVIL. INSCRICAO INDEVIDA EM CADASTRO DE INADIMPLENTES. DANO MORAL PRESUMIDO. A jurisprudencia do STJ e firme no sentido de que a inscricao indevida do nome do consumidor em cadastro restritivo de credito configura dano moral in re ipsa, dispensando a comprovacao do efetivo prejuizo...",
+      "scores": {
+        "dense": 0.91,
+        "sparse": 0.78,
+        "rrf": 0.87
+      },
+      "found_via": "dano moral negativacao indevida cadastro restritivo"
+    },
+    {
+      "doc_id": "2345678",
+      "processo": "AgRg no AREsp 345.678/RJ",
+      "classe": "AREsp",
+      "ministro": "Min. Luis Felipe Salomao",
+      "data_publicacao": "2023-11-20",
+      "tipo": "ACORDAO",
+      "orgao_julgador": "QUARTA TURMA",
+      "content_preview": "AGRAVO REGIMENTAL NO AGRAVO EM RECURSO ESPECIAL. RESPONSABILIDADE CIVIL OBJETIVA. INSTITUICAO FINANCEIRA. FALHA NA PRESTACAO DO SERVICO. INSCRICAO INDEVIDA. A responsabilidade da instituicao financeira por danos causados ao consumidor decorrentes de falha na prestacao do servico e objetiva, nos termos do art. 14 do CDC...",
+      "scores": {
+        "dense": 0.88,
+        "sparse": 0.82,
+        "rrf": 0.85
+      },
+      "found_via": "responsabilidade objetiva instituicao financeira consumidor"
+    },
+    {
+      "doc_id": "3456789",
+      "processo": "REsp 1.456.789/MG",
+      "classe": "REsp",
+      "ministro": "Min. Marco Buzzi",
+      "data_publicacao": "2024-01-10",
+      "tipo": "ACORDAO",
+      "orgao_julgador": "QUARTA TURMA",
+      "content_preview": "RECURSO ESPECIAL. DANO MORAL. QUANTUM INDENIZATORIO. REDUCAO. RAZOABILIDADE E PROPORCIONALIDADE. O valor da compensacao por danos morais decorrentes de inscricao indevida em cadastros restritivos deve observar os principios da razoabilidade e proporcionalidade, considerando-se a extensao do dano, a capacidade economica...",
+      "scores": {
+        "dense": 0.85,
+        "sparse": 0.71,
+        "rrf": 0.8
+      },
+      "found_via": "compensacao danos extrapatrimoniais negativacao banco"
+    },
+    {
+      "doc_id": "4567890",
+      "processo": "REsp 1.567.890/RS",
+      "classe": "REsp",
+      "ministro": "Min. Ricardo Villas Boas Cueva",
+      "data_publicacao": "2024-06-05",
+      "tipo": "DECISAO",
+      "orgao_julgador": "TERCEIRA TURMA",
+      "content_preview": "DECISAO MONOCRATICA. RECURSO ESPECIAL. DANO MORAL IN RE IPSA. INSCRICAO INDEVIDA EM ORGAOS DE PROTECAO AO CREDITO. Conforme entendimento pacificado nesta Corte, a inscricao indevida do nome do devedor em cadastros de inadimplentes gera dano moral presumido, independentemente de prova do prejuizo sofrido...",
+      "scores": {
+        "dense": 0.82,
+        "sparse": 0.76,
+        "rrf": 0.79
+      },
+      "found_via": "dano moral presumido inscricao indevida SPC SERASA"
+    },
+    {
+      "doc_id": "5678901",
+      "processo": "REsp 1.678.901/PR",
+      "classe": "REsp",
+      "ministro": "Min. Moura Ribeiro",
+      "data_publicacao": "2023-09-28",
+      "tipo": "ACORDAO",
+      "orgao_julgador": "TERCEIRA TURMA",
+      "content_preview": "RECURSO ESPECIAL. RELACAO DE CONSUMO. SERVICOS BANCARIOS. APLICABILIDADE DO CDC. SUMULA 297/STJ. Os servicos bancarios se submetem ao regime do Codigo de Defesa do Consumidor, consoante o enunciado da Sumula 297 desta Corte. A instituicao financeira, como prestadora de servicos, responde objetivamente...",
+      "scores": {
+        "dense": 0.79,
+        "sparse": 0.85,
+        "rrf": 0.81
+      },
+      "found_via": "diploma consumerista relacao bancaria prestacao servico"
+    }
+  ],
+  "total_results": 40,
+  "total_searches": 6
+}

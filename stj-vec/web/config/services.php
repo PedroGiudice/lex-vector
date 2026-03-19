@@ -47,7 +47,7 @@ return [
         'sdk_script' => env('AGENT_SDK_SCRIPT', '/home/opc/lex-vector/stj-vec/agent/src/decompose.ts'),
         'bun_bin' => env('BUN_BIN', '/home/opc/.bun/bin/bun'),
         'driver' => env('AGENT_DRIVER', 'cli'),
-        'anthropic_api_key' => env('ANTHROPIC_API_KEY'),
+        'sdk_anthropic_key' => env('SDK_ANTHROPIC_API_KEY'),
     ],
 
 ];

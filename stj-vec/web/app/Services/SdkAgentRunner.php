@@ -11,10 +11,13 @@ class SdkAgentRunner implements AgentRunnerInterface
 
     private string $sdkScript;
 
+    private string $anthropicKey;
+
     public function __construct()
     {
         $this->bunBin = config('services.agent.bun_bin');
         $this->sdkScript = config('services.agent.sdk_script');
+        $this->anthropicKey = (string) config('services.agent.sdk_anthropic_key');
     }
 
     public function start(string $searchId, string $query): void
@@ -27,13 +30,8 @@ class SdkAgentRunner implements AgentRunnerInterface
         $stderrPath = Storage::disk('local')->path("searches/{$searchId}.stderr.log");
         $pidFile = Storage::disk('local')->path("searches/{$searchId}.pid");
 
-        $envExports = '';
-        $apiKey = config('services.agent.anthropic_api_key');
-        if ($apiKey) {
-            $envExports = sprintf('ANTHROPIC_API_KEY=%s ', escapeshellarg($apiKey));
-        }
-
         $command = implode(' ', [
+            'ANTHROPIC_API_KEY='.escapeshellarg($this->anthropicKey),
             escapeshellarg($this->bunBin),
             'run',
             escapeshellarg($this->sdkScript),
@@ -41,8 +39,7 @@ class SdkAgentRunner implements AgentRunnerInterface
         ]);
 
         $wrapper = sprintf(
-            '(%s%s > %s 2> %s) & echo $! > %s',
-            $envExports,
+            '(%s > %s 2> %s) & echo $! > %s',
             $command,
             escapeshellarg($resultAbsPath),
             escapeshellarg($stderrPath),

@@ -49,9 +49,10 @@ class SearchController extends Controller
             abort($response->status());
         }
 
-        $document = $response->json();
+        $data = $response->json();
 
-        $chunks = collect($document['chunks'] ?? [])
+        $document = $data['document'] ?? [];
+        $chunks = collect($data['chunks'] ?? [])
             ->sortBy('chunk_index')
             ->values();
 
