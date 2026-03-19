@@ -38,7 +38,7 @@
                         type="password"
                         id="password"
                         name="password"
-                        class="w-full px-3 py-2 border border-[var(--c-border)] rounded-md text-sm text-[var(--c-text)] bg-[var(--c-surface-card)] focus:outline-none focus:ring-2 focus:ring-[var(--c-accent)]/40 focus:border-[var(--c-accent)] transition-colors"
+                        class="w-full px-3 py-2 border border-[var(--c-border)] rounded-md text-sm text-[var(--c-text)] bg-[var(--c-input-bg)] focus:outline-none focus:ring-2 focus:ring-[var(--c-input-focus)]/40 focus:border-[var(--c-input-focus)] transition-colors"
                         required
                         autofocus
                         minlength="8"
@@ -52,7 +52,7 @@
                         type="password"
                         id="password_confirmation"
                         name="password_confirmation"
-                        class="w-full px-3 py-2 border border-[var(--c-border)] rounded-md text-sm text-[var(--c-text)] bg-[var(--c-surface-card)] focus:outline-none focus:ring-2 focus:ring-[var(--c-accent)]/40 focus:border-[var(--c-accent)] transition-colors"
+                        class="w-full px-3 py-2 border border-[var(--c-border)] rounded-md text-sm text-[var(--c-text)] bg-[var(--c-input-bg)] focus:outline-none focus:ring-2 focus:ring-[var(--c-input-focus)]/40 focus:border-[var(--c-input-focus)] transition-colors"
                         required
                         minlength="8"
                     >

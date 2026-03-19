@@ -33,7 +33,7 @@
                         id="name"
                         name="name"
                         value="{{ old('name') }}"
-                        class="w-full px-3 py-2 border border-[var(--c-border)] rounded-md text-sm text-[var(--c-text)] bg-[var(--c-surface-card)] focus:outline-none focus:ring-2 focus:ring-[var(--c-accent)]/40 focus:border-[var(--c-accent)] transition-colors"
+                        class="w-full px-3 py-2 border border-[var(--c-border)] rounded-md text-sm text-[var(--c-text)] bg-[var(--c-input-bg)] focus:outline-none focus:ring-2 focus:ring-[var(--c-input-focus)]/40 focus:border-[var(--c-input-focus)] transition-colors"
                         placeholder="PGR, ABP ou BBT"
                         required
                         autofocus
@@ -46,14 +46,14 @@
                         type="password"
                         id="password"
                         name="password"
-                        class="w-full px-3 py-2 border border-[var(--c-border)] rounded-md text-sm text-[var(--c-text)] bg-[var(--c-surface-card)] focus:outline-none focus:ring-2 focus:ring-[var(--c-accent)]/40 focus:border-[var(--c-accent)] transition-colors"
+                        class="w-full px-3 py-2 border border-[var(--c-border)] rounded-md text-sm text-[var(--c-text)] bg-[var(--c-input-bg)] focus:outline-none focus:ring-2 focus:ring-[var(--c-input-focus)]/40 focus:border-[var(--c-input-focus)] transition-colors"
                         required
                     >
                 </div>
 
                 <div class="flex items-center justify-between mb-5">
                     <label class="inline-flex items-center gap-2 cursor-pointer">
-                        <input type="checkbox" name="remember" class="rounded border-[var(--c-border)] text-[var(--c-accent)] focus:ring-[var(--c-accent)]">
+                        <input type="checkbox" name="remember" class="rounded border-[var(--c-border)] text-[var(--c-accent)] focus:ring-[var(--c-input-focus)]">
                         <span class="text-xs text-[var(--c-text-muted)]">Lembrar</span>
                     </label>
                 </div>

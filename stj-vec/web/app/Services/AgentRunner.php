@@ -37,7 +37,6 @@ class AgentRunner implements AgentRunnerInterface
             '--output-format', 'json',
             '--model', escapeshellarg($this->model),
             '--dangerously-skip-permissions',
-            '--no-session-persistence',
         ]);
 
         $wrapper = sprintf(
@@ -66,9 +65,9 @@ class AgentRunner implements AgentRunnerInterface
     }
 
     /**
-     * Parse result file. The CLI --output-format json wraps agent output
-     * in an envelope: {type, result: "...", ...}. The actual decomposition
-     * JSON is inside the `result` string and needs a second parse.
+     * Parse result file. The CLI --output-format json outputs a single JSON
+     * object with type="result" and the agent's text in the `result` field.
+     * The agent is expected to produce a JSON string with {results: [...]}.
      *
      * @return array<string, mixed>|null
      */
@@ -86,26 +85,29 @@ class AgentRunner implements AgentRunnerInterface
             return null;
         }
 
-        $decoded = json_decode($content, true);
+        $outer = json_decode($content, true);
 
-        if (json_last_error() !== JSON_ERROR_NONE) {
+        if (json_last_error() !== JSON_ERROR_NONE || ! is_array($outer)) {
             return null;
         }
 
-        // Direct format (has 'results' key at top level)
-        if (isset($decoded['results'])) {
-            return $decoded;
+        // CLI outputs a single object with type="result"
+        $resultText = null;
+        if (isset($outer['type']) && $outer['type'] === 'result' && isset($outer['result'])) {
+            $resultText = $outer['result'];
         }
 
-        // CLI envelope format: {type, result: "<json-string>", ...}
-        if (isset($decoded['result']) && is_string($decoded['result'])) {
-            $inner = json_decode($decoded['result'], true);
-            if (json_last_error() === JSON_ERROR_NONE && isset($inner['results'])) {
-                return $inner;
-            }
+        if ($resultText === null || ! is_string($resultText)) {
+            return null;
         }
 
-        return null;
+        $inner = json_decode($resultText, true);
+
+        if (json_last_error() !== JSON_ERROR_NONE || ! isset($inner['results'])) {
+            return null;
+        }
+
+        return $inner;
     }
 
     public function isProcessDead(string $searchId): bool

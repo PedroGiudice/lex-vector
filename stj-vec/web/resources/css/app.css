@@ -92,6 +92,16 @@ mark.search-highlight {
     text-indent: 0;
 }
 
+/* Links */
+a:not([class]) {
+    color: var(--c-text-link);
+    transition: color 0.15s;
+}
+
+a:not([class]):hover {
+    color: var(--c-text-link-hover);
+}
+
 /* Section label for chunks */
 .section-label {
     display: inline-block;

@@ -40,9 +40,20 @@ class ThemeSettings extends Component
     {
         $theme = Theme::query()->findOrFail($id);
         $this->selectedThemeId = $theme->id;
-        $this->editorContent = $theme->toml_config;
         $this->themeName = $theme->name;
         $this->clearStatus();
+
+        // Merge missing keys from defaults so editor shows all variables
+        $config = TomlParser::parse($theme->toml_config);
+        $defaults = ThemeService::defaultConfig();
+
+        foreach ($defaults as $section => $keys) {
+            foreach ($keys as $key => $value) {
+                $config[$section][$key] ??= $value;
+            }
+        }
+
+        $this->editorContent = TomlParser::encode($config);
     }
 
     public function save(): void

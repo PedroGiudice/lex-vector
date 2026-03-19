@@ -19,7 +19,7 @@
                 type="text"
                 wire:model="query"
                 placeholder="Ex: dano moral negativacao indevida banco"
-                class="flex-1 px-4 py-2.5 border border-[var(--c-border)] rounded-lg focus:ring-2 focus:ring-[var(--c-accent)]/40 focus:border-[var(--c-accent)] text-[var(--c-text)] placeholder-[var(--c-text-muted)] bg-[var(--c-surface-card)] transition-colors"
+                class="flex-1 px-4 py-2.5 border border-[var(--c-border)] rounded-lg focus:ring-2 focus:ring-[var(--c-input-focus)]/40 focus:border-[var(--c-accent)] text-[var(--c-text)] placeholder-[var(--c-text-muted)] bg-[var(--c-surface-card)] transition-colors"
                 @if($status === 'searching') disabled @endif
                 minlength="3"
                 maxlength="500"

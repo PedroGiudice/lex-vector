@@ -23,7 +23,8 @@ class Theme extends Model
 
     public function activate(): void
     {
-        static::query()->where('is_active', true)->update(['is_active' => false]);
-        $this->update(['is_active' => true]);
+        static::query()->update(['is_active' => false]);
+        static::query()->where('id', $this->id)->update(['is_active' => true]);
+        $this->is_active = true;
     }
 }

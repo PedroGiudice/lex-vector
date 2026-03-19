@@ -38,7 +38,7 @@
                     <input
                         type="text"
                         wire:model="themeName"
-                        class="bg-[var(--c-surface-card)] border border-[var(--c-border)] rounded-md px-3 py-1.5 text-sm text-[var(--c-text)] focus:outline-none focus:ring-2 focus:ring-[var(--c-accent)] w-48"
+                        class="bg-[var(--c-surface-card)] border border-[var(--c-border)] rounded-md px-3 py-1.5 text-sm text-[var(--c-text)] focus:outline-none focus:ring-2 focus:ring-[var(--c-input-focus)] w-48"
                         placeholder="Nome do tema"
                     >
                     <div class="flex items-center gap-2 ml-auto">
@@ -73,7 +73,7 @@
                     wire:model="editorContent"
                     rows="24"
                     spellcheck="false"
-                    class="w-full bg-[var(--c-surface-card)] border border-[var(--c-border)] rounded-lg px-4 py-3 text-xs font-mono text-[var(--c-text)] placeholder-[var(--c-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--c-accent)] resize-y leading-relaxed"
+                    class="w-full bg-[var(--c-surface-card)] border border-[var(--c-border)] rounded-lg px-4 py-3 text-xs font-mono text-[var(--c-text)] placeholder-[var(--c-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--c-input-focus)] resize-y leading-relaxed"
                     placeholder="[surface]&#10;page = &quot;#f8f9fb&quot;&#10;..."
                 ></textarea>
             </div>
