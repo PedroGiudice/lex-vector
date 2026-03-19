@@ -46,8 +46,11 @@ class AgentRunner implements AgentRunnerInterface
             '--dangerously-skip-permissions',
         ]);
 
+        $projectRoot = dirname(base_path(), 2);
+
         $wrapper = sprintf(
-            '(%s > %s 2> %s) & echo $! > %s',
+            '(cd %s && %s > %s 2> %s) & echo $! > %s',
+            escapeshellarg($projectRoot),
             $command,
             escapeshellarg($resultAbsPath),
             escapeshellarg($stderrPath),
