@@ -101,6 +101,16 @@ class AgentRunner implements AgentRunnerInterface
             return null;
         }
 
+        // Strip code fences (```json ... ```) if present
+        $resultText = trim($resultText);
+        if (str_starts_with($resultText, '```')) {
+            $resultText = substr($resultText, strpos($resultText, "\n") + 1);
+        }
+        if (str_ends_with($resultText, '```')) {
+            $resultText = substr($resultText, 0, strrpos($resultText, '```'));
+        }
+        $resultText = trim($resultText);
+
         $inner = json_decode($resultText, true);
 
         if (json_last_error() !== JSON_ERROR_NONE || ! isset($inner['results'])) {
