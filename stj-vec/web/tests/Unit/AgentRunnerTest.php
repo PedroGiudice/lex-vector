@@ -71,6 +71,94 @@ class AgentRunnerTest extends TestCase
         $this->assertEquals(40, $result['total_results']);
     }
 
+    public function test_get_result_extracts_from_jsonl_session(): void
+    {
+        // Create a fake JSONL session log
+        $sessionId = 'test-jsonl-session-'.time();
+        $home = getenv('HOME') ?: '/home/opc';
+        $jsonlDir = $home.'/.claude/projects/-home-opc-lex-vector';
+        $jsonlPath = $jsonlDir.'/'.$sessionId.'.jsonl';
+
+        if (! is_dir($jsonlDir)) {
+            mkdir($jsonlDir, 0755, true);
+        }
+
+        // Write JSONL with tool_use + tool_result
+        $lines = [
+            json_encode(['type' => 'assistant', 'message' => [
+                'role' => 'assistant',
+                'content' => [
+                    ['type' => 'tool_use', 'name' => 'mcp__plugin_stj-vec-tools_stj-vec-tools__search', 'input' => ['query' => 'dano moral banco']],
+                ],
+            ]]),
+            json_encode(['type' => 'user', 'message' => [
+                'role' => 'user',
+                'content' => [
+                    ['type' => 'tool_result', 'content' => json_encode([
+                        'results' => [
+                            ['doc_id' => 'abc123', 'content' => 'Texto do acordao sobre dano moral', 'scores' => ['rrf' => 0.025]],
+                            ['doc_id' => 'def456', 'content' => 'Outro acordao relevante', 'scores' => ['rrf' => 0.018]],
+                        ],
+                    ])],
+                ],
+            ]]),
+        ];
+        file_put_contents($jsonlPath, implode("\n", $lines)."\n");
+
+        // Create result file referencing this session
+        $outer = json_encode([
+            'type' => 'result',
+            'subtype' => 'success',
+            'session_id' => $sessionId,
+            'result' => 'Texto narrativo que sera ignorado',
+        ]);
+        Storage::disk('local')->put('searches/jsonl-test.result.json', $outer);
+
+        $runner = new AgentRunner;
+        $result = $runner->getResult('jsonl-test');
+
+        // Clean up
+        @unlink($jsonlPath);
+
+        $this->assertNotNull($result);
+        $this->assertArrayHasKey('results', $result);
+        $this->assertCount(2, $result['results']);
+        $this->assertEquals('abc123', $result['results'][0]['doc_id']);
+        $this->assertArrayHasKey('decomposition', $result);
+        $this->assertCount(1, $result['decomposition']['angles']);
+        $this->assertEquals('dano moral banco', $result['decomposition']['angles'][0]['query']);
+    }
+
+    public function test_get_result_returns_narrative_for_non_json_result(): void
+    {
+        $outer = json_encode([
+            'type' => 'result',
+            'subtype' => 'success',
+            'result' => 'Os resultados mostram que responsabilidade civil objetiva...',
+        ]);
+        Storage::disk('local')->put('searches/narrative-uuid.result.json', $outer);
+
+        $runner = new AgentRunner;
+        $result = $runner->getResult('narrative-uuid');
+
+        $this->assertNotNull($result);
+        $this->assertArrayHasKey('narrative', $result);
+        $this->assertStringContainsString('responsabilidade civil', $result['narrative']);
+    }
+
+    public function test_is_complete_returns_true_for_narrative_result(): void
+    {
+        $outer = json_encode([
+            'type' => 'result',
+            'subtype' => 'success',
+            'result' => 'Texto narrativo do agente sobre o tema.',
+        ]);
+        Storage::disk('local')->put('searches/narrative-complete.result.json', $outer);
+
+        $runner = new AgentRunner;
+        $this->assertTrue($runner->isComplete('narrative-complete'));
+    }
+
     public function test_get_result_returns_null_for_invalid_json(): void
     {
         Storage::disk('local')->put('searches/bad-json.result.json', 'this is not json at all');

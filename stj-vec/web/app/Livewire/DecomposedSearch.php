@@ -106,8 +106,14 @@ class DecomposedSearch extends Component
         for ($attempt = 0; $attempt < 5; $attempt++) {
             $result = $runner->getResult($this->searchId);
             if ($result !== null) {
-                $this->results = $result['results'] ?? [];
-                $this->decomposition = $result['decomposition'] ?? null;
+                if (isset($result['narrative'])) {
+                    // Agent returned narrative text instead of structured JSON
+                    $this->results = [];
+                    $this->decomposition = ['narrative' => $result['narrative']];
+                } else {
+                    $this->results = $result['results'] ?? [];
+                    $this->decomposition = $result['decomposition'] ?? null;
+                }
                 $this->status = 'completed';
                 $this->persistJobResult($result);
 

@@ -162,7 +162,20 @@
     @endif
 
     {{-- Results --}}
-    @if($status === 'completed' && $decomposition)
+    @if($status === 'completed' && isset($decomposition['narrative']))
+        {{-- Narrative fallback: agent returned text instead of structured JSON --}}
+        <div class="bg-[var(--c-surface-card)] rounded-lg border border-[var(--c-border)] p-6">
+            <p class="text-xs font-mono text-[var(--c-text-muted)] mb-3">
+                Resultado narrativo
+                @if($elapsedSeconds > 0)
+                    | {{ floor($elapsedSeconds / 60) }}m{{ $elapsedSeconds % 60 }}s
+                @endif
+            </p>
+            <div class="prose prose-sm max-w-none text-[var(--c-text)]">
+                {!! nl2br(e($decomposition['narrative'])) !!}
+            </div>
+        </div>
+    @elseif($status === 'completed' && $decomposition)
         {{-- Decomposition chips --}}
         <div class="mb-5 flex flex-wrap gap-1.5">
             @foreach($decomposition['angles'] ?? [] as $angle)
