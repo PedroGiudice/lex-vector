@@ -30,12 +30,19 @@ class AgentRunner implements AgentRunnerInterface
         $stderrPath = Storage::disk('local')->path("searches/{$searchId}.stderr.log");
         $pidFile = Storage::disk('local')->path("searches/{$searchId}.pid");
 
+        $mcpTools = implode(',', [
+            'mcp__plugin_stj-vec-tools_stj-vec-tools__search',
+            'mcp__plugin_stj-vec-tools_stj-vec-tools__document',
+            'mcp__plugin_stj-vec-tools_stj-vec-tools__filters',
+        ]);
+
         $command = implode(' ', [
             escapeshellarg($this->claudeBin),
             '--agent', escapeshellarg($this->agentPath),
             '-p', escapeshellarg($query),
             '--output-format', 'json',
             '--model', escapeshellarg($this->model),
+            '--tools', escapeshellarg($mcpTools),
             '--dangerously-skip-permissions',
         ]);
 
