@@ -180,8 +180,10 @@
         <div class="mb-5 flex flex-wrap gap-1.5">
             @foreach($decomposition['angles'] ?? [] as $angle)
                 <span class="inline-flex items-center px-3 py-1 rounded-md text-xs font-medium bg-[var(--c-surface-raised)] text-[var(--c-text-secondary)] border border-[var(--c-border)]">
-                    {{ $angle['angle'] }}
-                    <span class="ml-1.5 text-[var(--c-text-muted)] font-mono">{{ $angle['results_count'] }}</span>
+                    {{ is_array($angle) ? ($angle['angle'] ?? $angle['query'] ?? '') : $angle }}
+                    @if(is_array($angle) && isset($angle['results_count']))
+                        <span class="ml-1.5 text-[var(--c-text-muted)] font-mono">{{ $angle['results_count'] }}</span>
+                    @endif
                 </span>
             @endforeach
         </div>
@@ -197,7 +199,9 @@
         {{-- Grouped results by angle --}}
         @php
             $grouped = collect($results ?? [])->groupBy('found_via');
-            $angleMap = collect($decomposition['angles'] ?? [])->keyBy('query');
+            $angleMap = collect($decomposition['angles'] ?? [])
+                ->mapWithKeys(fn ($a) => is_array($a) ? [($a['query'] ?? '') => $a] : [$a => ['angle' => $a]])
+                ->all();
         @endphp
 
         @foreach($grouped as $via => $items)
