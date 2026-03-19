@@ -2,11 +2,21 @@
 
 namespace Tests\Feature;
 
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class SearchControllerTest extends TestCase
 {
+    use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->actingAs(User::factory()->create(['must_change_password' => false]));
+    }
+
     public function test_index_returns_200(): void
     {
         Http::fake([
@@ -111,17 +121,20 @@ class SearchControllerTest extends TestCase
     {
         Http::fake([
             '*/api/document/doc-123' => Http::response([
-                'doc_id' => 'doc-123',
-                'processo' => 'REsp 1.234.567/SP',
-                'classe' => 'REsp',
-                'ministro' => 'MIN. FULANO DE TAL',
-                'orgao_julgador' => 'PRIMEIRA TURMA',
-                'data_publicacao' => '2024-01-15',
-                'tipo' => 'ACORDAO',
-                'chunks' => [
-                    ['chunk_id' => 'c1', 'chunk_index' => 0, 'content' => 'Primeiro paragrafo do acordao.'],
-                    ['chunk_id' => 'c2', 'chunk_index' => 1, 'content' => 'Segundo paragrafo do acordao.'],
+                'document' => [
+                    'id' => 'doc-123',
+                    'processo' => 'REsp 1.234.567/SP',
+                    'classe' => 'REsp',
+                    'ministro' => 'MIN. FULANO DE TAL',
+                    'orgao_julgador' => 'PRIMEIRA TURMA',
+                    'data_publicacao' => '2024-01-15',
+                    'tipo' => 'ACORDAO',
                 ],
+                'chunks' => [
+                    ['id' => 'c1', 'chunk_index' => 0, 'content' => 'Primeiro paragrafo do acordao.', 'token_count' => 10],
+                    ['id' => 'c2', 'chunk_index' => 1, 'content' => 'Segundo paragrafo do acordao.', 'token_count' => 10],
+                ],
+                'total_chunks' => 2,
             ]),
         ]);
 

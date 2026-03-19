@@ -5,7 +5,7 @@
 @section('content')
 <div x-data="{ tab: 'direct' }">
     {{-- Tabs --}}
-    <div class="flex gap-1 border-b border-navy-100 mb-6">
+    <div class="flex gap-1 border-b border-slate-200 mb-6">
         <button
             @click="tab = 'direct'"
             :class="tab === 'direct' ? 'border-navy-700 text-navy-900 font-semibold' : 'border-transparent text-navy-400 hover:text-navy-600'"
@@ -27,7 +27,7 @@
         <div class="flex gap-6">
             {{-- Sidebar de filtros --}}
             <aside class="hidden lg:block w-60 flex-shrink-0">
-                <div class="rounded-lg border border-navy-100 bg-white p-4 sticky top-6 space-y-4">
+                <div class="rounded-lg border border-slate-200 bg-white p-4 sticky top-6 space-y-4">
                     <h3 class="text-xs font-semibold text-navy-600 uppercase tracking-wider">Filtros</h3>
                     <div class="space-y-3">
                         @foreach([
@@ -38,7 +38,7 @@
                         ] as [$id, $label, $default, $options])
                             <div>
                                 <label for="{{ $id }}" class="block text-xs text-navy-400 mb-1">{{ $label }}</label>
-                                <select id="{{ $id }}" class="w-full px-2.5 py-1.5 border border-navy-100 rounded-md text-sm bg-white text-navy-800 focus:ring-1 focus:ring-navy-300 focus:border-navy-300 transition-colors">
+                                <select id="{{ $id }}" class="w-full px-2.5 py-1.5 border border-slate-200 rounded-md text-sm bg-white text-navy-800 focus:ring-1 focus:ring-navy-300 focus:border-navy-300 transition-colors">
                                     <option value="">{{ $default }}</option>
                                     @foreach($options as $opt)
                                         <option value="{{ $opt }}">{{ $opt }}</option>
@@ -48,11 +48,11 @@
                         @endforeach
                         <div>
                             <label for="filter-data-from" class="block text-xs text-navy-400 mb-1">Data de</label>
-                            <input type="date" id="filter-data-from" class="w-full px-2.5 py-1.5 border border-navy-100 rounded-md text-sm bg-white text-navy-800 focus:ring-1 focus:ring-navy-300 focus:border-navy-300">
+                            <input type="date" id="filter-data-from" class="w-full px-2.5 py-1.5 border border-slate-200 rounded-md text-sm bg-white text-navy-800 focus:ring-1 focus:ring-navy-300 focus:border-navy-300">
                         </div>
                         <div>
                             <label for="filter-data-to" class="block text-xs text-navy-400 mb-1">Data ate</label>
-                            <input type="date" id="filter-data-to" class="w-full px-2.5 py-1.5 border border-navy-100 rounded-md text-sm bg-white text-navy-800 focus:ring-1 focus:ring-navy-300 focus:border-navy-300">
+                            <input type="date" id="filter-data-to" class="w-full px-2.5 py-1.5 border border-slate-200 rounded-md text-sm bg-white text-navy-800 focus:ring-1 focus:ring-navy-300 focus:border-navy-300">
                         </div>
                     </div>
                 </div>
@@ -75,7 +75,7 @@
                         <button
                             type="submit"
                             id="btn-search"
-                            class="px-6 py-2.5 bg-navy-900 text-white rounded-lg hover:bg-navy-800 active:bg-navy-950 transition-colors font-medium text-sm"
+                            class="px-6 py-2.5 bg-slate-800 text-white rounded-lg hover:bg-slate-700 active:bg-slate-900 transition-colors font-medium text-sm"
                         >
                             Buscar
                         </button>
@@ -87,8 +87,8 @@
                     <span class="ml-2 text-sm">Buscando...</span>
                 </div>
 
-                <div id="query-preprocessing" class="hidden mt-4 bg-navy-50 rounded-lg border border-navy-100 px-4 py-3 text-sm text-navy-700 space-y-1"></div>
-                <div id="query-info" class="hidden mt-3 rounded-lg border border-navy-100 bg-white px-4 py-2.5 text-xs font-mono text-navy-400 flex gap-4 flex-wrap"></div>
+                <div id="query-preprocessing" class="hidden mt-4 bg-navy-50 rounded-lg border border-slate-200 px-4 py-3 text-sm text-navy-700 space-y-1"></div>
+                <div id="query-info" class="hidden mt-3 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-xs font-mono text-navy-400 flex gap-4 flex-wrap"></div>
                 <div id="results" class="mt-4 space-y-0"></div>
             </div>
         </div>
@@ -230,7 +230,7 @@ form.addEventListener('submit', async (e) => {
             const docUrl = item.doc_id ? `/document/${encodeURIComponent(item.doc_id)}` : '#';
 
             return `
-            <div class="result-card bg-white rounded-lg border border-navy-100 p-4 ${i > 0 ? 'mt-2.5' : ''}">
+            <div class="result-card bg-white rounded-lg border border-slate-200 p-4 ${i > 0 ? 'mt-2.5' : ''}">
                 <div class="flex justify-between items-start mb-2">
                     <div class="flex gap-1.5 items-center flex-wrap">
                         ${tipo ? `<span class="px-2 py-0.5 rounded text-xs font-medium ${tipoClass}">${tipo}</span>` : ''}

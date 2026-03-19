@@ -23,46 +23,22 @@
     --color-navy-900: #1B365D;
 }
 
-/* Surface hierarchy (light theme) */
-:root {
-    --surface-page: #f7f9fb;
-    --surface-card: #ffffff;
-    --surface-raised: #f0f4f8;
-    --surface-overlay: #e8eef4;
-    --border-subtle: rgba(27, 54, 93, 0.08);
-    --border-default: rgba(27, 54, 93, 0.12);
-    --text-primary: #1B365D;
-    --text-secondary: #486581;
-    --text-muted: #829ab1;
-    --text-ghost: #9fb3c8;
-    --accent-warm: #c8956c;
-    --accent-green: #16a34a;
-    --accent-amber: #d97706;
-    --highlight-bg: rgba(200, 149, 108, 0.12);
-}
-
-body {
-    background-color: var(--surface-page);
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-}
-
-/* Result card interaction states */
+/* Result card interaction states -- uses theme variables injected via ThemeService */
 .result-card {
-    border-left: 3px solid transparent;
+    border-left: 3px solid var(--c-border-subtle);
     transition: border-color 0.15s, box-shadow 0.15s, background-color 0.15s;
 }
 
 .result-card:hover {
-    border-left-color: var(--accent-warm);
-    box-shadow: 0 2px 8px rgba(27, 54, 93, 0.06);
+    border-left-color: var(--c-accent-warm);
+    box-shadow: 0 2px 8px rgba(30, 41, 59, 0.06);
 }
 
 /* Relevance bar */
 .relevance-bar {
     height: 3px;
     border-radius: 2px;
-    background-color: rgba(27, 54, 93, 0.06);
+    background-color: var(--c-border-subtle);
     overflow: hidden;
 }
 
@@ -74,8 +50,8 @@ body {
 
 /* Search highlight */
 mark.search-highlight {
-    background-color: var(--highlight-bg);
-    color: var(--text-primary);
+    background-color: var(--c-accent-warm-bg);
+    color: var(--c-text);
     padding: 0 2px;
     border-radius: 2px;
     font-weight: 500;
@@ -83,6 +59,49 @@ mark.search-highlight {
 
 /* Angle group header */
 .angle-header {
-    border-left: 3px solid var(--accent-warm);
+    border-left: 3px solid var(--c-accent-warm);
     padding-left: 12px;
+}
+
+/* Document prose -- inteiro teor */
+.document-prose {
+    font-size: 0.9375rem;
+    line-height: 1.75;
+    color: var(--c-text-secondary);
+}
+
+.document-prose .chunk-section {
+    margin-bottom: 1.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--c-border-subtle);
+}
+
+.document-prose .chunk-section:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+.document-prose .chunk-section p {
+    text-align: justify;
+    hyphens: auto;
+    text-indent: 2em;
+}
+
+.document-prose .chunk-section p:first-child {
+    text-indent: 0;
+}
+
+/* Section label for chunks */
+.section-label {
+    display: inline-block;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--c-text-muted);
+    padding: 2px 8px;
+    background: var(--c-surface-raised);
+    border-radius: 4px;
+    margin-bottom: 0.75rem;
 }

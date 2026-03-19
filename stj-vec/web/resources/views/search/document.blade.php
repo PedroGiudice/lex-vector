@@ -8,7 +8,7 @@
     <div class="mb-5">
         <a
             href="{{ route('search.index') }}"
-            class="inline-flex items-center text-sm text-navy-500 hover:text-navy-700 transition-colors font-medium"
+            class="inline-flex items-center text-sm text-[var(--c-text-muted)] hover:text-[var(--c-text)] transition-colors font-medium"
         >
             <svg class="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
@@ -18,9 +18,9 @@
     </div>
 
     {{-- Metadados --}}
-    <div class="bg-white rounded-lg border border-navy-100 p-5 mb-5">
+    <div class="bg-[var(--c-surface-card)] rounded-lg border border-[var(--c-border)] p-5 mb-5">
         <div class="flex items-start justify-between mb-4">
-            <h1 class="text-lg font-semibold text-navy-900">
+            <h1 class="text-lg font-semibold text-[var(--c-text)]">
                 {{ $document['processo'] ?? 'Processo nao identificado' }}
             </h1>
             @if(!empty($document['tipo']))
@@ -33,41 +33,67 @@
         <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2.5 text-sm">
             @if(!empty($document['classe']))
                 <div>
-                    <dt class="text-xs text-navy-400">Classe</dt>
-                    <dd class="font-medium text-navy-800">{{ $document['classe'] }}</dd>
+                    <dt class="text-xs text-[var(--c-text-muted)]">Classe</dt>
+                    <dd class="font-medium text-[var(--c-text)]">{{ $document['classe'] }}</dd>
                 </div>
             @endif
             @if(!empty($document['ministro']))
                 <div>
-                    <dt class="text-xs text-navy-400">Ministro Relator</dt>
-                    <dd class="font-medium text-navy-800">{{ $document['ministro'] }}</dd>
+                    <dt class="text-xs text-[var(--c-text-muted)]">Ministro Relator</dt>
+                    <dd class="font-medium text-[var(--c-text)]">{{ $document['ministro'] }}</dd>
                 </div>
             @endif
             @if(!empty($document['orgao_julgador']))
                 <div>
-                    <dt class="text-xs text-navy-400">Orgao Julgador</dt>
-                    <dd class="font-medium text-navy-800">{{ $document['orgao_julgador'] }}</dd>
+                    <dt class="text-xs text-[var(--c-text-muted)]">Orgao Julgador</dt>
+                    <dd class="font-medium text-[var(--c-text)]">{{ $document['orgao_julgador'] }}</dd>
                 </div>
             @endif
             @if(!empty($document['data_publicacao']))
                 <div>
-                    <dt class="text-xs text-navy-400">Data de Publicacao</dt>
-                    <dd class="font-medium text-navy-800">{{ $document['data_publicacao'] }}</dd>
+                    <dt class="text-xs text-[var(--c-text-muted)]">Data de Publicacao</dt>
+                    <dd class="font-medium text-[var(--c-text)]">{{ $document['data_publicacao'] }}</dd>
                 </div>
             @endif
         </dl>
     </div>
 
     {{-- Corpo do documento --}}
-    <div class="bg-white rounded-lg border border-navy-100 p-5">
-        <h2 class="text-sm font-semibold text-navy-800 mb-4 pb-3 border-b border-navy-100">
-            Inteiro Teor
-            <span class="text-xs font-normal text-navy-400 font-mono ml-2">{{ $chunks->count() }} partes</span>
-        </h2>
+    <div class="bg-[var(--c-surface-card)] rounded-lg border border-[var(--c-border)] p-6">
+        <div class="flex items-center justify-between mb-5 pb-3 border-b border-[var(--c-border)]">
+            <h2 class="text-sm font-semibold text-[var(--c-text)]">
+                Inteiro Teor
+            </h2>
+            <span class="text-xs text-[var(--c-text-muted)] font-mono">{{ $chunks->count() }} partes</span>
+        </div>
 
-        <div class="prose prose-sm max-w-none text-navy-700 leading-relaxed">
+        <div class="document-prose">
+            @php
+                $currentSection = null;
+                $sectionLabels = [
+                    'ementa' => 'Ementa',
+                    'acordao' => 'Acordao',
+                    'relatorio' => 'Relatorio',
+                    'voto' => 'Voto',
+                    'decisao' => 'Decisao',
+                ];
+            @endphp
+
             @foreach($chunks as $chunk)
-                <p>{{ $chunk['content'] }}</p>
+                @php
+                    $section = $chunk['section'] ?? $chunk['secao'] ?? null;
+                @endphp
+
+                @if($section && $section !== $currentSection)
+                    @php $currentSection = $section; @endphp
+                    <div class="mt-6 mb-3 first:mt-0">
+                        <span class="section-label">{{ $sectionLabels[$section] ?? ucfirst($section) }}</span>
+                    </div>
+                @endif
+
+                <div class="chunk-section">
+                    <p>{!! nl2br(e($chunk['content'])) !!}</p>
+                </div>
             @endforeach
         </div>
     </div>
