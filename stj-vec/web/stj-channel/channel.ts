@@ -67,8 +67,10 @@ mcp.setRequestHandler(CallToolRequestSchema, async (req) => {
       text: string;
     };
 
+    console.error(`[stj-channel] reply for ${request_id}, activeStreams: [${[...activeStreams.keys()].join(', ')}]`);
     const stream = activeStreams.get(request_id);
     if (stream) {
+      console.error(`[stj-channel] pushing reply to SSE stream for ${request_id}`);
       clearTimeout(stream.timeout);
       const encoder = new TextEncoder();
       stream.controller.enqueue(
@@ -85,7 +87,13 @@ mcp.setRequestHandler(CallToolRequestSchema, async (req) => {
       activeStreams.delete(request_id);
     }
 
-    return { content: [{ type: "text", text: "reply pushed via SSE" }] };
+    if (!stream) {
+      console.error(`[stj-channel] NO active stream for ${request_id} -- saving to disk fallback`);
+      const path = `/tmp/stj-channel-reply-${request_id}.json`;
+      await Bun.write(path, JSON.stringify({ request_id, text }));
+    }
+
+    return { content: [{ type: "text", text: stream ? "reply pushed via SSE" : `reply saved to /tmp (no active stream for ${request_id})` }] };
   }
   throw new Error(`unknown tool: ${req.params.name}`);
 });
@@ -145,6 +153,7 @@ Bun.serve({
           }, STREAM_TIMEOUT_MS);
 
           activeStreams.set(request_id, { controller, timeout });
+          console.error(`[stj-channel] SSE stream opened for ${request_id}, total: ${activeStreams.size}`);
         },
         cancel() {
           const s = activeStreams.get(request_id);
@@ -168,6 +177,19 @@ Bun.serve({
         ok: true,
         active_streams: activeStreams.size,
       });
+    }
+
+    // GET /response/:id -- fallback poll (quando SSE falha)
+    if (req.method === "GET" && url.pathname.startsWith("/response/")) {
+      const id = url.pathname.split("/")[2];
+      const path = `/tmp/stj-channel-reply-${id}.json`;
+      const file = Bun.file(path);
+      if (await file.exists()) {
+        const data = await file.json();
+        await Bun.write(path, ""); // consume
+        return Response.json(data);
+      }
+      return Response.json({ request_id: id, status: "pending" }, { status: 202 });
     }
 
     return new Response("not found", { status: 404 });
