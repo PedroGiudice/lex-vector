@@ -6,6 +6,15 @@
                 "artisan",
                 "boost:mcp"
             ]
+        },
+        "stj-channel": {
+            "command": "bun",
+            "args": [
+                "./stj-channel/channel.ts"
+            ],
+            "env": {
+                "STJ_CHANNEL_PORT": "8790"
+            }
         }
     }
 }

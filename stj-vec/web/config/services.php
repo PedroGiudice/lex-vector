@@ -48,6 +48,11 @@ return [
         'bun_bin' => env('BUN_BIN', '/home/opc/.bun/bin/bun'),
         'driver' => env('AGENT_DRIVER', 'cli'),
         'sdk_anthropic_key' => env('SDK_ANTHROPIC_API_KEY'),
+        'channel' => [
+            'port' => (int) env('STJ_CHANNEL_PORT', 8790),
+            'url' => env('STJ_CHANNEL_URL', 'http://127.0.0.1:8790'),
+            'timeout' => (int) env('STJ_CHANNEL_TIMEOUT', 300),
+        ],
     ],
 
 ];

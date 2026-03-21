@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Services\AgentRunner;
 use App\Services\AgentRunnerInterface;
+use App\Services\ChannelSessionManager;
 use App\Services\SdkAgentRunner;
 use Illuminate\Support\ServiceProvider;
 
@@ -19,6 +20,8 @@ class AppServiceProvider extends ServiceProvider
                 ? new SdkAgentRunner
                 : new AgentRunner;
         });
+
+        $this->app->singleton(ChannelSessionManager::class);
     }
 
     /**
