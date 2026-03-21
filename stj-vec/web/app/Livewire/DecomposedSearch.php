@@ -4,6 +4,7 @@ namespace App\Livewire;
 
 use App\Models\SearchJob;
 use App\Services\AgentRunnerInterface;
+use App\Services\ChannelSessionManager;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Livewire\Attributes\Validate;
@@ -30,6 +31,10 @@ class DecomposedSearch extends Component
 
     public ?string $streamUrl = null;
 
+    public ?string $analysis = null;
+
+    public ?string $channelStreamUrl = null;
+
     public ?int $startedAt = null;
 
     public int $elapsedSeconds = 0;
@@ -38,6 +43,12 @@ class DecomposedSearch extends Component
 
     public function startSearch(): void
     {
+        if ($this->driver === 'channel') {
+            $this->startChannelSearch();
+
+            return;
+        }
+
         $this->validate();
 
         $this->searchId = Str::uuid()->toString();
@@ -48,6 +59,8 @@ class DecomposedSearch extends Component
         $this->decomposition = null;
         $this->errorMessage = null;
         $this->streamUrl = null;
+        $this->analysis = null;
+        $this->channelStreamUrl = null;
 
         $this->runner()->start($this->searchId, $this->query);
 
@@ -59,6 +72,54 @@ class DecomposedSearch extends Component
         ]);
 
         $this->streamUrl = route('search.stream', $this->searchId);
+    }
+
+    public function startChannelSearch(): void
+    {
+        $this->validate();
+
+        $this->searchId = Str::uuid()->toString();
+        $this->status = 'searching';
+        $this->startedAt = time();
+        $this->elapsedSeconds = 0;
+        $this->results = null;
+        $this->decomposition = null;
+        $this->errorMessage = null;
+        $this->streamUrl = null;
+        $this->analysis = null;
+        $this->channelStreamUrl = null;
+
+        try {
+            /** @var ChannelSessionManager $manager */
+            $manager = app(ChannelSessionManager::class);
+
+            SearchJob::create([
+                'id' => $this->searchId,
+                'query' => $this->query,
+                'driver' => 'channel',
+                'status' => 'running',
+            ]);
+
+            $manager->sendQuery($this->query, $this->searchId);
+            $this->channelStreamUrl = $manager->streamUrl($this->searchId);
+        } catch (\Throwable $e) {
+            $this->status = 'error';
+            $this->errorMessage = 'Falha ao conectar ao pesquisador: '.$e->getMessage();
+        }
+    }
+
+    public function persistAnalysis(string $text): void
+    {
+        $this->analysis = $text;
+        $this->status = 'completed';
+
+        SearchJob::where('id', $this->searchId)->update([
+            'status' => 'completed',
+            'analysis' => $text,
+            'duration_ms' => $this->startedAt ? (time() - $this->startedAt) * 1000 : null,
+        ]);
+
+        $this->dispatch('search-completed');
     }
 
     public function checkResult(): void
@@ -145,11 +206,11 @@ class DecomposedSearch extends Component
 
     public function cancelSearch(): void
     {
-        if ($this->searchId !== null) {
+        if ($this->searchId !== null && $this->driver !== 'channel') {
             $this->runner()->cancel($this->searchId);
         }
 
-        $this->reset(['searchId', 'status', 'results', 'decomposition', 'startedAt', 'elapsedSeconds', 'errorMessage', 'streamUrl']);
+        $this->reset(['searchId', 'status', 'results', 'decomposition', 'startedAt', 'elapsedSeconds', 'errorMessage', 'streamUrl', 'analysis', 'channelStreamUrl']);
     }
 
     private function extractErrorFromStderr(): ?string
@@ -214,10 +275,12 @@ class DecomposedSearch extends Component
         $this->query = $data['query'] ?? '';
         $this->results = $data['results'] ?? [];
         $this->decomposition = $data['decomposition'] ?? null;
+        $this->analysis = $data['analysis'] ?? null;
         $this->elapsedSeconds = (int) round(($data['duration_ms'] ?? 0) / 1000);
         $this->status = 'completed';
         $this->errorMessage = null;
         $this->streamUrl = null;
+        $this->channelStreamUrl = null;
     }
 
     private function persistJobResult(array $result): void

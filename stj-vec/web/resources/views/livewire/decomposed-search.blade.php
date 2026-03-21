@@ -10,6 +10,10 @@
             <input type="radio" wire:model="driver" value="sdk" class="accent-[var(--c-accent)]" @if($status === 'searching') disabled @endif>
             <span class="text-xs text-[var(--c-text-secondary)]">SDK (bun + anthropic)</span>
         </label>
+        <label class="inline-flex items-center gap-1.5 cursor-pointer">
+            <input type="radio" wire:model="driver" value="channel" class="accent-[var(--c-accent)]" @if($status === 'searching') disabled @endif>
+            <span class="text-xs text-[var(--c-text-secondary)]">Pesquisador (sessao persistente)</span>
+        </label>
     </div>
 
     {{-- Search Form --}}
@@ -135,6 +139,15 @@
                x-text="Math.floor(seconds / 60) + ':' + String(seconds % 60).padStart(2, '0')">
             </p>
         </div>
+    @endif
+
+    {{-- Channel SSE stream (driver=channel) --}}
+    @if($channelStreamUrl)
+        <div
+            x-data="channelStream('{{ $channelStreamUrl }}')"
+            x-init="connect()"
+            x-on:livewire:navigating.window="if (es) { es.close(); es = null; }"
+        ></div>
     @endif
 
     {{-- Timeout State --}}
@@ -283,4 +296,42 @@
             </div>
         @endforeach
     @endif
+
+    {{-- Analysis (driver=channel) --}}
+    @if($analysis)
+        <div class="mt-6 p-6 bg-white rounded-lg border border-gray-200">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Analise</h3>
+            <div class="prose prose-sm max-w-none text-gray-700">
+                {!! Str::markdown($analysis) !!}
+            </div>
+        </div>
+    @endif
 </div>
+
+@script
+<script>
+    function channelStream(url) {
+        return {
+            es: null,
+            connect() {
+                this.es = new EventSource(url)
+                this.es.onmessage = (e) => {
+                    const data = JSON.parse(e.data)
+                    if (data.type === 'reply') {
+                        $wire.persistAnalysis(data.text)
+                    }
+                    if (data.type === 'done' || data.type === 'timeout') {
+                        this.es.close()
+                        this.es = null
+                    }
+                }
+                this.es.onerror = () => {
+                    $wire.markError('Conexao com o pesquisador perdida.')
+                    this.es.close()
+                    this.es = null
+                }
+            }
+        }
+    }
+</script>
+@endscript
