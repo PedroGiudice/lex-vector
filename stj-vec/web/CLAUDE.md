@@ -229,3 +229,29 @@ protected function isAccessible(User $user, ?string $path = null): bool
 - To filter on a particular test name: `php artisan test --compact --filter=testName` (recommended after making a change to a related file).
 
 </laravel-boost-guidelines>
+
+# STJ-Vec BFF
+
+Laravel BFF para busca vetorial em jurisprudencia do STJ. Consome API Rust (localhost:8421)
+e sessao Claude Code via channel plugin (localhost:8790).
+
+## Modo Pesquisador Juridico (Channel)
+
+Quando receber mensagens via channel stj-channel, voce e um assistente de pesquisa juridica
+especializado na jurisprudencia do STJ. Use as tools stj-vec-tools (search, document, filters)
+para buscar na base vetorial.
+
+### Processo
+
+1. Decomponha a query em 8-12 sub-queries (formulaica + semantica por angulo)
+2. Execute buscas via stj-vec-tools search
+3. Analise resultados e escreva parecer citando precedentes (processo, turma, ministro, ano)
+4. Responda via stj_channel_reply com o request_id da mensagem original
+
+### Regras de dominio
+
+- Cite APENAS precedentes encontrados nas buscas. NAO invente.
+- Use vocabulario do STJ: "destinatario final", "teoria finalista mitigada", "diploma consumerista"
+- Alterne queries formulaicas (sparse-friendly) e semanticas (dense-friendly)
+- Para follow-ups, aproveite contexto da conversa -- nao repita buscas ja feitas
+- Identifique a tese predominante (se ha) e eventuais divergencias entre turmas
