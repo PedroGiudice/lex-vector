@@ -1,10 +1,28 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { readFileSync } from "fs";
+import { readFileSync, existsSync } from "fs";
 import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+
+// Load .env from agent/ directory if ANTHROPIC_API_KEY not already set
+if (!process.env.ANTHROPIC_API_KEY) {
+  const envPath = resolve(__dirname, "../.env");
+  if (existsSync(envPath)) {
+    for (const line of readFileSync(envPath, "utf-8").split("\n")) {
+      const match = line.match(/^([^#=]+)=(.*)$/);
+      if (match) process.env[match[1].trim()] = match[2].trim();
+    }
+  }
+}
+
 const RUST_API = process.env.STJ_SEARCH_URL ?? "http://localhost:8421";
+
+// --- Progress Events (NDJSON on stderr) ---
+
+function emitEvent(event: Record<string, unknown>): void {
+  process.stderr.write(JSON.stringify({ ...event, timestamp: Date.now() }) + "\n");
+}
 const MODEL = "claude-sonnet-4-6";
 const MAX_TOKENS = 8000;
 const MAX_ITERATIONS = 15;
@@ -87,10 +105,17 @@ async function executeTool(
 ): Promise<string> {
   switch (name) {
     case "stj_search": {
+      // Default filter: always search Acórdãos unless explicitly overridden
+      const filters = (input.filters as Record<string, string>) ?? {};
+      if (!filters.tipo) {
+        filters.tipo = "ACORDAO";
+      }
+      const searchInput = { ...input, filters };
+
       const res = await fetch(`${RUST_API}/api/search`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(input),
+        body: JSON.stringify(searchInput),
       });
       if (!res.ok) return JSON.stringify({ error: `HTTP ${res.status}` });
       return JSON.stringify(await res.json());
@@ -151,11 +176,12 @@ function buildOutput(
 
   return {
     original_query: originalQuery,
+    analysis: meta.analysis ?? null,
     decomposition: {
       intent: "exploratoria",
       angles: angles.map((a) => ({
         query: a.query,
-        angle: a.query, // query IS the angle description in this mode
+        angle: a.query,
         results_count: a.results.length,
         filters: a.filters,
       })),
@@ -216,10 +242,16 @@ async function main() {
     totalInput += response.usage.input_tokens;
     totalOutput += response.usage.output_tokens;
 
-    // end_turn: model is done searching. Build output from collected data.
+    // end_turn: model is done searching. Capture analysis text + build output.
     if (response.stop_reason === "end_turn") {
+      const textBlocks = response.content.filter(
+        (b): b is Anthropic.TextBlock => b.type === "text",
+      );
+      const analysis = textBlocks.map((b) => b.text).join("\n").trim() || null;
+
       const elapsed = (Date.now() - startTime) / 1000;
       const output = buildOutput(query, collectedAngles, {
+        analysis,
         elapsed_seconds: elapsed,
         input_tokens: totalInput,
         output_tokens: totalOutput,
@@ -228,6 +260,7 @@ async function main() {
         model: MODEL,
         runner: "sdk-ts-v2",
       });
+      emitEvent({ event: "completed", total_results: output.total_results, total_angles: output.total_searches, elapsed_seconds: elapsed });
       console.log(JSON.stringify(output));
       return;
     }
@@ -259,11 +292,14 @@ async function main() {
 
       // Track search calls for result collection
       if (block.name === "stj_search") {
+        const searchQuery = (input.query as string) ?? "";
         pendingSearches.set(block.id, {
-          query: (input.query as string) ?? "",
+          query: searchQuery,
           filters: input.filters as Record<string, string> | undefined,
           limit: input.limit as number | undefined,
         });
+
+        emitEvent({ event: "search_started", angle: searchQuery, iteration });
 
         // Parse and collect results
         try {
@@ -275,6 +311,8 @@ async function main() {
             filters: searchCall.filters,
             results,
           });
+
+          emitEvent({ event: "search_completed", angle: searchCall.query, results_count: results.length, iteration });
         } catch {
           // Failed to parse -- skip collection, tool result still sent to model
         }
@@ -291,8 +329,9 @@ async function main() {
   }
 
   // Max iterations
+  const elapsed = (Date.now() - startTime) / 1000;
   const output = buildOutput(query, collectedAngles, {
-    elapsed_seconds: (Date.now() - startTime) / 1000,
+    elapsed_seconds: elapsed,
     input_tokens: totalInput,
     output_tokens: totalOutput,
     tool_calls: toolCalls,
@@ -301,10 +340,12 @@ async function main() {
     runner: "sdk-ts-v2",
     warning: "max_iterations_reached",
   });
+  emitEvent({ event: "completed", total_results: output.total_results, total_angles: output.total_searches, elapsed_seconds: elapsed });
   console.log(JSON.stringify(output));
 }
 
 main().catch((err) => {
+  emitEvent({ event: "error", message: err.message, type: err.constructor.name });
   console.error(
     JSON.stringify({ error: err.message, type: err.constructor.name }),
   );
