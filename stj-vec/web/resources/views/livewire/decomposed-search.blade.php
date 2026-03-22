@@ -314,11 +314,10 @@
         @endforeach
     @endif
 
-    {{-- Analysis (driver=channel) --}}
-    @if($analysis)
-        <div class="mt-6 p-6 bg-white rounded-lg border border-gray-200">
-            <h3 class="text-lg font-semibold text-gray-900 mb-4">Analise</h3>
-            <div class="prose prose-sm max-w-none text-gray-700">
+    {{-- Analysis (driver=channel) -- only when WS is not active (history/reload) --}}
+    @if($analysis && !$channelWsUrl)
+        <div class="mt-6 p-6 bg-[var(--c-surface-card)] rounded-lg border border-[var(--c-border)]">
+            <div class="prose prose-sm max-w-none text-[var(--c-text-secondary)]">
                 {!! Str::markdown($analysis) !!}
             </div>
         </div>

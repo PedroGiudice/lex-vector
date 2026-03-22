@@ -112,6 +112,7 @@ class DecomposedSearch extends Component
     {
         $this->analysis = $text;
         $this->status = 'completed';
+        $this->channelWsUrl = null;
 
         SearchJob::where('id', $this->searchId)->update([
             'status' => 'completed',
