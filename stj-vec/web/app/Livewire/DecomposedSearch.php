@@ -33,7 +33,7 @@ class DecomposedSearch extends Component
 
     public ?string $analysis = null;
 
-    public ?string $channelStreamUrl = null;
+    public ?string $channelWsUrl = null;
 
     public ?int $startedAt = null;
 
@@ -60,7 +60,7 @@ class DecomposedSearch extends Component
         $this->errorMessage = null;
         $this->streamUrl = null;
         $this->analysis = null;
-        $this->channelStreamUrl = null;
+        $this->channelWsUrl = null;
 
         $this->runner()->start($this->searchId, $this->query);
 
@@ -87,7 +87,7 @@ class DecomposedSearch extends Component
         $this->errorMessage = null;
         $this->streamUrl = null;
         $this->analysis = null;
-        $this->channelStreamUrl = null;
+        $this->channelWsUrl = null;
 
         try {
             /** @var ChannelSessionManager $manager */
@@ -101,7 +101,7 @@ class DecomposedSearch extends Component
             ]);
 
             $manager->sendQuery($this->query, $this->searchId);
-            $this->channelStreamUrl = $manager->streamUrl($this->searchId);
+            $this->channelWsUrl = $manager->wsUrl();
         } catch (\Throwable $e) {
             $this->status = 'error';
             $this->errorMessage = 'Falha ao conectar ao pesquisador: '.$e->getMessage();
@@ -210,7 +210,7 @@ class DecomposedSearch extends Component
             $this->runner()->cancel($this->searchId);
         }
 
-        $this->reset(['searchId', 'status', 'results', 'decomposition', 'startedAt', 'elapsedSeconds', 'errorMessage', 'streamUrl', 'analysis', 'channelStreamUrl']);
+        $this->reset(['searchId', 'status', 'results', 'decomposition', 'startedAt', 'elapsedSeconds', 'errorMessage', 'streamUrl', 'analysis', 'channelWsUrl']);
     }
 
     private function extractErrorFromStderr(): ?string
@@ -280,7 +280,7 @@ class DecomposedSearch extends Component
         $this->status = 'completed';
         $this->errorMessage = null;
         $this->streamUrl = null;
-        $this->channelStreamUrl = null;
+        $this->channelWsUrl = null;
     }
 
     private function persistJobResult(array $result): void

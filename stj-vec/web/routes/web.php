@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\ChannelStreamController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\SearchStreamController;
 use App\Http\Controllers\SetupController;
@@ -30,6 +31,7 @@ Route::middleware(['auth', 'password.changed'])->group(function (): void {
     Route::get('/document/{docId}', [SearchController::class, 'document'])->name('search.document');
     Route::get('/api/document/{docId}', [SearchController::class, 'documentApi'])->name('api.document');
     Route::get('/api/search/{searchId}/stream', [SearchStreamController::class, 'stream'])->name('search.stream');
+    Route::get('/api/channel/{requestId}/stream', [ChannelStreamController::class, 'stream'])->name('channel.stream');
     Route::get('/settings/themes', function () {
         return view('settings.themes');
     })->name('settings.themes');

@@ -1,199 +1,185 @@
 #!/usr/bin/env bun
-import { Server } from "@modelcontextprotocol/sdk/server/index.js";
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+/**
+ * STJ-Vec channel for Claude Code.
+ *
+ * Web UI bridge for legal research queries. Pattern follows fakechat
+ * from anthropics/claude-plugins-official: WebSocket for real-time push,
+ * MCP channel for Claude integration.
+ */
+
+import { Server } from '@modelcontextprotocol/sdk/server/index.js'
+import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import {
   ListToolsRequestSchema,
   CallToolRequestSchema,
-} from "@modelcontextprotocol/sdk/types.js";
+} from '@modelcontextprotocol/sdk/types.js'
+import type { ServerWebSocket } from 'bun'
 
-const PORT = parseInt(process.env.STJ_CHANNEL_PORT ?? "8790");
+const PORT = Number(process.env.STJ_CHANNEL_PORT ?? 8790)
 
-// Cada request_id tem um controller SSE para push
-const activeStreams = new Map<
-  string,
-  {
-    controller: ReadableStreamDefaultController;
-    timeout: ReturnType<typeof setTimeout>;
-  }
->();
+type Wire =
+  | { type: 'msg'; id: string; from: 'user' | 'assistant'; text: string; ts: number }
+  | { type: 'edit'; id: string; text: string }
+  | { type: 'status'; text: string }
+
+const clients = new Set<ServerWebSocket<unknown>>()
+let seq = 0
+
+function nextId() {
+  return `m${Date.now()}-${++seq}`
+}
+
+function broadcast(m: Wire) {
+  const data = JSON.stringify(m)
+  for (const ws of clients) if (ws.readyState === 1) ws.send(data)
+}
+
+// Map request_id -> message_id (for edit_message to find the right msg)
+const requestToMsg = new Map<string, string>()
 
 const mcp = new Server(
-  { name: "stj-channel", version: "0.1.0" },
+  { name: 'stj-channel', version: '0.3.0' },
   {
-    capabilities: {
-      experimental: { "claude/channel": {} },
-      tools: {},
-    },
-    instructions: `Mensagens chegam como <channel source="stj-channel" request_id="...">.
-Cada mensagem e uma query de pesquisa juridica sobre jurisprudencia do STJ.
-Voce DEVE responder usando a tool stj_channel_reply, passando o request_id da tag channel.
-Use as tools stj-vec-tools (search, document, filters) para buscar na base.
-Para follow-ups, aproveite o contexto da conversa -- nao repita buscas ja feitas.`,
-  }
-);
+    capabilities: { tools: {}, experimental: { 'claude/channel': {} } },
+    instructions: `The sender reads the STJ-Vec web UI, not this session. Anything you want them to see must go through reply or edit_message — your transcript output never reaches the UI.
 
-// Tool discovery
+Messages arrive as <channel source="stj-channel" chat_id="web" message_id="..." request_id="...">.
+Each message is a legal research query about STJ jurisprudence.
+
+Use stj-vec-tools (search, document, filters) to search the database.
+Reply with the reply tool. Use edit_message to update your reply with progress.
+For follow-ups, leverage conversation context — don't repeat searches already done.`,
+  },
+)
+
 mcp.setRequestHandler(ListToolsRequestSchema, async () => ({
   tools: [
     {
-      name: "stj_channel_reply",
-      description:
-        "Responde uma query de pesquisa juridica. Use apos completar buscas e analise.",
+      name: 'reply',
+      description: 'Send a message to the STJ-Vec web UI.',
       inputSchema: {
-        type: "object" as const,
+        type: 'object',
         properties: {
-          request_id: {
-            type: "string",
-            description:
-              "ID da requisicao (atributo request_id da tag channel)",
-          },
-          text: {
-            type: "string",
-            description:
-              "Resposta completa com analise e citacoes de precedentes",
-          },
+          text: { type: 'string' },
+          request_id: { type: 'string', description: 'request_id from the channel message' },
         },
-        required: ["request_id", "text"],
+        required: ['text'],
+      },
+    },
+    {
+      name: 'edit_message',
+      description: 'Update a previously sent message. Use for progress updates.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          message_id: { type: 'string' },
+          text: { type: 'string' },
+        },
+        required: ['message_id', 'text'],
       },
     },
   ],
-}));
+}))
 
-// Tool execution -- push via SSE
-mcp.setRequestHandler(CallToolRequestSchema, async (req) => {
-  if (req.params.name === "stj_channel_reply") {
-    const { request_id, text } = req.params.arguments as {
-      request_id: string;
-      text: string;
-    };
-
-    console.error(`[stj-channel] reply for ${request_id}, activeStreams: [${[...activeStreams.keys()].join(', ')}]`);
-    const stream = activeStreams.get(request_id);
-    if (stream) {
-      console.error(`[stj-channel] pushing reply to SSE stream for ${request_id}`);
-      clearTimeout(stream.timeout);
-      const encoder = new TextEncoder();
-      stream.controller.enqueue(
-        encoder.encode(
-          `data: ${JSON.stringify({ type: "reply", request_id, text })}\n\n`
-        )
-      );
-      stream.controller.enqueue(
-        encoder.encode(
-          `data: ${JSON.stringify({ type: "done", request_id })}\n\n`
-        )
-      );
-      stream.controller.close();
-      activeStreams.delete(request_id);
+mcp.setRequestHandler(CallToolRequestSchema, async req => {
+  const args = (req.params.arguments ?? {}) as Record<string, unknown>
+  try {
+    switch (req.params.name) {
+      case 'reply': {
+        const text = args.text as string
+        const request_id = args.request_id as string | undefined
+        const id = nextId()
+        if (request_id) requestToMsg.set(request_id, id)
+        broadcast({ type: 'msg', id, from: 'assistant', text, ts: Date.now() })
+        console.error(`[stj-channel] reply ${id}${request_id ? ` (req:${request_id})` : ''}`)
+        return { content: [{ type: 'text', text: `sent (id: ${id})` }] }
+      }
+      case 'edit_message': {
+        const message_id = args.message_id as string
+        const text = args.text as string
+        broadcast({ type: 'edit', id: message_id, text })
+        console.error(`[stj-channel] edit ${message_id}`)
+        return { content: [{ type: 'text', text: 'ok' }] }
+      }
+      default:
+        return { content: [{ type: 'text', text: `unknown: ${req.params.name}` }], isError: true }
     }
-
-    if (!stream) {
-      console.error(`[stj-channel] NO active stream for ${request_id} -- saving to disk fallback`);
-      const path = `/tmp/stj-channel-reply-${request_id}.json`;
-      await Bun.write(path, JSON.stringify({ request_id, text }));
-    }
-
-    return { content: [{ type: "text", text: stream ? "reply pushed via SSE" : `reply saved to /tmp (no active stream for ${request_id})` }] };
+  } catch (err) {
+    return { content: [{ type: 'text', text: `${req.params.name}: ${err instanceof Error ? err.message : err}` }], isError: true }
   }
-  throw new Error(`unknown tool: ${req.params.name}`);
-});
+})
 
-await mcp.connect(new StdioServerTransport());
+await mcp.connect(new StdioServerTransport())
 
-// HTTP server
-let nextId = 1;
-const STREAM_TIMEOUT_MS = 600_000; // 10 min
+function deliver(request_id: string, text: string): void {
+  const id = nextId()
+  broadcast({ type: 'msg', id, from: 'user', text, ts: Date.now() })
 
+  // Auto-reply placeholder so UI shows immediate feedback
+  const replyId = nextId()
+  requestToMsg.set(request_id, replyId)
+  broadcast({ type: 'msg', id: replyId, from: 'assistant', text: 'Analisando...', ts: Date.now() })
+
+  void mcp.notification({
+    method: 'notifications/claude/channel',
+    params: {
+      content: text,
+      meta: { chat_id: 'web', message_id: id, request_id, user: 'web', ts: new Date().toISOString() },
+    },
+  })
+}
+
+// HTTP + WebSocket server
 Bun.serve({
   port: PORT,
-  hostname: "127.0.0.1",
-  async fetch(req) {
-    const url = new URL(req.url);
+  hostname: '127.0.0.1',
+  fetch(req, server) {
+    const url = new URL(req.url)
 
-    // POST /query -- fire-and-forget, retorna request_id imediatamente
-    if (req.method === "POST" && url.pathname === "/query") {
-      const body = (await req.json()) as {
-        query: string;
-        request_id?: string;
-      };
-      const request_id = body.request_id ?? String(nextId++);
-
-      await mcp.notification({
-        method: "notifications/claude/channel",
-        params: {
-          content: body.query,
-          meta: { request_id },
-        },
-      });
-
-      return Response.json({ request_id });
+    if (url.pathname === '/ws') {
+      if (server.upgrade(req)) return
+      return new Response('upgrade failed', { status: 400 })
     }
 
-    // GET /stream/:id -- SSE push stream
-    if (req.method === "GET" && url.pathname.startsWith("/stream/")) {
-      const request_id = url.pathname.split("/")[2];
-
-      const stream = new ReadableStream({
-        start(controller) {
-          const encoder = new TextEncoder();
-          controller.enqueue(
-            encoder.encode(
-              `data: ${JSON.stringify({ type: "connected", request_id })}\n\n`
-            )
-          );
-
-          const timeout = setTimeout(() => {
-            controller.enqueue(
-              encoder.encode(
-                `data: ${JSON.stringify({ type: "timeout", request_id })}\n\n`
-              )
-            );
-            controller.close();
-            activeStreams.delete(request_id);
-          }, STREAM_TIMEOUT_MS);
-
-          activeStreams.set(request_id, { controller, timeout });
-          console.error(`[stj-channel] SSE stream opened for ${request_id}, total: ${activeStreams.size}`);
-        },
-        cancel() {
-          const s = activeStreams.get(request_id);
-          if (s) clearTimeout(s.timeout);
-          activeStreams.delete(request_id);
-        },
-      });
-
-      return new Response(stream, {
-        headers: {
-          "Content-Type": "text/event-stream",
-          "Cache-Control": "no-cache",
-          Connection: "keep-alive",
-        },
-      });
+    // POST /query -- web UI sends query here
+    if (req.method === 'POST' && url.pathname === '/query') {
+      return (async () => {
+        const body = (await req.json()) as { query: string; request_id?: string }
+        const request_id = body.request_id ?? nextId()
+        deliver(request_id, body.query)
+        return Response.json({ request_id, message_id: requestToMsg.get(request_id) })
+      })()
     }
 
     // GET /status
-    if (req.method === "GET" && url.pathname === "/status") {
+    if (req.method === 'GET' && url.pathname === '/status') {
       return Response.json({
         ok: true,
-        active_streams: activeStreams.size,
-      });
+        ws_clients: clients.size,
+        pending_requests: requestToMsg.size,
+      })
     }
 
-    // GET /response/:id -- fallback poll (quando SSE falha)
-    if (req.method === "GET" && url.pathname.startsWith("/response/")) {
-      const id = url.pathname.split("/")[2];
-      const path = `/tmp/stj-channel-reply-${id}.json`;
-      const file = Bun.file(path);
-      if (await file.exists()) {
-        const data = await file.json();
-        await Bun.write(path, ""); // consume
-        return Response.json(data);
-      }
-      return Response.json({ request_id: id, status: "pending" }, { status: 202 });
+    // GET /msg-id/:request_id -- get the message_id for a request
+    if (req.method === 'GET' && url.pathname.startsWith('/msg-id/')) {
+      const rid = url.pathname.split('/')[2]
+      const mid = requestToMsg.get(rid)
+      return Response.json({ request_id: rid, message_id: mid ?? null })
     }
 
-    return new Response("not found", { status: 404 });
+    return new Response('not found', { status: 404 })
   },
-});
+  websocket: {
+    open: ws => {
+      clients.add(ws)
+      console.error(`[stj-channel] WS client connected, total: ${clients.size}`)
+    },
+    close: ws => {
+      clients.delete(ws)
+      console.error(`[stj-channel] WS client disconnected, total: ${clients.size}`)
+    },
+    message: () => {},
+  },
+})
 
-console.error(`stj-channel listening on http://127.0.0.1:${PORT}`);
+console.error(`stj-channel v0.3.0 listening on http://127.0.0.1:${PORT}`)

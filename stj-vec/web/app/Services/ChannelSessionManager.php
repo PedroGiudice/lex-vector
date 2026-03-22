@@ -123,11 +123,14 @@ class ChannelSessionManager
     }
 
     /**
-     * URL do SSE stream para um request_id.
+     * WebSocket URL for the channel plugin (proxied via nginx).
      */
-    public function streamUrl(string $requestId): string
+    public function wsUrl(): string
     {
-        return "{$this->channelUrl}/stream/{$requestId}";
+        $appUrl = config('app.url');
+        $wsUrl = str_replace(['https://', 'http://'], ['wss://', 'ws://'], $appUrl);
+
+        return "{$wsUrl}/channel/ws";
     }
 
     private function loadPid(): int

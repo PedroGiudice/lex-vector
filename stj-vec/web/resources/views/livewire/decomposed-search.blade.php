@@ -141,13 +141,30 @@
         </div>
     @endif
 
-    {{-- Channel SSE stream (driver=channel) --}}
-    @if($channelStreamUrl)
+    {{-- Channel live stream (driver=channel) --}}
+    @if($channelWsUrl)
         <div
-            x-data="channelStream('{{ $channelStreamUrl }}')"
+            x-data="channelStream('{{ $channelWsUrl }}')"
             x-init="connect()"
-            x-on:livewire:navigating.window="if (es) { es.close(); es = null; }"
-        ></div>
+            x-on:livewire:navigating.window="cleanup()"
+            class="mt-4"
+        >
+            {{-- Assistant message (live-updating) --}}
+            <template x-if="assistantText">
+                <div class="bg-[var(--c-surface-card)] rounded-lg border border-[var(--c-border)] p-6">
+                    <div class="prose prose-sm max-w-none text-[var(--c-text-secondary)]"
+                         x-html="renderMarkdown(assistantText)">
+                    </div>
+                </div>
+            </template>
+
+            {{-- Timer --}}
+            <template x-if="!done">
+                <p class="text-lg font-mono text-[var(--c-text-muted)] mt-3 text-center"
+                   x-text="Math.floor(seconds / 60) + ':' + String(seconds % 60).padStart(2, '0')">
+                </p>
+            </template>
+        </div>
     @endif
 
     {{-- Timeout State --}}
@@ -310,28 +327,52 @@
 
 @script
 <script>
-    function channelStream(url) {
-        return {
-            es: null,
-            connect() {
-                this.es = new EventSource(url)
-                this.es.onmessage = (e) => {
-                    const data = JSON.parse(e.data)
-                    if (data.type === 'reply') {
+    Alpine.data('channelStream', (wsUrl) => ({
+        ws: null,
+        assistantText: null,
+        seconds: 0,
+        timer: null,
+        done: false,
+        msgs: {},
+        connect() {
+            console.log('[channelStream] connecting WS:', wsUrl)
+            this.timer = setInterval(() => this.seconds++, 1000)
+            this.ws = new WebSocket(wsUrl)
+            this.ws.onmessage = (e) => {
+                const data = JSON.parse(e.data)
+                if (data.type === 'msg' && data.from === 'assistant') {
+                    this.msgs[data.id] = data.text
+                    this.assistantText = data.text
+                }
+                if (data.type === 'edit') {
+                    this.msgs[data.id] = data.text
+                    this.assistantText = data.text
+                    // If final analysis is long enough, persist
+                    if (data.text.length > 200) {
                         $wire.persistAnalysis(data.text)
                     }
-                    if (data.type === 'done' || data.type === 'timeout') {
-                        this.es.close()
-                        this.es = null
-                    }
-                }
-                this.es.onerror = () => {
-                    $wire.markError('Conexao com o pesquisador perdida.')
-                    this.es.close()
-                    this.es = null
                 }
             }
+            this.ws.onclose = () => {
+                console.log('[channelStream] WS closed')
+            }
+            this.ws.onerror = (err) => {
+                console.error('[channelStream] WS error', err)
+            }
+        },
+        cleanup() {
+            if (this.timer) { clearInterval(this.timer); this.timer = null }
+            if (this.ws) { this.ws.close(); this.ws = null }
+            this.done = true
+        },
+        renderMarkdown(text) {
+            if (!text) return ''
+            // Basic markdown: bold, newlines
+            return text
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\n/g, '<br>')
         }
-    }
+    }))
 </script>
 @endscript
