@@ -83,6 +83,7 @@ async fn main() -> anyhow::Result<()> {
     // Rotas API
     let api_routes = Router::new()
         .route("/search", post(routes::search_handler))
+        .route("/search/batch", post(routes::batch_search_handler))
         .route("/document/{doc_id}", get(routes::document_handler))
         .route("/health", get(routes::health_handler))
         .route("/filters", get(routes::filters_handler));

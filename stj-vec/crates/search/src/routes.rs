@@ -12,8 +12,8 @@ use crate::metadata::MetadataStore;
 use crate::query_preprocessor::{self, PreprocessedQuery};
 use crate::searcher::QdrantSearcher;
 use crate::types::{
-    FiltersResponse, HealthResponse, QueryInfo, Scores, SearchRequest, SearchResponse,
-    SearchResultItem,
+    BatchSearchRequest, BatchSearchResponse, FiltersResponse, HealthResponse, QueryInfo, Scores,
+    SearchRequest, SearchResponse, SearchResultItem,
 };
 
 /// Estado compartilhado da aplicacao.
@@ -28,12 +28,39 @@ pub struct AppState {
 }
 
 /// POST /api/search
-///
-/// Pipeline: preprocessing -> embed query -> busca Qdrant -> metadados SQLite -> filtros -> resposta.
 pub async fn search_handler(
     State(state): State<AppState>,
     Json(req): Json<SearchRequest>,
 ) -> Result<impl IntoResponse, SearchError> {
+    let resp = execute_search(&state, req).await?;
+    Ok(Json(resp))
+}
+
+/// POST /api/search/batch
+///
+/// Executa multiplas buscas em paralelo. Embedding sequencial (ONNX single-threaded),
+/// buscas Qdrant em paralelo via tokio.
+pub async fn batch_search_handler(
+    State(state): State<AppState>,
+    Json(req): Json<BatchSearchRequest>,
+) -> Result<impl IntoResponse, SearchError> {
+    let total_start = Instant::now();
+    let futures: Vec<_> = req
+        .queries
+        .into_iter()
+        .map(|q| execute_search(&state, q))
+        .collect();
+    let results: Result<Vec<_>, _> = futures::future::join_all(futures)
+        .await
+        .into_iter()
+        .collect();
+    let results = results?;
+    let total_ms = total_start.elapsed().as_millis() as u64;
+    Ok(Json(BatchSearchResponse { results, total_ms }))
+}
+
+/// Pipeline core: preprocessing -> embed -> busca Qdrant -> metadados -> filtros -> rerank -> dedup.
+async fn execute_search(state: &AppState, req: SearchRequest) -> Result<SearchResponse, SearchError> {
     let total_start = Instant::now();
     let original_query = req.query.clone();
     let limit = req
@@ -41,25 +68,21 @@ pub async fn search_handler(
         .unwrap_or(state.config.search.default_limit)
         .min(state.config.search.max_results);
 
-    // 0. Preprocessing
-    let preprocessed = run_preprocessing(&state, &req);
+    let preprocessed = run_preprocessing(state, &req);
 
-    // Merge filtros extraidos com filtros explicitos do request
     let mut merged_filters = req.filters.clone().unwrap_or_default();
     if !preprocessed.extracted_filters.is_empty() {
         merged_filters.merge_extracted(&preprocessed.extracted_filters);
     }
 
     let has_filters = !merged_filters.is_empty();
-
-    // Overfetch para compensar filtros pos-busca
     let overfetch_limit = if has_filters {
         limit * state.config.search.overfetch_factor
     } else {
         limit
     };
 
-    // 1. Embedding (usa semantic_query preprocessada)
+    // 1. Embedding
     let embed_start = Instant::now();
     let embedding = state
         .embedder
@@ -87,51 +110,62 @@ pub async fn search_handler(
     let sparse_candidates = ranked.iter().filter(|r| r.sparse_rank > 0).count();
     let pre_filter_count = ranked.len();
 
-    // 3. Extrair chunk_ids
     let chunk_ids: Vec<String> = ranked.iter().map(|r| r.chunk_id.clone()).collect();
 
-    // 4. Filtros
-    let filtered_ids = if has_filters {
-        state
-            .metadata
-            .filter_chunk_ids(&chunk_ids, &merged_filters)
-            .map_err(SearchError::Embedding)?
-    } else {
-        chunk_ids.clone()
-    };
-
-    // 5. Metadados
+    // 3. Metadados + filtros em memoria
     let metadata_start = Instant::now();
-    let metadata_map = state
+    let mut metadata_map = state
         .metadata
-        .get_chunks_with_metadata(&filtered_ids)
+        .get_chunks_with_metadata(&chunk_ids)
         .map_err(SearchError::Embedding)?;
+    if has_filters {
+        metadata_map.retain(|_, meta| merged_filters.matches(meta));
+    }
     let metadata_ms = metadata_start.elapsed().as_millis() as u64;
 
-    // 6. Montar resposta, respeitando a ordem RRF
-    let mut results = Vec::new();
-    for ranked_item in &ranked {
-        if let Some(meta) = metadata_map.get(&ranked_item.chunk_id) {
-            results.push(SearchResultItem {
-                chunk_id: meta.chunk_id.clone(),
-                content: meta.content.clone(),
-                chunk_index: meta.chunk_index,
-                doc_id: meta.doc_id.clone(),
-                processo: meta.processo.clone(),
-                classe: meta.classe.clone(),
-                ministro: meta.ministro.clone(),
-                orgao_julgador: meta.orgao_julgador.clone(),
-                data_publicacao: meta.data_publicacao.clone(),
-                tipo: meta.tipo.clone(),
-                assuntos: meta.assuntos.clone(),
-                scores: Scores {
-                    dense: ranked_item.dense_score,
-                    sparse: ranked_item.sparse_score,
-                    rrf: ranked_item.rrf_score,
-                    dense_rank: ranked_item.dense_rank,
-                    sparse_rank: ranked_item.sparse_rank,
-                },
-            });
+    // 4. Reranking: co-ocorrencia + tipo boost
+    let mut ranked = ranked;
+    {
+        let query_lower = original_query.to_lowercase();
+        let concepts: Vec<&str> = query_lower
+            .split_whitespace()
+            .filter(|w| w.len() >= 4)
+            .collect();
+        let concept_count = concepts.len().max(1) as f64;
+
+        for item in ranked.iter_mut() {
+            if let Some(meta) = metadata_map.get(&item.chunk_id) {
+                let content_lower = meta.content.to_lowercase();
+                let matches = concepts
+                    .iter()
+                    .filter(|c| content_lower.contains(*c))
+                    .count() as f64;
+                let cooccurrence_bonus = (matches / concept_count) * 0.3;
+                let tipo_factor = if meta.tipo.contains("CORD") { 1.10 } else { 0.90 };
+                item.rrf_score = item.rrf_score * (1.0 + cooccurrence_bonus) * tipo_factor;
+            }
+        }
+        ranked.sort_by(|a, b| {
+            b.rrf_score
+                .partial_cmp(&a.rrf_score)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
+    }
+
+    // 5. Dedup por processo (prioriza acordao)
+    let mut results: Vec<SearchResultItem> = Vec::new();
+    let mut seen: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
+    for ri in &ranked {
+        if let Some(meta) = metadata_map.get(&ri.chunk_id) {
+            let key = meta.processo.clone();
+            if let Some(&idx) = seen.get(&key) {
+                if meta.tipo.contains("CORD") && !results[idx].tipo.contains("CORD") {
+                    results[idx] = build_result_item(meta, ri);
+                }
+                continue;
+            }
+            results.push(build_result_item(meta, ri));
+            seen.insert(key, results.len() - 1);
             if results.len() >= limit {
                 break;
             }
@@ -147,7 +181,7 @@ pub async fn search_handler(
         Some(preprocessed.extracted_filters)
     };
 
-    Ok(Json(SearchResponse {
+    Ok(SearchResponse {
         results,
         query_info: QueryInfo {
             original_query,
@@ -164,7 +198,33 @@ pub async fn search_handler(
             pre_filter_count,
             post_filter_count,
         },
-    }))
+    })
+}
+
+fn build_result_item(
+    meta: &crate::types::ChunkWithMetadata,
+    ri: &crate::searcher::RankedResult,
+) -> SearchResultItem {
+    SearchResultItem {
+        chunk_id: meta.chunk_id.clone(),
+        content: meta.content.clone(),
+        chunk_index: meta.chunk_index,
+        doc_id: meta.doc_id.clone(),
+        processo: meta.processo.clone(),
+        classe: meta.classe.clone(),
+        ministro: meta.ministro.clone(),
+        orgao_julgador: meta.orgao_julgador.clone(),
+        data_publicacao: meta.data_publicacao.clone(),
+        tipo: meta.tipo.clone(),
+        assuntos: meta.assuntos.clone(),
+        scores: Scores {
+            dense: ri.dense_score,
+            sparse: ri.sparse_score,
+            rrf: ri.rrf_score,
+            dense_rank: ri.dense_rank,
+            sparse_rank: ri.sparse_rank,
+        },
+    }
 }
 
 /// Executa o preprocessing da query, respeitando config global e overrides por request.

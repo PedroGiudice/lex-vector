@@ -3,6 +3,17 @@ use serde::{Deserialize, Serialize};
 use crate::query_preprocessor::{ExtractedFilters, Extraction};
 
 #[derive(Debug, Deserialize)]
+pub struct BatchSearchRequest {
+    pub queries: Vec<SearchRequest>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct BatchSearchResponse {
+    pub results: Vec<SearchResponse>,
+    pub total_ms: u64,
+}
+
+#[derive(Debug, Deserialize, Clone)]
 pub struct SearchRequest {
     pub query: String,
     pub limit: Option<usize>,
@@ -14,7 +25,7 @@ pub struct SearchRequest {
 }
 
 /// Opcoes de preprocessing por request (override do config global).
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct PreprocessingOptions {
     pub extract_metadata: Option<bool>,
     pub remove_stopwords: Option<bool>,
@@ -47,6 +58,39 @@ impl SearchFilters {
 
     /// Merge filtros extraidos do preprocessing.
     /// Filtros explicitos do request tem prioridade sobre extraidos.
+    /// Filtra um chunk em memoria contra os criterios.
+    pub fn matches(&self, meta: &ChunkWithMetadata) -> bool {
+        if let Some(ref m) = self.ministro {
+            if meta.ministro != *m { return false; }
+        }
+        if let Some(ref t) = self.tipo {
+            // Normalizar ACORDAO→ACÓRDÃO, DECISAO→DECISÃO
+            let normalized = match t.to_uppercase().as_str() {
+                "ACORDAO" => "ACÓRDÃO".to_string(),
+                "DECISAO" => "DECISÃO".to_string(),
+                other => other.to_string(),
+            };
+            if meta.tipo != normalized { return false; }
+        }
+        if let Some(ref c) = self.classe {
+            if meta.classe != *c { return false; }
+        }
+        if let Some(ref o) = self.orgao_julgador {
+            if meta.orgao_julgador != *o { return false; }
+        }
+        if let Some(ref p) = self.processo_like {
+            let prefix = p.trim_end_matches('%');
+            if !meta.processo.starts_with(prefix) { return false; }
+        }
+        if let Some(ref d) = self.data_from {
+            if meta.data_publicacao < *d { return false; }
+        }
+        if let Some(ref d) = self.data_to {
+            if meta.data_publicacao > *d { return false; }
+        }
+        true
+    }
+
     pub fn merge_extracted(&mut self, extracted: &ExtractedFilters) {
         if self.classe.is_none() {
             if let Some(ref classe) = extracted.classe {
