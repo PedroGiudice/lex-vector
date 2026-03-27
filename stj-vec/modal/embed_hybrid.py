@@ -7,16 +7,82 @@ Output por source:
 """
 
 import json
+import subprocess
+import threading
+import time as _time
 
 import modal
+
+
+class GpuMonitor:
+    """Amostra GPU utilization via nvidia-smi em background thread."""
+
+    def __init__(self, interval: float = 1.0):
+        self.interval = interval
+        self.samples: list[dict] = []
+        self._stop = threading.Event()
+        self._thread: threading.Thread | None = None
+
+    def start(self):
+        self._stop.clear()
+        self.samples.clear()
+        self._thread = threading.Thread(target=self._poll, daemon=True)
+        self._thread.start()
+
+    def stop(self) -> dict:
+        self._stop.set()
+        if self._thread:
+            self._thread.join(timeout=5)
+        return self.summary()
+
+    def _poll(self):
+        while not self._stop.is_set():
+            try:
+                out = subprocess.check_output(
+                    ["nvidia-smi",
+                     "--query-gpu=utilization.gpu,utilization.memory,memory.used,memory.total,power.draw,power.limit",
+                     "--format=csv,noheader,nounits"],
+                    text=True, timeout=5,
+                ).strip()
+                parts = [p.strip() for p in out.split(",")]
+                if len(parts) >= 6:
+                    self.samples.append({
+                        "gpu_util": float(parts[0]),
+                        "mem_util": float(parts[1]),
+                        "mem_used_mb": float(parts[2]),
+                        "mem_total_mb": float(parts[3]),
+                        "power_w": float(parts[4]),
+                        "power_limit_w": float(parts[5]),
+                    })
+            except Exception:
+                pass
+            self._stop.wait(self.interval)
+
+    def summary(self) -> dict:
+        if not self.samples:
+            return {"error": "no samples"}
+        gpu_utils = [s["gpu_util"] for s in self.samples]
+        mem_utils = [s["mem_util"] for s in self.samples]
+        powers = [s["power_w"] for s in self.samples]
+        power_limit = self.samples[0]["power_limit_w"]
+        return {
+            "n_samples": len(self.samples),
+            "gpu_util_avg": round(sum(gpu_utils) / len(gpu_utils), 1),
+            "gpu_util_max": round(max(gpu_utils), 1),
+            "gpu_util_min": round(min(gpu_utils), 1),
+            "mem_util_avg": round(sum(mem_utils) / len(mem_utils), 1),
+            "power_avg_w": round(sum(powers) / len(powers), 1),
+            "power_limit_w": round(power_limit, 1),
+            "power_pct": round(sum(powers) / len(powers) / power_limit * 100, 1),
+        }
 
 app = modal.App("stj-vec-embed-hybrid")
 
 volume_models = modal.Volume.from_name("stj-vec-models")
 volume_data = modal.Volume.from_name("stj-vec-data", create_if_missing=True)
 
-GPU_CONFIG = "H200"
-BATCH_SIZE = 128  # BGE-M3 sparse e compute-bound: batch maior nao aumenta throughput
+GPU_CONFIG = "L4"
+BATCH_SIZE = 256
 MIN_SPARSE_WEIGHT = 0.01  # descartar pesos abaixo disso pra controlar tamanho
 
 image = modal.Image.debian_slim(python_version="3.11").pip_install(
@@ -75,6 +141,9 @@ class HybridEmbedder:
             return {"source": source_name, "count": 0, "status": "empty"}
 
         torch.cuda.reset_peak_memory_stats()
+
+        gpu_mon = GpuMonitor(interval=1.0)
+        gpu_mon.start()
         t0 = time.perf_counter()
 
         output = self.model.encode(
@@ -85,6 +154,9 @@ class HybridEmbedder:
             return_sparse=sparse,
             return_colbert_vecs=False,
         )
+
+        encode_elapsed = time.perf_counter() - t0
+        gpu_stats = gpu_mon.stop()
 
         os.makedirs("/data/embeddings", exist_ok=True)
 
@@ -128,8 +200,10 @@ class HybridEmbedder:
             f"({vram_peak_gb / vram_total_gb * 100:.0f}%)"
         )
         print(
-            f"[CALIBRATION] Time: {elapsed:.1f}s | Throughput: {emb_per_sec:.0f} emb/s"
+            f"[CALIBRATION] Time: {elapsed:.1f}s (encode: {encode_elapsed:.1f}s) "
+            f"| Throughput: {emb_per_sec:.0f} emb/s"
         )
+        print(f"[GPU-MONITOR] {gpu_stats}")
 
         return {
             "source": source_name,
@@ -141,7 +215,11 @@ class HybridEmbedder:
             "vram_total_gb": round(vram_total_gb, 2),
             "vram_pct": round(vram_peak_gb / vram_total_gb * 100, 1),
             "elapsed_s": round(elapsed, 1),
+            "encode_elapsed_s": round(encode_elapsed, 1),
             "emb_per_sec": round(emb_per_sec, 1),
+            "gpu_util_avg": gpu_stats.get("gpu_util_avg"),
+            "gpu_util_max": gpu_stats.get("gpu_util_max"),
+            "power_pct": gpu_stats.get("power_pct"),
         }
 
     @modal.method()
