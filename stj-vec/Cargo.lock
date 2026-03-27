@@ -2827,6 +2827,7 @@ dependencies = [
  "anyhow",
  "axum 0.8.8",
  "clap",
+ "futures",
  "ndarray",
  "ort",
  "qdrant-client",
@@ -2842,25 +2843,6 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "uuid",
-]
-
-[[package]]
-name = "stj-vec-server"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "async-trait",
- "axum 0.8.8",
- "clap",
- "reqwest",
- "serde",
- "serde_json",
- "stj-vec-core",
- "tokio",
- "tokio-util",
- "tower-http",
- "tracing",
- "tracing-subscriber",
 ]
 
 [[package]]
