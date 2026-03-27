@@ -21,9 +21,9 @@ pool_size = 4
 [search]
 max_results = 50
 default_limit = 20
-overfetch_factor = 3
+overfetch_factor = 5
 dense_weight = 1.0
-sparse_weight = 1.0
+sparse_weight = 0.1
 
 [preprocessing]
 enabled = true
