@@ -1,52 +1,77 @@
 use std::collections::HashMap;
 use std::path::Path;
-use std::sync::Arc;
+use std::sync::Mutex;
 
 use rusqlite::{Connection, OpenFlags};
-use tokio::sync::Semaphore;
 
 use crate::types::{
     ChunkWithMetadata, DocumentChunk, DocumentMeta, DocumentResponse, FiltersResponse,
     SearchFilters,
 };
 
-/// Pool simples de conexoes SQLite read-only.
+/// Pool de conexoes SQLite read-only pre-abertas.
 ///
-/// Usa semaforo para limitar concorrencia. Cada chamada abre uma
-/// conexao efemera (SQLite em WAL mode suporta leitores concorrentes).
+/// Conexoes sao abertas no startup e reutilizadas. Isso elimina o custo
+/// de ~42s por `open_readonly` num DB de 52GB.
 pub struct MetadataStore {
+    pool: Mutex<Vec<Connection>>,
     path: String,
-    semaphore: Arc<Semaphore>,
 }
 
 impl MetadataStore {
     /// Abre o store SQLite em modo read-only.
     ///
-    /// Verifica que o arquivo existe e que as tabelas esperadas estao presentes.
+    /// Pre-abre `pool_size` conexoes para evitar overhead de abertura em runtime.
     pub fn open(path: &str, pool_size: u32) -> anyhow::Result<Self> {
         anyhow::ensure!(
             Path::new(path).exists(),
             "banco SQLite nao encontrado em {path}"
         );
 
-        // Verificar que as tabelas existem
-        let conn = open_readonly(path)?;
-        let table_check: i64 = conn.query_row(
-            "SELECT count(*) FROM sqlite_master WHERE type='table' AND name IN ('documents', 'chunks')",
-            [],
-            |row| row.get(0),
-        )?;
-        anyhow::ensure!(
-            table_check == 2,
-            "tabelas 'documents' e/ou 'chunks' nao encontradas no banco"
-        );
+        let mut connections = Vec::with_capacity(pool_size as usize);
+        for i in 0..pool_size {
+            let conn = open_readonly(path)?;
+            if i == 0 {
+                let table_check: i64 = conn.query_row(
+                    "SELECT count(*) FROM sqlite_master WHERE type='table' AND name IN ('documents', 'chunks')",
+                    [],
+                    |row| row.get(0),
+                )?;
+                anyhow::ensure!(
+                    table_check == 2,
+                    "tabelas 'documents' e/ou 'chunks' nao encontradas no banco"
+                );
+            }
+            connections.push(conn);
+        }
 
-        tracing::info!(path, pool_size, "MetadataStore aberto");
+        tracing::info!(path, pool_size, "MetadataStore aberto com conexoes pre-abertas");
 
         Ok(Self {
+            pool: Mutex::new(connections),
             path: path.to_string(),
-            semaphore: Arc::new(Semaphore::new(pool_size as usize)),
         })
+    }
+
+    /// Pega uma conexao do pool. Se vazio, abre nova (fallback).
+    fn acquire(&self) -> anyhow::Result<Connection> {
+        let mut pool = self
+            .pool
+            .lock()
+            .map_err(|e| anyhow::anyhow!("mutex poisoned: {e}"))?;
+        if let Some(conn) = pool.pop() {
+            Ok(conn)
+        } else {
+            tracing::warn!("pool SQLite vazio, abrindo conexao extra");
+            open_readonly(&self.path)
+        }
+    }
+
+    /// Devolve conexao ao pool.
+    fn release(&self, conn: Connection) {
+        if let Ok(mut pool) = self.pool.lock() {
+            pool.push(conn);
+        }
     }
 
     /// Busca metadados de chunks pelo ID, fazendo JOIN com documents.
@@ -58,14 +83,8 @@ impl MetadataStore {
             return Ok(HashMap::new());
         }
 
-        let _permit = self
-            .semaphore
-            .try_acquire()
-            .map_err(|_| anyhow::anyhow!("pool de conexoes SQLite esgotado"))?;
+        let conn = self.acquire()?;
 
-        let conn = open_readonly(&self.path)?;
-
-        // Construir query com placeholders
         let placeholders: Vec<&str> = vec!["?"; chunk_ids.len()];
         let sql = format!(
             "SELECT c.id, c.content, c.chunk_index, c.doc_id,
@@ -104,19 +123,16 @@ impl MetadataStore {
             let chunk = row?;
             result.insert(chunk.chunk_id.clone(), chunk);
         }
+
+        drop(stmt);
+        self.release(conn);
         Ok(result)
     }
 
     /// Busca todos os chunks de um documento pelo doc_id.
     pub fn get_document_chunks(&self, doc_id: &str) -> anyhow::Result<DocumentResponse> {
-        let _permit = self
-            .semaphore
-            .try_acquire()
-            .map_err(|_| anyhow::anyhow!("pool de conexoes SQLite esgotado"))?;
+        let conn = self.acquire()?;
 
-        let conn = open_readonly(&self.path)?;
-
-        // Buscar metadados do documento
         let doc = conn.query_row(
             "SELECT id, processo, classe, ministro, orgao_julgador,
                     data_publicacao, tipo, assuntos
@@ -136,7 +152,6 @@ impl MetadataStore {
             },
         )?;
 
-        // Buscar chunks
         let mut stmt = conn.prepare(
             "SELECT id, chunk_index, content, token_count
              FROM chunks WHERE doc_id = ? ORDER BY chunk_index",
@@ -154,6 +169,9 @@ impl MetadataStore {
 
         let total_chunks = chunks.len();
 
+        drop(stmt);
+        self.release(conn);
+
         Ok(DocumentResponse {
             document: doc,
             chunks,
@@ -163,12 +181,7 @@ impl MetadataStore {
 
     /// Retorna valores unicos para os filtros (ministros, classes, tipos, orgaos).
     pub fn get_filter_values(&self) -> anyhow::Result<FiltersResponse> {
-        let _permit = self
-            .semaphore
-            .try_acquire()
-            .map_err(|_| anyhow::anyhow!("pool de conexoes SQLite esgotado"))?;
-
-        let conn = open_readonly(&self.path)?;
+        let conn = self.acquire()?;
 
         let ministros = query_distinct(
             &conn,
@@ -184,6 +197,8 @@ impl MetadataStore {
         )?;
         let orgaos = query_distinct(&conn, "SELECT DISTINCT orgao_julgador FROM documents WHERE orgao_julgador IS NOT NULL ORDER BY orgao_julgador")?;
 
+        self.release(conn);
+
         Ok(FiltersResponse {
             ministros,
             classes,
@@ -193,8 +208,6 @@ impl MetadataStore {
     }
 
     /// Filtra chunk_ids aplicando criterios nos documentos pai.
-    ///
-    /// Retorna apenas os chunk_ids cujo documento atende todos os filtros fornecidos.
     pub fn filter_chunk_ids(
         &self,
         chunk_ids: &[String],
@@ -204,14 +217,8 @@ impl MetadataStore {
             return Ok(chunk_ids.to_vec());
         }
 
-        let _permit = self
-            .semaphore
-            .try_acquire()
-            .map_err(|_| anyhow::anyhow!("pool de conexoes SQLite esgotado"))?;
+        let conn = self.acquire()?;
 
-        let conn = open_readonly(&self.path)?;
-
-        // Construir WHERE clause dinamica
         let placeholders: Vec<&str> = vec!["?"; chunk_ids.len()];
         let mut sql = format!(
             "SELECT c.id FROM chunks c JOIN documents d ON c.doc_id = d.id WHERE c.id IN ({})",
@@ -228,7 +235,6 @@ impl MetadataStore {
         }
         if let Some(ref tipo) = filters.tipo {
             sql.push_str(" AND d.tipo = ?");
-            // Normalizar: ACORDAO -> ACÓRDÃO, DECISAO -> DECISÃO
             let tipo_normalized = normalize_tipo(tipo);
             params.push(Box::new(tipo_normalized));
         }
@@ -261,27 +267,28 @@ impl MetadataStore {
             .query_map(param_refs.as_slice(), |row| row.get(0))?
             .collect::<Result<Vec<_>, _>>()?;
 
+        drop(stmt);
+        self.release(conn);
         Ok(filtered)
     }
 
     /// Conta total de documentos no banco.
     pub fn document_count(&self) -> anyhow::Result<u64> {
-        let _permit = self
-            .semaphore
-            .try_acquire()
-            .map_err(|_| anyhow::anyhow!("pool de conexoes SQLite esgotado"))?;
-
-        let conn = open_readonly(&self.path)?;
+        let conn = self.acquire()?;
         let count: i64 = conn.query_row("SELECT count(*) FROM documents", [], |row| row.get(0))?;
+        self.release(conn);
         Ok(count as u64)
     }
 
     /// Verifica se o banco esta acessivel.
     pub fn health_check(&self) -> bool {
-        open_readonly(&self.path)
+        self.acquire()
             .and_then(|conn| {
-                conn.query_row("SELECT 1", [], |_| Ok(()))
-                    .map_err(Into::into)
+                let ok = conn
+                    .query_row("SELECT 1", [], |_| Ok(()))
+                    .map_err(Into::into);
+                self.release(conn);
+                ok
             })
             .is_ok()
     }
@@ -297,7 +304,6 @@ fn open_readonly(path: &str) -> anyhow::Result<Connection> {
 }
 
 /// Normaliza valores de tipo de documento para os acentos corretos da base.
-/// Aceita variantes sem acento (ex: ACORDAO -> ACÓRDÃO) para robustez.
 fn normalize_tipo(tipo: &str) -> String {
     match tipo.to_uppercase().as_str() {
         "ACORDAO" => "ACÓRDÃO".to_string(),
