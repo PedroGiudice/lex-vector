@@ -485,6 +485,8 @@ impl Storage {
         limit: usize,
         threshold: f64,
         filters: &SearchFilters,
+        dense_weight: f64,
+        sparse_weight: f64,
     ) -> Result<Vec<SearchResult>> {
         let k = 60.0_f64; // RRF constant
 
@@ -494,20 +496,20 @@ impl Storage {
         // 2. Sparse search (FTS5) - graceful fallback
         let sparse_results = self.fts5_search(query_text, limit * 3).unwrap_or_default();
 
-        // 3. RRF fusion
+        // 3. RRF fusion with configurable weights
         let mut rrf_scores: std::collections::HashMap<String, f64> =
             std::collections::HashMap::new();
         let mut result_map: std::collections::HashMap<String, &SearchResult> =
             std::collections::HashMap::new();
 
         for (rank, result) in dense_results.iter().enumerate() {
-            let score = 1.0 / (k + rank as f64 + 1.0);
+            let score = dense_weight / (k + rank as f64 + 1.0);
             *rrf_scores.entry(result.chunk.id.clone()).or_default() += score;
             result_map.insert(result.chunk.id.clone(), result);
         }
 
         for (rank, (id, _bm25)) in sparse_results.iter().enumerate() {
-            let score = 1.0 / (k + rank as f64 + 1.0);
+            let score = sparse_weight / (k + rank as f64 + 1.0);
             *rrf_scores.entry(id.clone()).or_default() += score;
         }
 

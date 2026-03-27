@@ -46,6 +46,12 @@ enum Commands {
         query: String,
         #[arg(short, long, default_value = "5")]
         limit: usize,
+        /// Peso do dense (semantico) no RRF [0.0-1.0]
+        #[arg(long, default_value = "0.9")]
+        dense_weight: f64,
+        /// Peso do sparse (BM25/lexical) no RRF [0.0-1.0]
+        #[arg(long, default_value = "0.1")]
+        sparse_weight: f64,
     },
 }
 
@@ -100,7 +106,7 @@ async fn main() -> anyhow::Result<()> {
             println!("Chunks:      {}", stats.chunk_count);
             println!("Embeddings:  {}", stats.embedding_count);
         }
-        Commands::Search { query, limit } => {
+        Commands::Search { query, limit, dense_weight, sparse_weight } => {
             let work_dir = std::env::current_dir()?;
             let ing = Ingestor::open(&work_dir)?;
             let embedder = TeiEmbedder::default_local();
@@ -108,7 +114,7 @@ async fn main() -> anyhow::Result<()> {
             let filters = stj_vec_core::types::SearchFilters::default();
             let results = ing
                 .storage
-                .hybrid_search(&query_vec, &query, limit, 0.3, &filters)?;
+                .hybrid_search(&query_vec, &query, limit, 0.3, &filters, dense_weight, sparse_weight)?;
             if results.is_empty() {
                 println!("Nenhum resultado encontrado.");
             } else {
