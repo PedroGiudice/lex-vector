@@ -62,7 +62,6 @@ lex-vector/
 │   │   └── legal-text-extractor/  # LTE (Marker + Gemini)
 │   ├── docker/                # Docker Compose (redis, lte)
 │   └── docs/                  # Documentacao
-├── stj-vec/                   # Busca vetorial STJ (SQLite metadados + Qdrant busca hibrida)
 ├── .claude/                   # Config Claude Code (agents, hooks, skills)
 ├── ARCHITECTURE.md            # North Star
 └── CLAUDE.md                  # Este arquivo
