@@ -209,3 +209,8 @@ gemini_context.txt
 ledes-venv/
 *-venv/
 **/*-venv/
+
+# Embeddings (81GB)
+stj-vec/embeddings/
+.serena/
+.worktrees/
